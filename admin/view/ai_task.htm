@@ -1,0 +1,121 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+ <meta name="copyright" content="DouCo Co.,Ltd." />
+ <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+ <meta name="csrf-token" content="{$csrf_token}">
+ <title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+ <link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+ <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+ <link href="css/common.css" rel="stylesheet" type="text/css">
+ <link href="css/ai.css" rel="stylesheet" type="text/css">
+ {include file="inc/javascript.tpl"}
+</head>
+
+<body>
+ <div id="dou"> {include file="inc/header.tpl"}
+  {include file="inc/sidebar.tpl"}
+  <div id="dou-content"> {include file="inc/toolbar.tpl"}
+   <div class="dou-main has-subnav">
+    {include file="inc/ai_sub_menu.tpl"}
+    <div id="ai" class="dou-page">
+      <!-- {if $rec eq 'default'} 任务列表 -->
+      {include file="inc/page_header.tpl"}
+      <div class="filter">
+       <form action="{url link='admin.ai.task'}" method="get" onsubmit="return hideEmpty(this)">
+        <select name="status" class="select">
+         <option value="">{$lang.ai_task_status_all}</option>
+         <option value="pending" {if $req.status eq 'pending'}selected{/if}>{$lang.ai_task_status_pending}</option>
+         <option value="running" {if $req.status eq 'running'}selected{/if}>{$lang.ai_task_status_running}</option>
+         <option value="succeeded" {if $req.status eq 'succeeded'}selected{/if}>{$lang.ai_task_status_succeeded}</option>
+         <option value="failed" {if $req.status eq 'failed'}selected{/if}>{$lang.ai_task_status_failed}</option>
+         <option value="timeout" {if $req.status eq 'timeout'}selected{/if}>{$lang.ai_task_status_timeout}</option>
+        </select>
+        <select name="task_type" class="select">
+         <option value="">{$lang.ai_async_type_all}</option>
+         <option value="image" {if $req.task_type eq 'image'}selected{/if}>{$lang.ai_async_type_image}</option>
+         <option value="video" {if $req.task_type eq 'video'}selected{/if}>{$lang.ai_async_type_video}</option>
+         <option value="audio" {if $req.task_type eq 'audio'}selected{/if}>{$lang.ai_async_type_audio}</option>
+        </select>
+        <input class="btn-secondary" type="submit" value="{$lang.btn_filter}" />
+        <a class="btn-secondary" href="{url link='admin.ai.task'}">{$lang.btn_reset}</a>
+       </form>
+      </div>
+      <div id="list">
+       <table class="table">
+        <tr>
+         <th class="text-center" width="50">{$lang.record_id}</th>
+         <th class="text-center">{$lang.ai_log_admin}</th>
+         <th class="m-none text-start">{$lang.ai_task_provider}</th>
+         <th class="text-center">{$lang.ai_task_model}</th>
+         <th class="m-none text-center" width="80">{$lang.ai_async_type}</th>
+         <th class="text-center" width="90">{$lang.ai_task_status}</th>
+         <th class="m-none text-center" width="140">{$lang.ai_task_created_at}</th>
+         <th width="60" class="text-center">{$lang.handler}</th>
+        </tr>
+        <!-- {foreach from=$task_list item=task} -->
+        <tr>
+         <td class="text-center">{$task.id}</td>
+         <td class="text-center">{$admin_names[$task.admin_id]}</td>
+         <td class="m-none text-start">{$provider_names[$task.provider_id]}</td>
+         <td class="text-center">{$model_names[$task.model_id]}</td>
+         <td class="m-none text-center">
+          {if $task.task_type eq 'image'}{$lang.ai_async_type_image}
+          {elseif $task.task_type eq 'video'}{$lang.ai_async_type_video}
+          {elseif $task.task_type eq 'audio'}{$lang.ai_async_type_audio}
+          {else}{$task.task_type}{/if}
+         </td>
+         <td class="text-center">
+          {if $task.status eq 'succeeded'}<span class="success">{$lang.ai_task_status_succeeded}</span>
+          {elseif $task.status eq 'failed'}<span class="danger" title="{$task.error}">{$lang.ai_task_status_failed}</span>
+          {elseif $task.status eq 'timeout'}<span class="danger">{$lang.ai_task_status_timeout}</span>
+          {elseif $task.status eq 'running'}<span class="notice">{$lang.ai_task_status_running}</span>
+          {else}<span class="notice">{$lang.ai_task_status_pending}</span>{/if}
+         </td>
+         <td class="m-none text-center">{$task.created_at}</td>
+         <td class="text-center"><a href="javascript:;" class="js-task-view" data-id="{$task.id}">{$lang.view}</a> | <a href="javascript:;" class="js-delete" data-url="{url link='admin.ai.task.destroy' id=$task.id}">{$lang.del}</a></td>
+        </tr>
+        <!-- {/foreach} -->
+       </table>
+      </div>
+      <div class="clear"></div>
+      {include file="inc/pager.tpl"}
+      <!-- {/if} -->
+     </div>
+
+   </div>
+  </div>
+  {include file="inc/footer.tpl"}
+ </div>
+ <script>
+ {literal}
+ $(function () {
+   $('.js-task-view').on('click', function () {
+     var id = $(this).data('id');
+     $.ajax({
+       url: route('admin.ai.task.show', { id: id }),
+       type: 'GET',
+       dataType: 'json',
+       success: function (resp) {
+         if (resp && resp.code === 'OK') {
+           var d = resp.data || {};
+           var msg = lang('ai_task_result') + ':\n' + JSON.stringify(d.result || d.status, null, 2);
+           alert(msg);
+         } else {
+           alert(resp && resp.message);
+         }
+       },
+       error: function (xhr) {
+         var resp = xhr.responseJSON;
+         alert(resp && resp.message);
+       }
+     });
+   });
+ });
+ {/literal}
+ </script>
+</body>
+
+</html>

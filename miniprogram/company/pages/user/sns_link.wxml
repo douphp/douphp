@@ -1,0 +1,22 @@
+<!--product.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class='body miniH'>
+  <view class="snsLink">
+   <view class="head">{{lang.user_sns}}</view>
+   <view class="img">
+    <image src="{{sns.avatar}}" class="image" />
+   </view>
+   <view>{{sns.nickname}}</view>
+   <view class="action">
+    <navigator open-type="navigate" url="/pages/user/register?sns_link=weixin{{promotion_user_sn ? '&user_sn=' + promotion_user_sn : ''}}">
+     <view class="btn">{{lang.user_sns_new_account}}</view>
+    </navigator>
+    <navigator open-type="navigate" url="/pages/user/login?sns_link=weixin{{promotion_user_sn ? '&user_sn=' + promotion_user_sn : ''}}">
+     <view class="btn">{{lang.user_sns_old_account}}</view>
+    </navigator>
+   </view>
+  </view>
+ </view>
+ <view class="footer"><text wx:if="{{lang.powered_by}}">{{lang.powered_by}}</text></view>
+</view>

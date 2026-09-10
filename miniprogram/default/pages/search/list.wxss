@@ -1,0 +1,28 @@
+/* pages/search/list.wxss */
+.search-list {
+}
+.search-list .empty {
+ padding: 40px 15px;
+ text-align: center;
+ color: #999;
+}
+/* search-box */
+.search-list .search-box {
+ padding: 12px 0 4px;
+}
+/* sort-box */
+.sort-box {
+ display: flex;
+ justify-content: space-around;
+}
+.sort-box .item {
+ padding: 12px 10px;
+ color: #777;
+}
+.sort-box .item.active {
+ color: #CC0000;
+}
+.sort-box .item .bi {
+ margin-left: 5px;
+ font-size: 12px;
+}

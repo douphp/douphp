@@ -1,0 +1,21 @@
+/* pages/share/apply.wxss */
+.share-apply {
+ padding-top: 20px;
+}
+.share-apply .bank {
+ border: 1px solid #EEE;
+ padding: 20px;
+ margin-bottom: 30px;
+}
+.share-apply .bank .head {
+ color: #19B4EA;
+ font-weight: bold;
+ margin-bottom: 25px;
+ font-size: 16px;
+}
+.share-apply .bank .head text {
+ display: block;
+ color: #999;
+ font-size: 12px;
+ margin-top: 5px;
+}

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <meta name="keywords" content="{$keywords}" />
+ <meta name="description" content="{$description}" />
+ <meta name="generator" content="{$generator}" />
+ <meta name="csrf-token" content="{$csrf_token}">
+ <title>{$page_title}</title>
+ <link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+ <link href="css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+ <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css" />
+ <link href="css/common.css" rel="stylesheet" type="text/css" />
+ <link href="css/style.css" rel="stylesheet" type="text/css" />
+ <link href="css/product.css" rel="stylesheet" type="text/css" />
+ <link href="css/content.css" rel="stylesheet" type="text/css" />
+ {include file="inc/code_head.tpl"}
+</head>
+
+<body>
+ <div id="wrapper"> {include file="inc/header.tpl"}
+  <div class="container mb">
+   <div class="row">
+    <div class="col-md-2"> {include file="inc/product_tree.tpl"} </div>
+    <div class="col-md-10"> {include file="inc/ur_here.tpl"}
+     <div id="product">
+      <div class="product-img-info">
+       <div class="product-img">
+        <div class="gallery-top jqzoom">
+         <img class="popup-img" src="{$product.image}" data-zoom-image="{$product.image}" />
+        </div>
+        <div class="gallery-thumbs">
+         <ul class="thumb-list">
+          <li class="thumb-item active"><img src="{$product.image}" /></li>
+          <!-- {foreach from=$product.gallery_list name=gallery item=gallery} -->
+          <li class="thumb-item"><img src="{$gallery.file}" /></li>
+          <!-- {/foreach} -->
+         </ul>
+        </div>
+        <!-- {if $product.favorites} -->
+        <span class="btn-favorites{$product.favorites.class}" data-item_id="{$product.id}"><i class="bi bi-heart-fill"></i><em>{$product.favorites.text}</em></span>
+        <!-- {/if} -->
+       </div>
+       <div class="product-info">
+        <h1>{$product.title}</h1>
+        <ul>
+         <!-- {if $site.show_price} -->
+         <li class="product-price">{$lang.price}：<em id="salePrice" class="price">{$product.sale_price.format}</em><!-- {if $product.sale_price.name} --><i class="price-cue">{$product.sale_price.name}</i><!-- {/if} --><!-- {if $product.sale_price.type neq 'original'} --><em id="price" class="price-gray">{$product.price}</em><!-- {/if} --></li>
+         <!-- {/if} -->
+         <!-- {if $product.brand} -->
+         <li>{$lang.brand}：<a href="{$product.brand.url}" target="_blank">{$product.brand.name}</a></li>
+         <!-- {/if} -->
+         <!-- {if $coupon_list} -->
+         <li>{$lang.coupon}：<div class="coupon-get-list"><!-- {foreach from=$coupon_list item=coupon} --><span class="get-coupon{$coupon.class}" title="{$coupon.brief}" data-id="{$coupon.id}"><em class="n">{$coupon.name}</em><em class="t">{$coupon.status.format}</em></span><!-- {/foreach} --></div>
+         </li>
+         <!-- {/if} -->
+         <!-- {foreach from=$defined name=defined item=defined} -->
+         <li>{$defined.arr}：{$defined.value}</li>
+         <!-- {/foreach} -->
+         <!-- {if $product.model_list && !$features.attribute} -->
+         <li> {$lang.product_model}：
+          <p class="model-list">
+           <!-- {foreach from=$product.model_list item=model} -->
+           <a class="item{if $model.cur} cur{/if}" href="{$model.url}" title="{$model.title}"><img src="{$model.thumb}" alt="{$model.title}" /><i>{$model.title}</i></a>
+           <!-- {/foreach} -->
+          </p>
+         </li>
+         <!-- {/if} -->
+        </ul>
+        <!-- {if $features.order} -->
+        <div class="buy-box">
+         <form action="{url link='order.cart.store'}" method="post">
+          <!-- {if $features.attribute && $product.attribute_list} -->
+          <div class="attribute-list" data-price="{$product.price}" data-sale_price="{$product.sale_price.format}">
+           <!-- {foreach from=$product.attribute_list item=attribute} -->
+           <dl>
+            <dt>{$attribute.name}</dt>
+            <dd class="radio-box">
+             <!-- {foreach from=$attribute.value_list name=value_list item=item} -->
+             <label title="{$item.remark}" for="att_{$attribute.att_id}_{$item.id}">
+              <input type="radio" name="att_{$attribute.att_id}" id="att_{$attribute.att_id}_{$item.id}" value="{$item.id}" {if $item@first} checked="true" {/if} data-money="{$item.price_change}">
+              <span><!-- {if $item.image} --><i><img src="{$item.image}" /></i><!-- {/if} --><em>{$item.value}{$item.price_change_format}</em></span> </label>
+             <!-- {/foreach} -->
+            </dd>
+           </dl>
+           <!-- {/foreach} -->
+          </div>
+          <!-- {/if} -->
+          <div class="quantity">
+           <div class="name">{$lang.product_buy_quantity}</div>
+           <div class="number-box">
+            <span class="minus"> - </span><input class="inp" type="text" name="number" size="5" value="1" autocomplete="off" /><span class="plus">+</span>
+           </div>
+          </div>
+          <input type="hidden" name="module" value="product" />
+          <input type="hidden" name="item_id" value="{$product.id}" />
+          <input type="hidden" name="token" value="{$token}" />
+          <button type="submit" name="action" class="add-to-cart" value="addtocart">{$lang.order_addtocart}</button>
+          <button type="submit" name="action" class="buy-now" value="buynow">{$lang.order_buynow}</button>
+         </form>
+        </div>
+        <!-- {else} -->
+        <div class="btn-ask">
+         <!-- {if $site.qq.0.number} -->
+         <a href="http://wpa.qq.com/msgrd?v=3&amp;uin={$site.qq.0.number}&amp;site=qq&amp;menu=yes" target="_blank"><i class="bi bi-qq"></i>{$lang.online_qq}</a>
+         <!-- {/if} -->
+        </div>
+        <!-- {/if} -->
+       </div>
+      </div>
+      <div class="product-content">
+       <h3>{$lang.product_content}</h3>
+       <ul>
+        {$product.content nofilter}
+       </ul>
+      </div>
+     </div>
+     <!-- {if $features.comment} -->
+     {include file="inc/comment.tpl"}
+     <!-- {/if} -->
+    </div>
+   </div>
+  </div>
+  {include file="inc/online_service.tpl"}
+  {include file="inc/footer.tpl"}
+ </div>
+ <div class="mobile-image">
+  <div class="close"><i class="bi bi-x-lg popup-img"></i></div>
+  <img src="{$product.image}" />
+  <!-- {foreach from=$product.gallery_list item=gallery} -->
+  <img src="{$gallery.file}" />
+  <!-- {/foreach} -->
+ </div>
+ <script>var url_favorites = "{url link='favorites.user.store'}";</script>
+ <script>var url_coupon = "{url link='coupon.claim'}";</script>
+ {include file="inc/code_footer.tpl"}
+ <script type="text/javascript" src="js/bootstrap.min.js"></script>
+ <script type="text/javascript" src="js/product.js"></script>
+ <script type="text/javascript" src="js/alpine.min.js" defer></script>
+ <script type="text/javascript" src="js/dou.js"></script>
+ <script type="text/javascript" src="js/dou.form.js"></script>
+ <script type="text/javascript" src="js/online_service.js"></script>
+</body>
+
+</html>

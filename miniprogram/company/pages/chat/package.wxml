@@ -1,0 +1,30 @@
+<!--pages/chat/package.wxml AI套餐-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="chat-package-list">
+   <view class="package-item" wx:for="{{package_list}}" wx:key="id" wx:for-item="item">
+    <view class="package-header">
+     <view class="name">{{item.name}}</view>
+     <view class="price">{{item.price}}<text class="unit">/{{item.day}}天</text></view>
+    </view>
+    <view class="package-features">
+     <view class="feature">
+      <text class="label">Tokens限额</text>
+      <text class="value">{{item.tokens_limit_format}}</text>
+     </view>
+     <view class="feature">
+      <text class="label">请求次数</text>
+      <text class="value">{{item.requests_limit_format}}</text>
+     </view>
+     <view class="feature">
+      <text class="label">有效期</text>
+      <text class="value">{{item.day}}天</text>
+     </view>
+    </view>
+    <view class="package-action" data-item_id="{{item.id}}" bindtap="addToCart">立即购买</view>
+   </view>
+   <view class="chat-empty" wx:if="{{!package_list.length}}">暂无可用套餐</view>
+  </view>
+ </view>
+</view>

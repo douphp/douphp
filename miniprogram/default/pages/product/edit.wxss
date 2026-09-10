@@ -1,0 +1,98 @@
+/* pages/user/product_edit.wxss */
+/* attribute
+----------------------------------------------- */
+.attribute {
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+.attribute .att-head {
+  font-size: 13px;
+  color: #999;
+  margin-bottom: 5px;
+}
+.attribute .att-action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+.attribute .att-action .att-input {
+  flex: 1;
+  min-width: 60px;
+  height: 30px;
+  line-height: 30px;
+  border: 1px solid #ccc;
+  background-color: #f4f4f4;
+  padding: 0 8px;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+.inpMain {
+  border: 1px solid #ccc;
+  background-color: #f4f4f4;
+  padding: 4px 5px;
+  color: #666;
+  font-size: 12px;
+  line-height: 20px;
+  -webkit-appearance: none;
+}
+.attribute .att-action .btn-att {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #ccc;
+  background-color: #f4f4f4;
+  padding: 0 12px;
+  height: 30px;
+  color: #666;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.attribute .att-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 5px;
+}
+.attribute .att-item {
+  display: inline-flex;
+  align-items: center;
+  background-color: #28b779;
+  overflow: hidden;
+}
+.attribute .att-item .val {
+  padding: 0 8px;
+  height: 28px;
+  line-height: 28px;
+  font-size: 13px;
+  color: #fff;
+}
+.attribute .att-item .remark {
+  padding: 0 6px;
+  height: 28px;
+  line-height: 28px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.8);
+}
+.attribute .att-item .att-img {
+  width: 28px;
+  height: 28px;
+  background-color: #ddd;
+}
+.attribute .att-item .att-img-add {
+  padding: 0 8px;
+  height: 28px;
+  line-height: 28px;
+  font-size: 11px;
+  background-color: rgba(0, 0, 0, 0.1);
+  color: #fff;
+}
+.attribute .att-item .del {
+  padding: 0 8px;
+  height: 28px;
+  line-height: 28px;
+  background-color: rgba(0, 0, 0, 0.15);
+  font-size: 11px;
+  color: #fff;
+}

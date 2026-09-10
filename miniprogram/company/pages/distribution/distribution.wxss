@@ -1,0 +1,60 @@
+/* pages/distribution/distribution.wxss */
+/* distribution-list */
+.distribution-list {
+}
+.distribution-list .item {
+ margin-bottom: 25px;
+ border-bottom: 1px solid #DDD;
+ padding-bottom: 30px;
+}
+.distribution-list .item .text {
+ color: #999;
+}
+.distribution-list .item .head {
+ padding: 10px 0;
+ border-bottom: 1px solid #EEE;
+ font-size: 16px;
+}
+.distribution-list .item .head .money {
+ font-weight: bold;
+}
+.distribution-list .item .head .time {
+ float: right;
+ color: #999;
+}
+.distribution-list .item .info {
+ margin-top: 10px;
+ color: #999;
+}
+.distribution-list .item .info text {
+ margin-right: 20px;
+}
+.distribution-list .item .handle {
+ margin-top: 20px;
+ color: red;
+}
+.distribution-list .item .handle text {
+ margin-right: 20px;
+}
+/* distribution-apply
+----------------------------------------------- */
+.distribution-apply {
+ padding-top: 20px;
+}
+.distribution-apply .bank {
+ border: 1px solid #EEE;
+ padding: 20px;
+ margin-bottom: 30px;
+}
+.distribution-apply .bank .head {
+ color: #19B4EA;
+ font-weight: bold;
+ margin-bottom: 25px;
+ font-size: 16px;
+}
+.distribution-apply .bank .head text {
+ display: block;
+ color: #999;
+ font-size: 12px;
+ margin-top: 5px;
+}

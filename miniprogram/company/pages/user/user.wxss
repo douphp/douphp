@@ -1,0 +1,124 @@
+/* -- user -- */
+.account {
+ zoom: 1;
+ overflow: hidden;
+ border-bottom: 4px solid #EEE;
+ padding-bottom: 15px;
+}
+.account .avatar {
+ float: left;
+ width: 60px;
+ height: 60px;
+ border: 1px solid #e0e0e0;
+ border-radius: 120px;
+ overflow: hidden;
+}
+.account .avatar image {
+ width:60px;
+ height:60px;
+}
+.account .info {
+ margin-left: 70px;
+}
+.account .info.pt {
+ padding-top: 8px;
+}
+.account .info .user-name {
+ font-size: 18px;
+ font-weight: 400;
+}
+.account .info .user-name .level {
+ font-size: 16px;
+ color: #999;
+}
+.account .info .user-name .switch {
+ float: right;
+ background-color: #EEE;
+ padding: 0 13px;
+ line-height: 24px;
+ border-radius: 13px;
+ font-size: 12px;
+}
+.account .info .text {
+ color: #999;
+ margin-bottom: 10px;
+}
+.account .info .text .renew {
+ display: inline-block;
+ color: #19B4EA;
+ border: 1px solid #DDD;
+ padding: 3px 5px;
+ line-height: 1em;
+ font-size: 12px;
+ cursor: pointer;
+}
+.account .info .action {
+ color: #19B4EA;
+}
+/* -- userTree -- */
+.userTree {
+}
+.userTree .item {
+ padding: 0 15px;
+ border-bottom: 1px solid #EEE;
+ margin-bottom: 10px;
+}
+.userTree .item .tree {
+ padding: 10px 0;
+ font-size: 14px;
+}
+.userTree .item .tree text {
+ float:right;
+ color: #CCC;
+ font-size: 20px;
+}
+/* -- treeMini -- */
+.userTree .item .treeMini {
+ zoom: 1;
+ overflow: hidden;
+ border-top: 1px dotted #EEE;
+ font-size: 12px;
+ color: #999;
+}
+.userTree .item .treeMini .child {
+ display: inline-block;
+ width: 25%;
+ text-align: center;
+ padding: 10px 0;
+}
+.userTree .item .treeMini.four .child {
+ width: 25%;
+}
+.userTree .item .treeMini.three .child {
+ width: 33%;
+}
+.userTree .item .treeMini .bi {
+ margin-bottom: 5px;
+ font-size: 20px;
+}
+/* -- promotion -- */
+.promotion {
+ padding: 0 15px;
+ text-align: center;
+ margin-bottom: 50px;
+}
+.promotion .h2 {
+ font-size: 16px;
+ margin-top: 20px;
+ margin-bottom: 5px;
+}
+.promotion .link {
+ color: #555;
+}
+.promotion .link text {
+ display: block;
+ color: #999;
+}
+.promotion .qrcode image {
+ width: 200px;
+ box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* 水平偏移 0，垂直偏移 2px，模糊 8px，透明度 0.1 */
+}
+.promotion .qrcode text {
+ display: block;
+ color: #999;
+}

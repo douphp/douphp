@@ -1,0 +1,24 @@
+<!--pages/chat/list.wxml AI助手应用中心-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <!-- 应用列表（配额状态归位 user 页） -->
+  <view class="chat-app-list">
+   <view class="app-item" wx:for="{{app_list}}" wx:key="id" wx:for-item="item" data-item="{{item}}" bindtap="openApp">
+    <view class="app-icon">
+     <image wx:if="{{item.icon}}" src="{{item.icon}}" mode="aspectFill"></image>
+     <text wx:else class="bi bi-chat-square-text"></text>
+    </view>
+    <view class="app-info">
+     <view class="app-name">
+      {{item.name}}
+      <text class="badge" wx:if="{{!item.is_free}}">付费</text>
+     </view>
+     <view class="app-desc">{{item.description}}</view>
+    </view>
+    <text class="bi bi-chevron-right arrow"></text>
+   </view>
+   <view class="chat-empty" wx:if="{{!app_list.length}}">暂无可用应用</view>
+  </view>
+ </view>
+</view>

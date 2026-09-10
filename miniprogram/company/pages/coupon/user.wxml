@@ -1,0 +1,28 @@
+<!--pages/coupon/user.wxml-->
+<navbar title="{{title}}" url="/pages/user/user"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="page-head">
+   <view class="action"><text class="link" data-url="/pages/coupon/coupon" bindtap="douNavigateTo">{{lang.coupon_buy}}</text></view>
+   <view class="name">{{lang.coupon_log}}</view>
+  </view>
+  <view class="coupon-list">
+   <view class="item-box" wx:for="{{coupon_list}}" wx:for-item="item" wx:key="index">
+    <view class="item{{coupon.status.value != 'got' ? ' gray' : ''}}">
+     <view class="head">
+      <view class="circle"></view>
+      <view class="money">{{item.money}}</view>
+      <view class="name">{{item.name}}</view>
+      <view class="time">{{item.start_at}}~{{item.end_at}}</view>
+     </view>
+     <navbar title="{{title}}"></navbar>
+<view class="body">
+      <view class="row"><text class="b">{{lang.coupon_coupon_sn}} :</text> {{item.coupon_sn}} <text class="i" wx:if="{{item.status.value != 'got'}}">({{item.status.format}})</text></view>
+      <view class="row"><text class="b">{{lang.coupon_brief}} :</text> {{item.brief}}</view>
+     </view>
+    </view>
+   </view>
+   <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
+  </view>
+ </view>
+</view>

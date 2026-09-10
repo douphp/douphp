@@ -1,0 +1,12 @@
+<!--pages/service/show.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="detail">
+   <view class="title">{{service.name}}</view>
+   <view class="content">
+    <mp-html content="{{service.content}}" />
+   </view>
+  </view>
+ </view>
+</view>

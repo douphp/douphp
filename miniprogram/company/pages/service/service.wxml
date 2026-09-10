@@ -1,0 +1,15 @@
+<!--pages/service/service.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="grid-list padding-y">
+   <navigator class="item" hover-class="mouseDown" wx:for="{{service_list}}" wx:key="index" wx:for-item="service" url="{{service.url}}">
+    <view class="img">
+     <image src="{{service.image}}" mode="widthFix" style="height: 183px" />
+    </view>
+    <view class="title">{{service.name}}</view>
+   </navigator>
+   <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
+  </view>
+ </view>
+</view>

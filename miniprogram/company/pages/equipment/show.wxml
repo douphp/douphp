@@ -1,0 +1,12 @@
+<!--pages/equipment/show.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="detail">
+   <view class="title">{{equipment.name}}</view>
+   <view class="content">
+    <mp-html content="{{equipment.content}}" />
+   </view>
+  </view>
+ </view>
+</view>

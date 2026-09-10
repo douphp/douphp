@@ -1,0 +1,28 @@
+/*
+Theme Name: DouPHP Default
+Theme URI: http://demo.douphp.com/
+Description: DouPHP 默认模板
+Version: 1.0
+Author: DouCo Co.,Ltd.
+Author URI: http://www.douphp.com/
+*/
+
+/* page 
+----------------------------------------------- */
+.page {
+ padding-bottom: 30px;
+ background-color:#FFF;
+}
+.page .page-name {
+ color: #000;
+ font-size: 18px;
+ font-weight: bold;
+ padding: 20px 0;
+ line-height: 190%;
+}
+.page .content {
+ line-height: 200%;
+}
+.page .content image {
+ max-width: 100%;
+}

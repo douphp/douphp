@@ -1,0 +1,21 @@
+<!--pages/store/show.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="detail">
+   <view class="title">{{store.name}}</view>
+   <view class="img" wx:if="{{store.image}}">
+    <image src="{{store.image}}" mode="widthFix" />
+   </view>
+   <view class="info-list">
+    <view class="item" wx:if="{{store.class}}"><text>{{lang.store_class}}：</text>{{store.class}}</view>
+    <view class="item"><text>{{lang.store_address}}：</text>{{store.address}}</view>
+    <view class="item"><text>{{lang.store_telphone}}：</text>{{store.telphone}}</view>
+   </view>
+   <view class="head">{{lang.store_content}}</view>
+   <view class="content">
+    <mp-html content="{{store.content}}" />
+   </view>
+  </view>
+ </view>
+</view>

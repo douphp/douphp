@@ -1,0 +1,86 @@
+/* pages/money/money.wxss */
+.pay-code {
+ height: 100vh;
+ background-color: #2C2B3C;
+ padding: 80px 20px 40px 20px;
+}
+.pay-code.light {
+ background-color: #5D5D69;
+}
+.pay-code .con-box {
+ background-color: #FFF;
+ border-radius: 10px;
+ padding: 20px 25px;
+}
+.pay-code .con-box .head {
+ padding-bottom: 15px;
+ margin-bottom: 20px;
+ border-bottom: 1px solid #EEE;
+ line-height: 120%;
+}
+.pay-code .con-box .head .bi {
+ float: right;
+ font-size: 20px;
+ color: #999;
+}
+.pay-code .con-box .head .telphone {
+ font-size: 18px;
+ vertical-align: middle;
+}
+.pay-code .con-box .head .icon {
+ background-color: #191919;
+ padding: 1px 4px;
+ border-radius: 3px;
+ color: #E2B055;
+ font-size: 12px;
+ margin-left: 8px;
+}
+.pay-code .con-box .code-box .number {
+ font-size: 27rpx;
+ color: #999;
+ text-align: center;
+ letter-spacing: 5rpx;
+ white-space: nowrap;
+}
+.pay-code .con-box .code-box .barcode {
+ display: flex;
+ height: 200rpx;
+ flex-direction: column;
+ justify-content: center;
+ align-items: center;
+}
+.pay-code .con-box .code-box .barcode > canvas {
+ width: 600rpx;
+ height: 176rpx;
+}
+.pay-code .con-box .code-box .qrcode {
+ height: 420rpx;
+ display: flex;
+ flex-direction: column;
+ justify-content: flex-end;
+ align-items: center;
+}
+.pay-code .con-box .code-box .qrcode > canvas {
+ width: 420rpx;
+ height: 420rpx;
+}
+.pay-code .con-box .code-box .time-limit {
+ text-align: center;
+ color: #999;
+}
+.pay-code .con-box .code-box .time-limit text {
+ margin-right: 10px;
+}
+.pay-code .con-box .info {
+ padding-top: 15px;
+ margin-top: 20px;
+ border-top: 1px solid #EEE;
+ display: flex;
+ justify-content: space-between;
+ align-items: center;
+}
+.pay-code .con-box .info .total {
+ font-size: 16px;
+}
+.pay-code .con-box .info .recharge {
+}

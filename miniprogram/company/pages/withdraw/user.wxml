@@ -1,0 +1,36 @@
+<!--pages/withdraw/user.wxml-->
+<navbar title="{{title}}" url="/pages/user/user"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="page-head">
+   <view class="action">
+    <text class="link" bindtap="applyExist" wx:if="{{apply_exist}}">{{lang.withdraw_apply}}</text>
+    <text class="link" data-url="/pages/withdraw/apply" bindtap="douNavigateTo" wx:else>{{lang.withdraw_apply}}</text>
+   </view>
+   <view class="name">{{lang.withdraw_list}}<text class="sub-name">（{{lang.user_money}}：{{money_total}}）</text></view>
+  </view>
+  <view class="withdraw-list">
+   <view class="item" wx:for="{{withdraw_list}}" wx:for-item="withdraw" wx:key="index">
+    <view class="head">
+     <view class="time">{{withdraw.created_at}}</view>
+     <view class="money">{{lang.withdraw_money}}：{{withdraw.money}}
+      <text class="text">({{withdraw.status.format}})</text>
+     </view>
+    </view>
+    <view class="info">
+     <text>{{lang.withdraw_withdraw_sn}}：{{withdraw.withdraw_sn}}</text>
+    </view>
+    <view class="info">
+     <text>{{lang.withdraw_card_number}}：{{withdraw.card_number}}</text>
+     <text>{{lang.withdraw_card_bank}}：{{withdraw.card_bank}}</text>
+     <text>{{lang.withdraw_card_name}}：{{withdraw.card_name}}</text>
+    </view>
+    <view class="handle" wx:if="{{withdraw.handled_at || withdraw.handle_record}}">
+     <text>{{lang.withdraw_handle_time}}：{{withdraw.handled_at}}</text>
+     <text wx:if="{{withdraw.handle_record}}">{{lang.withdraw_handle_record}}：{{withdraw.handle_record}}</text>
+    </view>
+   </view>
+   </view>
+   <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
+  </view>
+ </view>

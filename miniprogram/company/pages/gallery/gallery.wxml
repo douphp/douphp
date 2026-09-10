@@ -1,0 +1,15 @@
+<!--gallery.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="detail">
+   <view class="title">{{gallery.title}}</view>
+   <view class="info"><text>{{lang.created_at}}：{{gallery.created_at}}</text><text>{{lang.click}}：{{gallery.click}}</text>
+    <text wx:for="{{defined}}" wx:key="index" wx:for-item="defined"> {{defined.arr}}：{{defined.value}} </text>
+   </view>
+   <view class="content">
+    <image src="{{item.file}}" mode="widthFix" wx:for="{{gallery.gallery}}" wx:key="index" wx:for-item="item" />
+   </view>
+  </view>
+ </view>
+</view>

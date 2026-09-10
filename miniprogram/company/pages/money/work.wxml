@@ -1,0 +1,28 @@
+<!--pages/money/work.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="page-head">
+   <view class="name">{{lang.money_work}}</view>
+  </view>
+  <view class="work"> 
+   <view class="search">
+    <view class="scan-box" wx:if="{{pay_code_mode}}">
+     <view class="scan" bindtap="scanCode">
+      <text class="bi bi-qr-code-scan"></text>
+      <text class="name">操作员扫码</text>
+     </view>
+    </view>
+    <form bindsubmit="searchUser" wx:else>
+     <view class="search-box">
+      <view class="keyword-box">
+       <text class="bi bi-search"></text>
+       <input type="text" name="telphone" class="keyword" value="{{work.telphone}}" placeholder="{{lang.money_work_telphone_cur}}" placeholder-class="placeholder" />
+      </view>
+      <button formType="submit" class="btn-search">{{lang.btn_search}}</button>
+     </view>
+    </form>
+   </view>
+  </view>
+ </view>
+</view>

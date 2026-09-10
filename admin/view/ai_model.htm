@@ -1,0 +1,266 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+ <meta name="copyright" content="DouCo Co.,Ltd." />
+ <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+ <meta name="csrf-token" content="{$csrf_token}">
+ <title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+ <link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+ <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+ <link href="css/common.css" rel="stylesheet" type="text/css">
+ <link href="css/ai.css" rel="stylesheet" type="text/css">
+ {include file="inc/javascript.tpl"}
+</head>
+
+<body>
+ <div id="dou"> {include file="inc/header.tpl"}
+  {include file="inc/sidebar.tpl"}
+  <div id="dou-content"> {include file="inc/toolbar.tpl"}
+   <div class="dou-main has-subnav">
+    {include file="inc/ai_sub_menu.tpl"}
+    <div id="ai" class="dou-page">
+     <!-- {if $rec eq 'default'} 模型列表（按供应商分组） -->
+     {include file="inc/page_header.tpl"}
+     <!-- {if $key_total eq 0} 首装/无可用密钥提示 -->
+     <div class="ai-setup-notice">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      {$lang.ai_provider_setup_notice}
+     </div>
+     <!-- {/if} -->
+     <div class="filter">
+      <form action="{url link='admin.ai.model'}" method="get" onsubmit="return hideEmpty(this)">
+       <input name="keyword" type="text" class="input" value="{$keyword}" size="20" placeholder="{$lang.ai_provider_name}/{$lang.ai_provider_code}" />
+       <input class="btn-secondary" type="submit" value="{$lang.btn_filter}" />
+      </form>
+     </div>
+     <div id="list">
+      <form name="action" method="post" action="{url link='admin.ai.model.action'}">
+       <input type="hidden" name="token" value="{$token}" />
+       <table class="table">
+        <tr>
+         <th width="22" class="text-center"><input name='chkall' type='checkbox' id='chkall' onclick='selectcheckbox(this.form)' value='check'></th>
+         <th class="m-none text-center" width="40">{$lang.record_id}</th>
+         <th class="text-left">{$lang.ai_provider_name}</th>
+         <th class="text-center">{$lang.ai_provider_code}</th>
+         <th width="100" class="text-center">{$lang.ai_provider_key_list}</th>
+         <th class="m-none text-left">{$lang.ai_provider_base_url}</th>
+         <th width="80" class="text-center">{$lang.status}</th>
+         <th class="m-none text-center" width="60">{$lang.sort}</th>
+         <th class="m-none text-center" width="120">{$lang.ai_provider_created_at}</th>
+         <th width="80" class="text-center">{$lang.handler}</th>
+        </tr>
+        <!-- {foreach from=$provider_list item=provider} -->
+        <tr class="{if !$provider.status}row-disabled{/if}" data-off-row-class="row-disabled">
+         <td class="text-center"><input type="checkbox" name="checkbox[]" value="{$provider.id}" /></td>
+         <td class="m-none text-center">{$provider.id}</td>
+         <td><a href="{url link='admin.ai.model.edit' id=$provider.id}">{$provider.name}</a></td>
+         <td class="text-center"><code>{$provider.code}</code></td>
+         <td class="text-center">
+          <!-- {if $provider.key_count} -->
+          <span class="ai-key-badge" title="{$lang.ai_provider_key_count_cue}">{$provider.key_count}</span>
+          <!-- {else} -->
+          <a class="ai-key-missing" href="{url link='admin.ai.model.edit' id=$provider.id}" title="{$lang.ai_provider_key_missing_cue}"><i class="bi bi-exclamation-triangle"></i> {$lang.ai_key_none}</a>
+          <!-- {/if} -->
+         </td>
+         <td class="m-none"><small>{$provider.base_url}</small></td>
+         <td class="text-center">
+          <span class="link js-toggle {if $provider.status}ai-status ai-status-on{else}ai-status ai-status-off{/if}" data-url="{url link='admin.ai.model.toggle_status' id=$provider.id}" data-state="{if $provider.status}on{else}off{/if}" data-on-class="ai-status ai-status-on" data-off-class="ai-status ai-status-off" data-text-on="{$lang.enabled}" data-text-off="{$lang.disabled}" title="{$lang.ai_provider_toggle_cue}"><span class="js-toggle-state">{if $provider.status}{$lang.enabled}{else}{$lang.disabled}{/if}</span><span class="js-toggle-action">{if $provider.status}{$lang.disabled}{else}{$lang.enabled}{/if}</span></span>
+         </td>
+         <td class="m-none text-center">{$provider.sort}</td>
+         <td class="m-none text-center">{$provider.created_at}</td>
+         <td class="text-center"><a href="{url link='admin.ai.model.edit' id=$provider.id}">{$lang.edit}</a> |
+          <a href="javascript:;" class="js-delete" data-url="{url link='admin.ai.model.destroy' id=$provider.id}">{$lang.del}</a>
+         </td>
+        </tr>
+        <!-- {/foreach} -->
+       </table>
+       <div class="action">
+        <select class="select" name="action" onchange="douAction()">
+         <option value="0">{$lang.select}</option>
+         <option value="enable">{$lang.ai_provider_batch_enable}</option>
+         <option value="disable">{$lang.ai_provider_batch_disable}</option>
+         <option value="del_all">{$lang.del}</option>
+        </select>
+        <input class="btn" type="submit" value="{$lang.btn_execute}" />
+       </div>
+      </form>
+     </div>
+     <div class="clear"></div>
+     {include file="inc/pager.tpl"}
+     <!-- {/if} -->
+     <!-- {if $rec eq 'create' || $rec eq 'edit'} 模型添加或编辑（以供应商为主表） -->
+     {include file="inc/page_header.tpl"}
+     <form action="{$form_action}" method="post" id="provider-form"><input type="hidden" name="_method" value="{$form_method}" />
+      <div class="form">
+       <div class="form-item">
+        <div class="form-label">{$lang.ai_provider_name}<em>*</em></div>
+        <div class="input-block">
+         <input type="text" name="name" value="{$provider.name}" size="60" class="input" />
+        </div>
+       </div>
+       <div class="form-item">
+        <div class="form-label">{$lang.ai_provider_code}<em>*</em></div>
+        <div class="input-block">
+         <input type="text" name="code" value="{$provider.code}" size="30" class="input" {if $provider.id}readonly style="background:#f5f5f5" {/if} />
+         <p class="cue">{$lang.ai_provider_code_cue}</p>
+        </div>
+       </div>
+       <div class="form-item">
+        <div class="form-label">{$lang.ai_provider_base_url}</div>
+        <div class="input-block">
+         <input type="text" name="base_url" value="{$provider.base_url}" size="80" class="input" />
+         <p class="cue">{$lang.ai_provider_base_url_cue}</p>
+        </div>
+       </div>
+       <div class="form-item">
+        <div class="form-label">{$lang.status}</div>
+        <div class="input-block">
+         <label class="radio-inline"><input type="radio" name="status" value="1" {if !$provider.id || $provider.status}checked{/if} /> {$lang.enabled}</label>
+         <label class="radio-inline"><input type="radio" name="status" value="0" {if $provider.id && !$provider.status}checked{/if} /> {$lang.disabled}</label>
+         <p class="cue">{$lang.ai_provider_status_cue}</p>
+        </div>
+       </div>
+       <div class="form-item">
+        <div class="form-label">{$lang.sort}</div>
+        <div class="input-block">
+         <input type="text" name="sort" value="{if $provider.sort}{$provider.sort}{else}50{/if}" size="5" class="input" />
+        </div>
+       </div>
+       <!-- {if $rec eq 'edit' && $provider.config} -->
+       <!-- {assign var="show_advanced" value=1} -->
+       <!-- {else} -->
+       <!-- {assign var="show_advanced" value=0} -->
+       <!-- {/if} -->
+       <div class="form-item">
+        <div class="form-label"></div>
+        <div class="input-block">
+         <a href="javascript:;" id="provider-advanced-toggle" class="schema-toggle"><i class="bi {if $show_advanced}bi-chevron-down{else}bi-chevron-right{/if}"></i> {$lang.ai_provider_advanced}</a>
+        </div>
+       </div>
+       <div id="provider-advanced-fields" {if !$show_advanced} style="display:none" {/if}>
+        <div class="form-item">
+         <div class="form-label">{$lang.ai_provider_config}</div>
+         <div class="input-block">
+          <textarea name="config" cols="80" rows="5" class="textarea">{$provider.config}</textarea>
+          <p class="cue">{$lang.ai_provider_config_cue}</p>
+         </div>
+        </div>
+       </div>
+       <!-- API 密钥（创建/编辑统一：表格行式可编辑组，随表单同步提交） -->
+       <div class="form-item">
+        <div class="form-label">{$lang.ai_provider_key_list}<em>*</em>
+         <a href="javascript:;" class="key-toolbar-add" id="ai-add-key-btn"><i class="bi bi-plus-circle"></i> {$lang.ai_key_add_inline}</a>
+        </div>
+        <div class="input-block">
+         <table class="table" id="provider-key-table">
+          <tr>
+           <th class="text-left">{$lang.ai_key_alias}</th>
+           <th>{$lang.ai_key_api_key}</th>
+           <th width="120" class="text-center">{$lang.handler}</th>
+          </tr>
+          <!-- {foreach from=$key_list item=key name=keyloop} -->
+          <tr class="key-row" data-key-id="{$key.id}">
+           <td>
+            <input type="hidden" name="keys[{$key.id}][id]" value="{$key.id}" />
+            <input type="text" name="keys[{$key.id}][alias]" value="{$key.alias}" class="input" size="12" placeholder="{$lang.ai_key_alias_cue}" />
+           </td>
+           <td><input type="text" name="keys[{$key.id}][api_key]" value="" class="input" size="34" placeholder="{$lang.ai_key_api_key_keep}" />
+            <!-- {if $provider.code eq 'baidu'} 百度文心 Secret Key -->
+            <input type="password" name="keys[{$key.id}][client_secret]" value="{$key.baidu_secret}" class="input" size="34" placeholder="{$lang.ai_key_client_secret}" autocomplete="new-password" />
+            <p class="cue">{$lang.ai_key_client_secret_cue}</p>
+            <!-- {/if} -->
+           </td>
+           <td class="text-center">
+            <a href="javascript:;" class="js-key-advanced"><i class="bi bi-chevron-right"></i> {$lang.ai_key_advanced_options}</a> |
+            <a href="javascript:;" class="js-key-delete" data-id="{$key.id}">{$lang.del}</a>
+            {if $key.failure_count > 0}
+            | <a href="javascript:;" class="js-key-reset" data-url="{url link='admin.ai.key.reset' id=$key.id}">{$lang.ai_key_reset}</a>
+            {/if}
+           </td>
+          </tr>
+          <tr class="key-advanced-row" style="display:none">
+           <td colspan="3">
+            <div class="key-advanced-fields">
+             <div class="key-adv-field">
+              <span class="key-adv-label">{$lang.ai_key_expires_at}</span>
+              <input type="text" name="keys[{$key.id}][expires_at]" value="{$key.expires_at}" class="input" />
+              <small class="key-adv-cue">{$lang.ai_key_expires_at_cue}</small>
+             </div>
+             <div class="key-adv-field">
+              <span class="key-adv-label">{$lang.ai_key_config}</span>
+              <input type="text" name="keys[{$key.id}][config]" value="{$key.config}" class="input" />
+              <small class="key-adv-cue">{$lang.ai_key_config_cue}</small>
+             </div>
+            </div>
+           </td>
+          </tr>
+          <!-- {/foreach} -->
+         </table>
+         <p class="cue">{$lang.ai_provider_key_list_cue}</p>
+        </div>
+       </div>
+       <!-- 模型（行式可编辑组，随表单同步提交） -->
+       <div class="form-item">
+        <div class="form-label">{$lang.ai_model}
+         <a href="javascript:;" class="key-toolbar-add" id="ai-add-model-btn"><i class="bi bi-plus-circle"></i> {$lang.ai_model_add_inline}</a>
+        </div>
+        <div class="input-block">
+         <table class="table" id="provider-model-table">
+          <tr>
+           <th class="text-left">{$lang.ai_model_name}</th>
+           <th class="text-left">{$lang.ai_model_code}</th>
+           <th width="120" class="text-center">{$lang.handler}</th>
+          </tr>
+          <!-- {foreach from=$model_list item=model} -->
+          <tr class="model-row" data-model-id="{$model.id}">
+           <td>
+            <input type="hidden" name="models[{$model.id}][id]" value="{$model.id}" />
+            <input type="text" name="models[{$model.id}][name]" value="{$model.name}" class="input" size="20" />
+           </td>
+           <td><input type="text" name="models[{$model.id}][model_code]" value="{$model.model_code}" class="input" size="30" /></td>
+           <td class="text-center">
+            <a href="javascript:;" class="js-model-advanced"><i class="bi bi-chevron-right"></i> {$lang.ai_key_advanced_options}</a> |
+            <a href="javascript:;" class="js-model-delete" data-id="{$model.id}">{$lang.del}</a>
+           </td>
+          </tr>
+          <tr class="model-advanced-row" style="display:none">
+           <td colspan="3">
+            <div class="key-advanced-fields">
+             <div class="key-adv-field">
+              <span class="key-adv-label">{$lang.ai_model_context_length}</span>
+              <input type="text" name="models[{$model.id}][context_length]" value="{$model.context_length}" class="input" />
+             </div>
+             <div class="key-adv-field">
+              <span class="key-adv-label">{$lang.ai_model_max_tokens}</span>
+              <input type="text" name="models[{$model.id}][max_tokens]" value="{$model.max_tokens}" class="input" />
+             </div>
+            </div>
+           </td>
+          </tr>
+          <!-- {/foreach} -->
+         </table>
+         <p class="cue">{$lang.ai_provider_model_list_cue}</p>
+        </div>
+       </div>
+       <div class="form-item">
+        <input type="hidden" name="token" value="{$token}" />
+        <input type="hidden" name="id" value="{$provider.id}">
+        <input class="btn" type="submit" value="{$lang.btn_submit}" />
+       </div>
+      </div>
+     </form>
+     <!-- {/if} -->
+    </div>
+
+   </div>
+  </div>
+  {include file="inc/footer.tpl"}
+ </div>
+ <!-- {if $rec eq 'create' || $rec eq 'edit'} -->
+ <script type="text/javascript" src="js/ai.model.js"></script>
+ <!-- {/if} -->
+</body>
+
+</html>

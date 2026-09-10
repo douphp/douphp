@@ -1,0 +1,56 @@
+<!--pages/order/work.wxml-->
+<navbar title="{{title}}" url="/pages/work/work" className="white"></navbar>
+<view class="body">
+ <view class="navbar" style="{{'top: ' + navigationBarAndStatusBarHeight}}">
+  <view class="wrap">
+   <scroll-view class="navScroll" scroll-x="true" scroll-left="{{scrollLeft}}" scroll-with-animation="true" style="{{'top: ' + navigationBarAndStatusBarHeight}}">
+    <view class="item{{item.value == status ? ' active' : ''}}" wx:for="{{status_list}}" wx:key="index" wx:for-item="item" data-status="{{item.value}}" data-index="{{index}}" bindtap="douMenu">{{item.format}}</view>
+   </scroll-view>
+  </view>
+ </view>
+ <view class="navbar-space"></view>
+ <view class='wrap'>
+  <view class="orderList">
+   <view class="item" wx:for="{{order_list}}" wx:for-item="order" wx:key="o">
+    <view class="h3"><view class="span">{{order.status_format}}<text wx:if="{{order.if_payment && order.status == 'pending'}}">（剩余{{order.pay_time_limit}}）</text></view>{{lang.order_sn}}：<text data-url="/pages/order/show?order_sn={{order.order_sn}}" bindtap="douNavigateTo">{{order.order_sn}}</text></view>
+    <view class="order-item-list">
+     <view class="item" wx:for="{{order.item_list}}" wx:for-item="item" wx:key="index">
+      <view class="box{{!item.image ? ' no-img' : ''}}" bindtouchstart="touchStart" bindtouchmove="touchMove" bindtouchend="touchEnd" style="margin-left: -{{item.touch_move}}px; margin-right: {{item.touch_move}}px;" data-index="{{index}}">
+       <view class="img" data-url="/pages/order/show?order_sn={{order.order_sn}}" bindtap="douNavigateTo" wx:if="{{item.image}}"><image src="{{item.image}}" /></view>
+       <view class="con">
+        <view class="name" data-url="/pages/order/show?order_sn={{order.order_sn}}" bindtap="douNavigateTo">{{item.name}}</view>
+        <view class="info-number">
+         <view class="info">
+          <view class="att-box">
+           <text class="att-name" wx:if="{{item.attribute_name}}">{{item.attribute_name}}</text>
+          </view>
+          <view class="price-box" wx:if="{{mode != 'point'}}">
+           <text class="price">{{item.sale_price}}</text><text class="price-cue" wx:if="{{item.sale_price_name}}">{{item.sale_price_name}}</text><text class="price-gray" wx:if="{{item.sale_price_type != 'original'}}">{{item.price}}</text>
+          </view>
+          <view class="point-box" wx:else>{{item.point_format}}</view>
+         </view>
+         <view class="number-box">
+          x {{item.item_number}}
+         </view>
+        </view>
+       </view>
+      </view>
+     </view>
+     <view class="amount" wx:if="{{order.mode == 'point'}}">
+      {{lang.order_point}}：{{order.order_point_format}}
+     </view>
+     <view class="amount" wx:else>
+      {{lang.order_order_amount}}：{{order.order_amount_format}} <text wx:if="{{order.shipping_fee_format}}">({{lang.order_shipping_fee}}：{{order.shipping_fee_format}})</text>
+     </view>
+     <view class="btnList">
+      <text class="btn-mini" data-url="/pages/order/show?order_sn={{order.order_sn}}" bindtap="douNavigateTo">{{lang.order_show}}</text>
+      <block wx:if="{{order.status == 'pending'}}">
+       <text class="btn-mini" data-order_sn="{{order.order_sn}}" bindtap="orderCancel">{{lang.order_cancel}}</text>
+      </block>
+     </view>
+    </view>
+   </view>
+  </view>
+  <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
+ </view>
+</view>

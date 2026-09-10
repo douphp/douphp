@@ -1,0 +1,17 @@
+<!--pages/book/book.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+
+  <!-- 预约分类列表 -->
+  <view class="class-list">
+   <navigator class="item" hover-class="mouseDown"
+    url="/pages/book/list?class_id={{item.id}}"
+    wx:for="{{class_list}}" wx:key="id" wx:for-item="item">
+    <view class="img" wx:if="{{item.icon}}"><image src="{{item.icon}}" mode="aspectFit" /></view>
+    <view class="title">{{item.name}}</view>
+   </navigator>
+  </view>
+
+ </view>
+</view>

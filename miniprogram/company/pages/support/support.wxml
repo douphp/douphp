@@ -1,0 +1,15 @@
+<!--support.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="detail">
+   <view class="title">{{support.title}}</view>
+   <view class="info"><text>{{lang.created_at}}：{{support.created_at}}</text><text>{{lang.click}}：{{support.click}}</text>
+    <text wx:for="{{defined}}" wx:key="index" wx:for-item="defined"> {{defined.arr}}：{{defined.value}} </text>
+   </view>
+   <view class="content">
+    <mp-html content="{{support.content}}" />
+   </view>
+  </view>
+ </view>
+</view>

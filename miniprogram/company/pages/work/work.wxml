@@ -1,0 +1,32 @@
+<!--pages/work/work.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="account">
+  <view class="wrap">
+   <block class="basic">
+    <view class="avatar">
+     <image src="{{work.avatar}}" />
+    </view>
+    <view class="info">
+     <view class="user-name">
+      <text class="switch" data-url="/pages/user/user" bindtap="catSwitchTab" >{{lang.work_switch_user}}</text>
+      {{work.contact}}
+      <text>（{{work.sex}}）</text>
+     </view>
+     <view class="text">
+      <view class="view" wx:if="{{work.company}}">{{work.company}}</view>
+      <view class="view">{{work.phone}}</view>
+     </view>
+    </view>
+   </block>
+  </view>
+ </view>
+ <view class="work-tree">
+  <view class="item" wx:for="{{link_work_center.work_tree}}" wx:key="index" wx:for-item="tree" data-url="{{tree.url}}" bindtap="douNavigateTo" >
+   <view class="box">
+    <view class="name">{{tree.name}}</view>
+   </view>
+  </view>
+ </view>
+ <view class="footer"><text wx:if="{{lang.powered_by}}">{{lang.powered_by}}</text></view>
+</view>

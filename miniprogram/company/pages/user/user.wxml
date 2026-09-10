@@ -1,0 +1,72 @@
+<!--user.wxml-->
+<navbar title="{{title}}" showMenu="{{false}}"></navbar>
+<view class="body">
+ <view class="account">
+  <view class="wrap">
+  <block class="basic" wx:if="{{dou.auth.is_login}}">
+   <view class="avatar"><image src="{{dou.user.avatar}}" /></view>
+   <view class="info">
+    <view class="user-name"><text class="switch" data-url="/pages/work/work" bindtap="douNavigateTo" wx:if="{{dou.auth.is_work}}">{{lang.work_switch}}</text>{{dou.user.user_name}} <text class="level" wx:if="{{dou.user.level_name}}">({{dou.user.level_name}})</text></view>
+    <view class="text" wx:if="{{dou.auth.is_vip}}">{{lang.vip}}：{{dou.vip.start_at}} ~ {{dou.vip.end_at}} <text class="renew" data-url="/pages/vip/vip" bindtap="douNavigateTo" wx:if="{{dou.vip.status == 'no'}}">{{lang.vip_renew_btn}}</text></view>
+    <view class="text" wx:else>{{welcome}}</view>
+    <view class="action" data-url="/pages/user/edit" bindtap="douNavigateTo">{{lang.user_modify_edit}}</view>
+   </view>
+  </block>
+  <block class="basic" wx:else>
+   <view class="avatar"><image src="{{dou.user.avatar}}" /></view>
+   <view class="info pt">
+    <view class="user-name">未登录</view>
+    <view class="text"></view>
+    <view class="action" data-url="/pages/user/login_weixin" bindtap="douNavigateTo">点击登录账号</view>
+   </view>
+  </block>
+ </view></view>
+ <view class="userTree">
+  <view class="item" wx:if="{{features.order}}">
+   <view class="tree" data-url="/pages/order/user" bindtap="douNavigateTo"><text class="bi bi-chevron-right"></text>{{lang.order_my}}</view>
+   <view class="treeMini four">
+    <view class="child" data-url="/pages/order/user?status=pending" bindtap="douNavigateTo">
+     <view class="bi bi-credit-card"></view>
+     <view>{{lang.order_status_pending}}</view>
+    </view>
+    <view class="child" data-url="/pages/order/user?status=paid" bindtap="douNavigateTo">
+     <view class="bi bi-truck"></view>
+     <view>{{lang.order_status_paid}}</view>
+    </view>
+    <view class="child" data-url="/pages/order/user?status=completed" bindtap="douNavigateTo">
+     <view class="bi bi-cup-hot"></view>
+     <view>{{lang.order_status_completed}}</view>
+    </view>
+    <view class="child" data-url="/pages/aftersale/aftersale" bindtap="douNavigateTo">
+     <view class="bi bi-currency-yen"></view>
+     <view>{{lang.aftersale}}</view>
+    </view>
+   </view>
+  </view>
+  <view class="item" wx:for="{{link_user_center.user_tree}}" wx:key="index" wx:for-item="tree" data-url="{{tree.url}}" bindtap="douNavigateTo" wx:if="{{tree.module != 'aftersale'}}">
+   <view class="tree"><text class="bi bi-chevron-right"></text>{{tree.name}}</view>
+  </view>
+  <view class="item" data-url="/pages/user/contact" bindtap="douNavigateTo" wx:if="{{dou.auth.is_login}}">
+   <view class="tree"><text class="bi bi-chevron-right"></text>{{lang.user_contact_manager}}</view>
+  </view>
+  <view class="item" data-url="/pages/user/edit" bindtap="douNavigateTo" wx:if="{{dou.auth.is_login}}">
+   <view class="tree"><text class="bi bi-chevron-right"></text>{{lang.user_edit}}</view>
+  </view>
+  <view class="item" data-url="/pages/user/password" bindtap="douNavigateTo" wx:if="{{dou.auth.is_login}}">
+   <view class="tree"><text class="bi bi-chevron-right"></text>{{lang.user_password_edit}}</view>
+  </view>
+  <view class="item" data-url="/pages/user/sns" bindtap="douNavigateTo" wx:if="{{if_connect_plugin}}">
+   <view class="tree"><text class="bi bi-chevron-right"></text>{{lang.user_sns}}</view>
+  </view>
+  <view class="item" bindtap="userLogout" wx:if="{{dou.auth.is_login}}">
+   <view class="tree"><text class="bi bi-chevron-right"></text>{{lang.user_logout}}</view>
+  </view>
+ </view>
+ <view class="promotion" wx:if="{{dou.auth.is_distribution}}">
+  <view class="h2">{{lang.user_promotion_link}}</view>
+  <view class="link" bindtap="copyText" data-text="{{dou.user.promotion_link}}">{{dou.user.promotion_link}}<text>点击复制</text></view>
+  <view class="h2">{{lang.user_promotion_qrcode}}</view>
+  <view class="qrcode" bindtap="downloadImage" data-url="{{dou.user.promotion_qrcode}}"><image src="{{dou.user.promotion_qrcode}}" mode="widthFix" /><text>保存到相册</text></view>
+ </view>
+ <view class="footer"><text wx:if="{{lang.powered_by}}">{{lang.powered_by}}</text></view>
+</view>

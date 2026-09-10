@@ -1,0 +1,75 @@
+<!--pages/user/contact_edit.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="page-head">
+   <view class="action"><text class="link" data-url="/pages/user/contact" bindtap="douPageTo">{{lang.user_contact_manager}}</text></view>
+   <view class="name">{{lang.user_contact_edit}}</view>
+  </view>
+  <view class="form-basic form-padding">
+   <form bindsubmit="contactAction">
+    <view class="dl">
+     <view class="dt">{{lang.user_contact_name}}
+      <view class="i">*</view>
+     </view>
+     <view class="dd">
+      <input name="name" type="text" class="input" value="{{contact.name}}" placeholder="{{lang.user_contact_name_placeholder}}" placeholder-class="placeholder" />
+      <view class="cue" wx:if="{{wrong.name}}">{{wrong.name}}</view>
+     </view>
+    </view>
+    <view class="dl">
+     <view class="dt">{{lang.user_contact_phone}}
+      <view class="i">*</view>
+     </view>
+     <view class="dd">
+      <input name="phone" type="text" class="input" value="{{contact.phone}}" placeholder="{{lang.user_contact_phone_placeholder}}" placeholder-class="placeholder" />
+      <view class="cue" wx:if="{{wrong.phone}}">{{wrong.phone}}</view>
+     </view>
+    </view>
+    <view class="dl" wx:if="{{features.book}}">
+     <view class="dt">{{lang.user_contact_id_card}}</view>
+     <view class="dd">
+      <input name="id_card" type="text" class="input" value="{{contact.id_card}}" placeholder="{{lang.user_contact_id_card}}" placeholder-class="placeholder" />
+      <view class="cue" wx:if="{{wrong.id_card}}">{{wrong.id_card}}</view>
+     </view>
+    </view>
+    <view class="dl full" wx:if="{{features.area}}">
+     <view class="dt">{{lang.user_contact_area}}<view class="i">*</view>
+     </view>
+     <view class="dd select-box">
+      <picker class="select" mode="selector" range="{{province_list}}" range-key="name" bindchange="handleProvinceChange">
+       <text wx:if="{{selectedProvince}}">{{selectedProvince}}</text>
+       <text wx:else>{{lang.select}}</text>
+      </picker>
+      <picker class="select" mode="selector" range="{{city_list}}" range-key="name" bindchange="handleCityChange">
+       <text wx:if="{{selectedCity}}">{{selectedCity}}</text>
+       <text wx:else>{{lang.select}}</text>
+      </picker>
+      <picker class="select" mode="selector" range="{{district_list}}" range-key="name" bindchange="handleDistrictChange" wx:if="{{district_list}}">
+       <text wx:if="{{selectedDistrict}}">{{selectedDistrict}}</text>
+       <text wx:else>{{lang.select}}</text>
+      </picker>
+     </view>
+    </view>
+    <view class="dl">
+     <view class="dt">{{lang.user_contact_address}}<view class="i">*</view>
+     </view>
+     <view class="dd">
+      <input name="address" type="text" class="input" value="{{contact.address}}" placeholder="{{lang.user_contact_address_placeholder}}" placeholder-class="placeholder" />
+      <view class="cue" wx:if="{{wrong.address}}">{{wrong.address}}</view>
+     </view>
+    </view>
+    <view class="dl">
+     <view class="dt">{{lang.user_contact_tag}}</view>
+     <view class="dd">
+      <input name="tag" type="text" class="input" value="{{contact.tag}}" placeholder="{{lang.user_contact_tag_placeholder}}" placeholder-class="placeholder" />
+      <view class="cue" wx:if="{{wrong.tag}}">{{wrong.tag}}</view>
+     </view>
+    </view>
+    <view class="action">
+     <button class="btn" formType="submit">{{lang.btn_submit}}</button>
+    </view>
+   </form>
+  </view>
+ </view>
+</view>

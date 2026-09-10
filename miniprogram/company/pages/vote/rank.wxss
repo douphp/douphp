@@ -1,0 +1,32 @@
+/* pages/vote/rank.wxss */
+@import "./vote.wxss";
+
+
+/* rank-list */
+.rank-list {
+ font-size: 13px;
+ padding: 5px 10px;
+ background-color: #FFF;
+}
+.rank-list .item {
+ overflow: hidden;
+ zoom: 1;
+ padding: 10px 0;
+ border-bottom: 1px solid #EEE;
+}
+.rank-list .item.head {
+ font-weight: bold;
+}
+.rank-list .item .rank {
+ float: left;
+ width: 70px;
+ text-align: center;
+}
+.rank-list .item .name {
+ float: left;
+}
+.rank-list .item .number {
+ width: 80px;
+ float: right;
+ text-align: center;
+}

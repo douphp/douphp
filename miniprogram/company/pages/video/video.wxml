@@ -1,0 +1,19 @@
+<!--video.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="detail">
+   <view class="title">{{video.title}}</view>
+   <view class="info"><text>{{lang.created_at}}：{{video.created_at}}</text><text>{{lang.click}}：{{video.click}}</text>
+    <text wx:for="{{defined}}" wx:key="defined" wx:for-item="defined"> {{defined.arr}}：{{defined.value}} </text>
+   </view>
+   <view class="video">
+    <video src="{{video.file}}" controls></video>
+   </view>
+   <view class="head">{{lang.video_content}}</view>
+   <view class="content">
+    <mp-html content="{{video.content}}" />
+   </view>
+  </view>
+ </view>
+</view>

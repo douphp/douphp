@@ -1,0 +1,14 @@
+<!--pages/brand/show.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="detail">
+   <view class="title">{{brand.name}}</view>
+   <view class="img"><image src="{{brand.image}}" /></view>
+   <view class="action"><text class="btn-product" data-url="{{brand.product_list}}" bindtap="douNavigateTo" >{{lang.brand_product}}</text></view>
+   <view class="content">
+    <mp-html content="{{brand.content}}" />
+   </view>
+  </view>
+ </view>
+</view>

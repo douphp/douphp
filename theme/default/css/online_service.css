@@ -1,0 +1,94 @@
+/* online-service
+----------------------------------------------- */
+.online-service {
+ position: fixed;
+ _position: absolute;
+ _top: expression(eval(document.documentElement.scrollTop+document.documentElement.clientHeight)-380+"px");
+ top: 208px;
+ right: 10px;
+ z-index: 999999;
+ display: block;
+}
+.online-service .item {
+ position: relative;
+ margin-bottom: 10px;
+}
+.online-service .item .item-icon {
+ display: block;
+ width: 44px;
+ height: 44px;
+ text-align: center;
+ line-height: 44px;
+ cursor: pointer;
+ border-radius: 4px;
+ box-sizing: border-box;
+ box-shadow: 0 0 9px 0 rgba(0,0,0,0.1);
+ background-color: #FFF;
+ color: #9EA9C4;
+ font-size: 18px;
+}
+.online-service .item.active .item-icon {
+ background-color: #0072C6;
+ color: #FFF;
+}
+.online-service .item .pop-box {
+ display: none;
+ position: absolute;
+ right: 100%;
+ top: 0;
+}
+.online-service .item .item-box {
+ background-color: #FFF;
+ margin-right: 10px;
+ padding: 10px;
+ border-radius: 2px;
+ box-sizing: border-box;
+ box-shadow: 0 0 9px 0 rgba(0,0,0,0.1);
+}
+.online-service .item .qq-box {
+ padding: 10px 20px;
+}
+.online-service .item .qq-box .qq {
+ display: block;
+ line-height: 34px;
+ white-space: nowrap;
+ color: #555;
+}
+.online-service .item .qq-box .qq i {
+ display: inline-block;
+ width: 34px;
+ height: 34px;
+ line-height: 34px;
+ background-color: #F1F1F3;
+ text-align: center;
+ border-radius: 50%;
+ margin-right: 10px;
+ color: #0072C6;
+}
+.online-service .item .weixin-box img {
+ width: 120px;
+}
+.online-service .item .weixin-box p {
+ text-align: center;
+}
+.online-service .item .tel-box {
+ white-space: nowrap;
+ font-size: 16px;
+ padding: 0 10px;
+}
+.online-service .go-top {
+ display: none;
+}
+.online-service .go-top .go-btn {
+ display: block;
+ width: 44px;
+ height: 44px;
+ line-height: 44px;
+ text-align: center;
+ border-radius: 4px;
+ box-sizing: border-box;
+ box-shadow: 0 0 9px 0 rgba(0,0,0,0.1);
+ background-color: #FFF;
+ color: #9EA9C4;
+ font-size: 24px;
+}

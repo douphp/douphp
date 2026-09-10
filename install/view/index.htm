@@ -1,0 +1,61 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>{$title}</title>
+<link href="view/assets/style.css" rel="stylesheet" type="text/css" />
+<script language="javascript">
+{literal}
+function agree() {
+    if (document.getElementById('btn_license').checked) {
+        document.getElementById('submit').disabled=false;
+        document.getElementById('submit').className='btn';
+    } else {
+        document.getElementById('submit').disabled='disabled';
+        document.getElementById('submit').className='btnGray';
+    }
+}
+{/literal}
+</script>
+</head>
+<body>
+<div id="wrapper">
+ <div class="logo"><a href="http://www.douphp.com" target="_blank"><img src="view/assets/logo.gif" alt="DouPHP" title="DouPHP" /></a></div>
+ <div class="license">
+  <form action="" method="post">
+   <ul>
+    <textarea name="request" cols="90" rows="15" readonly="readonly">© 2013-2026 漳州豆壳网络科技有限公司 (DouCo Co.,Ltd.)
+
+感谢您选择DouPHP企业网站管理系统（以下简称DouPHP），DouPHP提供一个轻量级企业网站解决方案，基于 PHP + MySQL 的技术开发，全部源码开放。
+
+本软件基于 MIT 协议开源发布，完整协议文本见项目根目录 LICENSE 文件。为使您正确并合法地使用本软件，请您在使用前务必阅读并理解以下许可要点：
+
+一、授权许可
+1.任何获得本软件副本的人均可免费获取、使用、复制、修改、合并、出版、分发、再许可及销售本软件的副本。
+2.您可以将本软件应用于商业用途，而不必支付软件版权授权费用。
+3.您可以在遵守 MIT 协议的前提下修改 DouPHP 源代码或界面风格以适应您的网站要求。
+4.您拥有使用本软件构建的网站全部内容所有权，并独立承担与这些内容的相关法律义务。
+
+二、版权声明
+1.本软件版权归 漳州豆壳网络科技有限公司 所有，上述版权声明和本许可声明须包含在本软件的所有副本或主要部分中。
+2.如果本软件带有其它软件的整合API示范例子包，这些文件版权不属于本软件官方，请参考相关软件的使用许可合法的使用。
+
+三、免责声明
+1.本软件按"原样"提供，不附带任何形式的明示或默示的担保，包括但不限于适销性、特定用途适用性和非侵权的保证。
+2.无论是合同诉讼、侵权诉讼还是其他诉讼，作者或版权持有人均不对因使用本软件而产生的任何索赔、损害或其他责任负责。
+
+DouPHP 的官方网址是：www.douphp.com</textarea>
+    <div class="agree">
+     <label>
+      <input name="confirm" type="checkbox" onclick="agree();" align="absMiddle" id="btn_license"/>
+      <b>{$lang.welcome_agree}</b></label>
+    </div>
+   </ul>
+   <p class="action">
+    <input type="button" class="btnGray" name="submit" value="{$lang.next}" disabled="disabled" id="submit" onclick="location.href='index.php?route=check'"/>
+   </p>
+  </form>
+ </div>
+</div>
+</body>
+</html>

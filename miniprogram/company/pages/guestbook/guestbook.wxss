@@ -1,0 +1,39 @@
+/* pages/guestbook/guestbook.wxss */
+#guestbook {
+ padding: 10px 10px;
+}
+#guestbook .head {
+ font-size: 18px;
+ color: #000;
+ font-weight: bold;
+ padding: 15px 0 8px 0;
+}
+#guestbook .form-basic {
+ margin-bottom: 30px;
+}
+/* bookList */
+#guestbook .bookList {
+ line-height: 180%;
+ margin-top: 10px;
+}
+#guestbook .bookList .item {
+ margin-bottom: 15px;
+}
+#guestbook .bookList .item .title {
+ color: #333;
+ margin-bottom: 3px;
+ font-weight: bold;
+}
+#guestbook .bookList .item .content {
+ color: #999;
+}
+#guestbook .bookList .item .reply {
+ color: #0072C6;
+ margin-top: 5px;
+ overflow: hidden;
+ zoom: 1;
+}
+#guestbook .bookList .item .reply text {
+ float: left;
+ width: 70px;
+}

@@ -1,0 +1,66 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="copyright" content="DouCo Co.,Ltd." />
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="csrf-token" content="{$csrf_token}">
+<title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+<link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+<link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+<link href="css/common.css" rel="stylesheet" type="text/css">
+<link href="css/cloud.css" rel="stylesheet" type="text/css">
+<link href="css/module.css" rel="stylesheet" type="text/css">
+{include file="inc/javascript.tpl"}
+</head>
+<body>
+<div id="dou">
+ {include file="inc/header.tpl"}
+ {include file="inc/sidebar.tpl"}
+ <div id="dou-content">
+  {include file="inc/toolbar.tpl"}
+  <div class="dou-main">
+   <div id="module" class="dou-page">
+   {include file="inc/page_header.tpl"}
+   <div class="tab" id="module-tabs">
+    <ul class="tab-title">
+     <li{if $rec eq 'default'} class="active"{/if}><a href="{url link='admin.module'}">{$lang.module_install_cloud}</a></li>
+     <li{if $rec eq 'install_local'} class="active"{/if}><a href="{url link='admin.module.install_local'}">{$lang.module_install_local}</a></li>
+     <li{if $rec eq 'uninstall'} class="active"{/if}><a href="{url link='admin.module.uninstall'}">{$lang.module_uninstall}</a></li>
+    </ul>
+   </div>
+   <!-- {if $rec eq 'default'} 模块扩展 -->
+   {include file="inc/cloud_extend_list.tpl"}
+   <!-- {/if} -->
+   <!-- {if $rec eq 'install_local'} 本地安装 -->
+   <div class="handler">
+    <div class="handbook">{$lang.module_install_local_cue nofilter}</div>
+    <div class="list">
+     <h2 class="install">{$lang.module_install_local_list}</h2>
+     <ul>
+     <!-- {foreach from=$install_list item=module} -->
+     <li><em>{$module}</em><a href="{url link='admin.cloud.install' type=module mode=local cloud_id=$module}">{$lang.module_install_local_btn}</a></li>
+     <!-- {/foreach} -->
+     </ul>
+    </div>
+   </div>
+   <!-- {/if} -->
+   <!-- {if $rec eq 'uninstall'} 卸载模块 -->
+   <div class="handler">
+    <div class="list" style="margin-top: 40px;">
+     <h2>{$lang.module_uninstall_list}</h2>
+     <ul>
+     <!-- {foreach from=$uninstall_list item=module} -->
+     <li><em>{$module}</em><a href="javascript:;" class="js-delete" data-url="{url link='admin.module.destroy' token=$token extend_id=$module}">{$lang.module_uninstall_btn}</a></li>
+     <!-- {/foreach} -->
+     </ul>
+    </div>
+   </div>
+   <!-- {/if} -->
+  </div>
+  </div>
+  </div>
+ {include file="inc/footer.tpl"}
+ </div>
+</body>
+</html>

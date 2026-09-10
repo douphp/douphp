@@ -1,0 +1,2 @@
+/* pages/withdraw/user.wxss */
+@import "./withdraw.wxss";

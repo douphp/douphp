@@ -1,0 +1,24 @@
+<!--pages/chat/history.wxml 历史会话-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="history-list">
+   <view class="history-item" wx:for="{{session_list}}" wx:key="id" wx:for-item="item">
+    <view class="history-header">
+     <text class="name">{{item.title}}</text>
+     <text class="app">{{item.chat_name}}</text>
+    </view>
+    <view class="history-meta">
+     <text>消息 {{item.message_count}}</text>
+     <text>Tokens {{item.total_tokens}}</text>
+     <text>{{item.updated_at}}</text>
+    </view>
+   </view>
+   <view class="chat-empty" wx:if="{{!session_list.length}}">
+    <text>暂无会话记录</text>
+    <view class="btn-start" bindtap="toAppCenter">开始对话</view>
+   </view>
+  </view>
+  <view class="loadpage" wx:if="{{loadpage}}">加载中...</view>
+ </view>
+</view>

@@ -1,0 +1,36 @@
+<!--pages/aftersale/aftersale.wxml-->
+<navbar title="{{title}}" url="/pages/work/work"></navbar>
+<view class="body">
+ <view class="navbar" style="{{'top: ' + navigationBarAndStatusBarHeight}}">
+  <view class="wrap">
+   <scroll-view class="navScroll" scroll-x="true" scroll-left="{{scrollLeft}}" scroll-with-animation="true" style="{{'top: ' + navigationBarAndStatusBarHeight}}">
+    <view class="item{{item.value == status ? ' active' : ''}}" wx:for="{{status_list}}" wx:key="index" wx:for-item="item" data-status="{{item.value}}" data-index="{{index}}" bindtap="douMenu">{{item.format}}</view>
+   </scroll-view>
+  </view>
+ </view>
+ <view class="navbar-space"></view>
+ <view class="aftersaleList">
+  <view class="item" wx:for="{{aftersale_list}}" wx:for-item="aftersale" wx:key="a" data-url="/pages/aftersale/show?id={{aftersale.id}}" bindtap="douNavigateTo">
+   <view class="head">
+    <view class="time">{{aftersale.created_at}}</view>
+    <view class="aftersaleSn">{{lang.aftersale_aftersale_sn}}：{{aftersale.aftersale_sn}}
+     <text class="text">({{aftersale.status.format}})</text>
+    </view>
+   </view>
+   <view class="orderSn">{{lang.order_sn}}：
+    <text class="a">{{aftersale.order.order_sn}}</text>
+   </view>
+   <view class="itemList" wx:if="{{aftersale.item_list}}">
+    <image src="{{item.thumb}}" wx:for="{{aftersale.item_list}}" wx:for-item="item" wx:key="i" />
+   </view>
+   <view class="reason">{{lang.aftersale_reason}}：
+    <text class="text">{{aftersale.reason}}</text>
+   </view>
+   <view class="handle" wx:if="{{aftersale.is_handle}}">{{lang.aftersale_handle_record}}：
+    <text class="b">（{{lang.aftersale_aftersale_money}}{{aftersale.aftersale_money}}）</text>
+    <text class="text">{{aftersale.handle_record}}</text>
+   </view>
+  </view>
+ </view>
+ <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
+</view>

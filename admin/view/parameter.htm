@@ -1,0 +1,107 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="copyright" content="DouCo Co.,Ltd." />
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="csrf-token" content="{$csrf_token}">
+<title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+<link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+<link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+<link href="css/common.css" rel="stylesheet" type="text/css">
+{include file="inc/javascript.tpl"}
+</head>
+<body>
+<div id="dou">
+ {include file="inc/header.tpl"}
+ <div class="dou-page is-standalone">
+  <!-- {if $rec eq 'default'} 参数设置列表 -->
+  {include file="inc/page_header.tpl"}
+   <table class="table">
+    <tr>
+     <th width="40" class="text-center">{$lang.record_id}</th>
+     <th class="text-left">{$lang.parameter_name}</th>
+     <th class="text-left">{$lang.parameter_lang}</th>
+     <th class="text-left">{$lang.parameter_cue}</th>
+     <th width="80" class="text-center">{$lang.handler}</th>
+    </tr>
+    <!-- {foreach from=$parameter_list item=parameter} -->
+    <tr>
+     <td class="text-center">{$parameter.id}</td>
+     <td>{$parameter.name}</td>
+     <td>{$parameter.lang}</td>
+     <td>{$parameter.cue}</td>
+     <td class="text-center">
+      <a href="{url link='admin.parameter.edit' id=$parameter.id}">{$lang.edit}</a> | <a href="javascript:;" class="js-delete" data-url="{url link='admin.parameter.destroy' id=$parameter.id}">{$lang.del}</a>
+     </td>
+    </tr>
+    <!-- {/foreach} -->
+   </table>
+  <!-- {/if} -->
+  <!-- {if $rec eq 'create' || $rec eq 'edit'} 参数设置添加或编辑 -->
+  {include file="inc/page_header.tpl"}
+  <form action="{$form_action}" method="post"><input type="hidden" name="_method" value="{$form_method}" />
+   <div class="form grid">
+    <div class="form-item">
+     <div class="form-label">{$lang.parameter_name}</div>
+     <div class="input-block">
+      <input type="text" name="name" value="{$parameter.name}" size="20" class="input" />
+      <p class="cue">{$parameter_help nofilter}</p>
+     </div>
+    </div>
+    <div class="form-item">
+     <div class="form-label">{$lang.parameter_lang}</div>
+     <div class="input-block">
+      <input type="text" name="lang" value="{$parameter.lang}" size="20" class="input" />
+     </div>
+    </div>
+    <div class="form-item">
+     <div class="form-label">{$lang.parameter_cue}</div>
+     <div class="input-block">
+      <input type="text" name="cue" value="{$parameter.cue}" size="80" class="input" />
+     </div>
+    </div>
+    <div class="form-item">
+     <div class="form-label">{$lang.sort}</div>
+     <div class="input-block">
+      <input type="text" name="sort" value="{if $parameter.sort}{$parameter.sort}{else}50{/if}" size="10" class="input" />
+     </div>
+    </div>
+   </div>
+   <div class="submit-box">
+    <input type="hidden" name="group" value="{$group}" />
+    <input type="hidden" name="token" value="{$token}" />
+    <input type="hidden" name="id" value="{$parameter.id}">
+    <input class="btn" type="submit" value="{$lang.btn_submit}" />
+   </div>
+  </form>
+  <!-- {/if} -->
+  <!-- {if $rec eq 'set'} 参数值 -->
+  {include file="inc/page_header.tpl"}
+  <form action="{url link='admin.parameter.save'}" method="post">
+   <div class="form grid">
+    <!-- {foreach from=$parameter_list item=parameter} -->
+    <div class="form-item">
+     <div class="form-label">{$parameter.lang}</div>
+     <div class="input-block">
+      <textarea name="{$parameter.name}" cols="50" rows="1" data-min="1" data-max="5" class="textarea-auto auto-textarea">{$parameter.value}</textarea>
+      <!-- {if $parameter.cue} --><p class="cue">{$parameter.cue}</p><!-- {/if} -->
+     </div>
+    </div>
+    <!-- {/foreach} -->
+    <div class="form-item">
+     <div class="form-label"></div>
+     <div class="input-block">
+      <input type="hidden" name="token" value="{$token}" />
+      <input type="hidden" name="group" value="{$group}" />
+      <input class="btn" type="submit" value="{$lang.btn_submit}" />
+     </div>
+    </div>
+   </div>
+  </form>
+  <!-- {/if} -->
+ </div>
+ {include file="inc/footer.tpl" width="full"}
+</div>
+</body>
+</html>

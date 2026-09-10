@@ -1,0 +1,82 @@
+<!--login_phone.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class='body'>
+  <view class="login" wx:if="{{rec == 'default'}}">
+   <view class="logo">
+    <image src="../../images/logo_icon.png" />
+   </view>
+   <view class="form-passport" style="margin-top: 15vh">
+    <form bindsubmit="sendSms">
+     <view class="dl">
+      <input type="text" name="telphone" class="input" placeholder="{{lang.user_telphone}}" />
+     </view>
+     <view class="errorMsg" wx:if="{{errorMsg}}">{{errorMsg}}</view>
+     <view class="dl">
+      <button class="btn-action blue" formType="submit" wx:if="{{agree}}">{{lang.sms_captcha_send}}</button>
+      <button class="btn-action blue" bindtap="termCue" wx:else>{{lang.sms_captcha_send}}</button>
+     </view>
+    </form>
+   </view>
+   <view class="line-box">
+    <view class="text">
+     <text>其它登录方式</text>
+    </view>
+   </view>
+   <view class="other-login-methods">
+    <view class="item" data-url="/pages/user/login_weixin" bindtap="douNavigateTo">
+     <view class="bi bi-wechat green"></view>
+     <view class="text">微信</view>
+    </view>
+    <view class="item" data-url="/pages/user/login_account" bindtap="douNavigateTo">
+     <view class="bi bi-lock"></view>
+     <view class="text">账号</view>
+    </view>
+   </view>
+   <view class="agree-box">
+    <checkbox-group bindchange="agreeTerm">
+     <label class="agree">
+      <checkbox value="{{checkValue}}" class="agree-checkbox-check" />
+      <view class="agree-checkbox"></view>
+      <view class="agree-text">
+       <view class="show-term-cue" wx:if="{{showTermCue}}">
+        <text>请先阅读并勾选协议</text>
+       </view>
+       <text aria-hidden="true">阅读并同意</text>
+       <navigator>《相关条款》</navigator>
+      </view>
+     </label>
+    </checkbox-group>
+   </view>
+  </view>
+  <view class="vcode" wx:else>
+   <view class="content">
+    <view class="head"> 输入短信验证码 </view>
+    <view class="sendto"> 短信验证码至
+     <text>{{telphone}}</text>
+    </view>
+    <view class="code-box">
+     <form bindsubmit="formSubmit">
+      <view class='code'>
+       <block wx:for="{{codeNumber}}" wx:key="item">
+        <input class='input' style="background-color: {{vcode.length==index ? '#1194FB' : ''}}; box-shadow:{{vcode.length==index ? '0rpx 3rpx 10rpx 3rpx rgba(17,148,251,0.17)' : ''}};background-color: {{vcode.length+1==index ? '#FFFFFF' : ''}}; box-shadow:{{vcode.length+1==index ? '0rpx 3rpx 10rpx 3rpx #E1E1E1' : ''}};background-color:{{wrong ? '#FF3334' : ''}}; box-shadow:{{wrong ? '0rpx 3rpx 10rpx 3rpx rgba(254,54,49,0.26)' : ''}};color: {{wrong ? '#FFFFFF' : ''}}; " value="{{vcode.length>=index+1 ? vcode[index] : ''}}" disabled password='{{ispassword}}' catchtap='codeFocus'>
+        </input>
+       </block>
+      </view>
+      <input name="vcode" password="{{true}}" class='hidden-password' maxlength="{{codeNumber}}" focus="{{isFocus}}" bindinput="loginPhonePost">
+      </input>
+      <!-- <view>
+      <button class="btn-submit" formType="submit">Submit</button>
+      </view> -->
+     </form>
+    </view>
+    <view class="mistake" wx:if="{{wrong}}"> 验证码有误，请重新输入 </view>
+    <view class="action">
+     <text class="again" wx:if="{{time <= 0}}" bindtap="sendAgain"> 重新发送 </text>
+     <text class="countdown" wx:else>重新发送（{{time}}s）</text>
+    </view>
+   </view>
+  </view>
+ </view>
+ <view class="footer"><text wx:if="{{lang.powered_by}}">{{lang.powered_by}}</text></view>
+</view>

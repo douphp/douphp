@@ -1,0 +1,27 @@
+<!--product.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class='miniH'>
+  <view class="snsList">
+   <view class="dl" wx:for="{{plugin_list}}" wx:for-item="plugin" wx:key="p">
+    <view class="dt">
+     <view class="imgBox">
+      <image class="img" src="{{plugin.icon}}" />
+     </view>
+     {{plugin.name}}
+     <text class="em" wx:if="{{plugin.linked}}">{{lang.user_sns_linked}}</text>
+    </view>
+    <view class="dd">
+     <block wx:if="{{plugin.linked}}">
+      <button class="a" data-remove="{{plugin.slug}}" bindtap="bindRemove">{{lang.user_sns_remove}}</button>
+     </block>
+     <block class="a" wx:else>
+      <button class="a wxlogin" open-type="getUserInfo" lang="zh_CN" bindgetuserinfo="bindWeixin" wx:if="{{plugin.slug == 'wxlogin'}}">{{lang.user_sns_link}}</button>
+      <button class="a gray" data-msg="无法在小程序里进行此操作" bindtap="douCue" wx:else>{{lang.user_sns_link}}</button>
+     </block>
+    </view>
+   </view>
+  </view>
+ </view>
+ <view class="footer"><text wx:if="{{lang.powered_by}}">{{lang.powered_by}}</text></view>
+</view>

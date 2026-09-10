@@ -1,0 +1,8 @@
+{
+    "name": "mobx-miniprogram",
+    "version": "6.12.3",
+    "license": "MIT",
+    "author": "Michel Weststrate",
+    "homepage": "https://mobx.js.org/",
+    "main": "index.js"
+}

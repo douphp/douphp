@@ -1,0 +1,10 @@
+/* pages/brand/show.wxss */
+.detail .action {
+ text-align: center;
+ margin-top: 20px;
+}
+.detail .action .btn-product {
+ display: inline-block;
+ padding: 5px 20px;
+ border: 1px solid #EEE;
+}

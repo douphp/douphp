@@ -1,0 +1,109 @@
+/* pages/favorites/user.wxss */
+.favorites-list {
+  background-color: #fff;
+  overflow: hidden;
+  margin-top: -20px;
+  padding-bottom: 50px;
+}
+.favorites-list .h3 {
+  padding: 8px 10px;
+  background-color: #fff;
+}
+.favorites-list .item {
+  margin-right: -80px;
+}
+.favorites-list .item .box {
+  zoom: 1;
+  overflow: hidden;
+  border-bottom: 1px solid #eee;
+  padding: 5px 0;
+  height: 90px;
+  position: relative;
+  padding-right: 95px;
+}
+.favorites-list .item .box .del {
+  display: inline-block;
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 80px;
+  height: 90px;
+  text-align: center;
+  line-height: 90px;
+  background-color: #db3637;
+  color: #fff;
+}
+.favorites-list .item .box .img {
+  width: 80px;
+  float: left;
+  margin-right: 10px;
+}
+.favorites-list .item .box .img image {
+  width: 80px;
+  height: 80px;
+}
+.favorites-list .item .box .con {
+  margin-left: 95px;
+  overflow: hidden;
+  zoom: 1;
+}
+.favorites-list .item .box.no-img .con {
+  margin-left: 0;
+}
+.favorites-list .item .box .con .name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.favorites-list .item .box .con .info-number {
+  display: flex;
+  justify-content: space-between;
+}
+.favorites-list .item .box .con .info-number .info {
+}
+.favorites-list .item .box .con .info-number .info .att-box {
+  margin-top: 5px;
+}
+.favorites-list .item .box .con .info-number .info .att-box text {
+  display: inline-block;
+  padding: 0 10px;
+  line-height: 20px;
+  border-radius: 10px;
+  font-size: 12px;
+  margin-right: 10px;
+}
+.favorites-list .item .box .con .info-number .info .att-box .att-name {
+  background-color: #ddd;
+  border: 1px solid #ddd;
+  color: #999;
+}
+.favorites-list .item .box .con .info-number .info .att-box .comment {
+  background-color: #fff;
+  border: 1px solid #cc0000;
+  color: #cc0000;
+}
+.favorites-list .item .box .con .info-number .info .price-box {
+  margin-top: 5px;
+  margin-left: -2px;
+}
+.favorites-list .item .box .con .info-number .buy-box {
+  margin-top: 30px;
+}
+.favorites-list .item .box .con .info-number .buy-box text {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  line-height: 22px;
+  border-radius: 11px;
+  background-color: #ea3609;
+  color: #fff;
+  font-size: 12px;
+  text-align: center;
+}
+.favorites-list .item .box .con .info-number .buy-box text::before {
+  line-height: 22px;
+  font-size: 12px;
+}
+.favorites-list .item .box .con .info-number .point-box {
+  margin-top: 5px;
+}

@@ -1,0 +1,120 @@
+/* pages/index/index.wxss */
+/* -- index-box -- */
+.index-box {
+  padding: 10px 0;
+  background-color: #fff;
+}
+.index-box .index-head {
+  font-size: 18px;
+  color: #000;
+  padding: 15px 0 8px 0;
+}
+.index-box .index-more {
+  float: right;
+  font-size: 13px;
+  color: #0072c6;
+}
+/* -- search-wrap -- */
+.search-wrap {
+  background-color: #fff;
+}
+/* -- swiper -- */
+.swiper {
+  height: 150px;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.swiper .swiper-slide {
+  width: 100%;
+  height: 100%;
+}
+/* -- menu：两行横滑 + 进度条 -- */
+.menu {
+  background-color: #fff;
+  /* scroll-x 内 inline-flex 超出时，锁在本区块内，避免撑开整页 */
+  width: 100%;
+  overflow: hidden;
+}
+.menu .menu-scroll {
+  width: 100%;
+  white-space: nowrap;
+}
+.menu .menu-list {
+  display: inline-flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  height: 158px;
+  align-content: flex-start;
+  justify-content: space-between;
+  padding: 0;
+  box-sizing: border-box;
+}
+.menu .menu-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* 一屏 5 列，按 .wrap 内容区均分（屏宽减去左右 15px） */
+  width: calc((100vw - 30px) / 5);
+  height: 74px;
+  margin-right: 0;
+  text-align: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+.menu .menu-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 24px;
+  overflow: hidden;
+  background-color: #f5f5f5;
+  margin-bottom: 6px;
+}
+.menu .menu-icon image {
+  width: 100%;
+  height: 100%;
+}
+.menu .menu-name {
+  font-size: 12px;
+  color: #333;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.menu .menu-indicator {
+  display: flex;
+  justify-content: center;
+  padding-top: 12px;
+}
+.menu .menu-indicator-track {
+  position: relative;
+  width: 40px;
+  height: 2px;
+  border-radius: 2px;
+  background-color: #e8e8e8;
+  overflow: hidden;
+}
+.menu .menu-indicator-thumb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 16px;
+  height: 100%;
+  border-radius: 2px;
+  background-color: #b8594a;
+}
+/* -- ad -- */
+.ad .ad-box {
+  display: flex;
+  gap: 8px;
+}
+.ad .ad-item {
+  flex: 1;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.ad .ad-item image {
+  width: 100%;
+  display: block;
+}

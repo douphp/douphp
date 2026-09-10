@@ -1,0 +1,28 @@
+<!--pages/aftersale/aftersale.wxml-->
+<navbar title="{{title}}" url="/pages/user/user"></navbar>
+<view class="body">
+ <view class="aftersaleList">
+  <view class="item" wx:for="{{aftersale_list}}" wx:for-item="aftersale" wx:key="a">
+   <view class="head">
+    <view class="time">{{aftersale.created_at}}</view>
+    <view class="aftersaleSn">{{lang.aftersale_aftersale_sn}}：{{aftersale.aftersale_sn}}
+     <text class="text">({{aftersale.status.format}})</text>
+    </view>
+   </view>
+   <view class="orderSn">{{lang.order_sn}}：
+    <text class="a" data-url="/pages/order/user/show?order_sn={{aftersale.order.order_sn}}" bindtap="douNavigateTo">{{aftersale.order.order_sn}}</text>
+   </view>
+   <view class="itemList" wx:if="{{aftersale.item_list}}">
+    <image src="{{item.thumb}}" wx:for="{{aftersale.item_list}}" wx:for-item="item" wx:key="i" />
+   </view>
+   <view class="reason">{{lang.aftersale_reason}}：
+    <text class="text">{{aftersale.reason}}</text>
+   </view>
+   <view class="handle" wx:if="{{aftersale.is_handle}}">{{lang.aftersale_handle_record}}：
+    <text class="b">（{{lang.aftersale_aftersale_money}}{{aftersale.aftersale_money}}）</text>
+    <text class="text">{{aftersale.handle_record}}</text>
+   </view>
+  </view>
+ </view>
+ <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
+</view>

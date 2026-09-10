@@ -1,0 +1,45 @@
+<!--pages/health/show.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body" wx:if="{{health}}">
+ <view class="healthDetail">
+  <view class="head">
+   <view class="name">
+    {{lang.health_health_sn}}：{{health.health_sn}}
+    <text class="text">（{{health.status.format}}）</text>
+   </view>
+   <view class="text">{{lang.health_add_time}}：{{health.created_at}}</view>
+   <button wx:if="{{edit_url}}" class="btn-mini" bindtap="goEdit">{{lang.health_edit}}</button>
+  </view>
+
+  <view class="group" wx:for="{{health.groups}}" wx:for-item="group" wx:key="group_name">
+   <view class="h">{{group.group_name}}</view>
+   <view class="dl" wx:for="{{group.fields}}" wx:for-item="field" wx:key="slug">
+    <view class="dt">{{field.name}}<text wx:if="{{field.unit}}">（{{field.unit}}）</text></view>
+    <view class="dd">{{field.value}}</view>
+   </view>
+  </view>
+
+  <view class="group" wx:if="{{health.img_list && health.img_list.length}}">
+   <view class="h">{{lang.health_image}}</view>
+   <view class="img-list">
+    <image wx:for="{{health.img_list}}" wx:for-item="img" wx:key="number" src="{{img.file}}" class="img" mode="widthFix" style="max-width:200rpx;margin-right:8rpx;" />
+   </view>
+  </view>
+
+  <view class="followup">
+   <view class="h">{{lang.health_followup_list}}</view>
+   <view class="stage" wx:for="{{followup_groups}}" wx:for-item="fg" wx:key="stage">
+    <view class="head">{{fg.name}}</view>
+    <view class="row" wx:for="{{fg.list}}" wx:for-item="fu" wx:key="followup_id">
+     <view class="meta">
+      <em>{{lang.health_visit_date}}</em>：{{fu.visit_date}}　
+      <em>{{fg.wear_label}}</em>：{{fu.wear_note}}　
+      <em>{{lang.health_recorder}}</em>：{{fu.recorder_name}}
+     </view>
+     <view class="text">{{lang.health_analysis}}：{{fu.analysis}}</view>
+     <view class="text">{{lang.health_tech_action}}：{{fu.tech_action}}</view>
+    </view>
+   </view>
+  </view>
+ </view>
+</view>

@@ -1,0 +1,84 @@
+<!--pages/comment/comment.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="comment-post">
+   <form bindsubmit="commentPost">
+    <view class="form-view">
+     <view class="dl">
+      <view class="dt">{{lang.order_sn}}：</view>
+      <view class="dd"><text class="sn">{{item.order.order_sn}}</text><text class="time">{{item.order.created_at}}</text></view>
+     </view>
+     <view class="dl">
+      <view class="dt">{{lang.comment_item_id}}：</view>
+      <view class="order-item" data-href="{{item.product.url}}" bindtap="douNavigateTo"> 
+       <!-- {if $item.product.image}} -->
+       <view class="img">
+        <image src="{{item.product.image}}" />
+       </view>
+       <!-- {/if}} -->
+       <view class="name">{{item.product.name}}</view>
+      </view>
+     </view>
+     <view class="dl full">
+      <view class="dt">{{lang.comment_content}}：</view>
+      <view class="dd">
+       <view class="weui-cell__bd">
+        <textarea name="content" class="weui-textarea" value="{{content}}" placeholder="{{lang.guestbook_content_cue}}" placeholder-class="weui-input__placeholder" rows="3" maxlength="{{textAreaMaxLen}}" bindinput="bindKeyInput"></textarea>
+        <view aria-role="option" class="weui-textarea-counter"><span>{{inputValueLength}}</span>/{{textAreaMaxLen}}</view>
+       </view>
+       <view id="content" class="cue"></view>
+      </view>
+     </view>
+     <view class="dl">
+      <view class="dt">{{lang.comment_star}}：</view>
+      <view class="dd">
+       <view class="comment-star">
+        <image class="star-image" src="{{star_unit > item ? selectedSrc : normalSrc}}" data-star_unit="{{item+1}}" bindtap="selectServer" wx:for="{{stars}}" wx:for-item="item" wx:key="*this" />
+        <text class="star-number">{{star_unit}}{{lang.comment_star_unit}}</text>
+       </view>
+       <input id="starValue" hidden="true" name="star" value="{{star_unit}}" />
+       <view id="star" class="cue"></view>
+      </view>
+     </view>
+     <view class="dl">
+      <view class="dt">{{lang.comment_image}}</view>
+      <view class="dd"> 
+       <!-- FileBox -->
+       <view id="galleryFile" class="fileBox">
+        <view class="fileAdd">
+         <view class="li btnFile" data-item_id="{{item.id}}" bindtap="filebox">点击上传</view>
+        </view>
+        <view class="fileList">
+         <view class="li" wx:for="{{html_file_list}}" wx:for-item="gallery" wx:key="g">
+          <image src="{{gallery.file}}" class="img" /><text data-number="{{gallery.number}}" data-item_id="{{item.id}}" bindtap="fileDel" class="del">X</text>
+         </view>
+        </view>
+       </view>
+       <!-- /FileBox -->
+       <view class="cueGray" style="margin-top: 5px">{{lang.comment_image_cue}}</view>
+      </view>
+     </view>
+     <view class="submit">
+      <input hidden="true" name="order_item_id" value="{{order_item_id}}" />
+      <input hidden="true" name="module" value="{{item.module}}" />
+      <input hidden="true" name="item_id" value="{{item.item_id}}" />
+      <input hidden="true" name="anonymous" value="{{anonymous}}" />
+      <button class="btn" formType="submit">{{lang.btn_submit}}</button>
+      <view class="agree-box">
+       <checkbox-group bindchange="anonymous">
+        <label class="agree">
+         <checkbox value="{{checkValue}}" class="agree-checkbox-check" />
+         <view class="agree-checkbox"></view>
+         <view class="agree-text">
+          <text aria-hidden="true">{{lang.comment_anonymous_post}}</text>
+         </view>
+        </label>
+       </checkbox-group>
+      </view>
+     </view>
+    </view>
+   </form>
+  </view>
+ </view>
+</view>

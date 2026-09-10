@@ -1,0 +1,21 @@
+<!--pages/health/user.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="healthList">
+  <view class="item" wx:for="{{health_list}}" wx:for-item="health" wx:key="id" data-url="/pages/health/show?id={{health.id}}" bindtap="douNavigateTo">
+   <view class="name">
+    <block wx:if="{{health.name}}">{{health.name}}</block>
+    <block wx:else>{{health.health_sn}}</block>
+    <text class="text">（{{health.status.format}}）</text>
+   </view>
+   <view class="meta">
+    <em>{{lang.health_health_sn}}：</em>{{health.health_sn}}
+    <text style="margin-left:10px;"><em>{{lang.health_add_time}}：</em>{{health.created_at}}</text>
+   </view>
+  </view>
+ </view>
+ <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
+ <view style="text-align:center;padding:20rpx;">
+  <navigator url="/pages/health/health_apply" class="btn">{{lang.health_btn}}</navigator>
+ </view>
+</view>

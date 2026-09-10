@@ -1,0 +1,25 @@
+<!--pages/vote/option.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="vote-head">
+   <view class="h1">{{vote.name}} <navigator class="a" url="{{vote.item_url}}">{{lang.vote_list}}</navigator></view>
+  </view>
+  <view class="vote-view">
+   <view class="img" wx:if="{{vote_option.image}}">
+    <image src="{{vote_option.image}}" mode="widthFix" />
+   </view>
+   <view class="info">
+    <view class="dt">{{vote_option.name}}</view>
+    <view class="dd">{{lang.vote_option_number}}：<text>{{vote_option.number}}</text></view>
+    <view class="dd">{{lang.vote_option_rank}}：<text>{{vote_option.poll}}{{lang.vote_option_poll_unit}}</text></view>
+    <view class="dd" wx:if="{{vote_option.description}}">{{lang.vote_option_description}}：<text>{{vote_option.description}}</text></view>
+    <view class="vote-btn"><text class="{{vote_option.ip_voted ? 'lock' : ''}}" data-option_id="{{vote_option.option_id}}" bindtap="douVote">{{lang.vote_btn}}</text></view>
+    <view class="content">
+     <mp-html content="{{vote_option.content}}" />
+    </view>
+    <view class="back"><navigator class="a" url="{{vote.item_url}}">&lt;&lt; {{lang.vote_back}}</navigator></view>
+   </view>
+  </view>
+ </view>
+</view>

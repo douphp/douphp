@@ -1,0 +1,15 @@
+<!--cases.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="detail">
+   <view class="title">{{cases.title}}</view>
+   <view class="info"><text>{{lang.created_at}}：{{cases.created_at}}</text><text>{{lang.click}}：{{cases.click}}</text>
+    <text wx:for="{{defined}}" wx:key="index" wx:for-item="defined"> {{defined.arr}}：{{defined.value}} </text>
+   </view>
+   <view class="content">
+    <mp-html content="{{cases.content}}" />
+   </view>
+  </view>
+ </view>
+</view>

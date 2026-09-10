@@ -1,0 +1,45 @@
+/* 单页面
+----------------------------------------------- */
+#page dl {
+  border: 1px dotted #ccc;
+  background-color: #999;
+  float: left;
+  width: 120px;
+  height: 100px;
+  margin: 0 15px 15px 0;
+  text-align: center;
+  color: #fff;
+}
+#page dl.child1 {
+  border: 1px dotted #dddddd;
+  background-color: #cccccc;
+  color: #666666;
+}
+#page dl.child2 {
+  border: 1px dotted #eeeeee;
+  background-color: #dedede;
+  color: #555555;
+}
+#page dl.child3 {
+  border: 1px dotted #f6f6f6;
+  background-color: #e6e6e6;
+  color: #444444;
+}
+#page dt {
+  padding: 15px 0;
+}
+#page dt p {
+  padding-top: 5px;
+  color: #999;
+}
+#page dd {
+  color: #ccc;
+}
+#page dd a {
+  color: #999;
+}
+#page dl.child0 dt p,
+#page dl.child0 a {
+  color: #eee;
+}
+

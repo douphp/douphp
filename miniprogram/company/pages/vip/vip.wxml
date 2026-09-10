@@ -1,0 +1,30 @@
+<!--pages/service/service.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <swiper class="package-cart" previous-margin="20px" next-margin="20px" current="{{current}}" duration="{{duration}}" bindchange="swiperbindchange">
+  <block wx:for="{{package_list}}" wx:key="index" wx:for-item="item">
+   <swiper-item>
+    <view class="item" style="background-color: {{item.color}}">
+     <view class="name">{{item.name}}</view>
+     <view class="icon bi bi-circle"></view>
+     <view class="info">
+      <text class="price">{{item.price}}</text>
+      <text class="price-original">{{item.original_price}}</text>
+      <view class="brief">{{item.brief}}</view>
+     </view>
+     <view class="action" data-module="vip_package" data-item_id="{{item.id}}" bindtap="addToCart">{{lang.vip_package_btn}}</view>
+    </view>
+   </swiper-item>
+  </block>
+ </swiper>
+ <view class="wrap">
+  <view class="package-info">
+   <view class="column">
+    <view class="item" wx:for="{{content_field}}" wx:key="index" wx:for-item="item">{{item}}</view>
+   </view>
+   <view class="column">
+    <view class="item" wx:for="{{package.content}}" wx:key="index" wx:for-item="item">{{item}}</view>
+   </view>
+  </view>
+ </view>
+</view>

@@ -1,0 +1,105 @@
+<!--index.wxml-->
+<navbar title="{{title}}" showMenu="{{false}}">
+ <view slot="left" class="navbar-logo">
+  <image src="/images/logo.png" mode="heightFix" />
+ </view>
+</navbar>
+<view class="body">
+ <!-- 搜索栏 -->
+ <view class="index-box">
+  <view class="wrap">
+   <view class="search-wrap">
+    <view class="search-pill" data-url="/pages/search/search" bindtap="douNavigateTo">
+     <view class="search-pill-main">
+      <text class="bi bi-search"></text>
+      <text class="placeholder">搜索</text>
+     </view>
+     <view class="search-pill-btn">搜索</view>
+    </view>
+   </view>
+  </view>
+ </view>
+
+ <!-- 幻灯 -->
+ <view class="index-box">
+  <view class="wrap">
+   <swiper class="swiper" indicator-dots="{{indicatorDots}}" indicator-color="{{indicatorColor}}" indicator-active-color="{{indicatorActiveColor}}" autoplay="{{autoplay}}" current="{{current}}" interval="{{interval}}" duration="{{duration}}" bindchange="swiperbindchange">
+    <block wx:for="{{index.show_list}}" wx:key="s" wx:for-item="show">
+     <swiper-item>
+      <image src="{{show.image}}" class="swiper-slide" mode="aspectFill" />
+     </swiper-item>
+    </block>
+   </swiper>
+  </view>
+ </view>
+
+ <!-- 分类树：两行横滑 + 滚动进度条 -->
+ <view class="index-box">
+  <view class="wrap">
+   <view class="menu">
+    <scroll-view class="menu-scroll" scroll-x enhanced show-scrollbar="{{false}}" bindscroll="onCategoryScroll">
+     <view class="menu-list">
+      <view class="menu-item" wx:for="{{index.product_category}}" wx:for-item="cate" wx:key="id" data-category_id="{{cate.id}}" data-url="/pages/product_category/product_category" bindtap="douCategory">
+       <view class="menu-icon">
+        <image src="{{cate.icon || '/images/menu_icon_empty.jpg'}}" mode="aspectFill" />
+       </view>
+       <view class="menu-name">{{cate.name}}</view>
+      </view>
+     </view>
+    </scroll-view>
+    <view class="menu-indicator" wx:if="{{categoryShowIndicator}}">
+     <view class="menu-indicator-track">
+      <view class="menu-indicator-thumb" style="left: {{categoryScrollPercent}}%;"></view>
+     </view>
+    </view>
+   </view>
+  </view>
+ </view>
+
+ <!-- 3个广告位 -->
+ <view class="index-box">
+  <view class="wrap">
+   <view class="ad">
+    <view class="ad-box">
+     <view class="ad-item">
+      <image src="/images/home_ad_a.png" mode="widthFix" />
+     </view>
+     <view class="ad-item">
+      <image src="/images/home_ad_b.png" mode="widthFix" />
+     </view>
+     <view class="ad-item">
+      <image src="/images/home_ad_c.png" mode="widthFix" />
+     </view>
+    </view>
+   </view>
+  </view>
+ </view>
+
+ <!-- 产品列表 -->
+ <view class="index-box">
+  <view class="wrap">
+   <view class="grid-list left">
+    <navigator class="item" hover-class="mouseDown" wx:for="{{product_list}}" wx:key="id" wx:for-index="i" wx:for-item="product" url="{{product.url}}">
+     <view class="img">
+      <image src="{{product.thumb}}" mode="widthFix" style="height: 183px" />
+     </view>
+     <view class="title">{{product.title}}</view>
+     <view class="tags" wx:if="{{product.sale_price && product.sale_price.name}}">
+      <text class="tag-solid">限时折扣</text>
+      <text class="tag-soft">{{product.sale_price.name}}</text>
+     </view>
+     <view class="price-row">
+      <view class="price-left">
+       <text class="price">{{product.sale_price.format || product.price}}</text>
+       <text class="price-line" wx:if="{{product.sale_price && product.sale_price.type != 'original'}}">{{product.price}}</text>
+      </view>
+      <text class="bi bi-cart cart-icon" data-url="{{product.url}}" catchtap="douNavigateTo"></text>
+     </view>
+    </navigator>
+   </view>
+   <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
+  </view>
+ </view>
+
+ <view class="footer"><text wx:if="{{lang.powered_by}}">{{lang.powered_by}}</text></view>
+</view>

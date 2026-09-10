@@ -1,0 +1,30 @@
+/* pages/order/work.wxss */
+.orderList .item {
+ margin-top:5px;
+ background-color:#FFF;
+}
+.orderList .item .h3 {
+ padding:0 10px;
+ height:38px;
+ line-height:38px;
+}
+.orderList .item .h3 .span {
+ float:right;
+}
+.orderList .item .amount {
+ padding:0 10px;
+ text-align:right;
+ height:38px;
+ line-height:38px;
+}
+.orderList .item .amount .em {
+ color:#999;
+}
+.orderList .item .btnList {
+ padding:10px;
+ border-top: solid #EEE 1px;
+ text-align:right;
+}
+.orderList .item .btnList text {
+ margin-left: 5px;
+}

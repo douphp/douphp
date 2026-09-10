@@ -1,0 +1,161 @@
+<!--pages/order/show.wxml-->
+<navbar title="{{title}}" url="/pages/order/work"></navbar>
+<view class="body pb">
+ <view class="order">
+  <view class="table-basic">
+   <view class="dl">
+    <view class="dt">{{lang.order_status}}：</view>
+    <view class="dd">
+     <view class="btnBox">
+      <block wx:if="{{order.status == 'pending'}}">
+       <text class="btn-mini" data-order_sn="{{order.order_sn}}" bindtap="orderCancel">{{lang.order_cancel}}</text>
+      </block>
+     </view>
+     {{order.status_format}}
+     <text wx:if="{{order.if_payment && order.status == 'pending'}}">（剩余{{order.pay_time_limit}}）</text>
+    </view>
+   </view>
+  </view>
+  <view class="table-basic">
+   <view class="dl">
+    <view class="dt">{{lang.user_account}}：</view>
+    <view class="dd">{{order.user.username}}</view>
+   </view>
+   <view class="dl">
+    <text class="dt" decode="{{true}}">{{lang.order_contact}}：</text>
+    <view class="dd">{{order.contact}}</view>
+   </view>
+   <view class="dl">
+    <view class="dt">{{lang.order_phone}}：</view>
+    <view class="dd">{{order.phone}}</view>
+   </view>
+   <view class="dl">
+    <view class="dt">{{lang.order_postcode}}：</view>
+    <view class="dd">{{order.postcode}}</view>
+   </view>
+   <view class="dl">
+    <view class="dt">{{lang.order_address}}：</view>
+    <view class="dd">{{order.address}}</view>
+   </view>
+  </view>
+  <view class="order-item-list">
+   <view class="h3">{{lang.order_item_list}}</view>
+   <view class="item" wx:for="{{order.item_list}}" wx:for-item="item" wx:key="index">
+    <view class="box{{!item.image ? ' no-img' : ''}}" data-index="{{index}}">
+     <view class="img" wx:if="{{item.image}}">
+      <image src="{{item.image}}" />
+     </view>
+     <view class="con">
+      <view class="name">{{item.name}}</view>
+      <view class="info-number">
+       <view class="info">
+        <view class="att-box">
+         <text class="att-name" wx:if="{{item.attribute_name}}">{{item.attribute_name}}</text>
+        </view>
+        <view class="price-box" wx:if="{{mode != 'point'}}">
+         <text class="price">{{item.sale_price}}</text>
+         <text class="price-cue" wx:if="{{item.sale_price_name}}">{{item.sale_price_name}}</text>
+         <text class="price-gray" wx:if="{{item.sale_price_type != 'original'}}">{{item.price}}</text>
+        </view>
+        <view class="point-box" wx:else>{{item.point_format}}</view>
+       </view>
+       <view class="number-box"> x {{item.item_number}} </view>
+      </view>
+     </view>
+    </view>
+   </view>
+  </view>
+  <view class="totalAmount" wx:if="{{order.mode == 'point'}}">
+   <view class="dl">
+    <view class="dt">{{lang.order_point}}：</view>
+    <view class="dd">{{order.order_point_format}}</view>
+   </view>
+  </view>
+  <view class="totalAmount" wx:else>
+   <view class="dl">
+    <view class="dt">{{lang.order_item_amount}}：</view>
+    <view class="dd">{{order.item_amount_format}}</view>
+   </view>
+   <view class="dl" wx:if="{{order.shipping_id}}">
+    <view class="dt">{{lang.order_shipping_fee}}：</view>
+    <view class="dd">{{order.shipping_fee_format}}</view>
+   </view>
+   <view class="dl" wx:if="{{order.coupon}}">
+    <view class="dt">{{lang.coupon_amount}}：</view>
+    <view class="dd">{{order.coupon.amount_format}}</view>
+   </view>
+   <view class="dl">
+    <view class="dt">{{lang.order_order_amount}}：</view>
+    <view class="dd">{{order.order_amount_format}}</view>
+   </view>
+  </view>
+  <view class="table-basic info">
+   <view class="dl">
+    <view class="dt">{{lang.order_sn}}：</view>
+    <view class="dd">{{order.order_sn}}</view>
+   </view>
+   <view class="dl">
+    <view class="dt">{{lang.order_add_time}}：</view>
+    <view class="dd">{{order.created_at}}</view>
+   </view>
+   <view class="dl" wx:if="{{order.pay_name}}">
+    <view class="dt">{{lang.order_payment}}：</view>
+    <view class="dd">{{order.pay_name}}</view>
+    <view class="dd" wx:if="{{order.pay_evidence}}">
+     <image src="{{order.pay_evidence}}" />
+    </view>
+   </view>
+   <view class="dl" wx:if="{{order.shipping_id}}">
+    <view class="dt">{{lang.order_shipping}}：</view>
+    <view class="dd">{{order.shipping_name}} ({{lang.order_tracking_no}}：
+     <text wx:if="{{order.tracking_no}}">{{order.tracking_no}}</text>
+     <text wx:else>{{lang.order_undelivered}}</text>
+     )</view>
+   </view>
+   <view class="dl" wx:if="{{order.coupon}}">
+    <view class="dt">{{lang.coupon}}：</view>
+    <view class="dd">{{order.coupon.name}}
+     <text> ({{order.coupon.condition_text}}, {{order.coupon.brief}})</text>
+    </view>
+   </view>
+  </view>
+  <!-- 离线付款确认 -->
+  <view class="h3" wx:if="{{need_pay_check}}">{{lang.order_pay_check}}</view>
+  <view class="table-basic" wx:if="{{need_pay_check}}">
+   <view class="dl">
+    <view class="dt">{{lang.order_pay_evidence}}：</view>
+    <view class="dd">
+     <image wx:if="{{order.pay_evidence}}" class="pay-evidence-img" src="{{order.pay_evidence}}" bindtap="previewPayEvidence" data-src="{{order.pay_evidence}}" />
+    </view>
+   </view>
+   <view class="dl">
+    <view class="dd">
+     <text class="btn" data-order_id="{{order.order_id}}" bindtap="payCheck">{{lang.order_pay_check}}</text>
+    </view>
+   </view>
+  </view>
+  <!-- 快递单号填写 -->
+  <view class="h3">{{order.tracking_no ? lang.order_tracking_edit : lang.order_tracking_submit}}</view>
+  <view class="table-basic" wx:if="{{shipping_list.length > 0 && (order.status == 'pending' || order.status == 'awaiting_confirmation' || order.status == 'paid' || order.status == 'completed')}}">
+   <view class="dl">
+    <view class="dt">{{lang.order_shipping}}：</view>
+    <view class="dd">
+     <picker class="select" bindchange="bindShippingChange" value="{{shipping_index}}" range="{{shipping_list}}" range-key="name">
+      <text>{{shipping_list[shipping_index] ? shipping_list[shipping_index].name : lang.order_shipping_select}}</text>
+     </picker>
+    </view>
+   </view>
+   <view class="dl">
+    <view class="dt">{{lang.order_tracking_no}}：</view>
+    <view class="dd">
+     <input class="text-input" name="tracking_no" value="{{tracking_no}}" placeholder="{{lang.order_tracking_no}}" bindinput="trackingNoInput" />
+    </view>
+   </view>
+   <view class="dl">
+    <view class="dd">
+     <text class="btn" data-order_id="{{order.order_id}}" bindtap="trackingSubmit">{{lang.order_tracking_submit}}</text>
+    </view>
+   </view>
+  </view>
+ </view>
+</view>

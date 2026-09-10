@@ -1,0 +1,72 @@
+/* pages/user/login_phone.wxss */
+@import "../../style/login.wxss";
+.vcode {
+ padding: 50px 0;
+}
+.vcode .head {
+ font-size: 42rpx;
+ font-weight: 600;
+ color: #202020;
+ letter-spacing: 1px;
+ margin: 0 auto;
+ text-align: center;
+}
+.vcode .sendto {
+ text-align: center;
+ font-size: 24rpx;
+ font-weight: 400;
+ color: #858585;
+ margin-top: 20rpx;
+}
+.vcode .code-box {
+}
+.vcode .code-box .code {
+ width: 440rpx;
+ margin: 0 auto;
+ display: flex;
+ justify-content: space-around;
+ align-items: center;
+ margin-top: 100rpx;
+}
+.vcode .code-box .code .input {
+ width: 80rpx;
+ height: 80rpx;
+ border: 1rpx solid #ddd;
+ border-radius: 20rpx;
+ display: flex;
+ justify-content: center;
+ align-items: center;
+ text-align: center;
+ background: #F5F5F5;
+ font-weight: 400;
+ font-size: 30rpx;
+ color: #202020;
+}
+.vcode .code-box .hidden-password {
+ width: 0;
+ height: 0;
+}
+.vcode .mistake {
+ font-size: 22rpx;
+ font-weight: 400;
+ color: #C34D55;
+ line-height: 30rpx;
+ letter-spacing: 1px;
+ text-align: center;
+}
+.vcode .action {
+ font-size: 24rpx;
+ font-weight: 400;
+ color: #858585;
+ letter-spacing: 1px;
+ text-align: center;
+ margin-top: 30rpx;
+}
+.vcode .action .again {
+ color: #1194FB;
+}
+.vcode .btn-submit {
+ width: 80%;
+ background-color: orange;
+ color: white;
+}

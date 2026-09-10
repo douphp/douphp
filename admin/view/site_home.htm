@@ -1,0 +1,58 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+ <meta name="copyright" content="DouCo Co.,Ltd." />
+ <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+ <meta name="csrf-token" content="{$csrf_token}">
+ <title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+ <link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+ <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+ <link href="css/common.css" rel="stylesheet" type="text/css">
+ <link href="css/site_home.css" rel="stylesheet" type="text/css">
+ {include file="inc/javascript.tpl"}
+ <script type="text/javascript" src="js/slide.js"></script>
+</head>
+
+<body>
+ <div id="dou"> {include file="inc/header.tpl"}
+  {include file="inc/sidebar.tpl"}
+  <div id="dou-content"> {include file="inc/toolbar.tpl"}
+   <div class="dou-main{if $features.data || $features.box || $features.fragment} has-subnav{/if}">
+    <!-- {if $features.data || $features.box || $features.fragment} -->
+    {include file="inc/site_home_sub_menu.tpl"}
+    <!-- {/if} -->
+    <div id="site-home" class="dou-page">
+     {include file="inc/page_header.tpl"}
+     <div class="slide-box">
+      <ul class="slide-show">
+       <!-- {foreach from=$show_list item=item} -->
+       <li><a href="{url link='admin.show.edit' id=$item.id}"><img src="{$item.image}" alt="{$item.name}"><span><em>{$lang.edit}</em></span></a></li>
+       <!-- {/foreach} -->
+      </ul>
+     </div>
+     <!-- {if $features.data} -->
+     {include file="inc/data_inner.tpl"}
+     <!-- {/if} -->
+    </div>
+
+   </div>
+  </div>
+  {include file="inc/footer.tpl"}
+ </div>
+ <script type="text/javascript">
+  {literal}
+  $(function () {
+   $('.slide-show').responsiveSlides({
+    auto: false,
+    pager: true,
+    nav: true,
+    namespace: 'slide',
+   });
+  });
+  {/literal}
+ </script>
+</body>
+
+</html>

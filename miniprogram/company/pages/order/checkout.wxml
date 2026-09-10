@@ -1,0 +1,131 @@
+<!--checkout.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class='wrap'>
+  <view class="checkout">
+   <form bindsubmit="orderSuccess">
+    <view class="box" wx:if="{{cart.module == 'product'}}">
+     <view class="h2">{{lang.order_consignee}}</view>
+     <view class="address">
+      <view class="title"><view class="add" data-url="/pages/user/contact_create?from=checkout" bindtap="douRedirectTo">{{lang.user_contact_create}}</view><text class="bi bi-geo-alt"></text> <text class="edit" data-url="/pages/user/contact_edit?id={{contact.id}}&from=checkout" bindtap="douRedirectTo">{{lang.modify}}</text></view>
+      <view class="con" bindtap="contactPopup">
+       <view class="item"><text decode="{{true}}">{{lang.order_contact}}: </text><text>{{contact.name}}</text></view>
+       <view class="item"><text>{{lang.order_address}}: </text><text>{{contact.address_full}}</text></view>
+       <view class="item"><text>{{lang.order_phone}}: </text><text>{{contact.phone}}</text></view>
+      </view>
+     </view>
+    </view>
+    <view class="box" wx:if="{{shipping_list && cart.module == 'product'}}">
+     <view class="h2">{{lang.order_shipping}}</view>
+     <view class="shipping">
+      <radio-group class="radio-group" bindchange="radioShipping">
+       <label class="radio" wx:for="{{shipping_list}}" wx:for-item="shipping" wx:key="s">
+        <view class="dl">
+         <view class="dt">
+          <radio value="{{shipping.slug}}" checked="true" wx:if="{{shipping.checked}}" />
+          <radio value="{{shipping.slug}}" wx:else />
+          {{shipping.name}}
+         </view>
+         <view class="dd" wx:if="{{mode != 'point'}}">{{lang.order_shipping_fee}}:<text class="price">{{shipping.fee_format}}</text> <text class="price" wx:if="{{shipping.free > 0}}">（{{shipping.free_format}}）</text></view>
+        </view>
+       </label>
+      </radio-group>
+      <input type="text" name="shipping_id" value="{{shipping_id}}" hidden="true" />
+     </view>
+    </view>
+    <view class="box" wx:if="{{coupon_list && coupon_list.length && mode != 'point'}}">
+     <view class="h2">{{lang.coupon_use}}</view>
+     <view class="coupon">
+      <radio-group class="radio-group" bindchange="useCoupon">
+       <label class="radio">
+        <view class="item"><radio value="0" checked="true" />{{lang.coupon_no_use}}
+        </view>
+       </label>
+       <label class="radio" wx:for="{{coupon_list}}" wx:for-item="coupon" wx:key="s">
+        <view class="item">
+         <radio value="{{coupon.id}}" />{{coupon.name}}<text>({{coupon.condition_text}}, {{coupon.brief}})</text>
+        </view>
+       </label>
+      </radio-group>
+      <input type="text" name="coupon_id" value="{{coupon_id}}" hidden="true" />
+     </view>
+    </view>
+    <view class="box">
+     <view class="h2"><text class="right" data-url="/pages/order/order" bindtap="douSwitchTab" wx:if="{{cart.module == 'product' && mode != 'point'}}">{{lang.order_cart_back}}</text>{{lang.order_item_list}}</view>
+     
+     <view class="order-item-list"> 
+      <view class="item" wx:for="{{cart.list}}" wx:for-item="item" wx:key="index">
+       <view class="box{{!item.image ? ' no-img' : ''}}"data-index="{{index}}">
+        <view class="img" data-url="/pages/product/product?id={{item.item_id}}" bindtap="douNavigateTo" wx:if="{{item.image}}"><image src="{{item.image}}" /></view>
+        <view class="con">
+         <view class="name" data-url="/pages/product/product?id={{item.item_id}}" bindtap="douNavigateTo">{{item.name}}</view>
+         <view class="info-number">
+          <view class="info">
+           <view class="att-box">
+            <text class="att-name" wx:if="{{item.attribute_name}}">{{item.attribute_name}}</text>
+           </view>
+           <view class="price-box" wx:if="{{mode != 'point'}}">
+            <text class="price">{{item.sale_price.format}}</text><text class="price-cue" wx:if="{{item.sale_price.name}}">{{item.sale_price.name}}</text><text class="price-gray" wx:if="{{item.sale_price.type != 'original'}}">{{item.price}}</text>
+           </view>
+           <view class="point-box" wx:else>{{item.point_format}}</view>
+          </view>
+          <view class="number-box">
+           x {{item.number}}
+          </view>
+         </view>
+        </view>
+       </view>
+      </view>
+     </view>
+     
+     <view class="totalAmount" wx:if="{{mode != 'point'}}">
+      <view class="dl">
+       <view class="dt">{{lang.order_item_number}}：</view>
+       <view class="dd">{{cart.total}}</view>
+      </view>
+      <view class="dl">
+       <view class="dt">{{lang.order_item_amount}}：</view>
+       <view class="dd">{{cart.item_amount_format}}</view>
+      </view>
+      <view class="dl" wx:if="{{shipping_list}}">
+       <view class="dt">{{lang.order_shipping_fee}}：</view>
+       <view class="dd">
+        <text>{{amount.shipping_fee_format}}</text>
+       </view>
+      </view>
+      <view class="dl" wx:if="{{coupon_list && coupon_list.length}}">
+       <view class="dt">{{lang.coupon_amount}}：</view>
+       <view class="dd">
+        <text>{{amount.coupon_amount_format}}</text>
+       </view>
+      </view>
+     </view>
+    </view>
+    <view class="fixex">
+     <view class="orderSubmit">
+      <view class="em" wx:if="{{mode != 'point'}}">{{lang.order_item_amount}}：<text>{{amount.order_amount_format}}</text></view>
+      <view class="em" wx:else>{{lang.product_point}}：<text>{{cart.order_point}}</text></view>
+      <button class="btnSubmit" formType="submit">{{lang.order_submit}}</button>
+     </view>
+    </view>
+   </form>
+  </view>
+ </view>
+ <view class="footer"><text wx:if="{{lang.powered_by}}">{{lang.powered_by}}</text></view>
+</view>
+
+<!-- 弹出框 -->
+<view class="contact-box">
+ <view class="overlay" wx:if="{{isVisible}}" bindtap="contactPopup"></view>
+ <view class="popup{{isVisible ? ' active' : ''}}">
+  <view class="head">
+   <text class="title">{{lang.book_contact}}</text>
+   <text class="bi bi-x-lg" bindtap="contactPopup"></text>
+  </view>
+  <view class="list">
+   <view class="item{{item.cur ? ' active' : ''}}" wx:for="{{contact_list}}" wx:key="index" wx:for-item="item" data-contact_id="{{item.id}}" bindtap="contactSelect">
+    <text class="bi bi-person"></text>
+    {{item.name}} {{item.phone}}  {{item.address_full}}</view>
+  </view>
+ </view>
+</view>

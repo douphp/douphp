@@ -1,0 +1,251 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+ <meta name="copyright" content="DouCo Co.,Ltd." />
+ <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+ <meta name="csrf-token" content="{$csrf_token}">
+ <title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+ <link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+ <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+ <link href="css/common.css" rel="stylesheet" type="text/css">
+ <link href="css/ai.css" rel="stylesheet" type="text/css">
+ {include file="inc/javascript.tpl"}
+</head>
+
+<body>
+ <div id="dou"> {include file="inc/header.tpl"}
+  {include file="inc/sidebar.tpl"}
+  <div id="dou-content"> {include file="inc/toolbar.tpl"}
+   <div class="dou-main has-subnav">
+    {include file="inc/ai_sub_menu.tpl"}
+    <div id="ai" class="dou-page">
+      <!-- {if $rec eq 'default'} 应用列表 -->
+      {include file="inc/page_header.tpl"}
+      <div class="filter">
+       <form action="{url link='admin.ai'}" method="get" onsubmit="return hideEmpty(this)">
+        <select name="placement" class="select">
+         <option value="">{$lang.ai_placement}</option>
+         <option value="assist" {if $req.placement eq 'assist'}selected{/if}>{$lang.ai_placement_assist}</option>
+         <option value="fill" {if $req.placement eq 'fill'}selected{/if}>{$lang.ai_placement_fill}</option>
+         <option value="batch" {if $req.placement eq 'batch'}selected{/if}>{$lang.ai_placement_batch}</option>
+         <option value="translate" {if $req.placement eq 'translate'}selected{/if}>{$lang.ai_placement_translate}</option>
+        </select>
+        <select name="task_type" class="select">
+         <option value="">{$lang.ai_task_type}</option>
+         <option value="polish" {if $req.task_type eq 'polish'}selected{/if}>{$lang.ai_task_type_polish}</option>
+         <option value="rewrite" {if $req.task_type eq 'rewrite'}selected{/if}>{$lang.ai_task_type_rewrite}</option>
+         <option value="image" {if $req.task_type eq 'image'}selected{/if}>{$lang.ai_task_type_image}</option>
+         <option value="banner" {if $req.task_type eq 'banner'}selected{/if}>{$lang.ai_task_type_banner}</option>
+         <option value="translate" {if $req.task_type eq 'translate'}selected{/if}>{$lang.ai_task_type_translate}</option>
+         <option value="fill" {if $req.task_type eq 'fill'}selected{/if}>{$lang.ai_task_type_fill}</option>
+         <option value="batch" {if $req.task_type eq 'batch'}selected{/if}>{$lang.ai_task_type_batch}</option>
+         <option value="assist" {if $req.task_type eq 'assist'}selected{/if}>{$lang.ai_task_type_assist}</option>
+        </select>
+        <select name="status" class="select">
+         <option value="">{$lang.ai_status}</option>
+         <option value="1" {if $req.status eq '1'}selected{/if}>{$lang.ai_status_1}</option>
+         <option value="0" {if $req.status eq '0' && $req.status neq ''}selected{/if}>{$lang.ai_status_0}</option>
+        </select>
+        <input class="btn-secondary" type="submit" value="{$lang.btn_filter}" />
+        <a class="btn-secondary" href="{url link='admin.ai'}">{$lang.btn_reset}</a>
+       </form>
+       <span>
+        <!-- {if $features.sort} -->
+        <a class="btn-secondary js-post" href="{url link='admin.tool.sort' act=reset module=ai}">{$lang.sort_reset}</a>
+        <a class="btn-secondary js-post" href="{url link='admin.tool.sort' act=close}">{$lang.sort_close}</a>
+        <!-- {else} -->
+        <a class="btn-secondary js-post" href="{url link='admin.tool.sort' act=open}">{$lang.sort_open}</a>
+        <!-- {/if} -->
+       </span>
+      </div>
+      <div id="list">
+       <form name="action" method="post" action="{url link='admin.ai.action'}">
+        <input type="hidden" name="token" value="{$token}" />
+        <table class="table">
+         <tr>
+          <th width="22" class="text-center"><input name='chkall' type='checkbox' id='chkall' onclick='selectcheckbox(this.form)' value='check'></th>
+          <th class="m-none text-center" width="50">{$lang.record_id}</th>
+          <th class="text-left">{$lang.ai_name}</th>
+          <th class="m-none text-center">{$lang.ai_placement}</th>
+          <th class="m-none text-center">{$lang.ai_task_type}</th>
+          <th class="m-none text-center" width="80">{$lang.ai_module}</th>
+          <th class="m-none text-center" width="140">{$lang.ai_model}</th>
+          <!-- {if $features.sort} -->
+          <th class="m-none text-center" width="60">{$lang.sort}</th>
+          <!-- {/if} -->
+          <th width="60" class="text-center">{$lang.ai_status}</th>
+          <th width="80" class="text-center">{$lang.handler}</th>
+         </tr>
+         <!-- {foreach from=$ai_list item=ai} -->
+         <tr class="{if !$ai.status.value}row-disabled{/if}" data-off-row-class="row-disabled">
+          <td class="text-center"><input type="checkbox" name="checkbox[]" value="{$ai.id}" /></td>
+          <td class="m-none text-center">{$ai.id}</td>
+          <td>{$ai.name}</td>
+          <td class="m-none text-center">{$ai.placement.format}</td>
+          <td class="m-none text-center">{$ai.task_type.format}</td>
+          <td class="m-none text-center">{$ai.module}</td>
+          <td class="m-none text-center">{$ai.model_name}</td>
+          <!-- {if $features.sort} -->
+          <td class="m-none text-center">{$ai.sort}</td>
+          <!-- {/if} -->
+          <td class="text-center">
+           <span class="link js-toggle {if $ai.status.value eq 1}ai-status ai-status-on{else}ai-status ai-status-off{/if}"
+            data-url="{url link='admin.tool.change_field' module='ai' item_id=$ai.id field='status'}"
+            data-state="{if $ai.status.value eq 1}on{else}off{/if}"
+            data-on-class="ai-status ai-status-on" data-off-class="ai-status ai-status-off"
+            data-text-on="{$lang.ai_status_1}" data-text-off="{$lang.ai_status_0}"
+            title="{$lang.ai_status_toggle_cue}"><span class="js-toggle-state">{$ai.status.format}</span><span class="js-toggle-action">{if $ai.status.value eq 1}{$lang.ai_status_0}{else}{$lang.ai_status_1}{/if}</span></span>
+          </td>
+          <td class="text-center"><a href="{url link='admin.ai.edit' id=$ai.id}">{$lang.edit}</a> | <a href="javascript:;" class="js-delete" data-url="{url link='admin.ai.destroy' id=$ai.id}">{$lang.del}</a></td>
+         </tr>
+         <!-- {/foreach} -->
+        </table>
+        <div class="action">
+         <select class="select" name="action">
+          <option value="0">{$lang.select}</option>
+          <option value="del_all">{$lang.del}</option>
+         </select>
+         <input class="btn" type="submit" value="{$lang.btn_execute}" />
+        </div>
+       </form>
+      </div>
+      <div class="clear"></div>
+      {include file="inc/pager.tpl"}
+      <!-- {/if} -->
+      <!-- {if $rec eq 'create' || $rec eq 'edit'} 添加/编辑应用 -->
+      {include file="inc/page_header.tpl"}
+      <form action="{$form_action}" method="post"><!-- {if $form_method} --><input type="hidden" name="_method" value="{$form_method}" /><!-- {/if} -->
+       <div class="form">
+        <div class="form-item">
+         <div class="form-label">{$lang.ai_name}</div>
+         <div class="input-block">
+          <input name="name" type="text" class="input" value="{$ai.name}" />
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.ai_placement}</div>
+         <div class="input-block">
+          <select name="placement" id="placement-select" class="select">
+           <option value="assist" {if $ai.placement eq 'assist' || !$ai.placement}selected{/if}>{$lang.ai_placement_assist}</option>
+           <option value="fill" {if $ai.placement eq 'fill'}selected{/if}>{$lang.ai_placement_fill}</option>
+           <option value="batch" {if $ai.placement eq 'batch'}selected{/if}>{$lang.ai_placement_batch}</option>
+           <option value="translate" {if $ai.placement eq 'translate'}selected{/if}>{$lang.ai_placement_translate}</option>
+          </select>
+          <p class="cue">{$lang.ai_placement_cue}</p>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.ai_task_type}</div>
+         <div class="input-block">
+          <select name="task_type" id="task-type-select" class="select">
+           <option value="polish" {if $ai.task_type eq 'polish'}selected{/if}>{$lang.ai_task_type_polish}</option>
+           <option value="rewrite" {if $ai.task_type eq 'rewrite'}selected{/if}>{$lang.ai_task_type_rewrite}</option>
+           <option value="image" {if $ai.task_type eq 'image'}selected{/if}>{$lang.ai_task_type_image}</option>
+           <option value="banner" {if $ai.task_type eq 'banner'}selected{/if}>{$lang.ai_task_type_banner}</option>
+           <option value="translate" {if $ai.task_type eq 'translate'}selected{/if}>{$lang.ai_task_type_translate}</option>
+           <option value="fill" {if $ai.task_type eq 'fill'}selected{/if}>{$lang.ai_task_type_fill}</option>
+           <option value="batch" {if $ai.task_type eq 'batch'}selected{/if}>{$lang.ai_task_type_batch}</option>
+           <option value="assist" {if $ai.task_type eq 'assist' || !$ai.task_type}selected{/if}>{$lang.ai_task_type_assist}</option>
+          </select>
+          <p class="cue">{$lang.ai_task_type_cue}</p>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.ai_model}</div>
+         <div class="input-block">
+          <select id="model-group-select" class="select">
+           <option value="">{$lang.ai_model_group_select}</option>
+           <!-- {foreach from=$model_group_list item=group} -->
+           <option value="{$group.provider_id}" {if $group.selected}selected{/if}>{$group.provider_name}</option>
+           <!-- {/foreach} -->
+          </select>
+          <select name="model_id" id="model-select" class="select">
+           <option value="">{$lang.ai_model_select}</option>
+           <!-- {foreach from=$model_group_list item=group} -->
+           <!-- {foreach from=$group.models item=model} -->
+           <option value="{$model.id}" data-group="{$group.provider_id}" {if $model.selected}selected{/if}>{$model.name}</option>
+           <!-- {/foreach} -->
+           <!-- {/foreach} -->
+          </select>
+          <p class="cue">{$lang.ai_model_cue}</p>
+         </div>
+        </div>
+        <div class="form-item" id="row-module"{if $ai.placement eq 'assist' || $ai.placement eq 'translate' || !$ai.placement} style="display:none"{/if}>
+         <div class="form-label">{$lang.ai_module}</div>
+         <div class="input-block">
+          <select name="module" id="module-select" class="select">
+           <option value="">{$lang.ai_module_select}</option>
+           <!-- {foreach from=$module_list item=mod} -->
+           <option value="{$mod.name}" {if $ai.module eq $mod.name}selected{/if}>{$mod.text}</option>
+           <!-- {/foreach} -->
+          </select>
+          <p class="cue">{$lang.ai_module_cue}</p>
+         </div>
+        </div>
+        <div class="form-item" id="row-fields"{if $ai.placement eq 'assist' || $ai.placement eq 'translate' || !$ai.placement} style="display:none"{/if}>
+         <div class="form-label">{$lang.ai_field}</div>
+         <div class="input-block">
+          <div id="field-checkbox-group" class="field-checkbox-group"><span class="muted">{$lang.ai_field_select_module_first}</span></div>
+          <input type="hidden" id="selected-fields-data" value="{$ai.field|escape:'html'}" />
+          <p class="cue" id="field-cue" data-cue-default="{$lang.ai_field_cue|escape:'html'}" data-cue-translate="{$lang.ai_field_cue_translate|escape:'html'}">{if $ai.placement eq 'translate'}{$lang.ai_field_cue_translate}{else}{$lang.ai_field_cue}{/if}</p>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.ai_default_prompt}</div>
+         <div class="input-block">
+          <textarea name="default_prompt" class="textarea" cols="80" rows="5">{$ai.default_prompt}</textarea>
+          <p class="cue">{$lang.ai_default_prompt_cue}</p>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.ai_status}</div>
+         <div class="input-block">
+          <label><input type="radio" name="status" value="1" {if $ai.status neq 0}checked{/if} /> {$lang.ai_status_1}</label>
+          <label><input type="radio" name="status" value="0" {if $ai.status eq 0}checked{/if} /> {$lang.ai_status_0}</label>
+         </div>
+        </div>
+        <!-- {if $features.sort} -->
+        <div class="form-item">
+         <div class="form-label">{$lang.sort}</div>
+         <div class="input-block">
+          <input type="text" name="sort" value="{if $ai.sort}{$ai.sort}{else}50{/if}" size="5" class="input" />
+         </div>
+        </div>
+        <!-- {else} -->
+        <input type="hidden" name="sort" value="50" />
+        <!-- {/if} -->
+        <div class="form-item">
+         <div class="form-label"></div>
+         <div class="input-block">
+          <a href="javascript:;" id="ai-advanced-toggle" class="schema-toggle"><i class="bi {if $show_advanced}bi-chevron-down{else}bi-chevron-right{/if}"></i> {$lang.ai_advanced}</a>
+         </div>
+        </div>
+        <div id="ai-advanced-fields"{if !$show_advanced} style="display:none"{/if}>
+         <div class="form-item">
+          <div class="form-label">{$lang.ai_config}</div>
+          <div class="input-block">
+           <textarea name="config" class="textarea" cols="80" rows="3">{$ai.config}</textarea>
+           <p class="cue">{$lang.ai_config_cue}</p>
+          </div>
+         </div>
+        </div>
+        <div class="form-item">
+         <input type="hidden" name="token" value="{$token}" />
+         {if $rec eq 'edit'}<input type="hidden" name="id" value="{$ai.id}" />{/if}
+         <input class="btn" type="submit" value="{$lang.btn_submit}" />
+        </div>
+       </div>
+      </form>
+      <!-- {/if} -->
+     </div>
+
+   </div>
+  </div>
+  {include file="inc/footer.tpl"}
+ </div>
+<script type="text/javascript" src="js/ai.js"></script>
+</body>
+</html>
+

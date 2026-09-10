@@ -1,0 +1,34 @@
+<!--pages/share/user.wxml-->
+<navbar title="{{title}}" url="/pages/user/user"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="page-head">
+   <view class="action">
+    <text class="link" bindtap="applyExist" wx:if="{{apply_exist}}">{{lang.share_apply}}</text>
+    <text class="link" data-url="/pages/share/apply" bindtap="douNavigateTo" wx:else>{{lang.share_apply}}</text>
+   </view>
+   <view class="name">{{lang.share_list}}</view>
+  </view>
+  <view class="share-list">
+   <view class="item" wx:for="{{share_list}}" wx:for-item="share" wx:key="index">
+    <view class="head">
+     <view class="time">{{share.status.format}}</view>
+     <view class="money">{{lang.share_share_sn}}：{{share.share_sn}}</view>
+    </view>
+    <view class="info">
+     <text>{{lang.share_share_sn}}：{{share.share_sn}}</text>
+     <text>{{lang.share_add_time}}：{{share.created_at}}</text>
+     <text>{{lang.share_point}}：{{share.point}}</text>
+    </view>
+    <view class="img-list">
+     <image wx:for="{{share.img_list}}" wx:key="index" src="{{item.file}}" data-image="{{item.file}}" bindtap="previewImage" mode="heightFix" />
+    </view>
+    <view class="handle" wx:if="{{share.handle_record}}">
+     <text>{{lang.share_handle_time}}：{{share.handled_at}}</text>
+     <text wx:if="{{share.handle_record}}">{{lang.share_handle_record}}：{{share.handle_record}}</text>
+    </view>
+   </view>
+   </view>
+   <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
+  </view>
+ </view>

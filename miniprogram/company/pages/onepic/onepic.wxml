@@ -1,0 +1,14 @@
+<!--pages/onepic/onepic.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="grid-list padding-y">
+   <view class="item" hover-class="mouseDown" wx:for="{{onepic_list}}" wx:key="index" data-index="{{index}}" wx:for-item="item">
+    <view class="img">
+     <image src="{{item.image}}" mode="widthFix" data-image="{{item.image}}" bindtap="previewImage" />
+    </view>
+   </view>
+   <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
+  </view>
+ </view>
+</view>

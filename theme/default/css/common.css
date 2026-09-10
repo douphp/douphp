@@ -1,0 +1,912 @@
+/*
+Theme Name: DouPHP 默认模板
+Theme URI: http://demo.douphp.com/
+Description: DouPHP 默认模板
+Version: 1.0
+Author: DouCo Co.,Ltd. Co.,Ltd.
+Author URI: https://www.douphp.com/
+*/
+
+/* 1. Reset & Base — 重置与基础 */
+body {
+  font-family:
+    Microsoft Yahei,
+    \5FAE\8F6F\96C5\9ED1,
+    \5b8b\4f53,
+    Arial,
+    Lucida,
+    Verdana,
+    Helvetica,
+    sans-serif;
+  color: #555;
+  background-color: #fff;
+}
+body,
+button,
+input,
+textarea {
+  font-size: 14px;
+  line-height: 1.531;
+  outline: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+a {
+  color: #333333;
+  text-decoration: none;
+}
+a:hover {
+  color: #333333;
+  text-decoration: none;
+}
+p,
+ul,
+ol,
+dl,
+dt,
+dd,
+form,
+blockquote {
+  margin: 0;
+  padding: 0;
+}
+ul,
+ol {
+  list-style: none;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-size: 14px;
+  margin: 0;
+  padding: 0;
+}
+input,
+select {
+  font-family: Microsoft Yahei;
+  vertical-align: middle;
+  box-sizing: border-box;
+}
+input:-webkit-autofill,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0px 1000px transparent inset !important;
+  background-color: transparent;
+  background-image: none;
+  transition: background-color 50000s ease-in-out 0s;
+}
+em,
+b,
+i {
+  font-style: normal;
+  font-weight: normal;
+}
+img {
+  vertical-align: middle;
+  border: 0;
+}
+label {
+  cursor: pointer;
+}
+video {
+  width: 100%;
+}
+#vcode {
+  cursor: pointer;
+}
+
+/* 2. Utilities — 工具类 */
+.cue {
+  color: red;
+  font-size: 14px;
+}
+.clear {
+  clear: both;
+  height: 0;
+  line-height: 0;
+  font-size: 0;
+}
+.captcha {
+  text-transform: uppercase;
+}
+.none {
+  display: none;
+}
+.pointer {
+  cursor: pointer;
+}
+.nowrap {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 992px) {
+  .m-none {
+    display: none;
+  }
+}
+@media (min-width: 992px) {
+  .p-none {
+    display: none;
+  }
+}
+.cRed {
+  color: #f40;
+}
+.cOra {
+  color: #f30;
+}
+.cGre {
+  color: #0c6;
+}
+.cBlu {
+  color: #69c;
+}
+.cGra {
+  color: #999;
+}
+
+/* 3. Button — 按钮 */
+.btn {
+  display: inline-block;
+  background-color: #0072c6;
+  color: #eee;
+  padding: 8px 45px;
+  text-transform: capitalize;
+  cursor: pointer;
+  font-weight: bold;
+  text-align: center;
+  -webkit-appearance: none;
+  appearance: none;
+  font-size: 14px;
+  line-height: 1.5;
+  border-radius: 0;
+  border: 0;
+}
+.btn:active {
+  box-shadow: none;
+}
+.btn:hover {
+  text-decoration: none;
+  color: #ffffff;
+  background-color: #007ad5;
+}
+.btn-primary {
+  background-color: #46b777;
+}
+.btn-secondary {
+  display: inline-block;
+  background-color: #ccc;
+  color: #555;
+  padding: 8px 45px;
+  text-transform: capitalize;
+  cursor: pointer;
+  font-weight: bold;
+  text-align: center;
+  -webkit-appearance: none;
+  appearance: none;
+  font-size: 14px;
+  line-height: 1.5;
+  border-radius: 0;
+  border: 0;
+  vertical-align: middle;
+}
+.btn-danger {
+  display: inline-block;
+  background-color: #ff4246;
+  color: #fff;
+  padding: 7px 28px;
+  text-transform: capitalize;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  text-align: center;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.btn-chip {
+  display: inline-block;
+  border: 1px solid #ddd;
+  color: #555;
+  line-height: 25px;
+  padding: 0 15px;
+  margin-top: 2px;
+}
+.btn-chip:hover {
+  background-color: #fff;
+  color: #000;
+}
+.btn-link {
+  display: inline-block;
+  color: #999;
+  margin-left: 10px;
+  font-size: 12px;
+}
+.btn-link i {
+  color: #666;
+  font-size: 14px;
+}
+.btn-outline {
+  display: inline-block;
+  border: 1px solid #ddd;
+  color: #28b779;
+  line-height: 18px;
+  padding: 0 4px;
+  margin: 0 4px;
+  font-size: 12px;
+}
+.btn-outline:hover {
+  border: 1px solid #28b779;
+  background-color: #28b779;
+  color: #fff;
+}
+.btn-mini {
+  display: inline-block;
+  color: #333;
+  border: 1px solid #ddd;
+  padding: 3px 5px;
+  line-height: 1em;
+  font-size: 12px;
+  cursor: pointer;
+}
+.btn-captcha {
+  display: inline-block;
+  background-color: #19b4ea;
+  border-radius: 2px;
+  border: 0;
+  color: #fff;
+  padding: 7px 0;
+  width: 110px;
+  text-align: center;
+  text-transform: capitalize;
+  cursor: pointer;
+  font-size: 13px;
+  box-sizing: content-box;
+}
+.btn-captcha[disabled],
+.btn-captcha:disabled,
+.btn-captcha.disabled {
+  color: #fff;
+  background-color: #b2b2b2;
+  opacity: 1;
+}
+.btn-favorites {
+  display: inline-block;
+  cursor: pointer;
+  font-size: 12px;
+  color: #777;
+}
+.btn-favorites i {
+  margin-right: 4px;
+  font-size: 13px;
+}
+.btn-favorites.ed {
+  color: #da3638;
+}
+
+/* 4. Form Controls — 表单控件 */
+
+/* 4a. Input & Select */
+.input-sm {
+  border: 1px solid #ddd;
+  background-color: #fbfbfb;
+  padding: 4px 5px;
+  color: #666;
+  font-size: 12px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.input {
+  box-sizing: border-box;
+  padding: 7px;
+  font-size: 14px;
+  border: 1px solid #e9e9e9;
+  background-color: #fff;
+  color: #666;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.input[disabled],
+.input:disabled,
+.input.disabled {
+  color: #999;
+}
+.input::placeholder {
+  color: #ccc;
+}
+.input[readonly] {
+  background-color: #ddd;
+}
+.textarea {
+  padding: 4px;
+  border: 1px solid #e9e9e9;
+  background-color: #fff;
+  line-height: 20px;
+  -webkit-appearance: none;
+  appearance: none;
+  box-sizing: border-box;
+}
+.textarea-auto {
+  border: 1px solid #e9e9e9;
+  background-color: #fff;
+  padding: 0;
+  font-size: 12px;
+  line-height: 20px;
+  resize: none;
+  min-height: 40px;
+  -webkit-appearance: none;
+  appearance: none;
+  box-sizing: border-box;
+}
+.input,
+.textarea,
+.textarea-auto,
+.select {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.checkbox-group label {
+  display: inline-block;
+  margin: 0 10px 10px 0;
+}
+.input-suffix {
+  display: inline-block;
+  background-color: #ccc;
+  padding: 0 10px;
+  color: #fff;
+  line-height: 30px;
+  vertical-align: middle;
+}
+.select {
+  border: 1px solid #e9e9e9;
+  background-color: #fff;
+  padding: 7px 5px 7px 2px;
+}
+select option.selected {
+  color: #b3b3b3;
+  background-color: #f9f9f9;
+  font-style: italic;
+}
+.select-multiple {
+  padding-right: 50px;
+  min-height: 200px;
+  max-height: 300px;
+}
+
+/* 4b. File Upload */
+.input-file {
+  width: 80px;
+}
+.input-file .input-file-show {
+  height: 80px;
+  line-height: 80px;
+  text-align: center;
+  color: #555;
+  background-color: #f5f5f5;
+}
+.input-file .input-file-show img {
+  width: 100%;
+  height: 80px;
+}
+.input-file .input-file-btn {
+  width: 100%;
+  background-color: #eee;
+  color: #999;
+  line-height: 25px;
+  cursor: pointer;
+  text-align: center;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+@media (max-width: 768px) {
+  .btn,
+  .btn-secondary,
+  .btn-danger,
+  .btn-captcha {
+    max-width: 100%;
+  }
+  .input,
+  .textarea,
+  .textarea-auto,
+  .inp-main {
+    width: 100%;
+  }
+}
+
+/* 4c. Upload Box */
+.fileBox {
+  zoom: 1;
+  overflow: hidden;
+}
+.fileBox .fileBtn li {
+  display: block;
+  width: 130px;
+  line-height: 30px;
+  text-align: center;
+  border: 1px solid #ddd;
+  border-bottom: 0;
+  background-color: #f4f4f4;
+  cursor: pointer;
+  font-size: 12px;
+  color: #333;
+}
+.fileBox .fileBtn li img {
+  margin-top: 12px;
+}
+.fileBox .fileAdd {
+  float: left;
+}
+.fileBox .fileAdd li {
+  width: 80px;
+  height: 80px;
+  line-height: 80px;
+  text-align: center;
+  border: 1px dotted #cccccc;
+  background-color: #f4f4f4;
+  cursor: pointer;
+  font-size: 14px;
+}
+.fileBox .fileAdd li img {
+  margin-top: 40px;
+}
+.fileBox .fileList {
+  margin-left: 80px;
+  zoom: 1;
+  overflow: hidden;
+}
+.fileBox .fileList li {
+  float: left;
+  border: 1px dotted #cccccc;
+  height: 80px;
+  overflow: hidden;
+  margin-left: 10px;
+  position: relative;
+}
+.fileBox .fileList li img {
+  width: 80px;
+  height: 80px;
+}
+.fileBox .fileList li span {
+  display: none;
+  background-color: #60bbff;
+  color: #fff;
+  width: 20px;
+  height: 20px;
+  text-align: center;
+  line-height: 20px;
+  cursor: pointer;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+}
+.fileBox .fileList li:hover span {
+  display: block;
+}
+
+/* 4d. Form Layout */
+.form .select {
+ color: #555;
+}
+.form.gray {
+ background-color: #eee;
+ padding: 15px;
+ box-sizing: border-box;
+}
+.form.gray .form-item:last-child {
+ margin-bottom: 3px;
+}
+.form .form-item {
+ position: relative;
+ margin-bottom: 15px;
+}
+.form .form-item.light {
+ border: 2px solid #19b4ea;
+ padding: 15px;
+ box-sizing: border-box;
+}
+.form .form-item.light .form-label {
+ font-size: 24px;
+ color: #333;
+}
+.form .form-item.submit {
+ margin-top: 50px;
+}
+.form .form-label {
+ display: block;
+ font-size: 14px;
+ font-weight: bold;
+ margin-bottom: 5px;
+}
+.form .form-label i,
+.form .form-label em {
+ color: #f00;
+ margin-left: 5px;
+ font-weight: bold;
+}
+.form .form-newline {
+ margin-top: 10px;
+}
+.form .form-item .cue {
+ margin: 3px 0 10px 0;
+}
+.form .form-fields {
+ display: flex;
+ flex-wrap: wrap;
+ gap: 0 20px;
+}
+.form .form-fields-item p {
+ color: #777;
+ background-color: #ddd;
+ text-align: center;
+ padding: 3px 0;
+}
+.form .form-input-inline {
+ display: inline-block;
+ vertical-align: middle;
+}
+.form .form-field-inline {
+ display: inline-block;
+ vertical-align: top;
+ margin-right: 20px;
+}
+.form .form-mid {
+ display: inline-block;
+ vertical-align: middle;
+ line-height: 30px;
+ margin-right: 10px;
+}
+.form .form-mid.bar {
+ display: block;
+ color: #777;
+ background-color: #ddd;
+ text-align: center;
+ padding: 3px 0;
+ margin: 0 0 5px;
+}
+.form .input-block label {
+  margin-right: 15px;
+  line-height: 34px;
+}
+
+/* 4e. Form Control Mixin */
+.form-control {
+ border: 1px solid #e9e9e9;
+ padding: 6px 3px;
+}
+@media (min-width: 768px) {
+ .form-control {
+  display: inline-block;
+  width: auto;
+ }
+}
+
+/* 5. Table — 表格 */
+.table {
+  width: 100%;
+  border: 0;
+  border-collapse: collapse;
+  color: #666666;
+}
+.table select {
+  color: #555;
+}
+.table td,
+.table th {
+  padding: 8px;
+  text-align: left;
+}
+.table .text-left {
+  text-align: left;
+}
+.table .text-center {
+  text-align: center;
+}
+.table .text-right {
+  text-align: right;
+}
+.table .text-justify {
+  text-align: justify;
+}
+.table .v-top {
+  vertical-align: top;
+}
+.table .v-middle {
+  vertical-align: middle;
+}
+.table .v-bottom {
+  vertical-align: bottom;
+}
+.table .v-baseline {
+  vertical-align: baseline;
+}
+.table th {
+  height: 25px;
+  background-color: #ddd;
+  border-bottom: 1px solid #ddd;
+  color: #333;
+}
+.table td {
+  height: 25px;
+  border-bottom: 1px solid #ddd;
+}
+.table tr:hover td {
+  background-color: #e9e9e9;
+}
+.table a {
+  color: #0072c6;
+}
+.table tr .action {
+  display: none;
+  background-color: #28b779;
+  color: #fff;
+  line-height: 18px;
+  padding: 0 8px;
+}
+.table tr:hover .action {
+  display: inline-block;
+}
+
+/* 6. Price & Badge — 价格与徽标 */
+
+/* 6a. Price */
+.price {
+  color: #cc0000;
+}
+.price-line {
+  color: #999;
+  font-size: 14px;
+  text-decoration: line-through;
+}
+.price-gray {
+  color: #999;
+  font-size: 14px;
+}
+.price-cue {
+  background-color: #fff1eb;
+  color: #ff5000;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 3px;
+  margin-right: 6px;
+}
+
+/* 6b. Badge */
+.statusBadge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 3px;
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+  color: #595959;
+  background-color: #f5f5f5;
+  border: 1px solid #e8e8e8;
+}
+.statusBadge.success {
+  color: #389e0d;
+  background-color: #f6ffed;
+  border-color: #b7eb8f;
+}
+.statusBadge.warning {
+  color: #d46b08;
+  background-color: #fff7e6;
+  border-color: #ffd591;
+}
+.statusBadge.danger {
+  color: #cf1322;
+  background-color: #fff1f0;
+  border-color: #ffa39e;
+}
+.statusBadge.info {
+  color: #096dd9;
+  background-color: #e6f7ff;
+  border-color: #91d5ff;
+}
+
+/* 7. Filter — 筛选 */
+.screen {
+  padding-top: 20px;
+  border-bottom: 1px dotted #ddd;
+}
+.screen dl {
+  margin-bottom: 10px;
+}
+.screen dl dt {
+  display: inline-block;
+  font-weight: bold;
+}
+.screen dl dd {
+  display: inline-block;
+}
+.screen dl dd a {
+  display: inline-block;
+  background-color: #ddd;
+  color: #555;
+  padding: 2px 10px;
+  margin-right: 8px;
+}
+@media (max-width: 768px) {
+  .screen dl dt {
+    display: block;
+  }
+  .screen dl dd {
+    display: block;
+  }
+  .screen dl dd a {
+    margin-top: 8px;
+  }
+}
+.screen dl dd a.cur {
+  background-color: #19b4ea;
+  color: #fff;
+}
+.filter {
+  margin: 0 0 10px -2px;
+  height: 35px;
+}
+.filter form {
+  float: left;
+}
+.filter span {
+  float: right;
+}
+@media (max-width: 768px) {
+  .filter .inpMain {
+    width: 120px;
+  }
+  .filter .btnGray {
+    padding: 4px 5px;
+  }
+  .filter span {
+    display: none;
+  }
+}
+
+/* 8. Breadcrumb — 面包屑导航 */
+.ur-here {
+  zoom: 1;
+  overflow: hidden;
+  border-bottom: 1px solid #ddd;
+  padding: 25px 0 10px 0;
+}
+.ur-here .here {
+  float: left;
+  line-height: 20px;
+  color: #999999;
+  font-weight: bold;
+}
+@media (max-width: 992px) {
+  .ur-here.product-category .here {
+    display: none;
+  }
+}
+.ur-here .here a {
+  color: #999999;
+}
+.ur-here .here b {
+  margin: 0 8px;
+}
+.ur-here .sort {
+  float: right;
+}
+.ur-here .sort a {
+  display: inline-block;
+  margin-left: 10px;
+}
+.ur-here .sort a.active {
+  color: #19b4ea;
+}
+.ur-here .sort a i {
+  margin-left: 5px;
+  font-size: 12px;
+  color: #999;
+}
+.ur-here .sort a.active i {
+  color: #19b4ea;
+}
+
+/* 9. Pagination — 分页 */
+.pager {
+  text-align: right;
+  padding-top: 20px;
+  color: #666;
+  font-size: 14px;
+}
+.pager a {
+  color: #666;
+  text-decoration: underline;
+}
+.pager ul {
+  display: inline-block;
+  border-left: 1px solid #dddddd;
+}
+.pager ul li {
+  display: inline;
+}
+.pager ul li a,
+.pager ul li em {
+  float: left;
+  padding: 0 14px;
+  line-height: 38px;
+  text-decoration: none;
+  background-color: #ffffff;
+  border: 1px solid #dddddd;
+  border-left-width: 0;
+}
+.pager ul li a:hover {
+  background-color: #f5f5f5;
+}
+.pager ul li.active a {
+  background-color: #f5f5f5;
+  color: #999999;
+  cursor: default;
+}
+.pager ul li em.total {
+  margin-left: 10px;
+  border-left-width: 1px;
+  color: #999;
+}
+
+/* 10. Tab & Swiper — 选项卡与轮播 */
+
+/* 10a. Swiper */
+.swiper-button-next.swiper-button-disabled,
+.swiper-button-prev.swiper-button-disabled {
+  pointer-events: all;
+}
+
+/* 10b. Tab */
+.tabs {
+  border-bottom: 1px solid #eee;
+}
+.tabs .nav-link {
+  display: block;
+  margin-bottom: -1px;
+}
+.tabs .nav-link.active {
+  border: 1px solid #eee;
+  border-bottom: 0;
+  background-color: #fff;
+}
+
+/* 11. Image Scale — 图片缩放 */
+.scale {
+  overflow: hidden;
+}
+.scale img {
+  width: 100%;
+  cursor: pointer;
+  transition: all 0.6s;
+}
+.scale img:hover {
+  transform: scale(1.1);
+}
+
+/* 12. Empty List — 空列表 */
+.empty-list {
+  border: 1px solid #eee;
+  color: #ddd;
+  padding: 150px 30px;
+  text-align: center;
+  margin-top: 40px;
+  font-size: 30px;
+}
+
+/* 13. Footer — 底部信息 */
+.lift {
+  margin-top: 60px;
+  color: #999;
+  font-size: 14px;
+}
+.lift a {
+  color: #999;
+}
+.lift span {
+  margin-right: 15px;
+}

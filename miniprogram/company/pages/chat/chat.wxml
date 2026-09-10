@@ -1,0 +1,51 @@
+<!--pages/chat/chat.wxml AI助手默认应用对话页-->
+<navbar title="{{title}}"></navbar>
+<view class="chat-page">
+ <!-- 工具条 -->
+ <view class="chat-toolbar">
+  <view class="toolbar-actions toolbar-left">
+   <picker wx:if="{{model_names.length > 1}}" range="{{model_names}}" value="{{model_index}}" bindchange="onModelChange">
+    <view class="model-picker">
+     <text class="bi bi-cpu"></text> {{model_names[model_index]}}
+     <text class="bi bi-chevron-down"></text>
+    </view>
+   </picker>
+   <view class="action-btn" bindtap="toggleSessions"><text class="bi bi-clock-history"></text> 会话</view>
+  </view>
+  <view class="toolbar-actions toolbar-right">
+   <view class="action-btn" bindtap="newSession"><text class="bi bi-plus-lg"></text> 新会话</view>
+  </view>
+ </view>
+
+ <!-- 会话抽屉 -->
+ <view class="sessions-mask" wx:if="{{show_sessions}}" bindtap="toggleSessions"></view>
+ <view class="sessions-drawer {{show_sessions ? 'show' : ''}}">
+  <view class="drawer-title">聊天会话</view>
+  <scroll-view scroll-y class="drawer-list">
+   <view class="session-item {{current_session && item.session_sn == current_session.session_sn ? 'active' : ''}}" wx:for="{{sessions}}" wx:key="session_sn" wx:for-item="item" data-sn="{{item.session_sn}}" bindtap="onSessionTap">
+    <view class="session-title">{{item.title}}</view>
+    <view class="session-time">{{item.created_at}}</view>
+   </view>
+   <view class="chat-empty" wx:if="{{!sessions.length}}">暂无会话</view>
+  </scroll-view>
+ </view>
+
+ <!-- 消息区 -->
+ <scroll-view scroll-y class="chat-messages" scroll-into-view="{{scroll_into}}">
+  <view class="msg ai" wx:if="{{chat}}">
+   <view class="avatar">AI</view>
+   <view class="content">{{chat.description || '你好！我是AI助手，有什么可以帮你的吗？'}}</view>
+  </view>
+  <view id="msg-{{index}}" class="msg {{item.type}}" wx:for="{{messages}}" wx:key="index" wx:for-item="item">
+   <view class="avatar" wx:if="{{item.type !== 'system'}}">{{item.type === 'user' ? '我' : 'AI'}}</view>
+   <view class="content {{item.typing ? 'typing' : ''}} {{item.type === 'system' ? 'system' : ''}}">{{item.typing && !item.content ? '正在思考...' : item.content}}</view>
+  </view>
+ </scroll-view>
+
+ <!-- 输入区 -->
+ <view class="chat-input-area">
+  <input class="chat-input" placeholder-class="chat-input-placeholder" value="{{input_message}}" bindinput="onInput" confirm-type="send" bindconfirm="sendMessage" placeholder="请输入你的问题..." />
+  <view class="stop-btn" wx:if="{{is_processing}}" bindtap="stopGeneration"><text class="bi bi-stop-fill"></text></view>
+  <view class="send-btn {{is_processing ? 'disabled' : ''}}" bindtap="sendMessage">发送</view>
+ </view>
+</view>

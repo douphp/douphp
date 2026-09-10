@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="keywords" content="{$keywords}" />
+<meta name="description" content="{$description}" />
+<meta name="generator" content="{$generator}" />
+<meta name="csrf-token" content="{$csrf_token}">
+<title>{$page_title}</title>
+<link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+<style type="text/css">
+{literal}
+*{padding: 0;margin: 0;}
+body {background: #fff;font-family: "Microsoft Yahei", "Helvetica Neue", Helvetica, Arial, sans-serif;color: #333;font-size: 16px;}
+.dou-msg {padding: 24px 48px;}
+.dou-msg .smile {font-size: 100px;font-weight: normal;line-height: 120px;margin-bottom: 12px;}
+.dou-msg .msg {line-height: 1.8em;font-size: 36px;margin-bottom: 10px;}
+.dou-msg .action a {color: #333;}
+{/literal}
+</style>
+<!-- {if $type neq '404'} -->
+<!-- {if $msg_url} -->
+<meta http-equiv="refresh" content="{$time}; URL={$msg_url}" />
+<!-- {else} -->
+<script type="text/javascript">
+{literal}
+function go() {
+    window.history.go( - 1);
+}
+setTimeout("go()", 3000);
+{/literal}
+</script>
+<!-- {/if} -->
+<!-- {/if} -->
+{$code_head nofilter}
+</head>
+<body>
+<div class="dou-msg">
+ <div class="smile">:(</div>
+ <div class="msg">{$text}</div>
+ <!-- {if $type eq '404'} -->
+ <div class="action">{$cue}<a href="{if $msg_url}{$msg_url}{else}{$site.home_url}{/if}">{$lang.back_home}</a></div>
+ <!-- {else} -->
+ <div class="action">{$cue}<a href="{if $msg_url}{$msg_url}{else}javascript:history.go(-1);{/if}">{$lang.dou_msg_back}</a></div>
+ <!-- {/if} -->
+</div>
+</body>
+</html>

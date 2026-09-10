@@ -1,0 +1,114 @@
+/* 小程序
+----------------------------------------------- */
+#miniprogram .release {
+  line-height: 200%;
+  font-size: 14px;
+  color: #777;
+}
+#miniprogram .release a {
+  color: #0072c6;
+}
+/* -- enable -- */
+#miniprogram .enable {
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 30px;
+  zoom: 1;
+  overflow: hidden;
+}
+#miniprogram .enable h2 {
+  font-size: 14px;
+  font-weight: bold;
+  color: #999;
+  margin-bottom: 10px;
+}
+#miniprogram .enable p {
+  float: left;
+  padding: 10px;
+  background-color: #fff;
+  border: 1px solid #ddd;
+}
+#miniprogram .enable dl {
+  float: left;
+  padding: 10px;
+}
+#miniprogram .enable dl dt {
+  font-weight: bold;
+  font-size: 20px;
+  margin-bottom: 20px;
+}
+#miniprogram .enable dl dd {
+  margin-bottom: 5px;
+}
+#miniprogram .enable .btn-sync {
+  display: inline-block;
+  border: 1px solid #ddd;
+  background-color: #eee;
+  color: #777;
+  font-size: 14px;
+  padding: 10px 20px;
+  text-transform: capitalize;
+  cursor: pointer;
+  -webkit-appearance: none;
+  vertical-align: middle;
+}
+#miniprogram .enable .btn-sync i {
+  margin-right: 10px;
+}
+#miniprogram .enable .btn-sync:hover {
+  border: 1px solid #ccc;
+}
+/* -- miniprogram-list -- */
+#miniprogram .miniprogram-list {
+  padding-top: 30px;
+  zoom: 1;
+  overflow: hidden;
+}
+#miniprogram .miniprogram-list h2 {
+  font-size: 14px;
+  font-weight: bold;
+  color: #19b4ea;
+  margin-bottom: 15px;
+}
+#miniprogram .miniprogram-list dl {
+  border: 1px solid #ddd;
+  width: 178px;
+  background-color: #fafafa;
+  float: left;
+  margin: 0 40px 20px 0;
+  padding-bottom: 5px;
+}
+#miniprogram .miniprogram-list dl p {
+  padding: 4px 4px 10px 4px;
+  background-color: #fff;
+  border-bottom: 1px solid #eee;
+}
+#miniprogram .miniprogram-list dl p img {
+  width: 170px;
+  height: 230px;
+}
+#miniprogram .miniprogram-list dl dt {
+  font-weight: bold;
+  padding: 5px;
+}
+#miniprogram .miniprogram-list dl dd {
+  padding: 2px 5px;
+}
+#miniprogram .miniprogram-list dl dd.btn-list span a {
+  color: #0072c6;
+  margin-right: 10px;
+}
+#miniprogram .miniprogram-list dl dd.btn-list span a b {
+  background-color: #28b779;
+  padding: 0 10px;
+  color: #fff;
+  -webkit-border-radius: 10px;
+  border-radius: 10px;
+}
+#miniprogram .miniprogram-list dl dd.btn-list span em {
+  margin-right: 10px;
+}
+#miniprogram .miniprogram-list dl dd.btn-list .del {
+  float: right;
+  color: #999;
+}
+

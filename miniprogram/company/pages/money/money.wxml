@@ -1,0 +1,27 @@
+<!--pages/money/money.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="pay-code {{bgclass}}">
+ <view class="con-box">
+  <view class="head">
+   <text class="bi bi-x-lg" bindtap="douNavigateBack"></text>
+   <text class="telphone">{{user.telphone}}</text>
+   <text class="icon">会员</text>
+  </view>
+  <view class="code-box">
+   <view class="number">{{pay_code}}</view>
+   <view class="barcode">
+    <canvas canvas-id="barcode" />
+   </view>
+   <view class="qrcode">
+    <canvas canvas-id="qrcode" />
+   </view>
+   <view class="time-limit" data-url="/pages/money/money" bindtap="douRedirectTo">
+    <text class="bi bi-arrow-clockwise"></text>
+    每 60 秒自动刷新</view>
+  </view>
+  <view class="info">
+   <text class="total">{{lang.money_total}}: {{total}}</text>
+   <text class="recharge" data-url="/pages/money/recharge" bindtap="douRedirectTo">{{lang.money_recharge}}</text>
+  </view>
+ </view>
+</view>

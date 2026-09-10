@@ -1,0 +1,89 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="copyright" content="DouCo Co.,Ltd." />
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="csrf-token" content="{$csrf_token}">
+<title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+<link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+<link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+<link href="css/common.css" rel="stylesheet" type="text/css">
+<link href="css/tool.css" rel="stylesheet" type="text/css">
+{include file="inc/javascript.tpl"}
+</head>
+<body>
+<div id="dou"> {include file="inc/header.tpl"}
+ <!-- {if !$developer_mode} -->
+ {include file="inc/sidebar.tpl"}
+ <div id="dou-content"> {include file="inc/toolbar.tpl"}
+  <div class="dou-main">
+   <div id="tool" class="dou-page">
+ <!-- {/if} -->
+   <!-- {if $rec eq 'directory_check'} 目录权限检测 -->
+   {include file="inc/page_header.tpl"}
+   <div class="directory-check">
+    <!-- {foreach from=$writeable_list item=writeable} -->
+    <dl class="{$writeable.class}">
+     <dt><em>{$writeable.status_text}</em><b>{$writeable.dir}</b></dt>
+     <dd>{$writeable.note}</dd>
+    </dl>
+    <!-- {/foreach} -->
+   </div>
+   <!-- {/if} -->
+   <!-- {if $rec eq 'replace_url'} 编辑器网址替换 -->
+   {include file="inc/page_header.tpl"}
+   <form action="{url link='admin.tool.store'}" method="post">
+    <div class="form">
+     <input type="hidden" name="token" value="{$token}" />
+     <div class="form-item">
+      <div class="form-label">{$lang.tool_replace_url_old}</div>
+      <div class="input-block">
+       <input type="text" name="old_url" size="100" class="input" />
+       <p class="cue">{$lang.tool_replace_url_old_cue}</p>
+      </div>
+     </div>
+     <div class="form-item">
+      <div class="form-label">{$lang.tool_replace_url_new}</div>
+      <div class="input-block">
+       <input type="text" name="new_url" size="100" class="input" />
+       <p class="cue">{$lang.tool_replace_url_new_cue}</p>
+      </div>
+     </div>
+     <div class="form-item">
+      <input class="btn" type="submit" value="{$lang.btn_submit}" />
+     </div>
+    </div>
+   </form>
+   <!-- {/if} -->
+   <!-- {if $rec eq 'custom_admin_dir'} 后台目录自定义 -->
+   <div class="dou-page is-standalone">
+    {include file="inc/page_header.tpl"}
+    <form action="{$site.root_url}storage/state/custom_admin_dir.candel.php" method="post">
+     <div class="form">
+      <div class="form-item">
+       <div class="form-label">{$lang.tool_custom_admin_dir_new}</div>
+       <div class="input-block">
+        <input type="text" name="new_dir" size="20" class="input" />
+        <p class="cue">{$lang.tool_custom_admin_dir_cue}</p>
+       </div>
+      </div>
+      <div class="form-item">
+       <input type="hidden" name="old_dir" value="{$admin_dir}" />
+       <input type="hidden" name="{$session_key}" value="{$session_value}" />
+       <input type="hidden" name="root_url" value="{$site.root_url}" />
+       <input class="btn" type="submit" value="{$lang.btn_submit}" />
+      </div>
+     </div>
+    </form>
+   </div>
+   <!-- {/if} -->
+  <!-- {if !$developer_mode} -->
+   </div>
+  </div>
+  <!-- {/if} -->
+ </div>
+  </div>
+ {include file="inc/footer.tpl"} </div>
+</body>
+</html>

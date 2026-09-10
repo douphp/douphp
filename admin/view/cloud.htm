@@ -1,0 +1,102 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="copyright" content="DouCo Co.,Ltd." />
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="csrf-token" content="{$csrf_token}">
+<title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+<link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+<link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+<link href="css/common.css" rel="stylesheet" type="text/css">
+<link href="css/cloud.css" rel="stylesheet" type="text/css">
+{include file="inc/javascript.tpl"}
+</head>
+<body>
+<div id="dou">
+{include file="inc/header.tpl"}
+{include file="inc/sidebar.tpl"}
+<div id="dou-content"> {include file="inc/toolbar.tpl"}
+ <div class="dou-main">
+  <div class="dou-page cloud">
+  <!-- {if $rec eq 'install'} 扩展安装 / 更新 -->
+  {include file="inc/page_header.tpl"}
+  <div class="handle" id="douInstall">
+   <h2>{$title}</h2>
+   <div id="dou-install-log"></div>
+  </div>
+  <script type="text/javascript">window.__douInstall = {$install_meta_json nofilter};</script>
+  <script type="text/javascript" src="js/cloud.js"></script>
+  <!-- {/if} -->
+  <!-- {if $rec eq 'order'} 扩展购买 -->
+  {include file="inc/page_header.tpl"}
+  <div class="order"> {$cloud_html}
+   <!-- {if $cloud_html} if_cloud_html start -->
+   <!-- {if $action eq 'default'} -->
+   <p>
+   <form action="{url link='admin.cloud.order' type=$type action=checkout cloud_id=$cloud_id}" method="post">
+    <input type="hidden" name="token" value="{$token}" />
+    <input class="btn" type="submit" value="{$lang.cloud_order_submit}" />
+   </form>
+   </p>
+   <!-- {elseif $action eq 'checkout'} -->
+   <script type="text/javascript">
+   {literal}
+   $(document).ready(function(){
+     $(".btn-danger").click(function(){
+         $(".cloud-frame").show();
+     });
+   });
+   {/literal}
+   </script>
+   <div class="cloud-frame" style="display:none">
+    <div class="bg"></div>
+    <div class="frame select-box">
+     <div class="content"> <a href="{$module_link}" class="btn">{$lang.cloud_pay_success}</a> <a href="{$module_link}" class="btn-secondary">{$lang.cloud_pay_fail}</a> </div>
+    </div>
+   </div>
+   <!-- {/if} -->
+   <!-- {else} if_cloud_html else -->
+   {$lang.cloud_account_cue} ! <a href="{url link='admin.cloud.account'}" class="btn">{$lang.cloud_account}</a>
+   <!-- {/if} if_cloud_html end -->
+  </div>
+  <!-- {/if} -->
+  <!-- {if $rec eq 'account'} 云账户 -->
+  {include file="inc/page_header.tpl"}
+  <div class="account">
+   <h2 class="account-title"><i class="bi-cloud"></i>{$lang.cloud_account_title}</h2>
+   <!-- {if $action eq 'set'} -->
+   <form action="{url link='admin.cloud.account_post'}" method="post">
+    {$lang.cloud_account_user}：
+    <input type="text" name="cloud_user" size="30" class="input" value="{$cloud_account.user}" />
+    {$lang.cloud_account_password}：
+    <input type="password" name="cloud_password" size="30" class="input" />
+    <input type="hidden" name="token" value="{$token}" />
+    <input type="submit" name="submit" class="btn" value="{$lang.btn_submit}" />
+    <input type="button" class="btn-secondary" value="{$lang.btn_cancel}" onclick="location.href='{url link='admin.cloud.account'}'" />
+    <p class="guide">{$lang.cloud_account_register_0} <a href="https://www.douphp.com/user/register" target="_blank">{$lang.cloud_account_register}</a></p>
+   </form>
+   <!-- {else} -->
+   <em>{$lang.cloud_account_seted}：{$cloud_account.user}</em> <a class="btn js-post" href="{url link='admin.cloud.copyright'}">点此去除DouPHP版权信息</a>
+   <p class="guide"><a href="{url link='admin.cloud.account' action=set}">{$lang.cloud_account_reset}</a> <a href="{url link='admin.cloud.account_clean'}" class="js-post">{$lang.cloud_account_clean}</a></p>
+   <!-- {/if} -->
+  </div>
+  <!-- {/if} -->
+  <!-- {if $rec eq 'update'} 更新主页 -->
+  {include file="inc/page_header.tpl"}
+  <div id="douUpdate">
+   <div id="systemUpdate">{$system_update_html nofilter}</div>
+   <div id="moduleUpdate">{$module_update_html nofilter}</div>
+   <div id="themeUpdate">{$theme_update_html nofilter}</div>
+   <!-- {if !$system_update_html && !$module_update_html && !$theme_update_html} -->
+   <div class="noUpdate">暂无可用更新</div>
+   <!-- {/if} -->
+  </div>
+  <!-- {/if} -->
+ </div>
+</div>
+  </div>
+{include file="inc/footer.tpl"} </div>
+</body>
+</html>
+

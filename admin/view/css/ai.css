@@ -1,0 +1,318 @@
+/* AI模块
+----------------------------------------------- */
+#ai .danger {
+  color: #d9534f;
+}
+#ai .warning {
+  color: #f0ad4e;
+}
+#ai .success {
+  color: #5cb85c;
+}
+#ai .muted {
+  color: #999;
+}
+#ai .avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  vertical-align: middle;
+  margin-right: 5px;
+}
+#ai .code {
+  font-family: monospace;
+  background: #f5f5f5;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+/*- 生成字段 checkbox 标签组 -*/
+#ai .field-checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  max-width: 640px;
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  background: #fafafa;
+}
+#ai .field-checkbox-item {
+  white-space: nowrap;
+  cursor: pointer;
+  margin: 0;
+}
+#ai .field-checkbox-item input {
+  vertical-align: -2px;
+  margin-right: 3px;
+}
+/*- 输出契约折叠开关 -*/
+#ai .schema-toggle {
+  color: #06c;
+  text-decoration: none;
+}
+#ai .schema-toggle i {
+  font-size: 12px;
+}
+/*- view -*/
+#ai .view h4 {
+  font-size: 14px;
+  color: #333;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 8px;
+  margin: 20px 0 10px 0;
+}
+#ai .view h4:first-child {
+  margin-top: 0;
+}
+#ai .view pre.code {
+  background: #f8f8f8;
+  border: 1px solid #ddd;
+  padding: 10px;
+  overflow-x: auto;
+  max-height: 300px;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+/*- summary -*/
+#ai .summary {
+  margin-bottom: 15px;
+}
+#ai .summary table {
+  background: #f9f9f9;
+}
+#ai .summary th {
+  background: #eee;
+}
+#ai .filter a.btn-secondary.cur,
+#ai .filter .menu a.cur {
+  background: #0066cc;
+  color: #fff;
+}
+/* 日统计筛选：快捷日期一行，条件表单一行，窄屏自动换行 */
+#ai .filter.filter-stacked {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 10px;
+}
+#ai .filter .menu,
+#ai .filter .filter-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+#ai .filter.filter-stacked .filter-form .btn-secondary {
+  padding: 4px 16px;
+}
+/*- chat -*/
+#ai .chat-records {
+  max-height: 500px;
+  overflow-y: auto;
+  padding: 15px;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+#ai .chat-message {
+  margin-bottom: 15px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  max-width: 85%;
+}
+#ai .chat-message:last-child {
+  margin-bottom: 0;
+}
+#ai .chat-message.user {
+  background: #e3f2fd;
+  border: 1px solid #bbdefb;
+  margin-left: auto;
+}
+#ai .chat-message.assistant {
+  background: #fff;
+  border: 1px solid #ddd;
+}
+#ai .chat-message.system {
+  background: #fff3e0;
+  border: 1px solid #ffe0b2;
+  font-style: italic;
+}
+#ai .chat-message.function {
+  background: #f3e5f5;
+  border: 1px solid #e1bee7;
+  font-family: monospace;
+}
+#ai .chat-role {
+  font-size: 12px;
+  font-weight: bold;
+  color: #666;
+  margin-bottom: 5px;
+}
+#ai .chat-time {
+  font-weight: normal;
+  color: #999;
+  margin-left: 8px;
+}
+#ai .chat-content {
+  font-size: 13px;
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+#ai .chat-tokens {
+  font-size: 11px;
+  color: #999;
+  margin-top: 5px;
+  text-align: right;
+}
+/*- 密钥区块：添加密钥入口挂在 form-label 右侧，与表单提交按钮分离，避免视觉冲突 -*/
+.key-toolbar-add {
+  float: right;
+  font-size: 12px;
+  font-weight: normal;
+  color: #0072c6;
+  text-decoration: none;
+  cursor: pointer;
+  margin-top: 2px;
+}
+.key-toolbar-add i {
+  font-size: 13px;
+  vertical-align: -1px;
+  margin-right: 2px;
+}
+.key-toolbar-add:hover {
+  text-decoration: underline;
+}
+/*- 表格主行：输入框占满单元格宽度（密钥 / 模型表格共用） -*/
+#provider-key-table .key-row input.input,
+#provider-model-table .model-row input.input {
+  width: 100%;
+  box-sizing: border-box;
+}
+/*- 高级选项折叠行：浅色内嵌面板，密钥 / 模型表格共用。
+    ID 选择器优先级需盖过 common.css 的 .table tr:hover td 背景与 .table td 行高 -*/
+#provider-key-table .key-advanced-row > td,
+#provider-model-table .model-advanced-row > td {
+  height: auto;
+  padding: 14px 16px;
+  background-color: #f7f9fb;
+}
+#provider-key-table .key-advanced-fields,
+#provider-model-table .key-advanced-fields {
+  display: grid;
+  /* auto-fit：空轨道塌缩，已有字段平分整行宽度，输入框占满所在单元格 */
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px 18px;
+}
+#provider-key-table .key-adv-field,
+#provider-model-table .key-adv-field {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+#provider-key-table .key-adv-label,
+#provider-model-table .key-adv-label {
+  font-size: 12px;
+  font-weight: bold;
+  color: #555;
+  margin-bottom: 5px;
+}
+#provider-key-table .key-adv-field .input,
+#provider-model-table .key-adv-field .input {
+  width: 100%;
+  box-sizing: border-box;
+  background-color: #fff;
+}
+#provider-key-table .key-adv-cue,
+#provider-model-table .key-adv-cue {
+  font-size: 11px;
+  color: #999;
+  margin-top: 3px;
+}
+/*- 「高级选项」链接的展开指示箭头（模板静态行与 ai.model.js 动态行共用） -*/
+.js-key-advanced i,
+.js-model-advanced i {
+  font-size: 12px;
+}
+/*- 供应商列表：启用/停用状态徽章 -*/
+#ai .ai-status {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 9px;
+  font-size: 11px;
+  line-height: 16px;
+}
+#ai .ai-status-on {
+  color: #28b779;
+  background: #e8f7ef;
+  border: 1px solid #bce8d1;
+}
+#ai .ai-status-off {
+  color: #999;
+  background: #f4f4f4;
+  border: 1px solid #ddd;
+}
+/*- AI 页面状态切换按钮 hover：绿色底白字（#ai 作用域样式优先级需盖过 ai-status / success / muted） -*/
+#ai .js-toggle:hover {
+  background-color: #28b779;
+  border-color: transparent;
+  color: #fff;
+  text-decoration: none;
+}
+#ai .js-toggle:hover .js-toggle-action {
+  color: #fff;
+}
+/*- 停用行内的密钥提示弱化：未启用的供应商不再醒目提示配置密钥 -*/
+#ai .table tr.row-disabled .ai-key-missing {
+  color: #999;
+}
+#ai .table tr.row-disabled .ai-key-badge {
+  background-color: #ccc;
+}
+/*- 供应商列表：密钥数量徽章 / 未配置警示 -*/
+#ai .ai-key-badge {
+  display: inline-block;
+  min-width: 14px;
+  padding: 1px 7px;
+  border-radius: 9px;
+  background: var(--dou-color-link, #0072c6);
+  color: #fff;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: bold;
+}
+#ai .ai-key-missing {
+  color: #d9534f;
+  font-size: 12px;
+  text-decoration: none;
+}
+#ai .ai-key-missing i {
+  font-size: 12px;
+}
+#ai .ai-key-missing:hover {
+  text-decoration: underline;
+}
+/*- 供应商列表：未配置密钥时的首装提示条 -*/
+#ai .ai-setup-notice {
+  margin-bottom: 15px;
+  padding: 10px 14px;
+  border: 1px solid #f5d89a;
+  border-radius: 4px;
+  background: #fdf6e3;
+  color: #8a6d3b;
+  font-size: 12px;
+  line-height: 1.7;
+}
+#ai .ai-setup-notice i {
+  color: #f0ad4e;
+  margin-right: 4px;
+}
+/*- 编辑表单：状态单选横排 -*/
+#ai .radio-inline {
+  display: inline-block;
+  margin-right: 16px;
+}
+#ai .radio-inline input {
+  vertical-align: -2px;
+  margin-right: 3px;
+}

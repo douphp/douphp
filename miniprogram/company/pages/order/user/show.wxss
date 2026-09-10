@@ -1,0 +1,74 @@
+/* pages/order/user/show.wxss */
+.order .table-basic {
+ margin-bottom:8px;
+}
+.order .totalAmount {
+ font-size: 13px;
+ padding: 5px 10px;
+ background-color: #FFF;
+ margin-bottom:10px;
+}
+.order .totalAmount .dl {
+ zoom:1;
+ overflow:hidden;
+ padding:3px 0;
+}
+.order .totalAmount .dt {
+ float:left;
+ color:#999;
+}
+.order .totalAmount .dd {
+ float:right;
+}
+.order .totalAmount .payment {
+ border-top: solid #EEE 1px;
+ margin-top:10px;
+ padding:10px 0;
+ text-align:right;
+}
+.order .info {
+ color:#999;
+}
+.order .btnBox {
+ float: right;
+}
+.order .btnBox text {
+ margin-left: 5px;
+}
+.order .itemList .h3 {
+ padding: 8px 10px;
+ background-color: #FFF;
+}
+.order .itemList {
+ background-color:#FFF;
+}
+.order .itemList .dl {
+ zoom:1;
+ overflow:hidden;
+ background-color:#F8F8F8;
+ padding:10px 10px;
+ margin-bottom:3px;
+}
+.order .itemList .dl .dt {
+ width:60px;
+ float:left;
+ margin-right:10px;
+ line-height:38px;
+}
+.order .itemList .dl .dt image {
+ width:60px;
+ height:60px;
+}
+.order .itemList .dl.no-img .dd {
+ margin-left:0;
+}
+.order .itemList .dl .dd .p {
+ float:left;
+ width:60%;
+ font-weight:bold;
+}
+.order .itemList .dl .dd .span {
+ float:right;
+ text-align:right;
+ color:#888;
+}

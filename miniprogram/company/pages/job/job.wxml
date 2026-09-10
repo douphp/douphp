@@ -1,0 +1,37 @@
+<!--pages/job/job.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body padding-y">
+ <view class="wrap">
+  <view class="select-box">
+   <picker class="select" bindchange="categoryChange" value="{{category_index}}" range="{{attribute.category}}">
+    <text>{{lang.job_category_short}}：{{attribute.category[category_index]}}</text>
+   </picker>
+   <picker class="select" bindchange="typeChange" value="{{type_index}}" range="{{attribute.type}}">
+    <text>{{lang.job_type_short}}：{{attribute.type[type_index]}}</text>
+   </picker>
+   <picker class="select" bindchange="placeChange" value="{{place_index}}" range="{{attribute.place}}">
+    <text>{{lang.job_place_short}}：{{attribute.place[place_index]}}</text>
+   </picker>
+  </view>
+  <view class="job-list">
+   <view class="item" wx:for="{{job_list}}" wx:key="index" wx:for-item="job">
+    <view class="head">
+     <text class="position">{{job.position}}</text>
+     <text class="attribute">{{job.category}} {{job.type}} {{job.place}}</text>
+    </view>
+    <view class="con">
+     <view class="name">{{lang.job_responsibility}}</view>
+     <view class="desc">{{job.responsibility}}</view>
+    </view>
+    <view class="con">
+     <view class="name">{{lang.job_requirement}}</view>
+     <view class="desc">{{job.requirement}}</view>
+    </view>
+    <view class="apply">{{lang.job_apply_1}}
+     <text href="mailto:{{site.email}}" target="_blank">{{site.email}}</text>
+     ，{{lang.job_apply_2}}</view>
+   </view>
+   <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
+  </view>
+ </view>
+</view>

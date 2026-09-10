@@ -1,0 +1,21 @@
+<!--pages/user/contact.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="page-head">
+   <view class="action"><text class="link" data-url="/pages/user/contact_create" bindtap="douNavigateTo">{{lang.user_contact_create}}</text></view>
+   <view class="name">{{lang.user_contact_manager}}</view>
+  </view>
+  <view class="contact-list">
+   <view class="item" wx:for="{{contact_list}}" wx:for-item="contact" wx:key="index">
+    <view class="head"><text class="bi bi-x-lg a" data-id="{{contact.id}}" bindtap="del" wx:if="{{!contact.is_default}}"></text>{{contact.name}} {{contact.phone}} <text class="em" wx:if="{{contact.is_default}}">{{lang.user_contact_is_default}}</text></view>
+    <view class="info" wx:if="{{features.book}}"><text>{{lang.user_contact_id_card}}：{{contact.id_card}}</text></view>
+    <view class="info" wx:else><text>{{lang.user_contact_address}}：{{contact.address_full}}</text></view>
+    <view class="handle">
+     <text class="action" data-id="{{contact.id}}" bindtap="setDefault" wx:if="{{!contact.is_default}}">{{lang.user_contact_is_default_set}}</text><text class="action" data-url="/pages/user/contact_edit?id={{contact.id}}" bindtap="douNavigateTo">{{lang.edit}}</text>
+    </view>
+   </view>
+   <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
+  </view>
+ </view>
+</view>

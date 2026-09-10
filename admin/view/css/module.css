@@ -1,0 +1,41 @@
+/* 模块扩展
+----------------------------------------------- */
+#module .handler .handbook {
+  border: 1px solid #eee;
+  font-size: 14px;
+  margin: 20px 0;
+  padding: 15px;
+  color: #555;
+}
+#module .handler .handbook a {
+  color: #19b4ea;
+  text-decoration: underline;
+}
+#module .handler .list h2 {
+  background: url(../images/icon_cloud_uninstall.png) no-repeat left top;
+  padding-left: 40px;
+  height: 30px;
+  color: #19b4ea;
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+#module .handler .list h2.install {
+  background: url(../images/icon_cloud_install.png) no-repeat left top;
+}
+#module .handler .list ul {
+  zoom: 1;
+  overflow: hidden;
+}
+#module .handler .list ul li {
+  float: left;
+  margin: 0 20px 20px 0;
+  text-align: center;
+}
+#module .handler .list ul li em {
+  display: block;
+  border: 1px solid #c4c4c4;
+  padding: 15px 50px;
+  font-size: 14px;
+  margin-bottom: 3px;
+}
+

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <meta name="keywords" content="{$keywords}" />
+ <meta name="description" content="{$description}" />
+ <meta name="generator" content="{$generator}" />
+ <meta name="csrf-token" content="{$csrf_token}">
+ <title>{$page_title}</title>
+ <link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+ <link href="css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+ <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css" />
+ <link href="css/common.css" rel="stylesheet" type="text/css" />
+ <link href="css/style.css" rel="stylesheet" type="text/css" />
+ {include file="inc/code_head.tpl"}
+</head>
+
+<body>
+ <div id="wrapper"> {include file="inc/header.tpl"}
+  <div class="container mb">
+   {include file="inc/ur_here.tpl"}
+   <div id="search-list">
+    <!-- {foreach from=$search_list name=search_list item=item} -->
+    <dl<!-- {if $item@last} --> class="last"<!-- {/if} -->>
+     <div class="date"> <em>{$item.time.d}</em>
+      <p>{$item.time.y}-{$item.time.m}</p>
+     </div>
+     <dt><a href="{$item.url}">{$item.title nofilter}</a></dt>
+     <dd{if $item.image} class="have-img" {/if}><!-- {if $item.image} -->
+      <p class="img"><img src="{$item.image}"></p>
+      <!-- {/if} -->
+      <p class="desc">{$item.description|truncate:100:"..." nofilter}</p>
+      </dd>
+      </dl>
+      <!-- {/foreach} -->
+   </div>
+   {include file="inc/pager.tpl"}
+  </div>
+  {include file="inc/online_service.tpl"}
+  {include file="inc/footer.tpl"}
+ </div>
+ {include file="inc/code_footer.tpl"}
+ <script type="text/javascript" src="js/bootstrap.min.js"></script>
+ <script type="text/javascript" src="js/dou.js"></script>
+ <script type="text/javascript" src="js/online_service.js"></script>
+</body>
+
+</html>

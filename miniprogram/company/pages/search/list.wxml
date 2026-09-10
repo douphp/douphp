@@ -1,0 +1,32 @@
+<!--list.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="search-list">
+  <view class="wrap">
+   <view class="search-box">
+    <view class="keyword-box" data-url="/pages/search/search?keyword={{keyword}}" bindtap="douNavigateTo">
+     <text class="bi bi-search"></text>
+     <text class="keyword">{{keyword}}</text>
+    </view>
+   </view>
+   <view class="sort-box" wx:if="{{sort_list.length}}">
+    <view class="item{{item.active ? ' active' : ''}}" wx:for="{{sort_list}}" wx:key="name" wx:for-item="item" data-by="{{item.param.by}}" data-sort="{{item.param.sort}}" bindtap="douSort">{{item.name}}<text class="bi bi-caret-{{item.icon}}" wx:if="{{item.icon}}"></text></view>
+   </view>
+   <view class="head-brand" wx:if="{{brand}}">{{brand.name}}</view>
+   <view class="empty" wx:if="{{!loading && !search_list.length}}">{{keyword ? '暂无搜索结果' : '暂无商品'}}</view>
+   <view class="grid-list">
+    <navigator class="item" hover-class="mouseDown" wx:for="{{search_list}}" wx:key="id" wx:for-index="i" wx:for-item="product" url="/pages/product/product?id={{product.id}}">
+     <view class="img">
+      <image src="{{product.thumb}}" mode="widthFix" style="height: 183px" />
+     </view>
+     <view class="name"><rich-text nodes="{{product.title}}"></rich-text></view>
+     <view class="price" wx:if="{{product.level_price}}">{{product.level_price}}
+      <text class="price-line">{{product.price}}</text>
+     </view>
+     <view class="price" wx:else>{{product.price}}</view>
+    </navigator>
+   </view>
+   <view class="loading" wx:if="{{loading}}">{{lang.loading}}</view>
+  </view>
+ </view>
+</view>

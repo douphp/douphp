@@ -1,0 +1,20 @@
+<!--pages/email/email.wxml-->
+<navbar title="{{title}}" url="/pages/index/index"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="form-basic">
+   <form bindsubmit="submit">
+    <view class="dl">
+     <view class="dt">{{lang.email_email}}</view>
+     <view class="dd">
+      <input name="email" type="text" class="input" value="{{email}}" placeholder="{{lang.email_cue}}" placeholder-class="placeholder" />
+      <view class="cue" wx:if="{{wrong.email}}">{{wrong.email}}</view>
+     </view>
+    </view>
+    <view class="action">
+     <button class="btn" formType="submit">{{lang.btn_submit}}</button>
+    </view>
+   </form>
+  </view>
+ </view>
+</view>

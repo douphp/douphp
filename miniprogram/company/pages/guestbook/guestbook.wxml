@@ -1,0 +1,59 @@
+<!--pages/guestbook/guestbook.wxml-->
+<navbar title="{{title}}" url="/pages/index/index"></navbar>
+ <view class="body">
+ <view id="guestbook" class="form-padding">
+  <view class="wrap">
+   <view class="head">{{lang.guestbook_add}}</view>
+   <view class="form-basic">
+    <form bindsubmit="submit">
+     <view class="dl">
+      <view class="dt">{{lang.guestbook_title}}</view>
+      <view class="dd">
+       <input name="title" type="text" class="input" value="{{title}}" placeholder="{{lang.guestbook_title_cue}}" placeholder-class="placeholder" />
+       <view class="cue" wx:if="{{wrong.title}}">{{wrong.title}}</view>
+      </view>
+     </view>
+     <view class="dl">
+      <view class="dt">{{lang.guestbook_contact}}</view>
+      <view class="dd">
+       <input name="contact" type="text" class="input" value="{{contact}}" placeholder="{{lang.guestbook_contact_cue}}" placeholder-class="placeholder" />
+       <view class="cue" wx:if="{{wrong.contact}}">{{wrong.contact}}</view>
+      </view>
+     </view>
+     <view class="dl">
+      <view class="dt">{{lang.guestbook_contact_info}}</view>
+      <view class="dd">
+       <input name="contact_info" type="text" class="input" value="{{contact_info}}" placeholder="{{lang.guestbook_contact_info_cue}}" placeholder-class="placeholder" />
+       <view class="cue" wx:if="{{wrong.contact_info}}">{{wrong.contact_info}}</view>
+      </view>
+     </view>
+     <view class="dl full">
+      <view class="dt">{{lang.guestbook_content}}</view>
+      <view class="dd">
+       <view class="weui-cell__bd">
+        <textarea name="content" class="weui-textarea" value="{{content}}" placeholder="{{lang.guestbook_content_cue}}" placeholder-class="weui-input__placeholder" rows="3" maxlength="{{textAreaMaxLen}}" bindinput="bindKeyInput"></textarea>
+        <view aria-role="option" class="weui-textarea-counter"><span>{{inputValueLength}}</span>/{{textAreaMaxLen}}</view>
+       </view>
+       <view class="cue" wx:if="{{wrong.content}}">{{wrong.content}}</view>
+      </view>
+     </view>
+     <view class="action">
+      <button class="btn" formType="submit">{{lang.btn_submit}}</button>
+      <view class="cue" wx:if="{{wrong.is_water}}">{{wrong.is_water}}</view>
+     </view>
+    </form>
+   </view>
+   <view class="head">{{lang.guestbook_list}}</view>
+   <view class="bookList">
+    <view class="item" wx:for="{{guestbook_list}}" wx:key="index" wx:for-item="guestbook">
+     <view class="title">{{guestbook.created_at}}：{{guestbook.title}}</view>
+     <view class="content">{{guestbook.content}}</view>
+     <view class="reply" wx:if="{{guestbook.reply}}">
+      <text>{{lang.guestbook_reply}}：</text>
+      {{guestbook.reply}}</view>
+    </view>
+   </view>
+   <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
+  </view>
+ </view>
+</view>

@@ -1,0 +1,45 @@
+<!--pages/money/work_desk.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="page-head">
+   <view class="name">{{lang.money_work}}</view>
+  </view>
+  <view class="work-desk">
+   <view class="user-info">
+    <view class="item">{{user.telphone}}</view>
+    <view class="item"><text class="price">{{work.total}}</text></view>
+    <view class="item">{{user.contact}}</view>
+   </view>
+   <view class="use"> 
+    <form bindsubmit="useMoney" wx:if="{{!money}}">
+     <view class="use-box">
+      <view class="keyword-box">
+       <input type="text" name="money" class="keyword" value="{{work.money}}" placeholder="{{lang.money_work_money_number}}" placeholder-class="placeholder" />
+      </view>
+      <input type="text" name="number" value="{{user.telphone}}" hidden="true" />
+      <button formType="submit" class="btn-search">{{lang.money_work_use}}</button>
+     </view>
+    </form>
+    <view class="used" wx:else>
+     <view class="success">{{lang.money_work_use_success}} {{work.money}} ！</view>
+     <view class="action"><text class="again" data-url="/pages/money/work_desk?telphone={{user.telphone}}" bindtap="douRedirectTo">{{lang.money_work_use_again}}</text><text class="next" data-delta="2" bindtap="douNavigateBack">{{lang.money_work_use_next}}</text></view>
+    </view>
+   </view>
+   <view class="user-money">
+    <view class="head">{{lang.money_log}}</view>
+    <view class="log-list">
+     <view class="item" wx:for="{{log_list}}" wx:for-item="item" wx:key="index">
+      <view class="h3"><text class="status">{{item.created_at}}</text><text class="name">{{item.action}}</text></view>
+      <view class="info">
+       <view>{{lang.money_from}}：{{item.from}}</view>
+       <view>{{lang.money_money}}：{{item.money}}</view>
+       <view>{{lang.money_total}}：{{item.total}}</view>
+      </view>
+     </view>
+     <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
+    </view>
+   </view>
+  </view>
+ </view>
+</view>

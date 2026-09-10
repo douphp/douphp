@@ -1,0 +1,22 @@
+<!--pages/distribution/user.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="page-head">
+   <view class="action"><text class="link" data-url="/pages/distribution/people" bindtap="douNavigateTo">{{lang.distribution_people}}</text></view>
+   <view class="name">{{lang.distribution_user}}</view>
+  </view>
+  <view class="log-list">
+   <view class="item" wx:for="{{money_list}}" wx:for-item="item" wx:key="index">
+    <view class="h3"><text class="status">{{item.created_at}}</text><text class="name">{{item.money}}</text></view>
+    <view class="info">
+     <view>{{lang.money_total}}：{{item.total}}</view>
+     <view>{{lang.money_from}}：{{item.from}}</view>
+     <view>{{lang.money_action}}：{{item.action}}</view>
+     <view>{{lang.money_from_user}}：{{item.from_username}}</view>
+    </view>
+   </view>
+   <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
+  </view>
+ </view>
+</view>

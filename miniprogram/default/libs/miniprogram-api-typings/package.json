@@ -1,0 +1,9 @@
+{
+    "name": "miniprogram-api-typings",
+    "version": "5.2.1",
+    "license": "MIT",
+    "author": "Wechat Miniprogram",
+    "homepage": "https://github.com/wechat-miniprogram/api-typings",
+    "main": "./index.d.ts",
+    "types": "./index.d.ts"
+}

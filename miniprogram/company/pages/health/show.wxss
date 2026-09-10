@@ -1,0 +1,22 @@
+/* pages/health/show.wxss */
+.healthDetail { padding-bottom: 30rpx; }
+.healthDetail .head { background-color: #FFF; padding: 14px 15px; }
+.healthDetail .head .name { font-weight: bold; font-size: 30rpx; }
+.healthDetail .head .text { color: #999; }
+.healthDetail .group {
+ background-color: #FFF;
+ padding: 14rpx 15px;
+ margin-top: 6px;
+}
+.healthDetail .group .h { font-weight: bold; font-size: 28rpx; margin-bottom: 8rpx; }
+.healthDetail .group .dl { padding: 8rpx 0; border-bottom: 1px solid #F2F2F2; }
+.healthDetail .group .dl:last-child { border-bottom: none; }
+.healthDetail .group .dl .dt { color: #888; font-size: 24rpx; }
+.healthDetail .group .dl .dd { font-size: 26rpx; color: #333; }
+.healthDetail .followup { background-color: #FFF; padding: 14rpx 15px; margin-top: 6px; }
+.healthDetail .followup .h { font-weight: bold; font-size: 28rpx; }
+.healthDetail .followup .stage { margin-top: 12rpx; }
+.healthDetail .followup .stage .head { padding: 6rpx 8rpx; background-color: #F2F6F8; border-left: 4rpx solid #4F8FC0; font-weight: bold; }
+.healthDetail .followup .stage .row { padding: 10rpx; margin-top: 6rpx; background-color: #FAFAFA; border-radius: 4rpx; }
+.healthDetail .followup .stage .row .meta { color: #999; font-size: 24rpx; }
+.healthDetail .followup .stage .row .text { font-size: 26rpx; line-height: 1.6; color: #333; }

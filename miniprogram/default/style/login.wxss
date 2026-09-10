@@ -1,0 +1,101 @@
+/* pages/user/login.wxss */
+.login {
+ height: 100vh;
+ padding: 30rpx;
+ box-sizing: border-box;
+}
+.login .logo {
+ text-align: center;
+ margin-top: 5vh;
+}
+.login .logo image {
+ width: 160rpx;
+ height: 160rpx;
+}
+.login .action {
+ margin-top: 25vh;
+}
+.login .btn-action {
+ display: block;
+ height: 88rpx;
+ line-height: 88rpx;
+ text-align: center;
+ background-color: #3EC15B;
+ border-radius: 44rpx;
+ color: #fff;
+ font-size: 16px;
+}
+.login .btn-action.blue {
+ background-color: #0072C6;
+}
+.login .btn-action.gray {
+ background-color: #EEE;
+ color: #555;
+}
+.login .btn-action .bi {
+ margin-right: 10px;
+}
+.login .input {
+ padding: 0 38rpx;
+ border-radius: 44rpx;
+ height: 88rpx;
+ line-height: 88rpx;
+ border: 1px solid #DDDDDD;
+ font-size: 16px;
+ -webkit-appearance: none;
+}
+.login .line-box {
+ position: relative;
+ height: 20px;
+ margin: 0 80rpx;
+ margin-top: 3vh;
+}
+.login .line-box::before {
+ display: block;
+ position: absolute;
+ left: 0;
+ top: 8px;
+ z-index: 1;
+ content: "";
+ height: 1px;
+ width: 100%;
+ border-bottom: 2px solid #EEE;
+}
+.login .line-box .text {
+ position: absolute;
+ left: 0;
+ top: 0;
+ z-index: 2;
+ text-align: center;
+ width: 100%;
+}
+.login .line-box .text text {
+ display: inline-block;
+ background-color: #FFF;
+ padding: 0 20px;
+ color: #AAA;
+}
+.login .other-login-methods {
+ text-align: center;
+ margin-top: 3vh;
+}
+.login .other-login-methods .item {
+ display: inline-block;
+ margin: 0 10px;
+}
+.login .other-login-methods .item .bi {
+ display: inline-block;
+ width: 36px;
+ height: 36px;
+ line-height: 36px;
+ border: 1px solid #DDD;
+ border-radius: 50%;
+ font-size: 20px;
+ margin-bottom: 5px;
+}
+.login .other-login-methods .item .bi.green {
+ color: #3EC15B;
+}
+.login .form-passport .cue {
+ padding: 0 30rpx;
+}

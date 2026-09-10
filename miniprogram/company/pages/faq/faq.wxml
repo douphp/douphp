@@ -1,0 +1,23 @@
+<!--pages/faq/faq.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="navbar" style="{{'top: ' + navigationBarAndStatusBarHeight}}">
+  <view class="wrap">
+   <scroll-view class="navScroll" scroll-x="true" scroll-left="{{scrollLeft}}" scroll-with-animation="true" style="{{'top: ' + navigationBarAndStatusBarHeight}}">
+    <view class="item{{!class ? ' active' : ''}}" bindtap="douAll">{{lang.all}}</view>
+    <view class="item{{item.cur ? ' active' : ''}}" wx:for="{{screen_list}}" wx:key="index" wx:for-item="item" data-class="{{item.value}}" data-index="{{index}}" bindtap="douMenu">{{item.value}}</view>
+   </scroll-view>
+  </view>
+ </view>
+ <view class="navbar-space"></view>
+ 
+ <view class="wrap">
+  <view class="faq-list">
+   <view class="item" wx:for="{{faq_list}}" wx:key="index" wx:for-item="faq">
+    <view class="ask"><text class="i">{{index + 1}}</text><text class="em">{{faq.ask}}</text></view>
+    <view class="answer"><text class="em">{{faq.answer}}</text></view>
+   </view>
+   <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
+  </view>
+ </view>
+</view>

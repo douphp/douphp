@@ -1,0 +1,28 @@
+.cart .cartEmpty {
+ background-color: #FFFFFF;
+ font-size: 14px;
+ text-align: center;
+ padding: 150px 50px;
+}
+.cart .cartBtn {
+ background-color: #DDDDDD;
+ width: 100%;
+ min-width: 320px;
+ margin: 0 auto;
+ max-width: 640px;
+ height: 40px;
+ line-height: 40px;
+ font-size: 13px;
+}
+.cart .cartBtn .em {
+ float: left;
+ margin-left: 10px;
+ color: #e4393c;
+}
+.cart .cartBtn .checkout {
+ background-color: #e4393c;
+ float: right;
+ width: 80px;
+ color: #FFF;
+ text-align: center;
+}

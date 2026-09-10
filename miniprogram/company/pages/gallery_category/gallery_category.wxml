@@ -1,0 +1,23 @@
+<!--gallery_category.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="navbar" style="{{'top: ' + navigationBarAndStatusBarHeight}}">
+  <view class="wrap">
+   <scroll-view class="navScroll" scroll-x="true" scroll-left="{{scrollLeft}}" scroll-with-animation="true" style="{{'top: ' + navigationBarAndStatusBarHeight}}">
+    <view class="item{{tree.cur == true ? ' active' : ''}}" wx:for="{{gallery_category}}" wx:key="index" wx:for-item="tree" data-catid="{{tree.id}}" data-index="{{index}}" bindtap="douMenu">{{tree.name}}</view>
+   </scroll-view>
+  </view>
+ </view>
+ <view class="navbar-space"></view>
+ <view class="wrap">
+  <view class="grid-list">
+   <navigator class="item" hover-class="mouseDown" wx:for="{{gallery_list}}" wx:key="i" wx:for-item="gallery" url="{{gallery.url}}">
+    <view class="img">
+     <image src="{{gallery.image}}" mode="widthFix" style="height: 183px" />
+    </view>
+    <view class="title">{{gallery.title}}</view>
+   </navigator>
+   <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
+  </view>
+ </view>
+</view>

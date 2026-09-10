@@ -1,0 +1,19 @@
+<!--success.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class='body miniH'>
+  <view class="complete">
+   <view class="title">
+    {{lang.order_success_title}}
+   </view>
+   <view class="info">
+    <view class="dd">{{lang.order_sn}}：<text data-url="/pages/order/user/show?order_sn={{order.order_sn}}" bindtap="douNavigateTo">{{order.order_sn}}</text></view>
+    <view class="dd">{{lang.order_order_amount}}：<text>{{order.order_amount_format}}</text></view>
+   </view>
+   <view class="aciton">
+    <text data-url="/pages/user/user" bindtap="douSwitchTab">{{lang.user}}</text> | <text data-url="/pages/index/index" bindtap="douSwitchTab">{{lang.home}}</text>
+   </view>
+  </view>
+ </view>
+ <view class="footer"><text wx:if="{{lang.powered_by}}">{{lang.powered_by}}</text></view>
+</view>

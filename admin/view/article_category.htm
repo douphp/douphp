@@ -1,0 +1,139 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="copyright" content="DouCo Co.,Ltd." />
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="csrf-token" content="{$csrf_token}">
+<title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+<link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+<link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+<link href="css/common.css" rel="stylesheet" type="text/css">
+<link href="css/cropper.min.css" rel="stylesheet" type="text/css">
+{include file="inc/javascript.tpl"}
+</head>
+<body>
+<div id="dou"> {include file="inc/header.tpl"}
+ {include file="inc/sidebar.tpl"}
+ <div id="dou-content"> {include file="inc/toolbar.tpl"}
+  <div class="dou-main">
+   <div class="dou-page">
+   <!-- {if $rec eq 'default'} 分类列表 -->
+   {include file="inc/page_header.tpl"}
+   <table class="table">
+    <tr>
+     <th width="120" class="text-left">{$lang.article_category_cat_name}</th>
+     <th class="text-left">{$lang.unique}</th>
+     <!-- {if $site.open_icon eq 'image' || $site.open_icon eq 'text'} -->
+     <th class="m-none text-center">{$lang.icon}</th>
+     <!-- {/if} -->
+     <th class="m-none text-left">{$lang.description}</th>
+     <th class="m-none text-center" width="60">{$lang.sort}</th>
+     <th width="80" class="text-center">{$lang.handler}</th>
+    </tr>
+    <!-- {foreach from=$article_category item=cate} -->
+    <tr>
+     <td class="text-left">{$cate.mark} <a href="{url link='admin.article' category_id=$cate.id}">{$cate.name}</a></td>
+     <td>{$cate.slug}</td>
+     <!-- {if $site.open_icon eq 'image' || $site.open_icon eq 'text'} -->
+     <td class="m-none text-center">
+      <!-- {if $site.open_icon eq 'image'} --><a href="{$cate.icon}" target="_blank"><img src="{$cate.icon}" width="12" height="12" align="absMiddle"></a><!-- {else} -->{$cate.icon}<!-- {/if} -->
+     </td>
+     <!-- {/if} -->
+     <td class="m-none">{$cate.description}</td>
+     <td class="m-none text-center">{$cate.sort}</td>
+     <td class="text-center"><a href="{url link='admin.article.category.edit' id=$cate.id}">{$lang.edit}</a> | <a href="javascript:;" class="js-delete" data-url="{url link='admin.article.category.destroy' id=$cate.id}">{$lang.del}</a></td>
+    </tr>
+    <!-- {/foreach} -->
+   </table>
+   <!-- {/if} -->
+   <!-- {if $rec eq 'create' || $rec eq 'edit'} 分类添加或编辑 -->
+   {include file="inc/page_header.tpl"}
+   <form action="{$form_action}" method="post" enctype="multipart/form-data"><input type="hidden" name="_method" value="{$form_method}" />
+    <div class="form">
+     <div class="form-item">
+      <div class="form-label">{$lang.article_category_cat_name}</div>
+      <div class="input-block">
+       <input type="text" name="name" value="{$cat_info.name}" size="40" class="input" />
+       <span class="action" data-field="name">{$btn_lang.name nofilter}</span>
+      </div>
+     </div>
+     <div class="form-item">
+      <div class="form-label">{$lang.unique}</div>
+      <div class="input-block">
+       <input type="text" name="slug" value="{$cat_info.slug}" size="40" class="input" />
+      </div>
+     </div>
+     <!-- {if $site.open_icon eq 'image' || $site.open_icon eq 'text'} -->
+     <div class="form-item">
+      <div class="form-label">{$lang.icon}</div>
+      <div class="input-block">
+       <!-- {if $site.open_icon eq 'image'} -->
+       {include file="inc/file_input.tpl" name="icon" value=$cat_info.icon file_number=$cat_info.file_number}
+       <!-- {else} -->
+       <input type="text" name="icon" value="{$cat_info.icon}" size="30" class="input" />
+       <p class="cue">{$lang.icon_text_cue}</p>
+       <!-- {/if} -->
+      </div>
+     </div>
+     <!-- {/if} -->
+     <div class="form-item">
+      <div class="form-label">{$lang.parent}</div>
+      <div class="input-block">
+       <select class="select" name="parent_id">
+        <option value="0">{$lang.empty}</option>
+        <!-- {foreach from=$article_category item=cate} -->
+        <option value="{$cate.id}"{if $cate.id eq $cat_info.parent_id} selected="selected"{/if}>{$cate.mark} {$cate.name}</option>
+        <!-- {/foreach} -->
+       </select>
+      </div>
+     </div>
+     <div class="form-item">
+      <div class="form-label">{$lang.keywords}</div>
+      <div class="input-block">
+       <input type="text" name="keywords" value="{$cat_info.keywords}" size="40" class="input" />
+       <span class="action" data-field="keywords">{$btn_lang.keywords nofilter}</span>
+      </div>
+     </div>
+     <div class="form-item">
+      <div class="form-label">{$lang.description}</div>
+      <div class="input-block">
+       <textarea name="description" cols="60" rows="4" class="textarea">{$cat_info.description}</textarea>
+       <p class="action" data-field="description">{$btn_lang.description nofilter}</p>
+      </div>
+     </div>
+     <div class="form-item">
+      <div class="form-label">{$lang.sync_to_nav}</div>
+      <div class="input-block">
+       <label for="sync_0">
+        <input type="radio" name="sync_to_nav" id="sync_0" value="0"{if $cat_info.sync_to_nav eq '0' || !$cat_info} checked="true"{/if}>
+        {$lang.no}</label>
+       <label for="sync_1">
+        <input type="radio" name="sync_to_nav" id="sync_1" value="1"{if $cat_info.sync_to_nav eq '1'} checked="true"{/if}>
+        {$lang.yes}</label>
+       <p class="cue">{$lang.sync_to_nav_cue}</p>
+      </div>
+     </div>
+     <div class="form-item">
+      <div class="form-label">{$lang.sort}</div>
+      <div class="input-block">
+       <input type="text" name="sort" value="{if $cat_info.sort}{$cat_info.sort}{else}50{/if}" size="5" class="input" />
+      </div>
+     </div>
+     <div class="form-item">
+      <input type="hidden" name="token" value="{$token}" />
+      <input type="hidden" name="category_id" value="{$cat_info.id}" />
+      <input class="btn" type="submit" value="{$lang.btn_submit}" />
+     </div>
+    </div>
+   </form>
+   <!-- {/if} -->
+  </div>
+ </div>
+  </div>
+ {include file="inc/footer.tpl"} </div>
+<script type="text/javascript" src="js/cropper.min.js"></script>
+</body>
+</html>
+
+

@@ -1,0 +1,118 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+ <meta name="copyright" content="DouCo Co.,Ltd." />
+ <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+ <meta name="csrf-token" content="{$csrf_token}">
+ <title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+ <link href="{$root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+ <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+ <link href="css/common.css" rel="stylesheet" type="text/css">
+ <link href="css/login.css" rel="stylesheet" type="text/css">
+ {include file="inc/javascript.tpl"}
+</head>
+
+<body>
+ <div id="login">
+  <div class="logo{if $pure_mode} pure{/if}"></div>
+  <!-- {if $rec eq 'default'} 管理员登录页 -->
+  <form action="{url link='admin.login.post'}" method="post">
+   <div class="form">
+    <div class="basic-box">
+     <dl>
+      <dt>{$lang.login_username}</dt>
+      <dd>
+       <input type="text" name="username" class="input">
+      </dd>
+     </dl>
+     <dl>
+      <dt>{$lang.login_password}</dt>
+      <dd>
+       <input type="password" name="password" class="input">
+      </dd>
+     </dl>
+    </div>
+    <div class="captcha-box">
+     <!-- {if $site.captcha} -->
+     <dl class="captcha">
+      <dt>{$lang.login_captcha}</dt>
+      <dd>
+       <input type="text" name="captcha" class="input">
+      </dd>
+     </dl>
+     <img id="vcode" src="{url link='admin.captcha'}" class="captcha-img" alt="{$lang.captcha}" border="1" onClick="refreshimage()" title="{$lang.login_captcha_refresh}">
+     <!-- {/if} -->
+    </div>
+    <div class="remember-box">
+     <label>
+      <input name="remember" type="checkbox" />
+      <span>{$lang.login_remember}</span></label>
+    </div>
+    <div class="btn-box">
+     <input type="submit" name="submit" class="btn" value="{$lang.login_submit}">
+     <div class="action">{$lang.login_password_forget}？<a href="{url link='admin.login.password_reset'}">{$lang.login_password_reset_action}</a></div>
+    </div>
+    <div class="link-box">
+     <!-- {if !$pure_mode} --><a href="http://www.douphp.com/license.html" target="_blank">使用协议</a> <!-- {/if} --><a href="{$root_url}">{$lang.login_back}</a>
+    </div>
+   </div>
+  </form>
+  <!-- {/if} -->
+  <!-- {if $rec eq 'password_reset'} 找回密码、密码重置 -->
+  <form action="{url link='admin.login.password_reset_post'}" method="post">
+   <div class="form">
+    <!-- {if $action eq 'default'} 找回密码 -->
+    <div class="basic-box">
+     <dl>
+      <dt>{$lang.login_username}</dt>
+      <dd>
+       <input type="text" name="username" class="input">
+      </dd>
+     </dl>
+     <dl>
+      <dt>{$lang.login_email}</dt>
+      <dd>
+       <input type="text" name="email" class="input">
+      </dd>
+     </dl>
+    </div>
+    <div class="btn-box">
+     <input type="hidden" name="token" value="{$token}" />
+     <input type="submit" name="submit" class="btn" value="{$lang.login_password_reset}">
+    </div>
+    <!-- {elseif $action eq 'reset'} 密码重置 -->
+    <div class="basic-box">
+     <dl>
+      <dt>{$lang.manager_new_password}</dt>
+      <dd>
+       <input type="password" name="password" class="input">
+      </dd>
+     </dl>
+     <dl>
+      <dt>{$lang.manager_new_password_confirm}</dt>
+      <dd>
+       <input type="password" name="password_confirm" class="input">
+      </dd>
+     </dl>
+    </div>
+    <div class="btn-box">
+     <input type="hidden" name="admin_id" value="{$admin_id}" />
+     <input type="hidden" name="code" value="{$code}" />
+     <input type="hidden" name="action" value="reset" />
+     <input type="hidden" name="token" value="{$token}" />
+     <input type="submit" name="submit" class="btn" value="{$lang.btn_submit}">
+    </div>
+    <!-- {/if} -->
+    <div class="action"><a href="{url link='admin.login'}">{$lang.login_submit}</a></div>
+    <div class="link-box">
+     <!-- {if !$pure_mode} --><a href="http://www.douphp.com/license.html" target="_blank">使用协议</a> <!-- {/if} --><a href="{$root_url}">{$lang.login_back}</a>
+    </div>
+   </div>
+  </form>
+  <!-- {/if} -->
+ </div>
+</body>
+
+</html>

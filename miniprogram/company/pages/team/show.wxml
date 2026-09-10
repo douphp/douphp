@@ -1,0 +1,18 @@
+<!--pages/team/show.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="detail">
+   <view class="title">{{team.name}}</view>
+   <view class="info"><text>{{team.class}}</text>
+   </view>
+   <view class="img" wx:if="{{team.image}}">
+    <image src="{{team.image}}" mode="widthFix" />
+   </view>
+   <view class="head">{{lang.team_content}}</view>
+   <view class="content">
+    <mp-html content="{{team.content}}" />
+   </view>
+  </view>
+ </view>
+</view>

@@ -1,0 +1,31 @@
+<!--pages/distribution/people.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="page-head">
+   <view class="action"><text class="link" data-url="/pages/distribution/user" bindtap="douNavigateTo">{{lang.distribution_user}}</text></view>
+   <view class="name">{{lang.distribution_people}}</view>
+  </view>
+  <view class="log-list">
+   <block wx:for="{{people_list}}" wx:for-item="item" wx:key="index">
+    <view class="item">
+     <view class="h3"><text class="status">{{item.created_at}}</text><text class="name">{{item.username}}</text></view>
+     <view class="info">
+      <view>{{lang.distribution_people_type}}：{{item.type}}</view>
+      <view>{{lang.user_level}}：{{item.level_name}}</view>
+      <view>{{lang.distribution_reward}}：{{item.reward}} <text>{{lang.distribution_people_reward}}</text></view>
+     </view>
+    </view>
+    <view class="item" wx:if="{{item.indirect}}">
+     <view class="h3"><text class="status">{{item.indirect.created_at}}</text><text class="name">{{item.indirect.username}}</text></view>
+     <view class="info">
+      <view>{{lang.distribution_people_type}}：{{item.indirect.type}}</view>
+      <view>{{lang.user_level}}：{{item.indirect.level_name}}</view>
+      <view>{{lang.distribution_reward}}：{{item.indirect.reward}} <text>{{lang.distribution_people_reward}}</text></view>
+     </view>
+    </view>
+   </block>
+   <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
+  </view>
+ </view>
+</view>

@@ -1,0 +1,65 @@
+/* pages/order/offlinepay.wxss */
+/* -- cashier -- */
+.cashier {
+margin-top: 10px;
+}
+.cashier .info {
+ font-size:14px;
+ color: #999;
+ background-color: #FFF;
+ margin-bottom: 10px;
+ padding: 15px 10px;
+}
+.cashier .info .timeOut {
+ font-size:14px;
+ color: #19B4EA;
+ font-weight: bold;
+ margin-bottom: 5px;
+}
+.cashier .info .timeOut text {
+ color: red;
+ font-weight: normal;
+}
+.cashier .info .orderSn {
+ margin-bottom: 5px;
+}
+.cashier .info .orderAmount .red {
+ color: red;
+}
+.cashier .checkBox {
+ background-color: #FFF;
+ padding: 20px 0;
+}
+/* -- timeOut -- */
+.timeOut .b {
+ color: red;
+}
+/*- pay-evidence -*/
+.pay-evidence {
+ padding: 0 20px;
+ margin: 0 auto;
+}
+.pay-evidence .imgShow {
+ min-height: 200px;
+ line-height: 200px;
+ text-align: center;
+ color: #555;
+ background-color: #F5F5F5;
+}
+.pay-evidence .imgShow .img {
+ width: 100%;
+}
+.pay-evidence .imgBtn {
+ width: 100%;
+ background-color: #EEE;
+ color: #999;
+ line-height: 25px;
+ font-size: 12px;
+ cursor: pointer;
+ text-align: center;
+ -webkit-appearance: none;
+ border-radius: 0;
+}
+.pay-evidence .imgBtn::after {
+  border-radius: 0;
+}

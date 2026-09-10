@@ -1,0 +1,92 @@
+/* 用户登录
+----------------------------------------------- */
+#login {
+  margin: 0px auto;
+  width: 350px;
+  margin-top: 40px;
+}
+@media (max-width: 768px) {
+  #login {
+    width: 100%;
+    padding: 0 20px;
+    box-sizing: border-box;
+  }
+}
+#login .logo {
+  background: url(../images/logo.png) no-repeat 0 0;
+  width: 84px;
+  height: 101px;
+  margin: 0 auto 30px auto;
+}
+#login .logo.pure {
+  height: 87px;
+}
+#login .form a {
+  color: #0072c5;
+}
+#login .form dl dt {
+  font-size: 14px;
+  color: #555555;
+  text-align: center;
+  margin-bottom: 5px;
+}
+#login .form dl dd .input {
+  color: #333;
+  border: 2px solid #bbbbbb;
+  background-color: #eeeeee;
+  padding: 5px 8px;
+}
+#login .form .basic-box dl {
+  margin-bottom: 10px;
+}
+#login .form .basic-box dl dd .input {
+  width: 100%;
+  box-sizing: border-box;
+}
+#login .form .captcha-box {
+  zoom: 1;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 20px;
+}
+#login .form .captcha-box dl.captcha {
+  float: left;
+}
+#login .form .captcha-box dl.captcha .input {
+  text-transform: uppercase;
+}
+#login .form .captcha-box dl dd .input {
+  width: 100px;
+}
+#login .form .captcha-box .captcha-img {
+  position: absolute;
+  left: 130px;
+  bottom: 0;
+}
+#login .form .captcha-box .checkbox {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  color: #545454;
+}
+#login .form .remember-box {
+  margin-bottom: 20px;
+}
+#login .form .btn-box .btn {
+  width: 100%;
+  margin-bottom: 20px;
+}
+#login .form .action {
+  text-align: center;
+  font-size: 14px;
+  color: #545454;
+}
+#login .form .link-box {
+  text-align: center;
+  font-size: 14px;
+  margin-top: 120px;
+}
+#login .form .link-box a {
+  margin: 0 15px;
+}
+

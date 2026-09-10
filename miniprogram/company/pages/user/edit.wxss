@@ -1,0 +1,30 @@
+/* pages/user/edit.wxss */
+/*- inputFile -*/
+.inputFile {
+ width: 80px;
+}
+.inputFile .imgShow {
+ height: 80px;
+ line-height: 80px;
+ text-align: center;
+ color: #555;
+ background-color: #F5F5F5;
+}
+.inputFile .imgShow .img {
+ width: 100%;
+ height: 80px;
+}
+.inputFile .imgBtn {
+ width: 100%;
+ background-color: #EEE;
+ color: #999;
+ line-height: 25px;
+ font-size: 12px;
+ cursor: pointer;
+ text-align: center;
+ -webkit-appearance: none;
+ border-radius: 0;
+}
+.inputFile .imgBtn::after {
+  border-radius: 0;
+}

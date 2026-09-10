@@ -1,0 +1,315 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="copyright" content="DouCo Co.,Ltd." />
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="csrf-token" content="{$csrf_token}">
+<title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+<link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+<link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+<link href="css/common.css" rel="stylesheet" type="text/css">
+<link href="css/cropper.min.css" rel="stylesheet" type="text/css">
+{include file="inc/javascript.tpl"}
+</head>
+<body>
+<div id="dou"> {include file="inc/header.tpl"}
+ {include file="inc/sidebar.tpl"}
+ <div id="dou-content"> {include file="inc/toolbar.tpl"}
+  <div class="dou-main">
+   <div class="dou-page">
+   {include file="inc/page_header.tpl"}
+   <!-- {if $rec eq 'default'} 导航列表 -->
+   <div class="navList">
+    <div class="tab" id="nav-type-tabs">
+     <ul class="tab-title">
+      <li{if $type eq 'middle'} class="active"{/if}><a href="{url link='admin.nav'}">{$lang.nav_type_middle}</a></li>
+      <li{if $type eq 'top'} class="active"{/if}><a href="{url link='admin.nav' type=top}">{$lang.nav_type_top}</a></li>
+      <li{if $type eq 'bottom'} class="active"{/if}><a href="{url link='admin.nav' type=bottom}">{$lang.nav_type_bottom}</a></li>
+     </ul>
+    </div>
+    <table class="table">
+     <tr>
+      <th width="123" class="text-left">{$lang.nav_name}</th>
+      <th class="m-none text-left">{$lang.nav_link}</th>
+      <!-- {if $site.open_icon eq 'image' || $site.open_icon eq 'text'} -->
+      <th class="m-none text-center">{$lang.icon}</th>
+      <!-- {/if} -->
+      <th class="m-none text-center" width="80">{$lang.nav_status}</th>
+      <th class="m-none text-center" width="80">{$lang.sort}</th>
+      <th width="120" class="text-center">{$lang.handler}</th>
+     </tr>
+     <!-- {foreach from=$nav_list item=nav} -->
+     <tr>
+      <td>{$nav.mark} {$nav.name}</td>
+      <td class="m-none">{$nav.guide}</td>
+      <!-- {if $site.open_icon eq 'image' || $site.open_icon eq 'text'} -->
+      <td class="m-none text-center">
+       <!-- {if $site.open_icon eq 'image'} --><a href="{$nav.icon}" target="_blank"><img src="{$nav.icon}" width="12" height="12" align="absMiddle"></a><!-- {else} -->{$nav.icon}<!-- {/if} -->
+      </td>
+      <!-- {/if} -->
+      <td class="m-none text-center">{$nav.status.format}</td>
+      <td class="m-none text-center">{$nav.sort}</td>
+      <td class="text-center"><a href="{url link='admin.nav.edit' id=$nav.id}">{$lang.edit}</a> | <a href="javascript:;" class="js-delete" data-url="{url link='admin.nav.destroy' id=$nav.id}">{$lang.del}</a></td>
+     </tr>
+     <!-- {/foreach} -->
+    </table>
+   </div>
+   <!-- {/if} -->
+   <!-- {if $rec eq 'create'} 导航添加 -->
+   <div class="tab" id="nav-create-tabs">
+    <ul class="tab-title">
+     <li class="active"><a href="#nav-add" data-toggle="tab">{$lang.nav_inside}</a></li>
+     <li><a href="#nav-defined" data-toggle="tab">{$lang.nav_defined}</a></li>
+    </ul>
+    <div class="items tab-content">
+     <div class="tab-pane active" id="nav-add">
+      <form action="{$form_action}" method="post" enctype="multipart/form-data"><!-- {if $form_method} --><input type="hidden" name="_method" value="{$form_method}" /><!-- {/if} -->
+       <div class="form">
+        <div class="form-item">
+         <div class="form-label">{$lang.nav_system}</div>
+         <div class="input-block">
+          <select class="select" name="nav_menu" onchange="change('name', this)">
+           <option value="">{$lang.nav_menu}</option>
+           <!-- {foreach from=$catalog_list item=catalog} -->
+           <option value="{$catalog.module},{$catalog.guide}"{if $catalog.cur} selected="selected"{/if} title="{$catalog.name}">{$catalog.mark} {$catalog.name}</option>
+           <!-- {/foreach} -->
+          </select>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.nav_name}</div>
+         <div class="input-block">
+          <input type="text" id="name" name="name" value="" size="40" class="input" />
+          <span class="action" data-field="name">{$btn_lang.name nofilter}</span>
+          <p class="cue">{$lang.nav_name_cue}</p>
+         </div>
+        </div>
+        <!-- {if $site.open_icon eq 'image' || $site.open_icon eq 'text'} -->
+        <div class="form-item">
+         <div class="form-label">{$lang.icon}</div>
+         <div class="input-block">
+          <!-- {if $site.open_icon eq 'image'} -->
+          {include file="inc/file_input.tpl" name="icon" value=$nav_info.icon file_number=$nav_info.file_number}
+          <!-- {else} -->
+          <input type="text" name="icon" value="" size="30" class="input" />
+          <p class="cue">{$lang.icon_text_cue}</p>
+          <!-- {/if} -->
+         </div>
+        </div>
+        <!-- {/if} -->
+        <div class="form-item">
+         <div class="form-label">{$lang.nav_type}</div>
+         <div class="input-block">
+          <label for="type_0">
+           <input type="radio" name="type" id="type_0" value="middle" checked="true" onChange="dou_callback('{url link='admin.nav.nav_select' id=$nav_info.id}', 'type', this.value, 'parent')">
+           {$lang.nav_type_middle}</label>
+          <label for="type_1">
+           <input type="radio" name="type" id="type_1" value="top" onChange="dou_callback('{url link='admin.nav.nav_select' id=$nav_info.id}', 'type', this.value, 'parent')">
+           {$lang.nav_type_top}</label>
+          <label for="type_2">
+           <input type="radio" name="type" id="type_2" value="bottom" onChange="dou_callback('{url link='admin.nav.nav_select' id=$nav_info.id}', 'type', this.value, 'parent')">
+           {$lang.nav_type_bottom}</label>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.parent}</div>
+         <div class="input-block">
+          <select class="select" name="parent_id">
+           <option value="0">{$lang.empty}</option>
+           <!-- {foreach from=$nav_list item=list} -->
+           <option value="{$list.id}">{$list.mark} {$list.name}</option>
+           <!-- {/foreach} -->
+          </select>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.sort}</div>
+         <div class="input-block">
+          <input type="text" name="sort" value="50" size="5" class="input" />
+         </div>
+        </div>
+        <div class="form-item">
+         <input type="hidden" name="token" value="{$token}" />
+         <input class="btn" type="submit" value="{$lang.btn_submit}" />
+        </div>
+       </div>
+      </form>
+     </div>
+     <div class="tab-pane" id="nav-defined">
+      <form action="{$form_action}" method="post" enctype="multipart/form-data"><!-- {if $form_method} --><input type="hidden" name="_method" value="{$form_method}" /><!-- {/if} -->
+       <div class="form">
+        <div class="form-item">
+         <div class="form-label">{$lang.nav_name}</div>
+         <div class="input-block">
+          <input type="text" name="name" value="" size="40" class="input" />
+          <span class="action" data-field="name">{$btn_lang.name nofilter}</span>
+          <p class="cue">{$lang.nav_name_cue}</p>
+         </div>
+        </div>
+        <!-- {if $site.open_icon eq 'image' || $site.open_icon eq 'text'} -->
+        <div class="form-item">
+         <div class="form-label">{$lang.icon}</div>
+         <div class="input-block">
+          <!-- {if $site.open_icon eq 'image'} -->
+          {include file="inc/file_input.tpl" name="icon" value=$nav_info.icon file_number=$nav_info.file_number}
+          <!-- {else} -->
+          <input type="text" name="icon" value="" size="30" class="input" />
+          <p class="cue">{$lang.icon_text_cue}</p>
+          <!-- {/if} -->
+         </div>
+        </div>
+        <!-- {/if} -->
+        <div class="form-item">
+         <div class="form-label">{$lang.nav_type}</div>
+         <div class="input-block">
+          <label for="type_0">
+           <input type="radio" name="type" id="type_0" value="middle" checked="true" onChange="dou_callback('{url link='admin.nav.nav_select' id=$nav_info.id}', 'type', this.value, 'parent_external')">
+           {$lang.nav_type_middle}</label>
+          <label for="type_1">
+           <input type="radio" name="type" id="type_1" value="top" onChange="dou_callback('{url link='admin.nav.nav_select' id=$nav_info.id}', 'type', this.value, 'parent_external')">
+           {$lang.nav_type_top}</label>
+          <label for="type_2">
+           <input type="radio" name="type" id="type_2" value="bottom" onChange="dou_callback('{url link='admin.nav.nav_select' id=$nav_info.id}', 'type', this.value, 'parent_external')">
+           {$lang.nav_type_bottom}</label>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.nav_link}</div>
+         <div class="input-block">
+          <input type="text" name="guide" value="" size="80" class="input" />
+          <span class="action" data-field="guide">{$btn_lang.guide nofilter}</span>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.parent}</div>
+         <div class="input-block">
+          <select class="select" name="parent_id">
+           <option value="0">{$lang.empty}</option>
+           <!-- {foreach from=$nav_list item=list} -->
+           <option value="{$list.id}">{$list.mark} {$list.name}</option>
+           <!-- {/foreach} -->
+          </select>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.sort}</div>
+         <div class="input-block">
+          <input type="text" name="sort" value="50" size="5" class="input" />
+         </div>
+        </div>
+        <div class="form-item">
+         <input type="hidden" name="token" value="{$token}" />
+         <input type="hidden" name="nav_menu" value="nav,0" />
+         <input class="btn" type="submit" value="{$lang.btn_submit}" />
+        </div>
+       </div>
+      </form>
+     </div>
+    </div>
+   </div>
+   <!-- {/if} -->
+   <!-- {if $rec eq 'edit'} 导航编辑 -->
+   <form action="{$form_action}" method="post" enctype="multipart/form-data"><!-- {if $form_method} --><input type="hidden" name="_method" value="{$form_method}" /><!-- {/if} -->
+    <div class="form">
+     <!-- {if $nav_info.module neq 'nav'} -->
+     <div class="form-item">
+      <div class="form-label">{$lang.nav_system}</div>
+      <div class="input-block">
+       <select class="select" name="nav_menu" onchange="change('name', this)">
+        <option value="">{$lang.nav_menu}</option>
+        <!-- {foreach from=$catalog_list item=catalog} -->
+        <option value="{$catalog.module},{$catalog.guide}"{if $catalog.cur} selected="selected"{/if} title="{$catalog.name}">{$catalog.mark} {$catalog.name}</option>
+        <!-- {/foreach} -->
+       </select>
+      </div>
+     </div>
+     <!-- {/if} -->
+     <div class="form-item">
+      <div class="form-label">{$lang.nav_name}</div>
+      <div class="input-block">
+       <input type="text" id="name" name="name" value="{$nav_info.name}" size="40" class="input" />
+       <span class="action" data-field="name">{$btn_lang.name nofilter}</span>
+       <p class="cue">{$lang.nav_name_cue}</p>
+      </div>
+     </div>
+     <!-- {if $site.open_icon eq 'image' || $site.open_icon eq 'text'} -->
+     <div class="form-item">
+      <div class="form-label">{$lang.icon}</div>
+      <div class="input-block">
+       <!-- {if $site.open_icon eq 'image'} -->
+       {include file="inc/file_input.tpl" name="icon" value=$nav_info.icon file_number=$nav_info.file_number}
+       <!-- {else} -->
+       <input type="text" name="icon" value="{$nav_info.icon}" size="30" class="input" />
+       <p class="cue">{$lang.icon_text_cue}</p>
+       <!-- {/if} -->
+      </div>
+     </div>
+     <!-- {/if} -->
+     <div class="form-item">
+      <div class="form-label">{$lang.nav_type}</div>
+      <div class="input-block">
+       <label for="type_0">
+        <input type="radio" name="type" id="type_0" value="middle"{if $nav_info.type eq 'middle'} checked="true"{/if} onChange="dou_callback('{url link='admin.nav.nav_select' id=$nav_info.id}', 'type', this.value, 'parent')">
+        {$lang.nav_type_middle}</label>
+       <label for="type_1">
+        <input type="radio" name="type" id="type_1" value="top"{if $nav_info.type eq 'top'} checked="true"{/if} onChange="dou_callback('{url link='admin.nav.nav_select' id=$nav_info.id}', 'type', this.value, 'parent')">
+        {$lang.nav_type_top}</label>
+       <label for="type_2">
+        <input type="radio" name="type" id="type_2" value="bottom"{if $nav_info.type eq 'bottom'} checked="true"{/if} onChange="dou_callback('{url link='admin.nav.nav_select' id=$nav_info.id}', 'type', this.value, 'parent')">
+        {$lang.nav_type_bottom}</label>
+      </div>
+     </div>
+     <div class="form-item">
+      <div class="form-label">{$lang.nav_link}</div>
+      <div class="input-block">
+       <!-- {if $nav_info.module eq 'nav'} -->
+       <input type="text" name="guide" value="{$nav_info.url}" size="60" class="input" />
+       <span class="action" data-field="guide">{$btn_lang.guide nofilter}</span>
+       <!-- {else} -->
+       <input type="text" name="guide_no" value="{$nav_info.url}" size="60" readOnly="true" class="input" />
+       <b class="cue">{$lang.nav_not_modify}</b>
+       <!-- {/if} --></div>
+     </div>
+     <div class="form-item">
+      <div class="form-label">{$lang.parent}</div>
+      <div class="input-block">
+       <select class="select" name="parent_id">
+        <option value="0">{$lang.empty}</option>
+        <!-- {foreach from=$nav_list item=nav} -->
+        <option value="{$nav.id}"{if $nav.id eq $nav_info.parent_id} selected{/if}>{$nav.mark} {$nav.name}
+        </option>
+        <!-- {/foreach} -->
+       </select>
+      </div>
+     </div>
+     <div class="form-item">
+      <div class="form-label">{$lang.nav_status}</div>
+      <div class="input-block">
+       <select class="select" name="status">
+        <option value="1"{if $nav_info.status eq '1'} selected{/if}>{$lang.nav_status_1}</option>
+        <option value="0"{if $nav_info.status eq '0'} selected{/if}>{$lang.nav_status_0}</option>
+       </select>
+      </div>
+     </div>
+     <div class="form-item">
+      <div class="form-label">{$lang.sort}</div>
+      <div class="input-block">
+       <input type="text" name="sort" value="{if $nav_info.sort}{$nav_info.sort}{else}50{/if}" size="5" class="input" />
+      </div>
+     </div>
+     <div class="form-item">
+      <input type="hidden" name="token" value="{$token}" />
+      <input type="hidden" name="id" value="{$nav_info.id}" />
+      <input class="btn" type="submit" value="{$lang.btn_submit}" />
+     </div>
+    </div>
+   </form>
+   <!-- {/if} -->
+  </div>
+ </div>
+  </div>
+ {include file="inc/footer.tpl"} </div>
+<script type="text/javascript" src="js/cropper.min.js"></script>
+</body>
+</html>

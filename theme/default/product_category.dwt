@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <meta name="keywords" content="{$keywords}" />
+ <meta name="description" content="{$description}" />
+ <meta name="generator" content="{$generator}" />
+ <meta name="csrf-token" content="{$csrf_token}">
+ <title>{$page_title}</title>
+ <link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+ <link href="css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+ <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css" />
+ <link href="css/common.css" rel="stylesheet" type="text/css" />
+ <link href="css/style.css" rel="stylesheet" type="text/css" />
+ <link href="css/product.css" rel="stylesheet" type="text/css" />
+ {include file="inc/code_head.tpl"}
+</head>
+
+<body>
+ <div id="wrapper"> {include file="inc/header.tpl"}
+  <div id="product-category" class="container mb">
+   <div class="row">
+    <div class="col-md-2"> {include file="inc/product_tree.tpl"} </div>
+    <div class="col-md-10"> {include file="inc/ur_here.tpl"}
+     <!-- {if $brand} -->
+     <div class="head-brand">{$brand.name}</div>
+     <!-- {/if} -->
+     <div class="row product-list">
+      <!-- {foreach from=$product_list name=product_list item=product} -->
+      <div class="col-md-3 col-6">
+       <div class="item">
+        <div class="img scale"><a href="{$product.url}"><img src="{$product.thumb}" /></a></div>
+        <div class="name"><a href="{$product.url}">{$product.title}</a></div>
+        <!-- {if $site.show_price} -->
+        <div class="price-box"><em class="price">{$product.sale_price.format}</em><!-- {if $product.sale_price.name} --><i class="price-cue">{$product.sale_price.name}</i><!-- {/if} --><!-- {if $product.sale_price.type neq 'original'} --><em class="price-gray">{$product.price}</em><!-- {/if} --></div>
+        <!-- {/if} -->
+       </div>
+      </div>
+      <!-- {/foreach} -->
+     </div>
+     {include file="inc/pager.tpl"}
+    </div>
+   </div>
+  </div>
+  {include file="inc/online_service.tpl"}
+  {include file="inc/footer.tpl"}
+ </div>
+ {include file="inc/code_footer.tpl"}
+ <script type="text/javascript" src="js/bootstrap.min.js"></script>
+ <script type="text/javascript" src="js/dou.js"></script>
+ <script type="text/javascript" src="js/online_service.js"></script>
+</body>
+
+</html>

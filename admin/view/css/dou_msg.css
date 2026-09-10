@@ -1,0 +1,53 @@
+/* 信息提示
+----------------------------------------------- */
+/*- dou-msg -*/
+#dou-msg {
+  background: url(../images/icon_exc_small.gif) no-repeat left top;
+  padding: 27px 0 0 70px;
+  margin-top: 30px;
+}
+#dou-msg h2 {
+  font-size: 16px;
+  font-weight: bold;
+  color: #0574c7;
+}
+#dou-msg dl {
+  background: url(../images/icon_back_arrow.png) no-repeat right bottom;
+}
+#dou-msg dt {
+  padding: 10px 0 25px 0;
+  font-size: 13px;
+  color: #999999;
+}
+#dou-msg dd {
+  padding: 100px 20px 20px 0;
+  font-size: 12px;
+  text-align: right;
+}
+#dou-msg dd a {
+  color: #19b4ea;
+}
+/*- out-msg -*/
+#out-msg {
+  background: url(../images/icon_exc.gif) no-repeat left top;
+  margin: 0px auto;
+  width: 340px;
+  padding: 30px 0 0 80px;
+  margin-top: 160px;
+}
+#out-msg h2 {
+  font-size: 22px;
+  font-weight: bold;
+  color: #0574c7;
+}
+#out-msg dt {
+  padding: 10px 0 25px 0;
+  font-size: 13px;
+  color: #666666;
+}
+#out-msg dd {
+  background: url(../images/icon_back.png) no-repeat left top;
+  padding-left: 25px;
+  font-size: 14px;
+}
+

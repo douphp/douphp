@@ -1,0 +1,22 @@
+<!--pages/service/service.wxml-->
+<navbar title="{{title}}" url="/pages/user/user"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="comment-list"> 
+   <view class="dl{{comment.if_read == '0' ? 'unread' : ''}}" wx:for="{{comment_list}}" wx:key="index" wx:for-item="comment">
+    <view class="dt"><text class="span">{{comment.nickname}} {{comment.created_at}}</text><text data-url="{{comment.item_url}}" bindtap="douNavigateTo">{{lang.comment_item}} {{comment.item_name}}</text></view>
+    <view class="content">
+     <view class="comment-star">
+      <image class="star-image" src="../../images/star_on.png" wx:for="{{comment.star_box.list}}" wx:key="index" />
+      <text class="star-number">{{comment.star_box.number}}</text>
+     </view>
+     <view class="p">{{comment.content}}</view>
+     <view class="imgs">
+      <image src="{{item.file}}" data-image="{{item.file}}" bindtap="previewImage" mode="heightFix" wx:for="{{comment.img_list}}" wx:key="index" />
+     </view>
+    </view>
+    <view class="reply" wx:if="{{comment.reply}}"><view class="p" class="replyContent">{{lang.comment_reply}}：{{comment.reply.content}}</view><view class="replyTime">{{comment.reply.created_at}}</view></view>
+   </view>
+  </view>
+ </view>
+</view>

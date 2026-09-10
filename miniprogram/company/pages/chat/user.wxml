@@ -1,0 +1,51 @@
+<!--pages/chat/user.wxml 我的AI订阅-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <!-- 配额状态 -->
+  <view class="chat-quota-card" wx:if="{{quota_status && quota_status.has_subscription}}">
+   <view class="quota-header">
+    <text class="name">{{quota_status.package_name}}</text>
+    <text class="expires">{{quota_status.expires_format}}</text>
+   </view>
+   <view class="quota-stats">
+    <view class="stat">
+     <view class="label">已用Tokens</view>
+     <view class="value">{{quota_status.tokens_used_format}}</view>
+    </view>
+    <view class="stat">
+     <view class="label">已用次数</view>
+     <view class="value">{{quota_status.requests_used_format}}</view>
+    </view>
+   </view>
+  </view>
+  <view class="chat-no-subscription" wx:else>
+   <text>您还没有有效的 AI 套餐订阅</text>
+   <view class="btn-buy" bindtap="toPackage">购买套餐</view>
+  </view>
+
+  <view class="quick-actions">
+   <view class="action" bindtap="toHistory"><text class="bi bi-clock-history"></text> 历史会话</view>
+   <view class="action" bindtap="toPackage"><text class="bi bi-gem"></text> 购买套餐</view>
+  </view>
+
+  <!-- 订阅记录 -->
+  <view class="section-title">订阅记录</view>
+  <view class="subscription-list">
+   <view class="sub-item" wx:for="{{subscription_list}}" wx:key="id" wx:for-item="item">
+    <view class="sub-header">
+     <text class="name">{{item.package.name}}</text>
+     <text class="status active" wx:if="{{item.is_active}}">生效中</text>
+     <text class="status expired" wx:elif="{{item.is_expired}}">已过期</text>
+     <text class="status" wx:else>{{item.status.format}}</text>
+    </view>
+    <view class="sub-row"><text class="label">实付价格</text><text>{{item.price}}</text></view>
+    <view class="sub-row"><text class="label">Tokens用量</text><text>{{item.tokens_used}} / {{item.tokens_limit}}</text></view>
+    <view class="sub-row"><text class="label">有效期</text><text>{{item.start_at}} ~ {{item.end_at}}</text></view>
+    <view class="sub-row" wx:if="{{item.order_sn}}"><text class="label">订单号</text><text>{{item.order_sn}}</text></view>
+   </view>
+   <view class="chat-empty" wx:if="{{!subscription_list.length}}">暂无订阅记录</view>
+  </view>
+  <view class="loadpage" wx:if="{{loadpage}}">加载中...</view>
+ </view>
+</view>

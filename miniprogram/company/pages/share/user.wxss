@@ -1,0 +1,44 @@
+/* pages/share/user.wxss */
+.share-list {
+}
+.share-list .item {
+ margin-bottom: 25px;
+ border-bottom: 1px solid #DDD;
+ padding-bottom: 30px;
+}
+.share-list .item .text {
+ color: #999;
+}
+.share-list .item .head {
+ padding: 10px 0;
+ border-bottom: 1px solid #EEE;
+ font-size: 16px;
+}
+.share-list .item .head .money {
+ font-weight: bold;
+}
+.share-list .item .head .time {
+ float: right;
+ color: #999;
+}
+.share-list .item .info {
+ margin-top: 10px;
+ color: #999;
+}
+.share-list .item .info text {
+ display: block;
+}
+.share-list .item .img-list {
+ margin-top: 10px;
+}
+.share-list .item .img-list image {
+ height: 60px;
+ margin-right: 10px;
+}
+.share-list .item .handle {
+ margin-top: 20px;
+ color: red;
+}
+.share-list .item .handle text {
+ margin-right: 20px;
+}

@@ -1,0 +1,57 @@
+<!--login_account.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="login">
+  <view class="logo">
+   <image src="../../images/logo_icon.png" />
+  </view>
+  <view class="form-passport" style="margin-top: 8vh">
+   <form bindsubmit="login">
+    <view class="dl">
+     <input type="text" name="username" class="input" placeholder="{{lang.user_username}}" />
+    </view>
+    <view class="dl">
+     <input type="text" password="true" name="password" class="input" placeholder="{{lang.user_password}}" />
+    </view>
+    <view class="errorMsg" wx:if="{{errorMsg}}">{{errorMsg}}</view>
+    <view class="dl">
+     <button class="btn-action blue" formType="submit" wx:if="{{agree}}">{{lang.user_login_btn}}</button>
+     <button class="btn-action blue" bindtap="termCue" wx:else>{{lang.user_login_btn}}</button>
+    </view>
+    <view class="dl">
+     <view class="btn-action gray" data-url="/pages/user/register" bindtap="douNavigateTo">{{lang.user_register_btn}}</view>
+    </view>
+   </form>
+  </view>
+  <view class="line-box">
+   <view class="text">
+    <text>其它登录方式</text>
+   </view>
+  </view>
+  <view class="other-login-methods">
+   <view class="item" data-url="/pages/user/login_weixin" bindtap="douNavigateTo">
+    <view class="bi bi-wechat green"></view>
+    <view class="text">微信</view>
+   </view>
+   <view class="item" data-url="/pages/user/login_phone" bindtap="douNavigateTo">
+    <view class="bi bi-phone"></view>
+    <view class="text">手机</view>
+   </view>
+  </view>
+  <view class="agree-box">
+   <checkbox-group bindchange="agreeTerm">
+    <label class="agree">
+     <checkbox value="{{checkValue}}" class="agree-checkbox-check" />
+     <view class="agree-checkbox"></view>
+     <view class="agree-text">
+      <view class="show-term-cue" wx:if="{{showTermCue}}">
+       <text>请先阅读并勾选协议</text>
+      </view>
+      <text aria-hidden="true">阅读并同意</text>
+      <navigator>《相关条款》</navigator>
+     </view>
+    </label>
+   </checkbox-group>
+  </view>
+ </view>
+</view>

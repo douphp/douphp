@@ -1,0 +1,141 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+ <meta name="copyright" content="DouCo Co.,Ltd." />
+ <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+ <meta name="csrf-token" content="{$csrf_token}">
+ <title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+ <link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+ <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+ <link href="css/common.css" rel="stylesheet" type="text/css">
+ <link href="css/page.css" rel="stylesheet" type="text/css">
+ {include file="inc/javascript.tpl"}
+</head>
+
+<body>
+ <div id="dou"> {include file="inc/header.tpl"}
+  {include file="inc/sidebar.tpl"}
+  <div id="dou-content"> {include file="inc/toolbar.tpl"}
+   <div class="dou-main">
+    <div class="dou-page">
+    <!-- {if $rec eq 'default'} 单页面列表 -->
+    {include file="inc/page_header.tpl"}
+    <div id="page">
+     <!-- {foreach from=$page_list item=item} -->
+     <dl class="child{$item.level}">
+      <dt>{$item.name}
+       <p>{$item.slug}</p>
+      </dt>
+      <dd><a href="{url link='admin.page.edit' id=$item.id}">{$lang.edit}</a> | <a href="javascript:;" class="js-delete" data-url="{url link='admin.page.destroy' id=$item.id}">{$lang.del}</a></dd>
+     </dl>
+     <!-- {/foreach} -->
+    </div>
+    <!-- {/if} -->
+    <!-- {if $rec eq 'create' || $rec eq 'edit'} 单页面添加或编辑 -->
+   {include file="inc/page_header.tpl"}
+    <form id="itemForm" action="{$form_action}" method="post"><input type="hidden" name="_method" value="{$form_method}" />
+     <div class="form">
+      <div class="form-item">
+       <div class="form-label">{$lang.page_name}</div>
+       <div class="input-block">
+        <input type="text" name="name" value="{$page.name}" size="40" class="input" />
+        <span class="action" data-field="name">{$btn_lang.name nofilter}</span>
+       </div>
+      </div>
+      <div class="form-item">
+       <div class="form-label">{$lang.unique}</div>
+       <div class="input-block">
+        <input type="text" name="slug" value="{$page.slug}" size="40" class="input" />
+       </div>
+      </div>
+      <div class="form-item">
+       <div class="form-label">{$lang.parent}</div>
+       <div class="input-block">
+        <select class="select" name="parent_id">
+         <option value="0">{$lang.empty}</option>
+         <!-- {foreach from=$page_list item=list} -->
+         <option value="{$list.id}" {if $list.id eq $page.parent_id} selected="selected" {/if}>{$list.mark} {$list.name}</option>
+         <!-- {/foreach} -->
+        </select>
+       </div>
+      </div>
+      <div class="form-item">
+       <div class="form-label">{$lang.page_content}</div>
+       <div class="input-block">
+        <!-- {if $page.mode eq 'visualize'} -->
+        <a class="btn-secondary" href="{$page.editor_url}" target="_blank">{$lang.page_mode_visualize_go}</a>
+        <p class="cue">{$lang.page_mode_data_cue_a}{$page.slug}.dwt{$lang.page_mode_data_cue_b}<a class="btn-outline js-post" href="{url link='admin.page.visualize_clear' id=$page.id}">{$lang.page_mode_visualize_clear}</a></p>
+        <!-- {else} -->
+        <!-- 编辑器（所需变量：$cur、$item_id、$item_content） -->
+        {include file="inc/editor.tpl" name="content" value="$item_content"}
+        <!-- {/if} -->
+        <p class="action" data-field="content">{$btn_lang.content nofilter}</p>
+       </div>
+      </div>
+      <!-- {if $features.data} -->
+      <div class="form-item">
+       <div class="input-block">
+        {include file="inc/data_inner.tpl"}
+       </div>
+      </div>
+      <!-- {/if} -->
+      <div class="form-item">
+       <div class="form-label">下载链接</div>
+       <div class="input-block">
+        <div id="downloadBigFile" class="file-big">
+         <input type="text" name="download_link" class="input link" value="{$download.download_link}" size="114" />
+         <div class="progress-box">
+          <div class="progress" style="width: 0%;"></div>
+         </div>
+         <div class="btn-upload" onChange="fileBig('input', 'download', '{$cur}', '{$item_id}', '', '{$draft_token}');">
+          <input type="file" class="input-block">
+          {$lang.file_bigfile_btn} <em class="percent"></em>
+         </div>
+        </div>
+       </div>
+      </div>
+      <div class="form-item">
+       <div class="form-label">{$lang.keywords}</div>
+       <div class="input-block">
+        <input type="text" name="keywords" value="{$page.keywords}" size="114" class="input" />
+        <span class="action" data-field="keywords">{$btn_lang.keywords nofilter}</span>
+       </div>
+      </div>
+      <div class="form-item">
+       <div class="form-label">{$lang.description}</div>
+       <div class="input-block">
+        <textarea name="description" cols="115" rows="3" class="textarea" />{$page.description}</textarea>
+        <p class="action" data-field="description">{$btn_lang.description nofilter}</p>
+       </div>
+      </div>
+      <div class="form-item">
+       <div class="form-label">{$lang.page_mode}</div>
+       <div class="input-block">
+        <label for="mode_0">
+         <input type="radio" name="mode" id="mode_0" value="editor" {if $page.mode eq 'editor' || !$page.mode} checked="true" {/if}>
+         {$lang.page_mode_editor}</label>
+        <label for="mode_1">
+         <input type="radio" name="mode" id="mode_1" value="visualize" {if $page.mode eq 'visualize' } checked="true" {/if}>
+         {$lang.page_mode_visualize}</label>
+        <p class="cue">{$lang.page_mode_cue}</p>
+       </div>
+      </div>
+      <div class="form-item">
+       <input type="hidden" name="token" value="{$token}" />
+       <input type="hidden" name="id" value="{$page.id}">
+       <input type="hidden" name="draft_token" value="{$draft_token}" />
+       <input class="btn" type="submit" value="{$lang.btn_submit}" />
+      </div>
+     </div>
+    </form>
+    <!-- {/if} -->
+   </div>
+  </div>
+  </div>
+  {include file="inc/footer.tpl"}
+ </div>
+</body>
+
+</html>

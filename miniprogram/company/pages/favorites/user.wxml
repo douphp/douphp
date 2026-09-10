@@ -1,0 +1,32 @@
+<!--pages/favorites/user.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="page-head">
+   <view class="name">{{lang.favorites}}</view>
+  </view>
+  <view class="favorites-list"> 
+   <view class="item" wx:for="{{favorites_list}}" wx:for-item="item" wx:key="index">
+    <view class="box{{!item.image ? ' no-img' : ''}}" bindtouchstart="touchStart" bindtouchmove="touchMove" bindtouchend="touchEnd" style="margin-left: -{{item.touch_move}}px;margin-right: {{item.touch_move}}px;" data-index="{{index}}">
+     <view class="img" data-url="/pages/product/product?id={{item.item_id}}" bindtap="douNavigateTo" wx:if="{{item.image}}"><image src="{{item.image}}" /></view>
+     <view class="con">
+      <view class="name" data-url="/pages/product/product?id={{item.item_id}}" bindtap="douNavigateTo">{{item.name}}</view>
+      <view class="info-number">
+       <view class="info">
+        <view class="att-box">
+         <text class="att-name" wx:if="{{item.attribute_name}}">{{item.attribute_name}}</text>
+        </view>
+        <view class="price-box"><text class="price">{{item.sale_price.format}}</text><text class="price-cue" wx:if="{{item.sale_price.name}}">{{item.sale_price.name}}</text><text class="price-gray" wx:if="{{item.sale_price.type != 'original'}}">{{item.price}}</text></view>
+       </view>
+       <view class="buy-box">
+        <text class="bi bi-cart" data-url="{{item.url}}" bindtap="douNavigateTo"></text>
+       </view>
+      </view>
+     </view>
+     <view data-id="{{item.id}}" bindtap="itemDel" class="del">删除</view>
+    </view>
+   </view>
+  </view>
+  <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
+ </view>
+</view>

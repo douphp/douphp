@@ -1,0 +1,37 @@
+<!--pages/book/show.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="detail">
+   <view class="h1">{{item.name}}</view>
+   <view class="content">
+    <mp-html content="{{content}}" />
+   </view>
+
+   <!-- 时段选择 -->
+   <view class="time-select">
+    <scroll-view class="date-list" scroll-x="true">
+     <view class="item {{item.cur ? 'active' : ''}}" wx:for="{{date_list}}" wx:key="date" wx:for-item="item" bindtap="selectDate" data-date="{{item.date}}">
+      <view class="date">{{item.date_short}}</view>
+      <view class="week">{{item.week_name}}</view>
+     </view>
+    </scroll-view>
+
+    <view class="time-list">
+     <view class="item {{item.cur ? 'active' : ''}} {{item.user_booked ? 'booked' : ''}} {{item.full && !item.user_booked ? 'full' : ''}} {{item.closed ? 'disabled' : ''}}" wx:for="{{time_list}}" wx:key="start_at" wx:for-item="item" bindtap="selectTime" data-item="{{item}}">
+      <view class="label">{{item.start_at}}~{{item.end_at}}</view>
+      <view class="remaining" wx:if="{{item.status_tip}}">{{item.status_tip}}</view>
+      <view class="remaining" wx:elif="{{!item.full}}">{{lang.book_remaining || '剩余'}}{{item.remaining}}</view>
+      <view class="remaining full" wx:else>{{lang.book_remaining_no || '已约满'}}</view>
+      <view class="price" wx:if="{{item.price}}">{{item.price_format}}</view>
+     </view>
+    </view>
+
+    <view class="submit-area">
+     <button class="btn" bindtap="goToContact">{{lang.btn_next || '下一步'}}</button>
+    </view>
+   </view>
+  </view>
+
+ </view>
+</view>

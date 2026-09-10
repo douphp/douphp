@@ -1,0 +1,62 @@
+/* pages/money/work.wxss */
+.work {
+ padding-bottom: 30px;
+}
+.work .search {
+ border-bottom: 1px solid #EEE;
+ padding-bottom: 30px;
+ margin-bottom: 30px;
+}
+.work .search .scan-box {
+}
+.work .search .scan-box:active {
+ background-color: #F5F5F5;
+}
+.work .search .scan-box .scan {
+ border: 1px solid #DDD;
+ text-align: center;
+}
+.work .search .scan-box .scan .bi {
+ font-size: 80px;
+ line-height: 160px;
+}
+.work .search .scan-box .scan .name {
+ display: block;
+ padding-bottom: 20px;
+ font-size: 18px;
+}
+.work .search .search-box {
+ padding: 20px 0;
+ box-sizing: border-box;
+ display: flex;
+ align-items: center;
+ justify-content: space-between;
+}
+.work .search .search-box .keyword-box {
+ flex: 1;
+ display: flex;
+ align-items: center;
+ line-height: 36px;
+ height: 36px;
+ padding: 0 15px;
+ background-color: #F2F2F2;
+ border-radius: 20px;
+ margin-right: 10px;
+}
+.work .search .search-box .keyword-box .fa-search {
+ font-size: 16px;
+ margin-right: 10px;
+ color: #999999;
+}
+.work .search .search-box .keyword-box .keyword {
+ width: 100%;
+}
+.work .search .search-box .btn-search {
+ width: 70px;
+ height: 36px;
+ line-height: 36px;
+ font-size: 14px;
+ border-radius: 20px;
+ background-color: #000000;
+ color: #FFF;
+}

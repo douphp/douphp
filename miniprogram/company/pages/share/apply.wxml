@@ -1,0 +1,39 @@
+<!--pages/share/apply.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="page-head">
+   <view class="action">
+    <text class="link" data-url="/pages/share/user" bindtap="douNavigateTo">{{lang.share_list}}</text>
+   </view>
+   <view class="name">{{lang.share_apply}}</view>
+  </view>
+  <view class="share-post">
+   <form bindsubmit="applyPost">
+    <view class="form-view">
+     <view class="dl">
+      <view class="dt">{{lang.share_image}}</view>
+      <view class="dd"> 
+       <!-- FileBox -->
+       <view id="galleryFile" class="fileBox">
+        <view class="fileAdd">
+         <view class="li btnFile" data-type="gallery" data-module="share" data-item_id="" data-draft_token="{{draft_token}}" data-folder="yes" bindtap="filebox">点击上传</view>
+        </view>
+        <view class="fileList">
+         <view class="li" wx:for="{{img_list}}" wx:for-item="gallery" wx:key="g">
+          <image src="{{gallery.file}}" class="img" /><text data-number="{{gallery.number}}" data-item_id="" data-draft_token="{{draft_token}}" bindtap="fileDel" class="del">X</text>
+         </view>
+        </view>
+       </view>
+       <!-- /FileBox -->
+       <view class="cueGray" style="margin-top: 5px">{{lang.share_image_cue}}</view>
+      </view>
+     </view>
+     <view class="submit">
+      <button class="btn" formType="submit">{{lang.btn_submit}}</button>
+     </view>
+    </view>
+   </form>
+  </view>
+ </view>
+</view>

@@ -1,0 +1,92 @@
+<!--pages/book/list.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+
+  <!-- 视图切换按钮（有 class_id 才显示按排班） -->
+  <view class="view-toggle" wx:if="{{class_id}}">
+   <view class="btn {{view === 'doctor' ? 'active' : ''}}" bindtap="switchView" data-view="doctor">按医生</view>
+   <view class="btn {{view === 'schedule' ? 'active' : ''}}" bindtap="switchView" data-view="schedule">按排班</view>
+  </view>
+
+  <!-- 按医生视图 -->
+  <view wx:if="{{view === 'doctor'}}">
+   <view class="item-list">
+    <navigator class="item" hover-class="mouseDown"
+     url="/pages/book/show?id={{item.id}}"
+     wx:for="{{item_list}}" wx:key="id" wx:for-item="item">
+     <view class="img" wx:if="{{item.image}}"><image src="{{item.image}}" mode="widthFix" /></view>
+     <view class="info">
+      <view class="name">{{item.name}}</view>
+      <view class="tag" wx:if="{{item.tag}}">{{item.tag}}</view>
+      <view class="brief" wx:if="{{item.brief}}">{{item.brief}}</view>
+      <view class="price" wx:if="{{item.price}}">¥{{item.price}}</view>
+     </view>
+    </navigator>
+   </view>
+  </view>
+
+  <!-- 按排班视图 -->
+  <view wx:if="{{view === 'schedule'}}">
+   <!-- 日期横向滚动 -->
+   <scroll-view class="schedule-date-list" scroll-x="true">
+    <view class="item {{item.cur ? 'active' : ''}}" wx:for="{{schedule_date_list}}" wx:key="date" wx:for-item="item"
+          bindtap="scheduleDateSelect" data-date="{{item.date}}">
+     <view class="date">{{item.date_short}}</view>
+     <view class="week">{{item.week_name}}</view>
+    </view>
+   </scroll-view>
+
+   <!-- 医生排班卡片列表 -->
+   <view class="schedule-list">
+    <view class="doctor-card" wx:for="{{schedule_list}}" wx:key="id" wx:for-item="doctor">
+     <view class="doctor-info">
+      <view class="img" wx:if="{{doctor.image}}"><image src="{{doctor.image}}" mode="widthFix" /></view>
+      <view class="doctor-meta">
+       <view class="doctor-name">{{doctor.name}}</view>
+       <view class="doctor-tag" wx:if="{{doctor.tag}}">{{doctor.tag}}</view>
+       <view class="doctor-brief" wx:if="{{doctor.brief}}">{{doctor.brief}}</view>
+      </view>
+     </view>
+     <view class="session-row">
+      <view class="session am {{doctor.am_available ? '' : 'disabled'}}"
+            bindtap="openTimePanel" data-id="{{doctor.id}}" data-session="am">
+       <view class="session-label">上午</view>
+       <view class="session-count">{{doctor.am_available ? doctor.am_remaining + ' 个号' : '无号'}}</view>
+      </view>
+      <view class="session pm {{doctor.pm_available ? '' : 'disabled'}}"
+            bindtap="openTimePanel" data-id="{{doctor.id}}" data-session="pm">
+       <view class="session-label">下午</view>
+       <view class="session-count">{{doctor.pm_available ? doctor.pm_remaining + ' 个号' : '无号'}}</view>
+      </view>
+     </view>
+    </view>
+    <view class="schedule-empty" wx:if="{{schedule_list.length === 0}}">当日暂无排班</view>
+   </view>
+
+   <!-- 底部时段弹出面板 -->
+   <view class="time-panel-overlay" wx:if="{{timePanelVisible}}" bindtap="closeTimePanel"></view>
+   <view class="time-panel {{timePanelVisible ? 'active' : ''}}">
+    <view class="time-panel-head">
+     <text>选择时段</text>
+     <text class="close-btn" bindtap="closeTimePanel">✕</text>
+    </view>
+    <view class="time-list">
+     <view class="item {{item.cur ? 'active' : ''}} {{item.user_booked ? 'booked' : ''}} {{item.full && !item.user_booked ? 'full' : ''}} {{item.closed ? 'disabled' : ''}}"
+           wx:for="{{panel_time_list}}" wx:key="start_at" wx:for-item="item"
+           bindtap="selectPanelTime" data-item="{{item}}">
+      <view class="label">{{item.start_at}}~{{item.end_at}}</view>
+      <view class="remaining" wx:if="{{item.status_tip}}">{{item.status_tip}}</view>
+      <view class="remaining" wx:elif="{{!item.full}}">剩余{{item.remaining}}</view>
+      <view class="remaining full" wx:else>已约满</view>
+      <view class="price" wx:if="{{item.price}}">{{item.price_format}}</view>
+     </view>
+    </view>
+    <view class="time-panel-submit">
+     <button class="btn" bindtap="goToContactFromPanel">下一步</button>
+    </view>
+   </view>
+  </view>
+
+ </view>
+</view>

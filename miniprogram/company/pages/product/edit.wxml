@@ -1,0 +1,164 @@
+<!--pages/user/product_add.wxml-->
+<navbar title="{{title}}" url="/pages/product/work" className="white"></navbar>
+<view class="body pb">
+ <view class="wrap">
+  <view class="page-head">
+   <view class="action"><text class="link" data-url="/pages/product/work" bindtap="douPageTo">{{lang.product_list}}</text></view>
+   <view class="name">{{lang.product_edit}}</view>
+  </view>
+  <view class="form-view">
+   <form bindsubmit="productAction">
+    <view class="dl">
+     <view class="dt">{{lang.product_title}}<text class="i">*</text></view>
+     <view class="dd">
+      <input name="title" type="text" class="input" value="{{product.title}}" placeholder="{{lang.product_title_placeholder}}" placeholder-class="placeholder" />
+      <view class="cue" wx:if="{{wrong.title}}">{{wrong.title}}</view>
+     </view>
+    </view>
+    <view class="dl">
+     <view class="dt">{{lang.product_tree}}</view>
+     <view class="dd">
+      <picker class="select" mode="selector" value="{{cat_index}}" range="{{product_category}}" range-key="name" bindchange="bindCatChange">
+       <text wx:if="{{selectedCategory}}">{{selectedCategory}}</text>
+       <text wx:else>{{lang.select}}</text>
+      </picker>
+     </view>
+    </view>
+    <view class="dl" wx:if="{{features.brand && brand_list.length > 0}}">
+     <view class="dt">{{lang.brand}}</view>
+     <view class="dd">
+      <picker class="select" mode="selector" value="{{brand_index}}" range="{{brand_list}}" range-key="name" bindchange="bindBrandChange">
+       <text wx:if="{{selectedBrand}}">{{selectedBrand}}</text>
+       <text wx:else>{{lang.select}}</text>
+      </picker>
+     </view>
+    </view>
+    <view class="dl">
+     <view class="dt">{{lang.product_price}}<text class="i">*</text> </view>
+     <view class="dd">
+      <input name="price" type="digit" value="{{product.price}}" class="input" placeholder-class="placeholder" />
+      <view class="cue" wx:if="{{wrong.price}}">{{wrong.price}}</view>
+     </view>
+    </view>
+    <view class="dl">
+     <view class="dt">{{lang.price_promote}}</view>
+     <view class="dd">
+      <input name="promote_price" type="digit" value="{{product.promote_price}}" class="input" placeholder-class="placeholder" />
+     </view>
+    </view>
+    <view class="dl" wx:if="{{site.stock}}">
+     <view class="dt">{{lang.product_stock}}</view>
+     <view class="dd">
+      <input name="stock" type="number" class="input" value="{{product.stock}}" placeholder="100" placeholder-class="placeholder" />
+     </view>
+    </view>
+    <view class="dl" wx:if="{{features.point}}">
+     <view class="dt">{{lang.product_point}}</view>
+     <view class="dd">
+      <input name="point" type="number" class="input" value="{{product.point}}" placeholder="0" placeholder-class="placeholder" />
+     </view>
+    </view>
+    <view class="dl">
+     <view class="dt">{{lang.sort}}</view>
+     <view class="dd">
+      <input name="sort" type="number" class="input" value="{{product.sort}}" placeholder="50" placeholder-class="placeholder" />
+     </view>
+    </view>
+    <view class="dl" wx:if="{{product.defined}}">
+     <view class="dt">{{lang.product_defined}}</view>
+     <view class="dd">
+      <textarea name="defined" class="text-area" value="{{product.defined}}" auto-height="true" />
+     </view>
+    </view>
+    <view class="dl" wx:if="{{features.attribute && attribute_list.length > 0}}">
+     <view class="dt">{{lang.attribute}}</view>
+     <view class="dd">
+      <view class="attribute" wx:for="{{attribute_list}}" wx:for-item="att" wx:key="att_id">
+       <view class="att-head">{{att.name}}</view>
+       <view class="att-action">
+        <input class="att-input" data-att_id="{{att.att_id}}" id="attVal_{{att.att_id}}" placeholder="{{lang.attribute_value_value}}" bindinput="attInputChange" />
+        <input class="att-input" data-att_id="{{att.att_id}}" id="attRemark_{{att.att_id}}" placeholder="{{lang.attribute_value_remark}}" bindinput="attRemarkChange" />
+        <input class="att-input" data-att_id="{{att.att_id}}" id="attPrice_{{att.att_id}}" placeholder="{{lang.attribute_value_price_change}}" bindinput="attPriceChange" />
+        <text class="btn-att" data-module="product" data-item_id="{{product.id}}" data-att_id="{{att.att_id}}" bindtap="attAdd">{{lang.add}}</text>
+       </view>
+       <view class="att-list">
+        <view class="att-item" wx:for="{{att.value_list}}" wx:for-item="val" wx:key="id">
+         <text class="val">{{val.value}}{{val.price_change_format}}</text>
+         <text wx:if="{{val.remark}}" class="remark">{{val.remark}}</text>
+         <block wx:if="{{att.type == 'image'}}">
+          <image wx:if="{{val.image}}" class="att-img" src="{{val.image}}" data-value_id="{{val.id}}" data-att_id="{{att.att_id}}" bindtap="attImage" />
+          <text wx:else class="att-img-add" data-value_id="{{val.id}}" data-att_id="{{att.att_id}}" bindtap="attImage">+图</text>
+         </block>
+         <text class="del" data-module="product" data-item_id="{{product.id}}" data-att_id="{{att.att_id}}" data-del_value="{{val.value}}" data-index="{{index}}" bindtap="attDel">X</text>
+        </view>
+       </view>
+      </view>
+     </view>
+    </view>
+    <view class="dl full">
+     <view class="dt">{{lang.product_content}}</view>
+     <view class="dd">
+      <view class="editor">
+       <view class="editor-toolbar">
+        <text class="bi bi-type-bold" bindtap="editorFormat" data-name="bold"></text>
+        <text class="bi bi-type-italic" bindtap="editorFormat" data-name="italic"></text>
+        <text class="bi bi-type-underline" bindtap="editorFormat" data-name="underline"></text>
+        <text class="bi bi-type-strikethrough" bindtap="editorFormat" data-name="strikethrough"></text>
+        <text class="bi bi-text-left" bindtap="editorAlign" data-value="left"></text>
+        <text class="bi bi-text-center" bindtap="editorAlign" data-value="center"></text>
+        <text class="bi bi-text-right" bindtap="editorAlign" data-value="right"></text>
+        <text class="bi bi-list-ul" bindtap="editorFormat" data-name="insertUnorderedList"></text>
+        <text class="bi bi-list-ol" bindtap="editorFormat" data-name="insertOrderedList"></text>
+        <text class="bi bi-image" data-item_id="{{product.id}}" data-type="content" bindtap="uploadImage"></text>
+       </view>
+       <editor id="editor" class="editor-content" placeholder="{{lang.product_content}}" bindinput="editorInput" bindready="editorReady"></editor>
+      </view>
+     </view>
+    </view>
+    <view class="dl">
+     <view class="dt">{{lang.thumb}}<text class="i">*</text></view>
+     <view class="dd">
+      <view class="inputFile">
+       <view class="imgShow">
+        <image class="img" src="{{imageTemp}}" wx:if="{{imageTemp}}" />
+        <image class="img" src="{{product.image}}" wx:else />
+       </view>
+       <button class="imgBtn" data-item_id="{{product.id}}" bindtap="uploadImage">{{lang.btn_upload}}</button>
+      </view>
+     </view>
+    </view>
+    <view class="dl">
+     <view class="dt">{{lang.product_gallery}}</view>
+     <view class="dd">
+      <view id="galleryFile" class="fileBox">
+       <view class="fileAdd">
+        <view class="li btnFile" data-type="gallery" data-module="product" data-item_id="{{product.id}}" data-folder="yes" bindtap="filebox">{{lang.btn_upload}}</view>
+       </view>
+       <view class="fileList">
+        <view class="li" wx:for="{{img_list}}" wx:for-item="gallery" wx:key="g">
+         <image src="{{gallery.file}}" class="img" />
+         <text data-number="{{gallery.number}}" data-item_id="{{product.id}}" bindtap="fileDel" class="del">X</text>
+        </view>
+       </view>
+      </view>
+     </view>
+    </view>
+    <view class="dl">
+     <view class="dt">{{lang.keywords}}</view>
+     <view class="dd">
+      <input name="keywords" type="text" class="input" value="{{product.keywords}}" placeholder="{{lang.keywords}}" placeholder-class="placeholder" />
+     </view>
+    </view>
+    <view class="dl">
+     <view class="dt">{{lang.description}}</view>
+     <view class="dd">
+      <textarea name="description" class="text-area" value="{{product.description}}" placeholder="{{lang.description}}" placeholder-class="placeholder" auto-height="true" />
+     </view>
+    </view>
+    <view class="action">
+     <button class="btn" formType="submit">{{lang.btn_submit}}</button>
+    </view>
+   </form>
+  </view>
+ </view>
+</view>

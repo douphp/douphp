@@ -1,0 +1,8 @@
+{
+    "name": "mobx-miniprogram-bindings",
+    "version": "6.0.0",
+    "license": "MIT",
+    "author": "wechat-miniprogram",
+    "homepage": "https://github.com/wechat-miniprogram/mobx-miniprogram-bindings",
+    "main": "index.js"
+}

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <location path="." allowOverride="false" inheritInChildApplications="false">
+    <system.webServer>
+      <rewrite>
+        <rules>
+          <!-- 防循环：URL 已是 .php 结尾就终止，避免内部重写循环（文件不存在时 IIS 自然返回 404） -->
+          <rule name="dead-end-php" stopProcessing="true">
+            <match url="\.php$" ignoreCase="true" />
+            <action type="None" />
+          </rule>
+
+          <!-- 静态入口文件 -->
+          <rule name="static-index" stopProcessing="true">
+            <match url="^index\.html$" ignoreCase="true" />
+            <action type="Rewrite" url="index.php" appendQueryString="true" />
+          </rule>
+          <rule name="static-sitemap" stopProcessing="true">
+            <match url="^sitemap\.xml$" ignoreCase="true" />
+            <action type="Rewrite" url="sitemap.php" appendQueryString="true" />
+          </rule>
+
+          <!-- API 入口（IsFile/IsDirectory negate 排除真实文件与真实目录） -->
+          <rule name="api-route" stopProcessing="true">
+            <match url="^api/(.+)$" ignoreCase="true" />
+            <conditions>
+              <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
+              <add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="true" />
+            </conditions>
+            <action type="Rewrite" url="api/index.php?route={R:1}" appendQueryString="true" />
+          </rule>
+          <rule name="api-root" stopProcessing="true">
+            <match url="^api/?$" ignoreCase="true" />
+            <action type="Rewrite" url="api/index.php" appendQueryString="true" />
+          </rule>
+
+          <!-- 后台入口（IsFile/IsDirectory negate 排除 admin/view/css 等真实静态文件与真实目录） -->
+          <rule name="admin-route" stopProcessing="true">
+            <match url="^admin/(.+)$" ignoreCase="true" />
+            <conditions>
+              <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
+              <add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="true" />
+            </conditions>
+            <action type="Rewrite" url="admin/index.php?route={R:1}" appendQueryString="true" />
+          </rule>
+          <rule name="admin-root" stopProcessing="true">
+            <match url="^admin/?$" ignoreCase="true" />
+            <action type="Rewrite" url="admin/index.php" appendQueryString="true" />
+          </rule>
+
+          <!-- 前台入口 -->
+          <rule name="front-route" stopProcessing="true">
+            <match url="^(.+)$" ignoreCase="true" />
+            <conditions>
+              <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
+              <add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="true" />
+            </conditions>
+            <action type="Rewrite" url="index.php?route={R:1}" appendQueryString="true" />
+          </rule>
+        </rules>
+      </rewrite>
+    </system.webServer>
+  </location>
+</configuration>

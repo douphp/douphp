@@ -1,0 +1,545 @@
+/*
+Theme Name: DouPHP 默认模板
+Theme URI: http://demo.douphp.com/
+Description: DouPHP 默认模板
+Version: 1.0
+Author: DouCo Co.,Ltd. Co.,Ltd.
+Author URI: https://www.douphp.com/
+*/
+
+/* 主体框架
+----------------------------------------------- */
+#wrapper .mb {
+ margin-bottom: 50px;
+}
+@media (min-width: 1200px) {
+ .container {
+  max-width: 1140px;
+ }
+}
+/* 头部导航
+----------------------------------------------- */
+/* -- top -- */
+#header .top {
+ background-color: #EEEEEE;
+ height: 30px;
+ border-bottom: 1px solid #DDDDDD;
+ text-align: right;
+}
+#header .top .container {
+ zoom: 1;
+}
+/* top-nav */
+#header .top .top-nav {
+ float: left;
+ position: relative;
+ z-index: 10000;
+ margin-left: -10px;
+}
+#header .top .top-nav li {
+ float: left;
+ text-align: center;
+}
+#header .top .top-nav li.lang-select {
+ min-width: 80px;
+}
+#header .top .top-nav li a {
+ display: block;
+ height: 30px;
+ padding: 0 10px;
+ line-height: 30px;
+ color: #333;
+}
+#header .top .top-nav li.hover {
+ position: relative;
+ background: #F5F5F5;
+}
+#header .top .top-nav ul {
+ display: none;
+ background: #F5F5F5;
+ width: 100%;
+ position: absolute;
+ top: 100%;
+ left: 0;
+}
+#header .top .top-nav ul li {
+ float: none;
+ font-size: 13px;
+}
+#header .top .top-nav ul li a:hover {
+ background-color: #DDD;
+}
+/* search */
+#header .top .search {
+ float: right;
+ _width: 205px;
+}
+#header .top .search .search-box {
+ border: 1px solid #545454;
+ background-color: #545454;
+ box-sizing: content-box;
+ position: relative;
+}
+#header .top .search .search-box .keyword {
+ background-color: transparent;
+ color: #CCCCCC;
+ height: 28px;
+ padding: 5px 30px 5px 10px;
+}
+#header .top .search .search-box .btnSearch {
+ position: absolute;
+ right: 0;
+ top: 0;
+ width: 28px;
+ height: 28px;
+ color: #FFF;
+ background-color: transparent;
+ font-size: 12px;
+}
+#header .top .search .search-box .btnSearch:focus {
+ outline: none;
+}
+/* -- navbar -- */
+#header .navbar {
+ z-index: 1000;
+ border-bottom: 1px solid #DDD;
+ background-color: #FFF;
+ box-shadow: 0px 3px 10px 0px rgb(38 107 193 / 8%);
+}
+#header .navbar.fix {
+ position: fixed;
+ top: 0;
+ right: 0;
+ left: 0;
+ z-index: 1030;
+}
+@media (min-width:992px) {
+ #header .navbar {
+  padding: 0;
+ }
+ #header .navbar .container {
+  height: 65px;
+ }
+}
+#header .navbar .logo {
+ display: block;
+ height: 35px;
+}
+#header .navbar .logo img {
+ height: 100%;
+}
+#header .navbar .navbar-brand {
+ max-width: 70%;
+ overflow: hidden;
+}
+#header .navbar .navbar-action a {
+ display: inline-block;
+ font-size: 30px;
+ padding: 0 8px;
+ color: #777;
+}
+/* -- main-nav -- */
+#header .main-nav .dropdown-menu {
+ padding: 0;
+ margin: 0;
+ min-width: 100%;
+ font-size: 14px;
+ color: #212529;
+ text-align: left;
+ list-style: none;
+ background-color: #fff;
+ background-clip: padding-box;
+ border: 0;
+ border-radius: 0;
+}
+#header .main-nav .nav-item .nav-link {
+ outline: none !important;
+}
+@media (min-width:992px) {
+ /* LEVEL ONE */
+ #header .main-nav .nav-item .nav-link {
+  display: block;
+  padding: 0 20px;
+  height: 30px;
+  line-height: 30px;
+  font-size: 14px;
+  text-align: center;
+  color: #000;
+  text-decoration: none;
+ }
+ #header .main-nav .nav-item .nav-link::after {
+  display: none;
+ }
+ #header .main-nav .nav-item:hover .nav-link, #header .main-nav .active .nav-link {
+  background-color: #19B4EA;
+  color: #FFF;
+ }
+ /* LEVEL TWO */
+ #header .main-nav .dropdown:hover > .dropdown-menu {
+  display: block;
+ }
+ #header .main-nav .dropdown-menu .dropdown-item {
+  background: #E0E0E0;
+  padding: 0 20px;
+  height: 30px;
+  line-height: 30px;
+  font-size: 14px;
+ }
+ #header .main-nav .dropdown-menu .dropdown-item:hover {
+  background: #19B4EA;
+  color: #FFF;
+ }
+ /* LEVEL THREE */
+ #header .main-nav .dropdown-menu .dropdown-menu {
+  left: 100%;
+  top: 0;
+  min-width: 98px;
+  _width: 98px;
+ }
+ #header .main-nav .dropdown-submenu:hover > .dropdown-menu {
+  display: block;
+ }
+ #header .main-nav .dropdown-menu .dropdown-toggle::after {
+  position: absolute;
+  right: 10px;
+  top: 13px;
+  vertical-align: 0;
+  border-right: 0;
+  border-top: .2em solid transparent;
+  border-left: .3em solid;
+  border-bottom: .2em solid transparent;
+ }
+}
+@media (max-width:992px) {
+ #header .main-nav .dropdown-toggle::after {
+  position: absolute;
+  right: 10px;
+  top: 23px;
+ }
+ #header .main-nav .dropdown-menu {
+  padding-left: 15px;
+ }
+ #header .main-nav .dropdown-menu .dropdown-item {
+  position: relative;
+ }
+ #header .main-nav .dropdown-item, #header .main-nav .nav-link {
+  border-bottom: 1px solid #EEE;
+  padding: 0.8rem 0;
+  background-color: transparent;
+ }
+ #header .main-nav .dropdown-menu .dropdown-item:active {
+  color: #555;
+  background-color: #FFF;
+ }
+}
+
+/* page
+----------------------------------------------- */
+#page {
+ padding: 20px 0;
+ min-height: 400px;
+}
+#page h1 {
+ color: #333333;
+ font-size: 18px;
+ font-weight: bold;
+}
+#page .info {
+ padding: 2px 0 20px 0;
+ color: #999999;
+ font-size: 13px;
+}
+#page .content {
+ color: #666666;
+ line-height: 200%;
+ padding-top: 10px;
+}
+#page .content img {
+ max-width: 100%;
+}
+/* search
+----------------------------------------------- */
+#search-list dl {
+ border-bottom: 1px dotted #D1D1D1;
+ padding: 20px 0;
+ zoom: 1;
+ overflow: hidden;
+ position: relative;
+}
+#search-list dl.last {
+ border-bottom: 0;
+}
+#search-list dt {
+ margin-bottom: 10px;
+ font-size: 16px;
+}
+#search-list dt b {
+ color: #CC0000;
+ font-weight: bold;
+}
+#search-list dd {
+ color: #999999;
+ line-height: 180%;
+ zoom: 1;
+ overflow: hidden;
+ padding-right: 90px;
+}
+#search-list dd p.img {
+ width: 80px;
+ float: left;
+}
+#search-list dd p.img img {
+ width: 100%;
+}
+#search-list dd p.desc b {
+ color: #CC0000;
+}
+#search-list dd.have-img p.desc {
+ margin-left: 90px;
+ margin-right: 80px;
+}
+#search-list .date {
+ position: absolute;
+ right: 0;
+ top: 20px;
+ text-align: right;
+}
+@media (max-width: 768px) {
+ #search-list dd.have-img p.desc {
+  margin-right: 60px;
+ }
+}
+#search-list .date em {
+ display: block;
+ color: #555;
+ text-align: center;
+ font-size: 36px;
+}
+#search-list .date p {
+ font-size: 16px;
+ color: #999999;
+ margin-top: 5px;
+}
+/* 全局样式
+----------------------------------------------- */
+/* -- tree -- */
+.tree-box {
+ margin-bottom: 15px;
+}
+.tree-box h3 {
+ padding: 25px 0 10px 0;
+ line-height: 20px;
+ color: #999999;
+ font-weight: bold;
+ font-size: 14px;
+ border-bottom: 1px solid #DDD;
+ margin-bottom: 15px;
+}
+@media (max-width:992px) {
+ .tree-box h3 {
+  display: none;
+ }
+}
+.tree-box li {
+ padding: 8px 8px;
+}
+.tree-box li a {
+ color: #000;
+ font-size: 14px;
+}
+.tree-box li.cur {
+ background-color: #19B4EA;
+}
+.tree-box li.cur a {
+ color: #FFF;
+}
+@media (max-width:992px) {
+ .tree-box {
+  margin-top: 10px;
+ }
+ .tree-box ul {
+  display: inline-block;
+ }
+ .tree-box li {
+  display: inline-block;
+  padding: 0;
+  margin-right: 5px;
+  margin-top: 5px;
+ }
+ .tree-box li i {
+  display: none;
+ }
+ .tree-box li a {
+  display: block;
+  border: 1px solid #EEE;
+  padding: 5px 8px;
+ }
+ .tree-box ul ul li a {
+  color: #888;
+ }
+}
+.tree-box .search {
+ display: block;
+ margin: 20px 0;
+}
+@media (max-width: 768px) {
+ .tree-box .search {
+  margin: 12px 0;
+ }
+}
+/* -- search-box -- */
+.tree-box .search .search-box {
+ border: 1px solid #545454;
+ box-sizing: content-box;
+ position: relative;
+}
+.tree-box .search .search-box .keyword {
+ background-color: transparent;
+ color: #CCCCCC;
+ height: 28px;
+ width: 100%;
+ padding: 5px 30px 5px 10px;
+}
+.tree-box .search .search-box .btnSearch {
+ position: absolute;
+ right: 0;
+ top: 0;
+ width: 28px;
+ height: 28px;
+ background-color: transparent;
+ color: #555;
+ font-size: 12px;
+}
+.tree-box .search .search-box .btnSearch:focus {
+ outline: none;
+}
+/* -- head-brand -- */
+.head-brand {
+ color: #555;
+ padding: 30px 0 10px 0;
+ font-size: 18px;
+ font-weight: bold;
+ text-align: center;
+}
+/* -- visualize-box -- */
+.visualize-box p:hover, .visualize-box h4:hover, .visualize-box h3:hover, .visualize-box h2:hover, .visualize-box dt:hover, .visualize-box dd:hover, .visualize-box em:hover, .visualize-box span:hover {
+ background-color: rgba(243,156,18,.1);
+}
+.coupon-get-list {
+ display: inline-block;
+}
+.coupon-get-list .get-coupon {
+ display: inline-block;
+ font-size: 12px;
+ margin: 0 8px 8px 0;
+ cursor: pointer;
+}
+.coupon-get-list .get-coupon em {
+ display: inline-block;
+ border: 1px solid #df3033;
+ background-color: #df3033;
+ padding: 0 7px;
+ line-height: 18px;
+ color: #FFF;
+ border-radius: 2px;
+}
+.coupon-get-list .get-coupon em.n {
+ border-right: 0;
+}
+.coupon-get-list .get-coupon em.t {
+ border-left: 0;
+}
+.coupon-get-list .get-coupon.got em {
+ background-color: #ffdedf;
+ color: #df3033;
+}
+/* footer
+----------------------------------------------- */
+#footer {
+ background-color: #F5F5F5;
+ padding: 40px 0;
+}
+@media (max-width:992px) {
+ #footer {
+  padding: 20px 0;
+ }
+ #footer .foot-nav {
+  margin-bottom: 15px;
+  border-bottom: 1px solid #DDD;
+ }
+}
+#footer .foot-nav .nav-parent {
+ margin-bottom: 10px;
+}
+#footer .foot-nav .nav-parent a {
+ font-size: 20px;
+ display: block;
+}
+#footer .foot-nav .nav-child a {
+ display: block;
+ color: #999;
+ margin-bottom: 5px;
+}
+@media (max-width:992px) {
+ #footer .foot-nav .nav-parent a {
+  font-size: 16px;
+ }
+ #footer .foot-nav .nav-child a {
+  display: inline-block;
+  margin-bottom: 10px;
+  margin-right: 15px;
+ }
+}
+/* -- contact -- */
+#footer .weixin {
+ text-align: center;
+ margin-bottom: 15px;
+}
+#footer .weixin img {
+ width: 120px;
+ height: 120px;
+}
+#footer .weixin p {
+ margin-top: 4px;
+ color: #999;
+}
+/* -- contact -- */
+#footer .contact {
+ text-align: center;
+}
+#footer .contact .tel {
+ color: #19B4EA;
+ font-size: 20px;
+ margin-bottom: 10px;
+}
+#footer .contact .online-qq {
+ margin-bottom: 10px;
+}
+#footer .contact .online-qq a {
+ display: inline-block;
+ color: #19B4EA;
+ padding: 5px 20px;
+ border: 1px solid #19B4EA;
+}
+#footer .contact .online-qq a i {
+ margin-right: 5px;
+}
+#footer .contact .email {
+ color: #999;
+}
+#footer .copy-right {
+ border-top: 1px solid #EEE;
+ margin-top: 20px;
+ padding-top: 20px;
+}
+#footer .net-safe-record {
+ margin-left: 10px;
+}
+#footer .net-safe-record img {
+ vertical-align: bottom;
+}
+@media (max-width:992px) {
+ #footer .copy-right {
+  text-align: center;
+ }
+}

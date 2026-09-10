@@ -1,0 +1,77 @@
+/* pages/money/money.wxss */
+/* -- package-list -- */
+.package-list {
+ display: flex;
+ flex-wrap: wrap;
+ gap: 20px;
+}
+.package-list .item {
+ flex: 0 0 calc(33.333% - (20px * 2 / 3));
+}
+.package-list .item .box {
+ border: 1px solid #EEE;
+ padding: 15px 0;
+ text-align: center;
+ box-sizing: border-box;
+ border-radius: 4px 20px 4px 4px;
+}
+.package-list .item .box .money {
+ font-size: 24px;
+}
+.package-list .item .box .sale {
+ color: #999;
+ font-size: 12px;
+}
+.package-list .item.active .box {
+ border: 4px solid #F3DCA7;
+ padding: 12px 0;
+ background-color: #FEF8E8;
+ color: #8D6100;
+}
+.package-list .item.active .box .sale {
+ color: #8D6100;
+}
+/* -- agreement -- */
+.agreement {
+ margin-top: 20px;
+ border-bottom: 1px solid #E4E4E4;
+ padding-bottom: 20px;
+}
+.agreement .head {
+ margin-bottom: 8px;
+}
+.agreement .content {
+ color: #999;
+}
+/* -- total-amount -- */
+.total-amount {
+ border-bottom: 1px solid #E4E4E4;
+ margin: 20px 0 20px;
+ padding-bottom: 20px;
+ zoom: 1;
+ overflow: hidden;
+}
+.total-amount .item {
+ text-align: right;
+ padding: 5px 0;
+ color: #999;
+}
+.total-amount .item text {
+ color: #333;
+}
+/* -- order-submit -- */
+.order-submit {
+ text-align: right;
+}
+.order-submit .submit {
+ display: inline-block;
+ background-color: #19B4EA;
+ color: #FFFFFF;
+ padding: 10px 40px;
+ text-decoration: none;
+ cursor: pointer;
+ font-size: 16px;
+}
+.order-submit .submit:hover {
+ background-color: #44C4EE;
+}

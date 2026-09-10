@@ -1,0 +1,206 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+ <meta name="copyright" content="DouCo Co.,Ltd." />
+ <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+ <meta name="csrf-token" content="{$csrf_token}">
+ <title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+ <link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+ <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+ <link href="css/common.css" rel="stylesheet" type="text/css">
+ <link href="css/cropper.min.css" rel="stylesheet" type="text/css">
+ {include file="inc/javascript.tpl"}
+</head>
+
+<body>
+ <div id="dou">
+  {include file="inc/header.tpl"}
+  {include file="inc/sidebar.tpl"}
+  <div id="dou-content">
+   {include file="inc/toolbar.tpl"}
+   <div class="dou-main">
+    <div class="dou-page">
+     <!-- {if $rec eq 'default'} 文章列表 -->
+     {include file="inc/page_header.tpl"}
+     <div class="filter">
+      <form action="{url link='admin.article'}" method="get" onsubmit="return hideEmpty(this)">
+       <select class="select" name="category_id">
+        <option value="0">{$lang.uncategorized}</option>
+        <!-- {foreach from=$article_category item=cate} -->
+        <option value="{$cate.id}" {if $cate.id eq $category_id} selected="selected" {/if}>{$cate.mark} {$cate.name}</option>
+        <!-- {/foreach} -->
+       </select>
+       <input name="keyword" type="text" class="input" value="{$keyword}" size="20" />
+       <input class="btn-secondary" type="submit" value="{$lang.btn_filter}" />
+      </form>
+      <span>
+       <!-- {if $features.sort} -->
+       <a class="btn-secondary js-post" href="{url link='admin.tool.sort' act=reset module=article}">{$lang.sort_reset}</a>
+       <a class="btn-secondary js-post" href="{url link='admin.tool.sort' act=close}">{$lang.sort_close}</a>
+       <!-- {else} -->
+       <a class="btn-secondary js-post" href="{url link='admin.tool.sort' act=open}">{$lang.sort_open}</a>
+       <!-- {/if} -->
+      </span>
+     </div>
+     <div id="list" class="page-scroll-position">
+      <form name="action" method="post" action="{url link='admin.article.action'}">
+       <input type="hidden" name="token" value="{$token}" />
+       <table class="table">
+        <tr>
+         <th width="22" class="text-center"><input name='chkall' type='checkbox' id='chkall' onclick='selectcheckbox(this.form)' value='check'></th>
+         <th class="m-none text-center" width="40">{$lang.record_id}</th>
+         <th class="text-left">{$lang.article_name}</th>
+         <th class="m-none text-center" width="150">{$lang.article_category}</th>
+         <!-- {if $features.sort} -->
+         <th class="m-none text-center" width="80">{$lang.sort}</th>
+         <!-- {/if} -->
+         <th class="m-none text-center" width="80">{$lang.status}</th>
+         <th class="m-none text-center" width="80">{$lang.created_at}</th>
+         <th width="80" class="text-center">{$lang.handler}</th>
+        </tr>
+        <!-- {foreach from=$article_list item=article} -->
+        <tr class="{if !$article.status.value}row-disabled{/if}" data-off-row-class="row-disabled">
+         <td class="text-center"><input type="checkbox" name="checkbox[]" value="{$article.id}" /></td>
+         <td class="m-none text-center">{$article.id}</td>
+         <td><a href="{url link='admin.article.edit' id=$article.id}">{$article.title}</a><!-- {if $article.image} --> <a href="{$article.image}" target="_blank"><img src="images/icon_picture.png" width="16" height="16" align="absMiddle"></a><!-- {/if} --></td>
+         <td class="m-none text-center"><!-- {if $article.category.name} --><a href="{url link='admin.article' category_id=$article.category_id}">{$article.category.name}</a><!-- {else} -->{$lang.uncategorized}<!-- {/if} --></td>
+         <!-- {if $features.sort} -->
+         <td class="m-none text-center">{$article.sort}</td>
+         <!-- {/if} -->
+         <td class="m-none text-center"><em class="link js-toggle {if $article.status.value}ai-status ai-status-on{else}ai-status ai-status-off{/if}"
+         data-url="{url link='admin.tool.change_field' module='article' item_id=$article.id field='status'}"
+         data-state="{if $article.status.value}on{else}off{/if}"
+         data-on-class="ai-status ai-status-on" data-off-class="ai-status ai-status-off"
+         data-text-on="{$lang.status_1}" data-text-off="{$lang.status_0}"><span class="js-toggle-state">{$article.status.format}</span><span class="js-toggle-action">{if $article.status.value}{$lang.status_0}{else}{$lang.status_1}{/if}</span></em></td>
+         <td class="m-none text-center">{$article.created_at}</td>
+         <td class="text-center"><a href="{url link='admin.article.edit' id=$article.id}">{$lang.edit}</a> | <a href="javascript:;" class="js-delete" data-url="{url link='admin.article.destroy' id=$article.id}">{$lang.del}</a></td>
+        </tr>
+        <!-- {/foreach} -->
+       </table>
+       <div class="action">
+        <select class="select" name="action" onchange="douAction()">
+         <option value="0">{$lang.select}</option>
+         <option value="del_all">{$lang.del}</option>
+         <option value="category_move">{$lang.category_move}</option>
+        </select>
+        <select class="select" name="new_cat_id" style="display:none">
+         <option value="0">{$lang.uncategorized}</option>
+         <!-- {foreach from=$article_category item=cate} -->
+         <option value="{$cate.id}" {if $cate.id eq $category_id} selected="selected" {/if}>{$cate.mark} {$cate.name}</option>
+         <!-- {/foreach} -->
+        </select>
+        <input class="btn" type="submit" value="{$lang.btn_execute}" />
+       </div>
+      </form>
+     </div>
+     {include file="inc/pager.tpl"}
+     <!-- {/if} -->
+     <!-- {if $rec eq 'create' || $rec eq 'edit'} 文章添加或编辑 -->
+     {include file="inc/page_header.tpl"}
+     <form action="{$form_action}" method="post" enctype="multipart/form-data">
+      <!-- {if $form_method} --><input type="hidden" name="_method" value="{$form_method}" /><!-- {/if} -->
+      <div class="form" x-data="slugApp">
+       <div class="form-item">
+        <div class="form-label">{$lang.article_title}</div>
+        <div class="input-block">
+         <input type="text" name="title" value="{$article.title}" size="80" class="input" />
+         <span class="action" data-field="title">{$btn_lang.title nofilter}</span>
+        </div>
+       </div>
+       <!-- {if $features.slug} -->
+       <div class="form-item">
+        <div class="form-label">{$lang.slug} <em class="btn-outline" @click="autoSlug">{$lang.slug_auto}</em></div>
+        <div class="input-block">
+         <input type="text" name="slug" value="{$article.slug}" size="80" class="input" />
+         <p class="cue">{$lang.slug_cue}</p>
+        </div>
+       </div>
+       <!-- {/if} -->
+       <div class="form-item">
+        <div class="form-label">{$lang.article_category}</div>
+        <div class="input-block">
+         <select class="select" name="category_id">
+          <option value="0">{$lang.uncategorized}</option>
+          <!-- {foreach from=$article_category item=cate} -->
+          <option value="{$cate.id}" {if $cate.id eq $article.category_id} selected="selected" {/if}>{$cate.mark} {$cate.name}</option>
+          <!-- {/foreach} -->
+         </select>
+        </div>
+       </div>
+       <!-- {if $article.defined} -->
+       <div class="form-item">
+        <div class="form-label">{$lang.article_defined}</div>
+        <div class="input-block"> <textarea name="defined" cols="50" class="textarea-auto auto-textarea">{$article.defined}</textarea>
+         <p class="action" data-field="defined">{$btn_lang.defined nofilter}</p>
+        </div>
+       </div>
+       <!-- {/if} -->
+       <div class="form-item">
+        <div class="form-label">{$lang.article_content}</div>
+        <div class="input-block">
+         <!-- 编辑器（所需变量：$cur、$item_id、$item_content） -->
+         {include file="inc/editor.tpl" name="content" value="$item_content"}
+         <p class="action" data-field="content">{$btn_lang.content nofilter}</p>
+        </div>
+       </div>
+       <div class="form-item">
+        <div class="form-label">{$lang.thumb}</div>
+        <div class="input-block">
+         {include file="inc/file_input.tpl" name="image" value=$article.image file_number=$article.file_number crop_ratio=$setting.theme.article_img_crop}
+         <p class="cue">{$setting.theme.article_img_size}</p>
+        </div>
+       </div>
+       <!-- {if $features.sort} -->
+       <div class="form-item">
+        <div class="form-label">{$lang.sort}</div>
+        <div class="input-block"><input type="text" name="sort" value="{if $article.sort}{$article.sort}{else}50{/if}" size="5" class="input" /></div>
+       </div>
+       <!-- {/if} -->
+       <div class="form-item">
+        <div class="form-label">{$lang.created_at}</div>
+        <div class="input-block">
+         <input type="text" name="created_at" value="{$article.created_at}" size="15" class="input" />
+        </div>
+       </div>
+       <div class="form-item">
+        <div class="form-label">{$lang.keywords}</div>
+        <div class="input-block">
+         <input type="text" name="keywords" value="{$article.keywords}" size="135" class="input" />
+         <span class="action" data-field="keywords">{$btn_lang.keywords nofilter}</span>
+        </div>
+       </div>
+       <div class="form-item">
+        <div class="form-label">{$lang.description}</div>
+        <div class="input-block">
+         <textarea name="description" cols="115" rows="3" class="textarea">{$article.description}</textarea>
+         <p class="action" data-field="description">{$btn_lang.description nofilter}</p>
+        </div>
+       </div>
+       <div class="form-item">
+        <!-- {if !$features.sort} -->
+        <input type="hidden" name="sort" value="{if $article.sort}{$article.sort}{else}50{/if}" />
+        <!-- {/if} -->
+        <input type="hidden" name="token" value="{$token}" />
+        <input type="hidden" name="id" value="{$article.id}">
+        <input type="hidden" name="draft_token" value="{$draft_token}" />
+        <input class="btn" type="submit" value="{$lang.btn_submit}" />
+       </div>
+      </div>
+     </form>
+     <!-- {/if} -->
+    </div>
+   </div>
+  </div>
+  {include file="inc/footer.tpl"}
+ </div>
+ <!-- {if $rec eq 'default'} 文章列表 -->
+ <script type="text/javascript">
+  {literal} onload = function () { document.forms['action'].reset(); }{/literal}
+ </script>
+ <!-- {/if} -->
+<script type="text/javascript" src="js/cropper.min.js"></script>
+</body>
+
+</html>

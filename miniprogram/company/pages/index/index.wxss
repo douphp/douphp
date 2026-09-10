@@ -1,0 +1,89 @@
+/* pages/index/index.wxss */
+/* -- swiper -- */
+.swiper {
+ 
+}
+.swiper .slide {
+ width: 100%;
+}
+.tree {
+ background-color: #FFF;
+}
+.tree .dl {
+ border-bottom: 1px solid #E4E4E4;
+ padding-bottom: 5px;
+}
+.tree .dl .dt .a {
+ display: block;
+ padding: 10px 13px 7px 0;
+ font-size: 14px;
+}
+.tree .dl .dt .a text {
+ float: right;
+}
+.tree .dl .dd .a {
+ display: block;
+ padding: 5px 0;
+ font-size: 14px;
+ color: #999;
+}
+/* -- index-about -- */
+.index-about .img image {
+ width: 100%;
+}
+.index-about .text {
+ margin-top: 10px;
+ line-height: 200%;
+ color: #777;
+}
+/* article-list
+----------------------------------------------- */
+.article-list {
+ background-color: #FFF;
+}
+.article-list .item {
+ border-top: solid #EEEEEE 1px;
+ padding: 13px 0;
+}
+.article-list .title {
+ margin-bottom: 5px;
+ overflow: hidden;
+ text-overflow: ellipsis;
+ white-space: nowrap;
+}
+.article-list .info {
+ color: #999999;
+}
+.article-list .info text {
+ margin-right: 8px;
+}
+/* -- index-contact -- */
+.index-contact {
+ padding-bottom: 20px;
+}
+.index-contact .item {
+ margin-bottom: 10px;
+ position: relative;
+ padding-left: 60px;
+ border-top: 1px solid #EEE;
+ padding-top: 10px;
+}
+.index-contact .item .bi {
+ position: absolute;
+ left: 0;
+ top: 10px;
+ border: 1px solid #DDD;
+ color: #777;
+ width: 46px;
+ height: 46px;
+ border-radius: 23px;
+ text-align: center;
+ line-height: 46px;
+ font-size: 16px;
+}
+.index-contact .item .name {
+ color: #999;
+}
+.index-contact .item .text {
+ 
+}

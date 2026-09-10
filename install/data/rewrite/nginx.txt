@@ -1,0 +1,38 @@
++-----------------------------------------------------------------------------
+| 复制以下代码到你的配置文件中对应主机里加入就可，一般加到PHP配置的那段上面
+| 注意：server 块须有包含 index.php 的 index 指令（如 index index.php index.html;），
+| 否则真实目录（如 doubak/）无法命中目录索引。
++-----------------------------------------------------------------------------
+
+location / {
+    # 真实目录缺尾斜杠时 301 补上，避免目录内相对路径资源错乱
+    if (-d $request_filename) {
+        rewrite ^(.*[^/])$ $1/ permanent;
+    }
+    # $uri/ 让真实目录走目录索引，而不是落进伪静态兜底
+    try_files $uri $uri/ @rewrites;
+}
+
+location @rewrites {
+    if ($uri ~ \.php$) {
+        return 404;
+    }
+
+    # 静态入口
+    rewrite ^/index\.html$  /index.php last;
+    rewrite ^/sitemap\.xml$ /sitemap.php last;
+
+    # API
+    rewrite ^/api/(.+)$ /api/index.php?route=$1 last;
+    rewrite ^/api/?$    /api/index.php last;
+
+    # 后台
+    rewrite ^/admin/(.+)$ /admin/index.php?route=$1 last;
+    rewrite ^/admin/?$    /admin/index.php last;
+
+    # 前台
+    rewrite ^/(.+)$ /index.php?route=$1 last;
+    rewrite ^/?$    /index.php last;
+
+    return 404;
+}

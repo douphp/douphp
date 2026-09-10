@@ -1,0 +1,159 @@
+/* pages/book/show.wxss */
+.detail {
+ margin-top: 20px;
+}
+.detail .h1 {
+ color: #333333;
+ font-size: 28px;
+ font-weight: bold;
+ text-align: center;
+ margin-bottom: 20px;
+}
+.detail .content {
+ color: #666666;
+ line-height: 180%;
+}
+.detail .content image {
+ max-width: 100%;
+}
+/* -- time-select -- */
+.time-select {
+ margin-top: 20px;
+}
+.time-select .date-list {
+ overflow-x: auto;
+ white-space: nowrap;
+ margin-bottom: 20px;
+}
+.time-select .date-list .item {
+ display: inline-block;
+ cursor: pointer;
+ border: 1px solid #EEE;
+ padding: 15px 10px;
+ text-align: center;
+ margin-right: 10px;
+}
+.time-select .date-list .item.active {
+ background-color: #F5F5F5;
+}
+.time-select .time-list {
+ display: flex;
+ flex-wrap: wrap;
+ margin: 0 -8px;
+}
+.time-select .time-list .item {
+ width: calc(33.3% - 16px);
+ margin: 0 8px 10px 8px;
+ border: 1px solid #EEE;
+ padding: 10px 0;
+ text-align: center;
+}
+.time-select .time-list .item .remaining {
+  display: block;
+  color: #999;
+  font-size: 12px;
+  margin-top: 5px;
+}
+.time-select .time-list .item .price {
+  color: #999;
+  font-size: 12px;
+}
+.time-select .time-list .item.booked {
+ background-color: #F5F5F5;
+}
+.time-select .time-list .item.closed {
+ background-color: #F5F5F5;
+}
+.time-select .time-list .item.active {
+ background-color: #19B4EA;
+ color: #FFF;
+}
+.time-select .time-list .item.active .remaining {
+ color: #FFF;
+}
+.time-select .time-list .item.active .price {
+  color: #fff;
+}
+.time-select .submit {
+ margin-top: 50px;
+}
+/* -- contact-select -- */
+.contact-select {
+ margin-top: 20px;
+}
+.contact-select .box {
+ margin-bottom: 20px;
+ border: 1px solid #EEE;
+ padding: 20px;
+}
+.contact-select .box .item {
+ display: flex;
+ justify-content: space-between;
+ align-items: center;
+ margin-bottom: 10px;
+ border-bottom: 1px solid #EEE;
+ padding-bottom: 10px;
+}
+.contact-select .box .item:last-child {
+ margin-bottom: 0;
+ border-bottom: 0;
+ padding-bottom: 0;
+}
+.contact-select .box .item .name {
+ font-weight: bold;
+}
+.contact-select .box .item .name i {
+ font-size: 18px;
+ width: 15px;
+ text-align: center;
+ margin-right: 5px;
+}
+/* -- contact-box -- */
+.contact-box .overlay {
+ position: fixed;
+ top: 0;
+ left: 0;
+ width: 100%;
+ height: 100%;
+ background-color: rgba(0, 0, 0, 0.5);
+ z-index: 1000;
+}
+.contact-box .popup {
+ position: fixed;
+ bottom: -100%; /* 初始位置在屏幕外 */
+ left: 0;
+ width: 100%;
+ background-color: white;
+ z-index: 1001; /* 在遮罩层之上 */
+ transition: bottom 0.3s ease-out;
+}
+.contact-box .popup.active {
+ bottom: 0; /* 弹出到屏幕底部 */
+}
+.contact-box .head {
+ font-size: 16px;
+ font-weight: bold;
+ padding: 15px 25px 0 25px;
+}
+.contact-box .head i {
+ float: right;
+ font-size: 20px;
+}
+.contact-box .list {
+ padding: 10px;
+}
+.contact-box .list .item {
+ padding: 15px;
+ cursor: pointer;
+}
+.contact-box .list .item i {
+ font-size: 20px;
+ margin-right: 10px;
+}
+.contact-box .list .item.active {
+ border: 1px solid #19B4EA;
+ color: #19B4EA;
+}
+.contact-box .list .item.active i {
+ color: #19B4EA;
+}

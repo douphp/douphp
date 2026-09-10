@@ -1,0 +1,91 @@
+<!--pages/aftersale/show.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="aftersale">
+   <form bindsubmit="aftersaleApply">
+    <view class="form-basic">
+     <view class="dl">
+      <view class="dt">{{lang.aftersale_aftersale_sn}}</view>
+      <view class="dd"> {{aftersale.aftersale_sn}}（{{aftersale.status.format}}）</view>
+     </view>
+     <view class="dl">
+      <view class="dt">{{lang.aftersale_add_time}}</view>
+      <view class="dd"> {{aftersale.created_at}}</view>
+     </view>
+     <view class="dl">
+      <view class="dt">{{lang.order_sn}}</view>
+      <view class="dd"> {{aftersale.order.order_sn}}</view>
+     </view>
+     <view class="dl">
+      <view class="dt">{{lang.order_shipping_time}}</view>
+      <view class="dd"> {{aftersale.order.shipped_at}}</view>
+     </view>
+     <view class="dl">
+      <view class="dt">{{lang.order_order_amount}}</view>
+      <view class="dd"> {{aftersale.order.order_amount}}</view>
+     </view>
+     <view class="dl">
+      <view class="dt">{{lang.aftersale_item_list}}</view>
+      <view class="dd"> </view>
+     </view>
+     <view class="item-list">
+      <view class="item" wx:for="{{aftersale.item_list}}" wx:for-item="item" wx:key="i">
+       <view class="img">
+        <image src="{{item.thumb}}" mode="widthFix" />
+       </view>
+       <view class="info">
+        <view class="name">{{item.name}}</view>
+        <view class="desc">{{item.price}}\n x {{item.item_number}}</view>
+       </view>
+      </view>
+     </view>
+     <view class="dl">
+      <view class="dt">{{lang.aftersale_reason}}</view>
+      <view class="dd"> {{aftersale.reason}} </view>
+     </view>
+     <view class="dl">
+      <view class="dt">{{lang.aftersale_image}}</view>
+      <view class="dd">
+       <view class="img-list">
+        <view class="li" wx:for="{{aftersale.img_list}}" wx:for-item="gallery" wx:key="g">
+         <image src="{{gallery.file}}" class="img" />
+        </view>
+       </view>
+      </view>
+     </view>
+     <view class="dl">
+      <view class="dt">{{lang.aftersale_user}}</view>
+      <view class="dd"> {{aftersale.user.user_sn}} | {{aftersale.user.email}}</view>
+     </view>
+     <block wx:if="aftersale.is_handle">
+      <view class="dl">
+       <view class="dt">{{lang.aftersale_aftersale_money}}</view>
+       <view class="dd">
+        <input name="aftersale_money" type="digit" class="input" placeholder="如果有退款，输入退款金额" />
+       </view>
+      </view>
+      <view class="dl">
+       <view class="dt">{{lang.aftersale_handle_record}}</view>
+       <view class="dd">
+        <textarea name="handle_record" cols="60" rows="5" class="text-area" value="{{aftersale.handle_record}}" placeholder="输入处理意见" />
+       </view>
+      </view>
+     </block>
+     <block wx:else>
+      <view class="dl">
+       <view class="dt">{{lang.aftersale_handle_record}}</view>
+       <view class="dd"> <text class="cRed">（退款{{aftersale.aftersale_money_format}}）</text><text class="text">{{aftersale.handle_record}}</text></view>
+      </view>
+     </block>
+     <view class="dl">
+      <view class="dd">
+       <input type="text" name="id" value="{{aftersale.id}}" hidden="true" />
+       <button class="btn" formType="submit">{{lang.btn_submit}}</button>
+      </view>
+     </view>
+    </view>
+   </form>
+  </view>
+ </view>
+</view>

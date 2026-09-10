@@ -1,0 +1,48 @@
+.snsList {
+ background-color: #FFF;
+ padding: 0 15px;
+}
+.snsList .dl {
+ zoom:1;
+ overflow: hidden;
+ padding: 15px 0;
+ border-top: 1px dotted #DDD;
+ line-height: 30px;
+}
+.snsList .dt {
+ float: left;
+}
+.snsList .dt .imgBox {
+ display: inline-block;
+ width: 30px;
+ height: 30px;
+ margin-right: 10px;
+ background-color: #19B4EA;
+ vertical-align: middle;
+}
+.snsList .dt .imgBox .img {
+ width: 30px;
+ height: 30px;
+ -webkit-border-radius: 50%;
+ -moz-border-radius: 50%;
+ -o-border-radius: 50%;
+ border-radius: 50%;
+}
+.snsList .dt .em {
+ color: #19B4EA;
+}
+.snsList .dd {
+ float: right;
+}
+.snsList .dd .a {
+ display: inline;
+ font-size: 13px;
+ padding: 2px 10px;
+}
+.snsList .dd .a.gray {
+ color: #999;
+}
+.snsList .dd .a.wxlogin {
+ color: #FFF;
+ background-color: #19B4EA;
+}

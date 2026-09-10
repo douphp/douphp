@@ -1,0 +1,45 @@
+<!--cart.wxml-->
+<navbar title="{{title}}" showMenu="{{false}}"></navbar>
+<view class="body">
+ <view class='body miniH'>
+  <view class="cart"> 
+   <block wx:if="{{cart}}">
+    <view class="order-item-list cart-mode"> 
+     <view class="item" wx:for="{{cart.list}}" wx:for-item="item" wx:key="index">
+      <view class="box{{!item.image ? ' no-img' : ''}}" bindtouchstart="touchStart" bindtouchmove="touchMove" bindtouchend="touchEnd" style="margin-left: -{{item.touch_move}}px;margin-right: {{item.touch_move}}px;" data-index="{{index}}">
+       <view class="img" data-url="/pages/product/product?id={{item.item_id}}" bindtap="douNavigateTo" wx:if="{{item.image}}"><image src="{{item.image}}" /></view>
+       <view class="con">
+        <view class="name" data-url="/pages/product/product?id={{item.item_id}}" bindtap="douNavigateTo">{{item.name}}</view>
+        <view class="info-number">
+         <view class="info">
+          <view class="att-box">
+           <text class="att-name" wx:if="{{item.attribute_name}}">{{item.attribute_name}}</text>
+          </view>
+          <view class="price-box"><text class="price">{{item.sale_price.format}}</text><text class="price-cue" wx:if="{{item.sale_price.name}}">{{item.sale_price.name}}</text><text class="price-gray" wx:if="{{item.sale_price.type != 'original'}}">{{item.price}}</text></view>
+         </view>
+         <view class="number-box">
+          <view class="number">
+           <text class="minus" data-id="{{item.id}}" data-action="minus" bindtap="changeNumber"> - </text>
+           <input class="inp" type="text" value="{{item.number}}" bindtap="changeNumber" disabled="true" />
+           <text class="plus" data-id="{{item.id}}" data-action="plus" bindtap="changeNumber">+</text>
+          </view>
+         </view>
+        </view>
+       </view>
+       <view data-id="{{item.id}}" bindtap="itemDel" class="del">删除</view>
+      </view>
+     </view>
+    </view>
+    <view class="fixex">
+     <view class="cartBtn">
+      <view class="em">{{lang.order_item_amount}}：{{cart.item_amount_format}}</view>
+      <view class="checkout" data-url="/pages/order/checkout" bindtap="douNavigateTo">{{lang.order_checkout}}( {{cart.total}} )</view>
+     </view>
+    </view>
+   </block>
+   <block wx:else>
+    <view class="cartEmpty">{{lang.order_cart_empty}}</view>
+   </block>
+  </view>
+ </view>
+</view>

@@ -1,0 +1,30 @@
+<!--doc_category.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="navbar" style="{{'top: ' + navigationBarAndStatusBarHeight}}">
+  <view class="wrap">
+   <scroll-view class="navScroll" scroll-x="true" scroll-left="{{scrollLeft}}" scroll-with-animation="true" style="{{'top: ' + navigationBarAndStatusBarHeight}}">
+    <view class="item{{tree.cur == true ? ' active' : ''}}" wx:for="{{doc_category}}" wx:key="index" wx:for-item="tree" data-catid="{{tree.id}}" data-index="{{index}}" bindtap="douMenu">{{tree.name}}</view>
+   </scroll-view>
+  </view>
+ </view>
+ <view class="navbar-space"></view>
+ 
+ <view class="wrap">
+  <view class="text-list">
+   <navigator class="item" hover-class="mouseDown" wx:for="{{doc_list}}" wx:key="index" wx:for-item="doc" url="{{doc.url}}">
+    <view class="con{{doc.image ? '' : ' no-img'}}">
+     <view class="title">{{doc.title}}</view>
+     <view class="info">
+      <text>{{lang.created_at}}：{{doc.created_at}}</text>
+      <text>{{lang.click}}：{{doc.click}}</text>
+     </view>
+    </view>
+    <view class="img" wx:if="{{doc.image}}">
+     <image src="{{doc.image}}" mode="widthFix" />
+    </view>
+   </navigator>
+   <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
+  </view>
+ </view>
+</view>

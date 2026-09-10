@@ -1,0 +1,53 @@
+/* -- work.css -- */
+.account {
+ zoom: 1;
+ overflow: hidden;
+ padding-bottom: 15px;
+}
+.account .avatar {
+ float: left;
+ width: 80px;
+ height: 80px;
+ border: 1px solid #e0e0e0;
+ overflow: hidden;
+ border-radius: 40px;
+}
+.account .avatar image {
+ width:80px;
+ height:80px;
+}
+.account .info {
+ margin-left: 90px;
+}
+.account .info .user-name {
+ font-size: 18px;
+ font-weight: 400;
+}
+.account .info .user-name .switch {
+ float: right;
+ background-color: #EEE;
+ padding: 0 13px;
+ line-height: 24px;
+ border-radius: 13px;
+ font-size: 12px;
+}
+.account .info .text {
+ color: #999;
+ margin-bottom: 10px;
+}
+/* -- work-tree -- */
+.work-tree {
+ padding: 10px 20px;
+}
+.work-tree .item {
+ border: 1px solid #EEE;
+ margin-bottom: 10px;
+ text-align: center;
+}
+.work-tree .item .box {
+ padding: 30px 0;
+}
+.work-tree .item .box .name {
+ font-size: 18px;
+ color: #555;
+}

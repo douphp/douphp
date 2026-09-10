@@ -1,0 +1,116 @@
+/* -- cashier -- */
+.cashier .info {
+ font-size:14px;
+ color: #999;
+ background-color: #FFF;
+ margin-bottom: 10px;
+ padding: 15px 10px;
+}
+.cashier .info .p {
+ font-size:14px;
+ color: #19B4EA;
+ font-weight: bold;
+ margin-bottom: 5px;
+}
+.cashier .info .orderAmount {
+ float: right;
+}
+.cashier .info .orderAmount .order_amount {
+ color: red;
+}
+.cashier .payBox {
+ text-align: center;
+ padding: 50px 0 50px 0;
+}
+/* checkout */
+.checkout .box {
+ background-color:#FFF;
+ margin-bottom:15px;
+}
+.checkout .h2 {
+ padding:5px 10px;
+ border-bottom: solid #EEE 1px;
+ font-size:14px;
+ font-weight:bold;
+}
+.checkout .h2 .right {
+ float:right;
+}
+.checkout .totalAmount {
+ font-size: 13px;
+ padding: 5px 10px;
+ background-color: #FFF;
+ margin-bottom:50px;
+}
+.checkout .totalAmount .dl {
+ zoom:1;
+ overflow:hidden;
+ padding:3px 0;
+}
+.checkout .totalAmount .dt {
+ float:left;
+ color:#999;
+}
+.checkout .totalAmount .dd {
+ float:right;
+ color:#e4393c;
+}
+.checkout .orderSubmit {
+ background-color:#EBEBEB;
+ width: 100%;
+ min-width: 320px;
+ margin: 0 auto;
+ max-width: 640px;
+ height:40px;
+ line-height:40px;
+ font-size:13px;
+}
+.checkout .orderSubmit .em {
+ float:left;
+ margin-left:10px;
+ color: #F00;
+}
+.checkout .orderSubmit .btnSubmit {
+ background-color:#e4393c;
+ float:right;
+ line-height:40px;
+ font-size:12px;
+ padding:0 15px;
+ cursor: pointer;
+ color:#FFF;
+ text-align:center;
+ border-radius: 0;
+}
+.checkout .payment {
+ zoom:1;
+ overflow:hidden;
+ padding:15px 0 0 15px;
+}
+.checkout .payment .dd {
+ float:left;
+ width:170px;
+ margin-bottom:15px;
+}
+.checkout .payment .dd image {
+ width:133px;
+ height:39px;
+ border: 1px solid #EEE;
+}
+.checkout .payment .dd.cur image {
+ border: 1px solid #FF0000;
+}
+.checkout .shipping {
+ padding-top:15px;
+}
+.checkout .shipping .dl {
+ zoom:1;
+ overflow:hidden;
+ padding:0 0 15px 15px;
+}
+.checkout .shipping .dt {
+ float:left;
+ width:120px;
+}
+.checkout .shipping .dd {
+ margin-left:120px;
+}

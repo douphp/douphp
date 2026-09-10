@@ -1,0 +1,249 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="copyright" content="DouCo Co.,Ltd." />
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="csrf-token" content="{$csrf_token}">
+<title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+<link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+<link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+<link href="css/common.css" rel="stylesheet" type="text/css">
+{include file="inc/javascript.tpl"}
+</head>
+<body>
+<div id="dou"> {include file="inc/header.tpl"}
+ {include file="inc/sidebar.tpl"}
+ <div id="dou-content"> {include file="inc/toolbar.tpl"}
+  <div class="dou-main has-subnav">
+   {include file="inc/manager_sub_menu.tpl"}
+   <div id="manager" class="dou-page">
+     {include file="inc/page_header.tpl"}
+     <!-- {if $rec eq 'default'} 管理员列表 -->
+     <table class="table">
+      <tr>
+       <th class="m-none text-center" width="30">{$lang.record_id}</th>
+       <th class="text-left">{$lang.manager_username}</th>
+       <th class="m-none text-center">{$lang.manager_email}</th>
+       <th class="m-none text-center">{$lang.manager_type}</th>
+       <th class="m-none text-center">{$lang.manager_created_at}</th>
+       <th class="m-none text-center">{$lang.manager_last_login}</th>
+       <th class="text-center">{$lang.handler}</th>
+      </tr>
+      <!-- {foreach from=$manager_list item=item} -->
+      <tr>
+       <td class="m-none text-center">{$item.admin_id}</td>
+       <td>{$item.username}</td>
+       <td class="m-none text-center">{$item.email}</td>
+       <td class="m-none text-center">{$item.type}</td>
+       <td class="m-none text-center">{$item.created_at}</td>
+       <td class="m-none text-center">{$item.last_login}</td>
+       <td class="text-center"><a href="{url link='admin.manager.edit' id=$item.admin_id}">{$lang.edit}</a> | <a href="javascript:;" class="js-delete" data-url="{url link='admin.manager.destroy' id=$item.admin_id}">{$lang.del}</a></td>
+      </tr>
+      <!-- {/foreach} -->
+     </table>
+     <!-- {/if} -->
+     <!-- {if $rec eq 'create'} 管理员添加 -->
+     <form action="{$form_action}" method="post">
+      <div class="form">
+       <div class="form-item">
+        <div class="form-label">{$lang.manager_username}</div>
+        <div class="input-block">
+         <input type="text" name="username" size="40" class="input" />
+        </div>
+       </div>
+       <div class="form-item">
+        <div class="form-label">{$lang.manager_email}</div>
+        <div class="input-block">
+         <input type="text" name="email" size="40" class="input" />
+        </div>
+       </div>
+       <div class="form-item">
+        <div class="form-label">{$lang.manager_password}</div>
+        <div class="input-block">
+         <input type="password" name="password" size="40" class="input" />
+        </div>
+       </div>
+       <div class="form-item">
+        <div class="form-label">{$lang.manager_password_confirm}</div>
+        <div class="input-block">
+         <input type="password" name="password_confirm" size="40" class="input" />
+        </div>
+       </div>
+       <!-- {if $global_admin.action_list eq 'ALL'} -->
+       <div class="form-item">
+        <div class="form-label">{$lang.manager_type}</div>
+        <div class="input-block">
+         <select class="select" id="actionSelect" name="action">
+          <option value="ADMIN">{$lang.manager_type_admin}</option>
+          <option value="ALL">{$lang.manager_type_all}</option>
+          <option value="DEFINED">{$lang.manager_type_defined}</option>
+         </select>
+         <p class="cue">{$lang.manager_type_cue}</p>
+        </div>
+       </div>
+       <div class="form-item" id="actionList" style="display: none">
+        <div class="input-block checkbox-group">
+         <!-- {foreach from=$action_list item=item} -->
+         <label for="{$item.value}">
+          <input type="checkbox" name="action_list[]" value="{$item.value}" id="{$item.value}" /> {$item.name}
+         </label>
+         <!-- {/foreach} -->
+        </div>
+       </div>
+       <!-- {/if} -->
+       <div class="form-item submit">
+        <input type="hidden" name="token" value="{$token}" />
+        <input type="submit" name="submit" class="btn" value="{$lang.btn_submit}" />
+       </div>
+      </div>
+     </form>
+     <!-- {/if} -->
+     <!-- {if $rec eq 'edit'} 管理员编辑 -->
+     <form action="{$form_action}" method="post"><!-- {if $form_method} --><input type="hidden" name="_method" value="{$form_method}" /><!-- {/if} -->
+      <div class="form">
+       <div class="form-item">
+        <div class="form-label">{$lang.manager_username}</div>
+        <div class="input-block">
+         <input type="text" name="username" value="{$manager_info.username}" size="40" class="input" {if $global_admin.action_list neq 'ALL'}readonly="true"{/if}/>
+        </div>
+       </div>
+       <div class="form-item">
+        <div class="form-label">{$lang.manager_email}</div>
+        <div class="input-block">
+         <input type="text" name="email" value="{$manager_info.email}" size="40" class="input" />
+        </div>
+       </div>
+       <!-- {if $if_check} -->
+       <div class="form-item">
+        <div class="form-label">{$lang.manager_old_password}</div>
+        <div class="input-block">
+         <input type="password" name="old_password" size="40" class="input" />
+        </div>
+       </div>
+       <!-- {/if} -->
+       <div class="form-item">
+        <div class="form-label">{$lang.manager_new_password}</div>
+        <div class="input-block">
+         <input type="password" name="password" size="40" class="input" />
+        </div>
+       </div>
+       <div class="form-item">
+        <div class="form-label">{$lang.manager_new_password_confirm}</div>
+        <div class="input-block">
+         <input type="password" name="password_confirm" size="40" class="input" />
+        </div>
+       </div>
+       <!-- {if $global_admin.action_list eq 'ALL'} -->
+       <div class="form-item">
+        <div class="form-label">{$lang.manager_type}</div>
+        <div class="input-block">
+         <select class="select" id="actionSelect" name="action">
+          <option value="ADMIN"{if $manager_info.action_list eq 'ADMIN'} selected="selected"{/if}>{$lang.manager_type_admin}</option>
+          <option value="ALL"{if $manager_info.action_list eq 'ALL'} selected="ALL"{/if}>{$lang.manager_type_all}</option>
+          <option value="DEFINED"{if $manager_info.action_list neq 'ADMIN' && $manager_info.action_list neq 'ALL'} selected="ALL"{/if}>{$lang.manager_type_defined}</option>
+         </select>
+         <p class="cue">{$lang.manager_type_cue}</p>
+        </div>
+       </div>
+       <div class="form-item" id="actionList"{if $manager_info.action_list eq 'ADMIN' || $manager_info.action_list eq 'ALL'} style="display: none"{/if}>
+        <div class="input-block checkbox-group">
+         <!-- {foreach from=$action_list item=item} -->
+         <label for="{$item.value}">
+          <input type="checkbox" name="action_list[]" value="{$item.value}" id="{$item.value}"{if $item.cur} checked{/if} /> {$item.name}
+         </label>
+         <!-- {/foreach} -->
+        </div>
+       </div>
+       <!-- {/if} -->
+       <div class="form-item">
+        <input type="hidden" name="token" value="{$token}" />
+        <input type="hidden" name="id" value="{$manager_info.id}" />
+        <input type="submit" name="submit" class="btn" value="{$lang.btn_submit}" />
+       </div>
+      </div>
+     </form>
+     <!-- {/if} -->
+     <!-- {if $rec eq 'log'} 操作日志 -->
+     <div class="filter">
+      <form action="{url link='admin.manager.log'}" method="get" onsubmit="return hideEmpty(this)">
+       {if $req.admin_id}<input type="hidden" name="admin_id" value="{$req.admin_id}">{/if}
+       <input name="username" type="text" class="input" value="{$req.username}" size="20" placeholder="{$lang.manager_search_placeholder}" />
+       <select class="select" name="module">
+        <option value="">{$lang.manager_log_module}</option>
+        <!-- {foreach from=$log_module_list item=opt} -->
+        <option value="{$opt.value}"{if $opt.cur} selected="selected"{/if}>{$opt.label}</option>
+        <!-- {/foreach} -->
+       </select>
+       <select class="select" name="action">
+        <option value="">{$lang.manager_log_action}</option>
+        <!-- {foreach from=$log_action_list item=opt} -->
+        <option value="{$opt.value}"{if $opt.cur} selected="selected"{/if}>{$opt.label}</option>
+        <!-- {/foreach} -->
+       </select>
+       <input name="ip" type="text" class="input" value="{$req.ip}" placeholder="{$lang.manager_log_ip}" size="15" />
+       <script type="text/javascript" src="js/laydate/laydate.js"></script>
+       <input type="text" id="date_start" name="date_start" value="{$req.date_start}" class="input" placeholder="{$lang.time_start}" autocomplete="off" size="12" />
+       <input type="text" id="date_end" name="date_end" value="{$req.date_end}" class="input" placeholder="{$lang.time_end}" autocomplete="off" size="12" />
+       <script>
+       {literal}
+       laydate.render({
+         elem: '#date_start',
+         type: 'date'
+       });
+       laydate.render({
+         elem: '#date_end',
+         type: 'date'
+       });
+       {/literal}
+       </script>
+       <input class="btn-secondary" type="submit" value="{$lang.btn_filter}" />
+       <a class="btn-secondary" href="{url link='admin.manager.log'}">{$lang.btn_reset}</a>
+      </form>
+     </div>
+     <table class="table">
+      <tr>
+       <th class="m-none text-center" width="30">{$lang.record_id}</th>
+       <th class="text-left">{$lang.manager_log_created_at}</th>
+       <th class="text-center">{$lang.manager_log_username}</th>
+       <th class="m-none text-center">{$lang.manager_log_module}</th>
+       <th class="text-left">{$lang.manager_log_action}</th>
+       <th class="m-none text-center">{$lang.manager_log_result}</th>
+       <th class="m-none text-left">{$lang.manager_log_details}</th>
+       <th class="m-none text-center">{$lang.manager_log_ip}</th>
+      </tr>
+      <!-- {foreach from=$log_list item=item} -->
+      <tr>
+       <td class="m-none text-center v-top">{$item.id}</td>
+       <td class="v-top">{$item.created_at}</td>
+       <td class="text-center v-top">{$item.username}</td>
+       <td class="m-none text-center v-top">{$item.module}</td>
+       <td class="text-left v-top">{$item.action}</td>
+       <td class="m-none text-center v-top">{$item.result_text}</td>
+       <td class="m-none text-left v-top">{$item.details}</td>
+       <td class="m-none text-center v-top">{$item.ip}</td>
+      </tr>
+      <!-- {/foreach} -->
+     </table>
+     {include file="inc/pager.tpl"}
+     <!-- {/if} -->
+    </div>
+
+  </div>
+ </div>
+ {include file="inc/footer.tpl"} </div>
+<script type="text/javascript">
+{literal}
+$(document).ready(function(){
+  $('#actionSelect').change(function() {
+      if ($(this).val() === "DEFINED") {
+          $('#actionList').show(); // 显示div
+      } else {
+          $('#actionList').hide(); // 隐藏div
+      }
+  });
+});
+{/literal}
+</script>
+</body>
+</html>

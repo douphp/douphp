@@ -1,0 +1,220 @@
+/* -- user -- */
+.account-box {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 0 15px;
+  margin-bottom: 20px;
+}
+.account-box .avatar {
+  width: 60px;
+  height: 60px;
+  background-color: #fff;
+  border-radius: 120px;
+  overflow: hidden;
+}
+.account-box .avatar image {
+  width: 60px;
+  height: 60px;
+}
+.account-box .info {
+  flex: 1;
+  padding-top: 8px;
+}
+.account-box .info .user-name {
+  font-size: 16px;
+  font-weight: bold;
+}
+.account-box .info .user-name .level {
+  font-size: 16px;
+  color: #999;
+}
+.account-box .info .user-name .switch {
+  float: right;
+  background-color: #eee;
+  padding: 0 13px;
+  line-height: 24px;
+  border-radius: 13px;
+  font-size: 12px;
+}
+.account-box .info .text {
+  color: #999;
+  margin-bottom: 10px;
+}
+.account-box .info .text .renew {
+  display: inline-block;
+  color: #19b4ea;
+  border: 1px solid #ddd;
+  padding: 3px 5px;
+  line-height: 1em;
+  font-size: 12px;
+  cursor: pointer;
+}
+.account-box .setting {
+  width: 60px;
+  text-align: center;
+  font-size: 25px;
+}
+/* -- order-total-box -- */
+.order-total-box {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.order-total-box .item {
+  flex: 1;
+  min-width: 25%;
+  text-align: center;
+}
+.order-total-box .item .num {
+  color: #ff4d4d;
+  font-size: 20px;
+  font-weight: bold;
+}
+.order-total-box .item .text {
+  font-size: 13px;
+  color: #666666;
+}
+/* -- finance-total-box -- */
+.finance-total-box {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  border-radius: 10px 10px 0px 0px;
+  background: linear-gradient(270deg, #30b04d 0%, #49b768 100%);
+  margin-bottom: -10px;
+  padding: 10px 0 20px 0;
+}
+.finance-total-box .item {
+  flex: 1;
+  min-width: 33.3%;
+  text-align: center;
+}
+.finance-total-box .item .num {
+  color: #fff;
+  font-size: 20px;
+  font-weight: bold;
+}
+.finance-total-box .item .text {
+  font-size: 13px;
+  color: #fff;
+}
+/* -- user-menu -- */
+.user-menu {
+  margin-bottom: 10px;
+  background-color: #fff;
+  border-radius: 10px;
+  padding: 20px 0;
+}
+.user-menu .head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 15px;
+  margin-bottom: 20px;
+}
+.user-menu .head .name {
+  color: #1f1f1f;
+  font-weight: bold;
+}
+.user-menu .head .more {
+  float: right;
+  color: #ccc;
+  font-size: 20px;
+}
+/* -- treeMini -- */
+.user-menu .menu-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.user-menu .menu-list .item {
+  flex: 0 0 calc(20% - 10px);
+  text-align: center;
+}
+.user-menu .menu-list .item .icon {
+}
+.user-menu .menu-list .item .icon image {
+  width: 22px;
+}
+.user-menu .menu-list .item .name {
+  font-size: 12px;
+  color: #666;
+}
+.user-menu .menu-list.four .item {
+  width: 25%;
+}
+.user-menu .menu-list.three .item {
+  width: 33%;
+}
+.user-menu .menu-list .item .bi {
+  margin-bottom: 5px;
+  font-size: 20px;
+}
+/* -- contact -- */
+.contact {
+  height: 76px;
+  border-radius: 8px;
+  background-color: #e0fae4;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  padding-left: 20px;
+  padding-right: 20px;
+  margin-bottom: 10px;
+}
+.contact .icon {
+  width: 54px;
+}
+.contact .icon image {
+  width: 100%;
+}
+.contact .text {
+  flex: 1;
+  color: #1b662c;
+}
+.contact .text .tel {
+  font-weight: bold;
+  font-size: 15px;
+  margin-bottom: 3px;
+}
+.contact .text .time {
+  font-size: 12px;
+}
+.contact .action {
+  width: 68px;
+  border-radius: 4px;
+  background: linear-gradient(270deg, #30b04d 0%, #49b768 100%);
+  padding: 2px 0;
+  text-align: center;
+  font-size: 13px;
+  color: #FFF;
+}
+/* -- promotion -- */
+.promotion {
+  padding: 0 15px;
+  text-align: center;
+  margin-bottom: 50px;
+}
+.promotion .h2 {
+  font-size: 16px;
+  margin-top: 20px;
+  margin-bottom: 5px;
+}
+.promotion .link {
+  color: #555;
+}
+.promotion .link text {
+  display: block;
+  color: #999;
+}
+.promotion .qrcode image {
+  width: 200px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* 水平偏移 0，垂直偏移 2px，模糊 8px，透明度 0.1 */
+}
+.promotion .qrcode text {
+  display: block;
+  color: #999;
+}

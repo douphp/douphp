@@ -1,0 +1,27 @@
+<!--pages/sn/sn.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view id="sn">
+  <view class="wrap">
+   <form bindsubmit="douSearch">
+    <view class="search-box">
+     <view class="code-box">
+      <text class="bi bi-search"></text>
+      <input class="code" type="text" name="code" value="{{code}}" placeholder="{{lang.sn_code_pla}}" />
+     </view>
+     <button formType="submit" class="btn-search">{{lang.sn_check}}</button>
+    </view>
+   </form>
+   <view class="head">
+    <text>{{lang.sn_result}}</text>
+    <text class="del" bindtap="douClear" wx:if="{{result}}">{{lang.sn_clear}}</text>
+   </view>
+   <view class="form-view" wx:if="{{result}}">
+    <view class="dl" wx:for="{{result}}" wx:key="index" wx:for-item="sn">
+     <view class="dt">{{sn.name}}</view>
+     <view class="dd">{{sn.value}}</view>
+    </view>
+   </view>
+  </view>
+ </view>
+</view>

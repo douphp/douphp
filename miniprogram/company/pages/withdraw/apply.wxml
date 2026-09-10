@@ -1,0 +1,63 @@
+<!--pages/withdraw/apply.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="page-head">
+   <view class="action"><text class="link" data-url="/pages/withdraw/user" bindtap="douNavigateTo">{{lang.withdraw_list}}</text></view>
+   <view class="name">{{lang.withdraw_apply}}<text class="sub-name">（{{lang.user_money}}：{{money_total}}）</text></view>
+  </view>
+  <view class="withdraw-apply">
+   <form bindsubmit="withdrawApply">
+    <view class="bank">
+     <view class="head">{{lang.withdraw_card}}<em>{{lang.withdraw_card_cue}}</em></view>
+     <view class="form-view">
+      <view class="dl">
+       <view class="dt">{{lang.withdraw_card_number}} </view>
+       <view class="dd">
+        <block wx:if="{{withdraw.card_status == 1}}">{{withdraw.card_number}}</block>
+        <block wx:else>
+         <input name="card_number" type="text" class="text-input" size="55" />
+        </block>
+        <view class="cue" wx:if="{{wrong.card_number}}">{{wrong.card_number}}</view>
+       </view>
+      </view>
+      <view class="dl">
+       <view class="dt">{{lang.withdraw_card_bank}} </view>
+       <view class="dd">
+        <block wx:if="{{withdraw.card_status == 1}}">{{withdraw.card_bank}}</block>
+        <block wx:else>
+         <input name="card_bank" type="text" class="text-input" size="55" />
+        </block>
+        <view class="cue" wx:if="{{wrong.card_bank}}">{{wrong.card_bank}}</view>
+       </view>
+      </view>
+      <view class="dl">
+       <view class="dt">{{lang.withdraw_card_name}} </view>
+       <view class="dd">
+        <block wx:if="{{withdraw.card_status == 1}}">{{withdraw.card_name}}</block>
+        <block wx:else>
+         <input name="card_name" type="text" class="text-input" size="55" />
+        </block>
+        <view class="cue" wx:if="{{wrong.card_name}}">{{wrong.card_name}}</view>
+       </view>
+      </view>
+     </view>
+    </view>
+    <view class="form-view">
+     <view class="dl">
+      <view class="dt">{{lang.withdraw_money}} </view>
+      <view class="dd">
+       <input name="money" type="text" class="text-input" size="55" />
+       <view class="cue" wx:if="{{wrong.money}}">{{wrong.money}}</view>
+      </view>
+     </view>
+     <view class="dl">
+      <view class="dl">
+       <button class="btn" formType="submit">{{lang.btn_submit}}</button>
+      </view>
+     </view>
+    </view>
+   </form>
+  </view>
+ </view>
+</view>

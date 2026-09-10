@@ -1,0 +1,114 @@
+<!--pages/health/health_apply.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="page-head">
+   <view class="action">
+    <text class="link" data-url="/pages/health/user" bindtap="douPageTo">{{lang.health_list}}</text>
+   </view>
+   <view class="name">{{is_edit ? lang.health_edit : lang.health_apply}}</view>
+  </view>
+  <view class="form-basic form-padding">
+   <form bindsubmit="healthApply">
+    <block wx:for="{{groups}}" wx:for-item="group" wx:key="group_name">
+     <view class="form-section-head" wx:if="{{group.group_name}}">{{group.group_name}}</view>
+     <block wx:for="{{group.fields}}" wx:for-item="field" wx:key="slug">
+      <view class="dl full" wx:if="{{field.type === 'textarea'}}">
+       <view class="dt">
+        {{field.name}}
+        <text wx:if="{{field.unit}}" class="unit">（{{field.unit}}）</text>
+        <view class="i" wx:if="{{field.must_fill}}">*</view>
+       </view>
+       <view class="dd">
+        <textarea
+         name="{{field.slug}}"
+         class="textarea"
+         value="{{form_values[field.slug] || field.value}}"
+         placeholder="{{lang.please_input}}"
+         placeholder-class="placeholder"
+         auto-height="true"
+         data-slug="{{field.slug}}"
+         bindinput="fieldInput"
+        />
+       </view>
+      </view>
+      <view class="dl full" wx:elif="{{field.type === 'radio'}}">
+       <view class="dt">
+        {{field.name}}
+        <text wx:if="{{field.unit}}" class="unit">（{{field.unit}}）</text>
+        <view class="i" wx:if="{{field.must_fill}}">*</view>
+       </view>
+       <view class="dd">
+        <radio-group name="{{field.slug}}">
+         <label wx:for="{{field.options}}" wx:for-item="opt" wx:key="*this">
+          <radio value="{{opt}}" checked="{{opt === (form_values[field.slug] || field.value)}}" /> {{opt}}
+         </label>
+        </radio-group>
+       </view>
+      </view>
+      <view class="dl full" wx:elif="{{field.type === 'select'}}">
+       <view class="dt">
+        {{field.name}}
+        <text wx:if="{{field.unit}}" class="unit">（{{field.unit}}）</text>
+        <view class="i" wx:if="{{field.must_fill}}">*</view>
+       </view>
+       <view class="dd select-box">
+        <picker
+         class="select"
+         mode="selector"
+         range="{{field.options}}"
+         value="{{field.picker_index}}"
+         data-slug="{{field.slug}}"
+         data-options="{{field.options_key}}"
+         bindchange="fieldPickerChange"
+        >
+         <text>{{form_values[field.slug] || field.value || lang.select}}</text>
+        </picker>
+       </view>
+      </view>
+      <view class="dl" wx:elif="{{field.type === 'date'}}">
+       <view class="dt">
+        {{field.name}}
+        <text wx:if="{{field.unit}}" class="unit">（{{field.unit}}）</text>
+        <view class="i" wx:if="{{field.must_fill}}">*</view>
+       </view>
+       <view class="dd">
+        <picker
+         class="select"
+         mode="date"
+         value="{{form_values[field.slug] || field.value}}"
+         data-slug="{{field.slug}}"
+         bindchange="fieldDateChange"
+        >
+         <text>{{form_values[field.slug] || field.value || lang.select}}</text>
+        </picker>
+       </view>
+      </view>
+      <view class="dl" wx:else>
+       <view class="dt">
+        {{field.name}}
+        <text wx:if="{{field.unit}}" class="unit">（{{field.unit}}）</text>
+        <view class="i" wx:if="{{field.must_fill}}">*</view>
+       </view>
+       <view class="dd">
+        <input
+         name="{{field.slug}}"
+         type="{{field.type === 'number' ? 'digit' : 'text'}}"
+         class="input"
+         value="{{form_values[field.slug] || field.value}}"
+         placeholder="{{lang.please_input}}"
+         placeholder-class="placeholder"
+         data-slug="{{field.slug}}"
+         bindinput="fieldInput"
+        />
+       </view>
+      </view>
+     </block>
+    </block>
+    <view class="action">
+     <button class="btn" formType="submit">{{lang.btn_submit}}</button>
+    </view>
+   </form>
+  </view>
+ </view>
+</view>

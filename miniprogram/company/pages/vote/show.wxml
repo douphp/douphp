@@ -1,0 +1,18 @@
+<!--pages/vote/show.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="vote-head">
+   <view class="h1">{{vote.name}}</view>
+  </view>
+  <view class="vote-detail">
+   <view class="h2">{{lang.vote_qrcode}}</view>
+   <view class="img" wx:if="{{vote.qrcode}}"> <image src="{{vote.qrcode}}" mode="widthFix" /> </view>
+   <view class="voteGo"> <navigator class="a" url="{{vote.item_url}}">{{lang.vote_go}}</navigator> </view>
+   <view class="h2">{{lang.vote_content}}</view>
+   <view class="content">
+    <mp-html content="{{vote.content}}" />
+   </view>
+  </view>
+ </view>
+</view>

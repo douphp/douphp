@@ -1,0 +1,131 @@
+/* 模板扩展
+----------------------------------------------- */
+#theme .enable {
+  border-bottom: 1px solid #ddd;
+  padding: 30px 0;
+  zoom: 1;
+  overflow: hidden;
+}
+#theme .enable h2 {
+  font-size: 14px;
+  font-weight: bold;
+  color: #999;
+  margin-bottom: 10px;
+}
+#theme .enable p {
+  float: left;
+  padding: 4px;
+  background-color: #fff;
+  border: 1px solid #ddd;
+}
+#theme .enable dl {
+  float: left;
+  padding: 10px;
+}
+#theme .enable dl dt {
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+#theme .enable dl dd {
+  margin-bottom: 5px;
+}
+#theme .enable .action {
+  margin-top: 20px;
+}
+#theme .enable .action a {
+  display: flex;
+  border: 1px solid #ddd;
+  background-color: #eee;
+  color: #777;
+  font-size: 12px;
+  padding: 8px 20px 8px 11px;
+  align-items: center;
+}
+#theme .enable .action a i {
+  margin-right: 10px;
+  font-size: 16px;
+}
+#theme .enable .action a i.active {
+  color: #28b779;
+}
+#theme .enable .action a:hover {
+  border: 1px solid #28b779;
+}
+/* -- theme-list -- */
+#theme .theme-list {
+  padding-top: 30px;
+  zoom: 1;
+  overflow: hidden;
+}
+#theme .theme-list h2 {
+  font-size: 14px;
+  font-weight: bold;
+  color: #19b4ea;
+  margin-bottom: 15px;
+}
+#theme .theme-list dl {
+  border: 1px solid #ddd;
+  width: 288px;
+  background-color: #fafafa;
+  float: left;
+  margin: 0 20px 20px 0;
+  padding-bottom: 5px;
+}
+#theme .theme-list dl p {
+  padding: 4px 4px 10px 4px;
+  background-color: #fff;
+  border-bottom: 1px solid #eee;
+}
+#theme .theme-list dl p img {
+  width: 280px;
+  height: 175px;
+}
+#theme .theme-list dl p a {
+  display: block;
+  position: relative;
+}
+#theme .theme-list dl p a em {
+  display: block;
+  width: 280px;
+  height: 175px;
+  text-align: center;
+  box-sizing: border-box;
+  padding-top: 55px;
+  position: absolute;
+  left: 0;
+  top: 0;
+  background-color: rgba(0, 0, 0, 0.4);
+  color: #999;
+}
+#theme .theme-list dl p a em i {
+  font-size: 40px;
+  color: #999;
+  display: block;
+}
+#theme .theme-list dl dt {
+  font-weight: bold;
+  padding: 5px;
+}
+#theme .theme-list dl dd {
+  padding: 2px 5px;
+}
+#theme .theme-list dl dd.btn-list span a {
+  color: #0072c6;
+  margin-right: 10px;
+}
+#theme .theme-list dl dd.btn-list span a b {
+  background-color: #28b779;
+  padding: 0 10px;
+  color: #fff;
+  -webkit-border-radius: 10px;
+  border-radius: 10px;
+}
+#theme .theme-list dl dd.btn-list span em {
+  margin-right: 10px;
+}
+#theme .theme-list dl dd.btn-list .del {
+  float: right;
+  color: #999;
+}
+

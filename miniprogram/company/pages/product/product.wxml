@@ -1,0 +1,140 @@
+<!--pages/product/product.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view id="product">
+  <swiper id="main" class="swiper scroll-box" indicator-dots="{{indicatorDots}}" indicator-color="{{indicatorColor}}" indicator-active-color="{{indicatorActiveColor}}" autoplay="{{autoplay}}" current="{{current}}" interval="{{interval}}" duration="{{duration}}" bindchange="swiperbindchange" style="height: {{imgheight}}">
+   <swiper-item>
+    <image src="{{product.image}}" class="slide" bindload="imageLoad" mode="widthFix" />
+   </swiper-item>
+   <block wx:for="{{product.gallery_list}}" wx:key="index" wx:for-item="gallery">
+    <swiper-item>
+     <image src="{{gallery.file}}" class="slide" bindload="imageLoad" mode="widthFix" />
+    </swiper-item>
+   </block>
+  </swiper>
+  <view class="wrap">
+   <view class="title">{{product.title}}</view>
+   <view class="info">
+    <view class="attribute">
+     <view class="item">
+      {{lang.price}}：
+      <text class="price">{{product.sale_price.format}}</text>
+      <text class="price-cue" wx:if="{{product.sale_price.name}}">{{product.sale_price.name}}</text>
+      <text class="price-gray" wx:if="{{product.sale_price.type != 'original'}}">{{product.price_format}}</text>
+     </view>
+     <view class="item" wx:if="{{coupon_list}}">{{lang.coupon}}：<view class="coupon-get-list"><view class="get-coupon{{coupon.class}}" data-id="{{coupon.id}}" bindtap="getCoupon" wx:for="{{coupon_list}}" wx:for-item="coupon" wx:key="index"><text class="n">{{coupon.name}}</text><text class="t">{{coupon.status.format}}</text></view></view></view>
+     <view class="item" wx:for="{{defined}}" wx:key="defined" wx:for-item="defined">{{defined.arr}}：
+      {{defined.value}} </view>
+     <view class="item" wx:if="{{mode == 'point'}}">{{lang.product_point}}：{{product.point}}</view>
+     <view class="btn-favorites{{favorites.class}}" data-item_id="{{product.id}}" bindtap="favorites"><text class="bi bi-heart-fill"></text><text class="text">{{favorites.text}}</text></view>
+    </view>
+   </view>
+   <view class="head">{{lang.product_content}}</view>
+   <view class="content miniHeight">
+    <mp-html content="{{product.content}}" />
+   </view>
+   <!-- 评论列表 -->
+   <view class="head">{{lang.comment}}</view>
+   <view class="comment-list">
+    <view class="dl{{comment.if_read == '0' ? 'unread' : ''}}" wx:for="{{comment_list}}" wx:key="index" wx:for-item="comment">
+     <view class="dt">
+      <text class="span">{{comment.created_at}}</text>
+      <text>{{comment.nickname}}</text>
+     </view>
+     <view class="content">
+      <view class="comment-star">
+       <image class="star-image" src="../../images/star_on.png" wx:for="{{comment.star_box.list}}" wx:key="index" />
+       <text class="star-number">{{comment.star_box.number}}</text>
+      </view>
+      <view class="p">{{comment.content}}</view>
+      <view class="imgs">
+       <image src="{{item.file}}" data-image="{{item.file}}" bindtap="previewImage" mode="heightFix" wx:for="{{comment.img_list}}" wx:key="index" />
+      </view>
+     </view>
+     <view class="reply" wx:if="{{comment.reply}}">
+      <view class="p" class="replyContent">
+      {{lang.comment_reply}}：{{comment.reply.content}}</view>
+     <view class="replyTime">{{comment.reply.created_at}}</view>
+    </view>
+   </view>
+  </view>
+  <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
+  <!-- 购买导航 -->
+  <view class="fixex">
+   <view class="cart-box">
+    <!-- cart-form -->
+    <view class="cart-form" animation="{{animationData}}" wx:if="{{showCartBg}}">
+     <form bindsubmit="addToCart">
+      <view class="item-info">
+       <view class="item-img">
+        <image src="{{product.image}}" />
+       </view>
+       <view class="item-att">
+        <view class="name">{{product.title}}</view>
+        <view class="att">
+         <text class="price">{{box.sale_price.format}}</text>
+         <text class="price-cue" wx:if="{{box.sale_price.name}}">{{box.sale_price.name}}</text>
+         <text class="price-gray" wx:if="{{box.sale_price.type != 'original'}}">{{box.price}}</text>
+         <text class="point" wx:if="{{mode == 'point'}}">（{{lang.product_point}}：{{box.point}}）</text>
+        </view>
+       </view>
+       <view class="close bi bi-x-lg" bindtap="hideCartForm"></view>
+      </view>
+      <view class="attribute-list">
+       <view class="attribute" wx:for="{{attribute_list}}" wx:key="index" wx:for-item="attribute">
+        <view class="cart-head">{{attribute.name}}</view>
+        <view class="radio-box">
+         <view class="radio{{item.cur ? ' active' : ''}}" wx:for="{{attribute.value_list}}" wx:key="index" wx:for-item="item" data-att_id="{{attribute.att_id}}" data-value="{{item.id}}" bindtap="selectAttribute">
+          <view class="att-img" wx:if="{{item.image}}">
+           <image src="{{item.image}}" />
+          </view>
+          <view class="name">{{item.value}}</view>
+         </view>
+         <input name="att_{{attribute.att_id}}" value="{{attribute.selected_value_id}}" hidden="true" />
+        </view>
+       </view>
+      </view>
+      <view class="cart-head">数量</view>
+      <view class="number">
+       <text class="{{number <= 1 ? 'disabled' : 'normal'}}" bindtap="bindMinus"> - </text>
+       <input name="item_number" type="text" bindchange="bindManual" value="{{number}}" />
+       <text class="{{number >= 10 ? 'disabled' : 'normal'}}" bindtap="bindPlus">+</text>
+       <input type="text" name="module" value="product" hidden="true" />
+       <input type="text" name="item_id" value="{{product.id}}" hidden="true" />
+      </view>
+      <view class="action one" wx:if="{{mode == 'point'}}">
+       <button class="btn-cart yel" formType="submit">{{lang.point_addtocart}}</button>
+      </view>
+      <view class="action" wx:else>
+       <button class="btn-cart yel" formType="submit" data-action="addtocart">{{lang.order_addtocart}}</button>
+       <button class="btn-cart" formType="submit" data-action="buynow">{{lang.order_buynow}}</button>
+      </view>
+     </form>
+    </view>
+    <!-- cart-bar -->
+    <view class="cart-bar">
+     <view class="item" data-url="/pages/index/index" bindtap="douSwitchTab">
+      <text class="icon bi bi-house"></text>
+      <text class="name">{{lang.home}}</text>
+     </view>
+     <view class="item" data-url="/pages/order/order" bindtap="douSwitchTab" wx:if="{{mode != 'point'}}">
+      <text class="icon bi bi-cart">
+       <text class="number" wx:if="{{cart_number}}">{{cart_number}}</text>
+      </text>
+      <text class="name">购物车</text>
+     </view>
+     <view class="action one" wx:if="{{mode == 'point'}}">
+      <view class="btn-cart yel" bindtap="showCartForm">{{lang.point_addtocart}}</view>
+     </view>
+     <view class="action" wx:else>
+      <view class="btn-cart yel" bindtap="showCartForm">{{lang.order_addtocart}}</view>
+      <view class="btn-cart" bindtap="showCartForm">{{lang.order_buynow}}</view>
+     </view>
+    </view>
+   </view>
+  </view>
+ </view>
+</view>
+<view class="footer"><text wx:if="{{lang.powered_by}}">{{lang.powered_by}}</text></view>
+<view class="cart-bg" bindtap="hideCartForm" wx:if="{{showCartBg}}"></view>
+</view>

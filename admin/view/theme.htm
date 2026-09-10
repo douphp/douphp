@@ -1,0 +1,96 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+ <meta name="copyright" content="DouCo Co.,Ltd." />
+ <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+ <meta name="csrf-token" content="{$csrf_token}">
+ <title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+ <link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+ <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+ <link href="css/common.css" rel="stylesheet" type="text/css">
+ <link href="css/cloud.css" rel="stylesheet" type="text/css">
+ <link href="css/theme.css" rel="stylesheet" type="text/css">
+ {include file="inc/javascript.tpl"}
+</head>
+
+<body>
+ <div id="dou"> {include file="inc/header.tpl"}
+  {include file="inc/sidebar.tpl"}
+  <div id="dou-content"> {include file="inc/toolbar.tpl"}
+   <div class="dou-main">
+    <div id="theme" class="dou-page">
+    {include file="inc/page_header.tpl"}
+    <div class="tab" id="theme-tabs">
+     <ul class="tab-title">
+      <li{if $rec eq 'default' } class="active"{/if}><a href="{url link='admin.theme'}">{$lang.theme_list}</a></li>
+      <li{if $rec eq 'install' } class="active"{/if}><a href="{url link='admin.theme.install'}">{$lang.theme_install}{if
+        $unum.theme}<span class="badge"><span>{$unum.theme}</span></span>{/if}</a></li>
+     </ul>
+    </div>
+    <!-- {if $rec eq 'default'} -->
+    <div class="enable">
+     <h2>{$lang.theme_enabled}</h2>
+     <p><img src="{$theme_enable.image}" width="280" height="175"></p>
+     <dl>
+      <dt>{$theme_enable.theme_name} {$theme_enable.slug}</dt>
+      <!-- {if $theme_no_allow} -->
+      <dd class="c-red">{$lang.theme_no_allow}</dd>
+      <!-- {/if} -->
+      <dd>{$lang.version}：{$theme_enable.version}</dd>
+      <dd>{$lang.author}：<a href="{$theme_enable.author_uri}" target="_blank">{$theme_enable.author}</a></dd>
+      <dd>{$lang.theme_description}：{$theme_enable.description}</dd>
+      <dd class="action">
+       <!-- {if !$support_module} -->
+       <a href="{url link='admin.theme.module'}" class="js-post"><i class="bi-toggle-off"></i><em>{$lang.theme_no_support_module_hide}</em></a>
+       <!-- {else} -->
+       <a href="{url link='admin.theme.module_clear'}" class="js-post"><i class="bi-toggle-on active"></i><em>{$lang.theme_no_support_module_hide}</em></a>
+       <!-- {/if} -->
+      </dd>
+     </dl>
+    </div>
+    <div class="theme-list">
+     <h2>{$lang.theme_installed}</h2>
+     <!-- {foreach from=$theme_list item=theme} -->
+     <dl>
+      <p>
+       <a href="{url link='admin.theme.enable' slug=$theme.slug}" class="js-post">
+        <!-- {if $theme.cloud} --><em><i class="bi-cloud-download"></i>历史安装</em><!-- {/if} -->
+        <img src="{$theme.image}" width="280" height="175">
+       </a>
+      </p>
+      <dt>{$theme.theme_name} {$theme.slug}</dt>
+      <dd>{$lang.author}：<a href="{$theme.author_uri}" target="_blank">{$theme.author}</a></dd>
+      <dd class="btn-list">
+       <a href="javascript:;" class="del js-delete" data-url="{url link='admin.theme.destroy' slug=$theme.slug}">{$lang.del}</a>
+       <span>
+        <!-- {if $theme.cloud} -->
+        <a href="javascript:;" class="action-btn gray" data-dou-toggle="modal" data-dou-modal="message" data-title="安装提示"
+         data-html="安装新模板会清空内容碎片和内容盒子，如果要保存原来模板的数据，安装前请先备份数据库和images/fragment、images/box这两个图片目录" data-btn-name="继续安装"
+         data-placement="center"
+         data-btn-link="{url link='admin.cloud.install' type=theme cloud_id=$theme.slug}">{$lang.enabled}</a>
+        <!-- {else} -->
+        <a href="{url link='admin.theme.enable' slug=$theme.slug}" class="js-post">{$lang.enabled}</a>
+        <!-- {/if} -->
+        <!-- {if $theme.preview_frame_url} -->
+        <a href="javascript:void(0)"
+         onclick="douFrame('{$theme.theme_name}', '{$theme.preview_frame_url}', '{url link='admin.cloud.details'}')">{$lang.theme_preview}</a>
+        <!-- {/if} -->
+       </span>
+      </dd>
+     </dl>
+     <!-- {/foreach} -->
+    </div>
+    <!-- {/if} -->
+    <!-- {if $rec eq 'install'} 安装模板 -->
+    {include file="inc/cloud_extend_list.tpl"}
+    <!-- {/if} -->
+   </div>
+  </div>
+  </div>
+  {include file="inc/footer.tpl"}
+ </div>
+</body>
+
+</html>

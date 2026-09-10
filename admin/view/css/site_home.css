@@ -1,0 +1,218 @@
+/*(C) 2013-2026 DouCo Co.,Ltd.*/
+/* site-home */
+#site-home .instructions {
+ margin-bottom: 20px;
+ color: #999;
+ line-height: 180%;
+}
+#site-home .instructions p {
+ margin-bottom: 3px;
+ color: #19B4EA;
+}
+#site-home .chip-group {
+ display: block;
+ float: none;
+ margin-top: 10px;
+}
+#site-home .chip-group .chip {
+ display: inline-block;
+}
+#site-home .area-box {
+ zoom: 1;
+ width: 100%;
+ overflow: hidden;
+ padding: 0 25px;
+}
+#site-home .in-page .area-box {
+ padding: 10px 7px;
+}
+#site-home .area-box.bg {
+ background-color: #EEE;
+ border-top: 1px solid #DDD;
+ border-bottom: 1px solid #DDD;
+ box-sizing: border-box;
+ padding: 25px 25px 10px 25px;
+ margin-bottom: 25px;
+}
+/*- logo -*/
+#site-home .logo {
+ margin-bottom: 10px;
+}
+#site-home .logo img {
+ height: 50px;
+ border: 1px solid #DDD;
+}
+/*- slide-show -*/
+#site-home .slide-box {
+ position: relative;
+ background-color: #EEE;
+ margin-bottom: 30px;
+}
+#site-home .slide-box .slide-show {
+ position: relative;
+ list-style: none;
+ overflow: hidden;
+ width: 600px;
+ margin: 0 auto;
+}
+#site-home .slide-box .slide-show li {
+ -webkit-backface-visibility: hidden;
+ position: absolute;
+ display: none;
+ width: 100%;
+ left: 0;
+ top: 0;
+}
+#site-home .slide-box .slide-show li:first-child {
+ position: relative;
+ display: block;
+ float: left;
+}
+#site-home .slide-box .slide-show li a {
+ display: block;
+ float: left;
+}
+#site-home .slide-box .slide-show li a img {
+ width: 100%;
+}
+#site-home .slide-box .slide-show li a span {
+ display: block;
+ position: absolute;
+ width: 100%;
+ left: 0;
+ top: 0;
+ text-align: center;
+}
+#site-home .slide-box .slide-show li a span em {
+ display: none;
+ background-color: #999;
+ color: #FFF;
+ padding: 2px 30px;
+}
+#site-home .slide-box .slide-show li a:hover span em {
+ display: inline-block;
+ background-color: #0072C6;
+ color: #FFF;
+}
+#site-home .slide-box .slide-nav {
+ display: inline-block;
+ position: absolute;
+ top: 50%;
+ z-index: 2;
+ margin-top: -20px;
+ margin-left: 10px;
+ overflow: hidden;
+ opacity: .7;
+ font-size: 40px;
+ color: #555;
+}
+#site-home .slide-box .next {
+ right: 0;
+ margin-right: 10px;
+}
+#site-home .slide-box .slide-nav:active {
+ opacity: 1;
+}
+#site-home .slide-box .slide-tabs {
+ position: absolute;
+ left: 0;
+ bottom: 10px;
+ width: 100%;
+ text-align: center;
+ font-size: 0;
+ z-index: 2;
+}
+#site-home .slide-box .slide-tabs li {
+ display: inline-block;
+ margin: 0 3px;
+ *display: inline;
+ *zoom: 1;
+}
+#site-home .slide-box .slide-tabs a {
+ display: inline-block;
+ width: 9px;
+ height: 9px;
+ border-radius: 50%;
+ line-height: 20px;
+ background-color: rgba(0, 0, 0, .3);
+ background-color: #ccc\9;
+ overflow: hidden;
+ *display: inline;
+ *zoom: 1;
+}
+#site-home .slide-box .slide-tabs .slide-here a {
+ background-color: rgba(0, 0, 0, .8);
+ background-color: #666\9;
+}
+/*- fragment-list -*/
+#site-home .fragment-list .item {
+ width: 180px;
+ float: left;
+ margin: 0 15px 15px 0;
+ border: 1px solid #EEE;
+}
+#site-home .fragment-list .bg .item {
+ border: 1px solid #DDD;
+ background-color: #F5F5F5;
+}
+#site-home .fragment-list .name {
+ font-size: 14px;
+ font-weight: bold;
+ padding: 4px 10px;
+}
+#site-home .fragment-list .name.parent {
+ color: #0072C6;
+}
+#site-home .fragment-list .item .content {
+ height: 57px;
+ overflow: hidden;
+ line-height: 180%;
+ padding: 10px;
+ background-color: #EEE;
+ color: #999;
+}
+#site-home .fragment-list .item .content img {
+ max-width: 100%;
+ margin: 0 auto;
+}
+#site-home .fragment-list .edit {
+ padding: 4px 10px;
+}
+#site-home .fragment-list .edit a {
+ color: #28B779;
+}
+/*- box-list -*/
+#site-home .box-list {
+ zoom: 1;
+ overflow: hidden;
+ padding: 10px;
+}
+#site-home .box-list dl {
+ float: left;
+ width: 260px;
+ margin: 0 15px 15px 0;
+}
+#site-home .box-list dt {
+ border: 1px solid #DDD;
+}
+#site-home .box-list dt p {
+ padding: 8px 10px;
+}
+#site-home .box-list dt p.cur {
+ background-color: #60BBFF;
+ color: #FFF;
+}
+#site-home .box-list dt em {
+ display: block;
+ margin: 0 10px 10px 10px;
+ color: #999;
+ height: 36px;
+ overflow: hidden;
+ text-overflow: ellipsis;
+}
+#site-home .box-list dd {
+ color: #CCC;
+}
+#site-home .box-list dd span {
+ float: right;
+}

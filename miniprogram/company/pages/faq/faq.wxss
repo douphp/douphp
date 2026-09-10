@@ -1,0 +1,39 @@
+/* pages/faq/faq.wxss */
+.faq-list {
+ padding-top:10px;
+ padding-bottom: 20px;
+}
+.faq-list .item {
+ border-bottom: 1px dashed #DDD;
+ margin-bottom: 20px;
+ padding-bottom: 15px;
+}
+.faq-list .item.last {
+ border-bottom: 0;
+}
+.faq-list .item .ask {
+ zoom: 1;
+ overflow: hidden;
+ margin-bottom: 8px;
+}
+.faq-list .item .ask .i {
+ display: inline-block;
+ padding: 1px 7px;
+ background: #ff9000;
+ border-radius: 3px;
+ color: #FFF;
+ float: left;
+ font-weight: bold;
+}
+.faq-list .item .ask .em {
+ display: block;
+ margin-left: 30px;
+ font-size: 14px;
+ color: #0072C6;
+ line-height: 100%;
+}
+.faq-list .item .answer .em {
+ display: block;
+ margin-left: 30px;
+ color: #777;
+}

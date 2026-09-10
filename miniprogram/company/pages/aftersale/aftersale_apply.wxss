@@ -1,0 +1,52 @@
+/* pages/aftersale/aftersale_apply.wxss */
+.aftersaleApply .head {
+ padding: 8px 10px;
+ background-color: #FFF;
+ font-weight: normal;
+}
+.aftersaleApply .head .em {
+ color: #999;
+}
+.aftersaleApply .cueGray {
+ color: #999;
+}
+/* itemList */
+.aftersaleApply .itemList {
+ background-color:#FFF;
+}
+.aftersaleApply .itemList .dl {
+ zoom:1;
+ overflow:hidden;
+ background-color:#F8F8F8;
+ padding:10px 10px;
+ margin-bottom:3px;
+}
+.aftersaleApply .itemList .dt {
+ width:90px;
+ float:left;
+ line-height:38px;
+ position: relative;
+}
+.aftersaleApply .itemList .dt checkbox {
+ vertical-align: middle;
+}
+.aftersaleApply .itemList .dt image {
+ width: 50px;
+ height: 50px;
+ vertical-align: middle;
+}
+.aftersaleApply .itemList .dd {
+ margin-left: 90px;
+ height: 50px;
+ zoom: 1;
+ overflow: hidden;
+}
+.aftersaleApply .itemList .dd .p {
+ float:left;
+ font-weight:bold;
+}
+.aftersaleApply .itemList .dd .span {
+ float:right;
+ text-align:right;
+ color:#888;
+}

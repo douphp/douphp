@@ -1,0 +1,14 @@
+<!--pages/debug/debug.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="tip">仅开发版 / 体验版可见，正式版自动静默</view>
+  <view class="list">
+   <view class="row" wx:for="{{rows}}" wx:key="label">
+    <view class="row-label">{{item.label}}</view>
+    <text class="row-value" user-select="{{true}}" selectable="{{true}}">{{item.value}}</text>
+   </view>
+  </view>
+  <button class="copy-btn" bindtap="copyAll" type="primary">复制全部</button>
+ </view>
+</view>

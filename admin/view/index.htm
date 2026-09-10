@@ -1,0 +1,223 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="copyright" content="DouCo Co.,Ltd." />
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="csrf-token" content="{$csrf_token}">
+<title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+<link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+<link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+<link href="css/common.css" rel="stylesheet" type="text/css">
+<link href="css/index.css" rel="stylesheet" type="text/css">
+{include file="inc/javascript.tpl"}
+</head>
+<body>
+<div id="dou"> {include file="inc/header.tpl"}
+ {include file="inc/sidebar.tpl"}
+ <div id="dou-content"> {include file="inc/toolbar.tpl"}
+  <div class="dou-main">
+  <!-- {if $workspace.admin_theme_custom.index} custom -->
+  {include file="index.custom.htm"}
+  <!-- {else} custom -->
+   <div id="index" class="dou-page">
+   <!-- {if $rec eq 'default'} 起始页 -->
+   <div id="right" class="m-none">
+    <div class="quick-menu">
+     <h2>{$lang.quick_menu}</h2>
+     <div class="menu">
+      <!-- {if $_SYSTEM_SIGN neq 'miniprogram'} -->
+      <dl>
+       <!-- {if $site.rewrite} -->
+       <dt><a href="{url link='admin.setting' light=rewrite}">{$lang.close}</a>{$lang.quick_menu_rewrite}（{$lang.opened}）</dt>
+       <!-- {else} -->
+       <dt><a href="{url link='admin.setting' light=rewrite}">{$lang.open}</a>{$lang.quick_menu_rewrite}（{$lang.open_no}）</dt>
+       <!-- {/if} -->
+       <dd>{$lang.quick_menu_rewrite_cue}</dd>
+      </dl>
+      <!-- {/if} -->
+      <dl>
+       <!-- {if $site.captcha} -->
+       <dt><a href="{url link='admin.setting' light=captcha}">{$lang.close}</a>{$lang.quick_menu_captcha}（{$lang.opened}）</dt>
+       <!-- {else} -->
+       <dt><a href="{url link='admin.setting' light=captcha}">{$lang.open}</a>{$lang.quick_menu_captcha}（{$lang.open_no}）</dt>
+       <!-- {/if} -->
+       <dd>{$lang.quick_menu_captcha_cue}</dd>
+      </dl>
+      <dl>
+       <!-- {if $site.llms} -->
+       <dt><a href="{url link='admin.setting' light=llms}">{$lang.close}</a>{$lang.quick_menu_llms}（{$lang.opened}）</dt>
+       <!-- {else} -->
+       <dt><a href="{url link='admin.setting' light=llms}">{$lang.open}</a>{$lang.quick_menu_llms}（{$lang.open_no}）</dt>
+       <!-- {/if} -->
+       <dd>{$lang.quick_menu_llms_cue}</dd>
+      </dl>
+      <dl>
+       <!-- {if $site.schema} -->
+       <dt><a href="{url link='admin.setting' light=schema}">{$lang.close}</a>{$lang.quick_menu_schema}（{$lang.opened}）</dt>
+       <!-- {else} -->
+       <dt><a href="{url link='admin.setting' light=schema}">{$lang.open}</a>{$lang.quick_menu_schema}（{$lang.open_no}）</dt>
+       <!-- {/if} -->
+       <dd>{$lang.quick_menu_schema_cue}</dd>
+      </dl>
+      <dl>
+       <dt><a href="{url link='admin.tool.directory_check'}">{$lang.quick_menu_directory_check}</a>{$lang.quick_menu_directory}</dt>
+       <dd>{$lang.quick_menu_directory_cue}</dd>
+      </dl>
+      <!-- {if $site.developer} -->
+      <dl>
+       <dt><a href="{url link='admin.tool.custom_admin_dir'}">{$lang.modify}</a>{$lang.quick_menu_custom_admin_dir}</dt>
+       <dd>{$lang.quick_menu_custom_admin_dir_cue}</dd>
+      </dl>
+      <!-- {/if} -->
+      <dl>
+       <dt><a href="{url link='admin.tool.replace_url'}">{$lang.modify}</a>{$lang.quick_menu_replace_url}</dt>
+       <dd>{$lang.quick_menu_replace_url_cue}</dd>
+      </dl>
+     </div>
+    </div>
+   </div>
+   <div id="main">
+    <!-- {foreach from=$sys_info.folder_exists item=warning} -->
+    <div class="warning">{$warning nofilter}</div>
+    <!-- {/foreach} -->
+    <!-- {if $unum.system || $unum.module || $unum.theme} -->
+    <div class="sys-msg"><span>系统有更新</span><a href="{url link='admin.cloud.update'}">进入更新页面</a><a href="{url link='admin.setting' dou=''}" class="last">关闭升级提示<em>（您将错过系统的漏洞修复以及功能升级）</em></a></div>
+    <!-- {/if} -->
+    <!-- {if $cue_open_ssl} -->
+    <div class="sys-msg"><span>您的站点已启用HTTPS，建议后台访问时也使用HTTPS访问</span><a href="{$ssl_url}" target="_blank">立即进入HTTPS模式</a></div>
+    <!-- {/if} -->
+    <!-- {if $cue_set_domain} -->
+    <div class="sys-msg"><span>当前网址与设置的站点网址不同，请设置正确的站点网址</span><a href="{url link='admin.setting' light=domain}">立即设置</a></div>
+    <!-- {/if} -->
+    <div class="index-box">
+     <h2>{$lang.title_page}</h2>
+     <ul class="page">
+      <!-- {foreach from=$page_list item=page} -->
+      <a href="{url link='admin.page.edit' id=$page.id}"{if $page.level gt 0} class="child{$page.level}"{/if}>{$page.name}</a>
+      <!-- {/foreach} -->
+      <div class="clear"></div>
+     </ul>
+    </div>
+    <!-- {if $quick_start} -->
+    <div class="index-box">
+     <h2><a href="{url link='admin.index.close_quick_start'}" class="close js-post" title="{$lang.close}">X</a>{$lang.quick_start}<em>（{$lang.quick_start_cue}）</em></h2>
+     <ul class="quick-start">
+      <!-- {foreach from=$quick_start item=item} -->
+      <li>
+       <span>
+        <em>{$item.text}</em>
+        <a href="{$item.link}"{if $item.target} target="{$item.target}"{/if}>{$lang.quick_start_do}</a>
+       </span>
+      </li>
+      <!-- {/foreach} -->
+     </ul>
+    </div>
+    <!-- {/if} -->
+    <div class="index-box-two">
+     <div class="box-left">
+      <div class="backup-box">
+       <div class="index-box">
+        <h2>{$lang.title_backup}</h2>
+        <div class="backup">
+         <dl>
+          <dd class="date">{$backup.new.maketime}</dd>
+          <dt>{$lang.backup_new}：{$backup.new.filename}</dt>
+          <dd class="size">{$backup.new.filesize}</dd>
+         </dl>
+         <dl class="last">
+          <dd class="date">{$backup.old.maketime}</dd>
+          <dt>{$lang.backup_old}：{$backup.old.filename}</dt>
+          <dd class="size">{$backup.old.filesize}</dd>
+         </dl>
+        </div>
+       </div>
+       <div class="prompt{if $backup.light} red{/if}">
+        <span class="text">{$lang.backup_action_cue}<em>{$backup.msg}</em></span>
+        <a href="{url link='admin.backup.backup' act='all' back=$backup.back_url token=$token}" class="btn-backup">{$lang.backup_action_btn}</a>
+       </div>
+      </div>
+      <div class="index-box">
+       <h2>{$lang.title_site_info}</h2>
+       <div class="site-info">
+        <ul>
+         <!-- {foreach from=$sys_info.count_module item=count} -->
+         <li>{$count.name}：{$count.number}</li>
+         <!-- {/foreach} -->
+        </ul>
+        <ul>
+         <li>{$lang.language}：{$site.language}</li>
+         <li>{$lang.charset}：{$sys_info.charset}</li>
+         <!-- {if $_SYSTEM_SIGN neq 'miniprogram'} -->
+         <li>{$lang.site_theme}：{$site.site_theme}</li>
+         <li>{$lang.rewrite}：<!-- {if $site.rewrite} -->{$lang.open}<!-- {else} -->{$lang.close}<a href="{url link='admin.setting' light=rewrite}" class="cue-red ml">{$lang.open_cue}</a>
+            <!-- {/if} --></li>
+         <li>{$lang.if_sitemap}：<!-- {if $site.sitemap} -->{$lang.open}<!-- {else} -->{$lang.close}<!-- {/if} --></li>
+         <!-- {/if} -->
+         <li>{$lang.build_date}：{$sys_info.build_date}</li>
+        </ul>
+        <ul class="long">
+         <li>{$lang.cache_root_url}：{$site.root_url}{$cache_root_url_cue nofilter}</li>
+        </ul>
+        <ul class="last long">
+         <li><!-- {if !$pure_mode} -->{$lang.dou_version}：<!-- {/if} -->{$site.douphp_version}<!-- {if $cloud_vip} -->（VIP会员）<!-- {/if} --></li>
+        </ul>
+       </div>
+      </div>
+     </div>
+     <div class="box-right">
+      <div class="index-box">
+       <h2>{$lang.title_admin_log}<em>（{$lang.manager_log_created_at}/{$lang.manager_log_username}/{$lang.manager_log_ip}）</em></h2>
+       <div class="admin-log">
+        <!-- {foreach from=$log_list name=log_list item=log} -->
+        <dl{if $log@last} class="last"{/if}>
+         <dd class="date">{$log.ip}</dd>
+         <dt>{$log.created_at}</dt>
+         <dd class="name">{$log.username}</dd>
+        </dl>
+        <!-- {/foreach} -->
+       </div>
+      </div>
+      <div class="index-box">
+       <h2>{$lang.title_sys_info}</h2>
+       <div class="site-info">
+        <ul>
+         <li>{$lang.php_version}：{$sys_info.php_ver}</li>
+         <li>{$lang.max_filesize}：{$sys_info.max_filesize}</li>
+         <li>{$lang.gd}：{$sys_info.gd}</li>
+         <li>{$lang.zlib}：{$sys_info.zlib}</li>
+         <li>{$lang.timezone}：{$sys_info.timezone}</li>
+         <li>{$lang.socket}：{$sys_info.socket}</li>
+        </ul>
+        <ul class="last long">
+         <li>{$lang.mysql_version}：{$sys_info.mysql_ver}</li>
+         <li>{$lang.os}：{$sys_info.os}({$sys_info.ip})</li>
+         <li>{$lang.web_server}：{$sys_info.web_server}</li>
+        </ul>
+       </div>
+      </div>
+     </div>
+    </div>
+    <!-- {if !$pure_mode} -->
+    <div class="index-box">
+     <h2>{$lang.title_official}</h2>
+     <ul class="powered">
+      <li>{$lang.about_site}：<a href="http://www.douphp.com" target="_blank">http://www.douphp.com</a></li>
+      <li>{$lang.about_help}：<a href="http://help.douphp.com" target="_blank">help.douphp.com</a><em>（{$lang.about_help_cue}）</em></li>
+      <li>{$lang.about_contributor}：Wooyun.org, Pany, Tea</li>
+      <!-- {if !$cloud_vip} -->
+      <li>{$lang.about_license}：<a href="http://www.douphp.com/license.html" target="_blank">http://www.douphp.com/license.html</a><em>（DouPHP 基于 MIT 协议开源，可免费使用（含商用），完整协议文本见项目根目录 LICENSE 文件。）</em></li>
+      <!-- {/if} -->
+     </ul>
+    </div>
+    <!-- {/if} -->
+   </div>
+   <!-- {/if} -->
+  </div>
+  <!-- {/if} custom -->
+ </div>
+  </div>
+ {include file="inc/footer.tpl"}
+</div>
+</body>
+</html>

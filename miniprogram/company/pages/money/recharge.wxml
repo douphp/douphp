@@ -1,0 +1,29 @@
+<!--pages/money/money.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="page-head">
+   <view class="action"><text class="link" data-url="/pages/money/money" bindtap="douNavigateTo">{{lang.money_pay}}</text></view>
+   <view class="name">{{lang.money_log}}<text class="sub-name">（{{lang.money}}：{{total}}）</text></view>
+  </view>
+  <view class="package-list"> 
+   <view class="item{{package.id == current_id ? ' active' : ''}}" wx:for="{{package_list}}" wx:key="index" wx:for-item="package" data-current_id="{{package.id}}" bindtap="douSelect">
+    <view class="box">
+     <view class="money">{{package.money}}</view>
+     <view class="sale">{{lang.money_package_price}}{{package.price}}</view>
+    </view>
+   </view>
+  </view>
+  <view class="agreement">
+   <view class="head">{{lang.money_recharge_agreement}}</view>
+   <view class="content">{{param.money_recharge_agreement}}</view>
+  </view>
+  <view class="total-amount">
+   <view class="item">{{lang.money_package_money}}：<text>{{current.money}}</text></view>
+   <view class="item">{{lang.money_package_price}}：<text>{{current.price}}</text></view>
+  </view>
+  <view class="order-submit">
+   <view class="submit" data-module="money_package" data-item_id="{{current_id}}" bindtap="addToCart">{{lang.money_package_btn}}</view>
+  </view>
+ </view>
+</view>

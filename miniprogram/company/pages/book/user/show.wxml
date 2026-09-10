@@ -1,0 +1,50 @@
+<!--pages/book/user/show.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+
+  <!-- 预约详情 -->
+  <view class="view" wx:if="{{book}}">
+   <!-- 温馨提示 -->
+   <view class="tips-box" wx:if="{{book.book_tips}}">
+    <view class="head"><text class="icon-info">ℹ</text> {{lang.book_tips || '温馨提示'}}</view>
+    <view class="content">{{book.book_tips}}</view>
+   </view>
+
+   <!-- 预约信息卡片 -->
+   <view class="info-card">
+    <view class="card-head">
+     <view class="user-info">
+      <text class="name">{{book.item.name}}</text>
+     </view>
+     <view class="avatar" wx:if="{{book.item.image}}">
+      <image src="{{book.item.image}}" mode="aspectFill" />
+     </view>
+    </view>
+    <view class="card-body">
+     <view class="info-row"><text class="label">{{lang.book_sn || '预约单号'}}：</text><text class="value">{{book.book_sn}}</text></view>
+     <view class="info-row"><text class="label">{{lang.book_status || '状态'}}：</text><text class="status value">{{book.status.format}}</text></view>
+     <view class="info-row"><text class="label">{{lang.book_item_name || '项目'}}：</text><text class="value">{{book.item.name}}</text></view>
+     <view class="info-row"><text class="label">{{lang.book_date || '日期'}}：</text><text class="value">{{book.book_date}}</text></view>
+     <view class="info-row"><text class="label">{{lang.book_time || '时间'}}：</text><text class="value">{{book.time_label}}</text></view>
+     <view class="info-row"><text class="label">{{lang.book_name || '预约人'}}：</text><text class="value">{{book.name}}</text></view>
+     <view class="info-row"><text class="label">{{lang.book_phone || '电话'}}：</text><text class="value">{{book.phone}}</text></view>
+     <view class="info-row"><text class="label">{{lang.book_id_card || '身份证'}}：</text><text class="value">{{book.id_card}}</text></view>
+     <view class="info-row"><text class="label">{{lang.book_phone || '电话'}}：</text><text class="value">{{book.phone}}</text></view>
+     <view class="info-row" wx:if="{{book.people_count > 1}}"><text class="label">{{lang.book_people_count || '人数'}}：</text><text class="value">{{book.people_count}}</text></view>
+     <view class="info-row" wx:if="{{book.price}}"><text class="label">{{lang.book_price || '价格'}}：</text><text class="value">¥{{book.price}}</text></view>
+     <view class="info-row" wx:if="{{book.remark}}"><text class="label">{{lang.book_remark || '备注'}}：</text><text class="value">{{book.remark}}</text></view>
+     <view class="info-row" wx:for="{{book.custom_list}}" wx:for-item="cf" wx:key="name"><text class="label">{{cf.name}}：</text><text class="value">{{cf.value}}</text></view>
+     <view class="info-row"><text class="label">{{lang.book_add_time || '提交时间'}}：</text><text class="value">{{book.created_at}}</text></view>
+    </view>
+   </view>
+
+   <!-- 操作按钮 -->
+   <view class="action-bar">
+    <button class="btn-cancel" bindtap="cancelBook" wx:if="{{book.status.value == 0 || book.status.value == 1}}">{{lang.book_cancel || '取消预约'}}</button>
+    <button class="btn-back" bindtap="goBack">{{lang.book_back || '返回列表'}}</button>
+   </view>
+  </view>
+
+ </view>
+</view>

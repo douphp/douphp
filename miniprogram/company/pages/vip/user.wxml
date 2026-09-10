@@ -1,0 +1,22 @@
+<!--pages/vip/user.wxml-->
+<navbar title="{{title}}" url="/pages/user/user"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="page-head">
+   <view class="action"><text class="link" data-url="/pages/vip/vip" bindtap="douNavigateTo">{{lang.vip_buy}}</text></view>
+   <view class="name">{{lang.vip_log}}</view>
+  </view>
+  <view class="log-list">
+   <view class="item" wx:for="{{log_list}}" wx:for-item="item" wx:key="index">
+    <view class="h3"><text class="status">{{item.status.format}}</text><text class="name">{{item.package.name}}</text></view>
+    <view class="info">
+     <view class="time">{{lang.vip_time}}：{{item.start_at}}~{{item.end_at}}</view>
+     <view class="order-sn">{{lang.order_sn}}：<text class="a" data-url="{{item.order_link}}" bindtap="douNavigateTo">{{item.order_sn}}</text></view>
+     <view class="money">{{lang.vip_price}}：{{item.price}}</view>
+     <view class="time">{{lang.vip_add_time}}：{{item.created_at}}</view>
+    </view>
+   </view>
+   <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
+  </view>
+ </view>
+</view>

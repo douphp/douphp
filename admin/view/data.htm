@@ -1,0 +1,117 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+ <meta name="copyright" content="DouCo Co.,Ltd." />
+ <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+ <meta name="csrf-token" content="{$csrf_token}">
+ <title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+ <link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+ <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+ <link href="css/common.css" rel="stylesheet" type="text/css">
+ <link href="css/cropper.min.css" rel="stylesheet" type="text/css">
+ <link href="css/site_home.css" rel="stylesheet" type="text/css">
+ {include file="inc/javascript.tpl"}
+</head>
+
+<body>
+ <div id="dou"> {include file="inc/header.tpl"}
+  {include file="inc/sidebar.tpl"}
+  <div id="dou-content"> {include file="inc/toolbar.tpl"}
+   <div class="dou-main has-subnav{if $in_page} is-in-page{/if}">
+    <!-- {if $group eq 'miniprogram'} 小程序数据分组加载小程序子菜单 -->
+    {include file="inc/miniprogram_sub_menu.tpl"}
+    <!-- {else} -->
+    {include file="inc/site_home_sub_menu.tpl"}
+    <!-- {/if} -->
+    <div class="dou-page">
+      {include file="inc/page_header.tpl"}
+      <!-- {if $rec eq 'default'} 数据列表 -->
+      {include file="inc/data_inner.tpl"}
+      <!-- {/if} -->
+      <!-- {if $rec eq 'create' || $rec eq 'edit'} 数据添加或编辑 -->
+      <div class="form-box">
+       <form action="{$form_action}" method="post" enctype="multipart/form-data"><input type="hidden" name="_method" value="{$form_method}" />
+        <div class="form">
+         <div class="form-item">
+          <div class="input-block"><p class="cue">{$lang.data_theme}：{$site.site_theme}<!-- {if $data.parent} -->，{$lang.data_parent_code}：{$data.parent.name}<!-- {/if} --></p></div>
+         </div>
+         <div class="form-item">
+          <div class="form-label">{$lang.data_name}</div>
+          <div class="input-block">
+           <input type="text" name="name" value="{$data.name}" size="40" class="input" />
+           <span class="action" data-field="name">{$btn_lang.name nofilter}</span>
+           <p class="cue">{$lang.data_name_cue nofilter}</p>
+          </div>
+         </div>
+         <div class="form-item">
+          <div class="form-label">{$lang.data_code}</div>
+          <div class="input-block">
+           <input type="text" name="code" value="{$data.code}" size="40" class="input" {if $data.is_locked}readonly{/if} />
+           <p class="cue">{$lang.data_code_cue}</p>
+          </div>
+         </div>
+         <div class="form-item">
+          <div class="form-label">{$lang.data_image}</div>
+          <div class="input-block">
+           {include file="inc/file_input.tpl" name="image" value=$data.image file_number=$data.file_number}
+           <p class="action" data-field="image">{$btn_lang.image nofilter}</p>
+           <p class="cue">{$lang.data_image_cue nofilter}</p>
+          </div>
+         </div>
+         <div class="form-item">
+          <div class="form-label">{$lang.data_text}</div>
+          <div class="input-block">
+           <textarea name="text" cols="92" rows="7" class="textarea-auto auto-textarea">{$data.text}</textarea>
+           <p class="action" data-field="text">{$btn_lang.text nofilter}</p>
+           <p class="cue">{$lang.data_text_cue nofilter}</p>
+          </div>
+         </div>
+         <div class="form-item">
+          <div class="form-label">{$lang.data_link}</div>
+          <div class="input-block">
+           <input type="text" name="link" value="{$data.link}" size="74" class="input" />
+           <span class="action" data-field="link">{$btn_lang.link nofilter}</span>
+           <p class="cue">{$lang.data_link_cue nofilter}</p>
+          </div>
+         </div>
+         <!-- {if !$data.parent.code} -->
+         <div class="form-item">
+          <div class="form-label">{$lang.data_is_class}</div>
+          <div class="input-block">
+           <label for="is_class_0">
+            <input type="radio" name="is_class" id="is_class_0" value="0" {if $data.is_class eq '0' || !$data.is_class} checked="true" {/if}>
+            {$lang.no}</label>
+           <label for="is_class_1">
+            <input type="radio" name="is_class" id="is_class_1" value="1" {if $data.is_class eq '1' } checked="true" {/if}>
+            {$lang.yes}</label>
+           <p class="cue">{$lang.data_class_cue nofilter}</p>
+          </div>
+         </div>
+         <!-- {/if} -->
+         <div class="form-item">
+          <input type="hidden" name="token" value="{$token}" />
+          <!-- {if $rec eq 'create'} -->
+          <input type="hidden" name="data_group" value="{$data.data_group}">
+          <input type="hidden" name="data_item" value="{$data.data_item}">
+          <input type="hidden" name="parent_code" value="{$data.parent.code}">
+          <!-- {else} -->
+          <input type="hidden" name="id" value="{$data.id}">
+          <!-- {/if} -->
+          <input class="btn" type="submit" value="{$lang.btn_submit}" />
+         </div>
+        </div>
+       </form>
+      </div>
+      <!-- {/if} -->
+     </div>
+
+   </div>
+  </div>
+  {include file="inc/footer.tpl"}
+ </div>
+<script type="text/javascript" src="js/cropper.min.js"></script>
+</body>
+
+</html>

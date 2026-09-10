@@ -1,0 +1,21 @@
+/* pages/book/book.wxss */
+.class-list {
+ margin-top: 20px;
+ display: flex;
+ flex-wrap: wrap;
+ margin: 0 -8px;
+}
+.class-list .item {
+ width: calc(33.3% - 16px); /* 减去 margin 的宽度 */
+ margin: 8px; /* 每个项目之间的间距 */
+ border: 1px solid #EEE;
+ box-sizing: border-box;
+ text-align: center;
+ padding: 15px 0;
+}
+.class-list .item .img {
+ margin-bottom: 10px;
+}
+.class-list .item .img image {
+ height: 40px;
+}

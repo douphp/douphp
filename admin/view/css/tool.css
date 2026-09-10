@@ -1,0 +1,27 @@
+/* tool */
+#tool .directory-check {
+  font-family: \5b8b\4f53;
+}
+#tool .directory-check dl {
+  padding: 10px;
+}
+#tool .directory-check dl.no-write {
+  background: #fffbcc;
+}
+#tool .directory-check dt {
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 5px;
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+#tool .directory-check dl.no-write dt {
+  border-bottom: 1px solid #e6db55;
+}
+#tool .directory-check dt em {
+  float: right;
+  color: #777;
+}
+#tool .directory-check dd {
+  color: #999;
+}
+

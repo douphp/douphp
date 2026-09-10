@@ -1,0 +1,6 @@
+/* pages/health/work.wxss */
+.healthList .item { background-color: #FFF; padding: 14px 15px; margin-top: 6px; }
+.healthList .item .name { font-weight: bold; font-size: 28rpx; }
+.healthList .item .text { color: #999; }
+.healthList .item .meta { color: #999; font-size: 24rpx; margin-top: 6rpx; }
+.healthList .item .meta em { color: #666; }

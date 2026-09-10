@@ -1,0 +1,47 @@
+<!--pages/book/work.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+
+  <!-- 筛选器 -->
+  <view class="filter-box">
+   <picker mode="selector" range="{{item_list}}" range-key="name" value="{{selected_item_index}}" bindchange="onItemChange">
+    <view class="picker">{{selected_item_index > -1 && item_list[selected_item_index] ? item_list[selected_item_index].name : lang.book_item_name || '项目'}}</view>
+   </picker>
+   <picker mode="selector" range="{{status_list}}" range-key="format" value="{{selected_status_index}}" bindchange="onStatusChange">
+    <view class="picker">{{selected_status_index > -1 && status_list[selected_status_index] ? status_list[selected_status_index].format : lang.status || '状态'}}</view>
+   </picker>
+   <picker mode="date" value="{{date_start}}" start="2020-01-01" end="2030-12-31" bindchange="onDateStartChange">
+    <view class="picker">{{date_start || lang.book_date || '开始日期'}}</view>
+   </picker>
+   <picker mode="date" value="{{date_end}}" start="2020-01-01" end="2030-12-31" bindchange="onDateEndChange">
+    <view class="picker">{{date_end || lang.time_end || '结束日期'}}</view>
+   </picker>
+   <view class="btn-group">
+    <button class="btn-filter" bindtap="doFilter">筛选</button>
+    <button class="btn-reset" bindtap="resetFilter">重置</button>
+   </view>
+  </view>
+
+  <!-- 预约列表 -->
+  <view class="book-list">
+   <navigator wx:for="{{book_list}}" wx:for-item="item" wx:key="id" url="/pages/book/work/show?id={{item.id}}" class="item item-link">
+    <view class="head">
+     <view class="time">{{item.book_date}} {{item.time_label}}</view>
+     <view class="status">{{item.status.format}} ></view>
+    </view>
+    <view class="body">
+     <view class="info"><text class="label">{{lang.book_item_name || '项目'}}：</text><text class="value">{{item.item.name}}</text></view>
+     <view class="info"><text class="label">{{lang.book_name || '预约人'}}：</text><text class="value">{{item.name}}</text></view>
+     <view class="info"><text class="label">{{lang.book_phone || '电话'}}：</text><text class="value">{{item.phone}}</text></view>
+     <view class="info"><text class="label">{{lang.book_id_card || '身份证'}}：</text><text class="value">{{item.id_card}}</text></view>
+     <view class="info" wx:if="{{item.people_count > 1}}"><text class="label">{{lang.book_people_count || '人数'}}：</text><text class="value">{{item.people_count}}</text></view>
+     <view class="info" wx:if="{{item.price}}"><text class="label">{{lang.book_price || '价格'}}：</text><text class="value">¥{{item.price}}</text></view>
+    </view>
+   </navigator>
+   <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage || '加载中...'}}</view>
+   <view class="nomore" wx:if="{{nomore}}">{{lang.nomore || '没有更多了'}}</view>
+  </view>
+
+ </view>
+</view>

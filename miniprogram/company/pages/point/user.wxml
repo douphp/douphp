@@ -1,0 +1,21 @@
+<!--pages/point/user.wxml-->
+<navbar title="{{title}}" url="/pages/user/user"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="page-head">
+   <view class="action"><text class="link" data-url="/pages/point/point" bindtap="douNavigateTo">{{lang.point}}</text></view>
+   <view class="name">{{lang.point_log}}</view>
+  </view>
+  <view class="log-list">
+   <view class="item" wx:for="{{log_list}}" wx:for-item="item" wx:key="index">
+    <view class="h3"><text class="status">{{item.created_at}}</text><text class="name">{{item.action_format}}</text></view>
+    <view class="info">
+     <view>{{lang.point_from}}：{{item.from}}</view>
+     <view>{{lang.point_point}}：{{item.point}}</view>
+     <view>{{lang.point_total}}：{{item.total}}</view>
+    </view>
+   </view>
+   <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
+  </view>
+ </view>
+</view>

@@ -1,0 +1,40 @@
+/* pages/search/list.wxss */
+.search-list {
+
+}
+.search-list .empty {
+ padding: 40px 15px;
+ text-align: center;
+ color: #999;
+}
+/* search-box */
+.search-list .search-box {
+ padding-top: 20px;
+}
+.search-list .search-box .keyword-box {
+ line-height: 36px;
+ height: 36px;
+ padding: 0 15px;
+ background-color: #F5F5F5;
+}
+.search-list .search-box .keyword-box .bi {
+ font-size: 14px;
+ margin-right: 10px;
+ color: #999999;
+}
+/* sort-box */
+.sort-box {
+ display: flex;
+ justify-content: space-around;
+}
+.sort-box .item {
+ padding: 12px 10px;
+ color: #777;
+}
+.sort-box .item.active {
+ color: #CC0000;
+}
+.sort-box .item .bi {
+ margin-left: 5px;
+ font-size: 12px;
+}

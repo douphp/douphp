@@ -1,0 +1,2 @@
+/* pages/vote/options.wxss */
+@import "./vote.wxss";

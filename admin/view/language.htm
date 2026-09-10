@@ -1,0 +1,167 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="copyright" content="DouCo Co.,Ltd." />
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="csrf-token" content="{$csrf_token}">
+<title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+<link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+<link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+<link href="css/common.css" rel="stylesheet" type="text/css">
+{include file="inc/javascript.tpl"}
+</head>
+<body>
+<div id="dou">
+ {include file="inc/header.tpl"}
+ {include file="inc/sidebar.tpl"}
+ <div id="dou-content">
+  {include file="inc/toolbar.tpl"}
+  <div class="dou-main">
+   <div id="setting" class="dou-page">
+    <!-- {if $rec eq 'default'} 语言列表 -->
+    {include file="inc/page_header.tpl"}
+    <div id="list">
+     <table class="table">
+      <tr>
+       <th width="120" class="text-left">{$lang.language_name}</th>
+       <th class="m-none text-center">{$lang.language_language_pack}</th>
+       <th class="m-none text-center">{$lang.language_site_logo}</th>
+       <th class="m-none text-center" width="60">{$lang.sort}</th>
+       <th width="80" class="text-center">{$lang.handler}</th>
+      </tr>
+      <!-- {foreach from=$language_list item=language} -->
+      <tr>
+       <td>{$language.name}</td>
+       <td class="m-none text-center">{$language.language_pack}</td>
+       <td class="m-none text-center"><!-- {if $language.site_logo} --><img src="../{$language.site_logo}" height="40" /><!-- {/if} --></td>
+       <td class="m-none text-center">{$language.sort}</td>
+       <td class="text-center"><a href="{url link='admin.language.edit' id=$language.language_id}">{$lang.edit}</a> | <a href="javascript:;" class="js-delete" data-url="{url link='admin.language.destroy' id=$language.language_id}">{$lang.del}</a></td>
+      </tr>
+      <!-- {/foreach} -->
+     </table>
+    </div>
+    <!-- {/if} -->
+    <!-- {if $rec eq 'create' || $rec eq 'edit' || $rec eq 'system'} 语言添加或编辑 -->
+    {include file="inc/page_header.tpl"}
+    <!-- {if $rec eq 'system'} -->
+    <div class="tab" id="language-setting-tabs">
+     <ul class="tab-title">
+      <!-- {foreach from=$cfg item=tab} -->
+      <li><a href="{url link='admin.setting'}#{$tab.name}">{$tab.lang}</a></li>
+      <!-- {/foreach} -->
+      <!-- {if $parameter_list} -->
+      <li><a href="{url link='admin.setting'}#parameter">{$lang.parameter}</a></li>
+      <!-- {/if} -->
+      <!-- {if $sms_tab} -->
+      <li><a href="{url link='admin.sms'}">{$lang.sms}</a></li>
+      <!-- {/if} -->
+      <!-- {foreach from=$lang_list item=item} -->
+      <li{if $item.cur} class="active"{/if}><a href="{url link='admin.language.system' language_pack=$item.language_pack}">{$item.name}{$lang.language_setting}</a></li>
+      <!-- {/foreach} -->
+     </ul>
+    </div>
+    <!-- {/if} -->
+    <div class="form-box mt-20">
+     <form action="{$form_action}" method="post" enctype="multipart/form-data"><input type="hidden" name="_method" value="{$form_method}" />
+      <div class="form">
+       <!-- {if $rec neq 'system'} -->
+       <div class="form-item">
+        <div class="form-label">{$lang.language_name}</div>
+        <div class="input-block">
+         <input type="text" name="name" value="{$language.name}" size="80" class="input" />
+        </div>
+       </div>
+       <div class="form-item">
+        <div class="form-label">{$lang.language_language_pack}</div>
+        <div class="input-block">
+         <select class="select" name="language_pack">
+          <option value="0">{$lang.uncategorized}</option>
+          <!-- {foreach from=$language_pack item=pack} -->
+          <option value="{$pack.value}"{if $pack.cur} selected="selected"{/if}{if $pack.selected} class="selected"{/if}>{$pack.value}</option>
+          <!-- {/foreach} -->
+         </select>
+         <p class="cue">{$lang.language_language_pack_cue}</p>
+        </div>
+       </div>
+       <!-- {/if} -->
+       <div class="form-item">
+        <div class="form-label">{$lang.language_site_name}</div>
+        <div class="input-block">
+         <input type="text" name="site_name" value="{$language.site_name}" size="80" class="input" />
+        </div>
+       </div>
+       <div class="form-item">
+        <div class="form-label">{$lang.language_site_title}</div>
+        <div class="input-block">
+         <input type="text" name="site_title" value="{$language.site_title}" size="130" class="input" />
+        </div>
+       </div>
+       <div class="form-item">
+        <div class="form-label">{$lang.language_site_keywords}</div>
+        <div class="input-block">
+         <input type="text" name="site_keywords" value="{$language.site_keywords}" size="130" class="input" />
+        </div>
+       </div>
+       <div class="form-item">
+        <div class="form-label">{$lang.language_site_description}</div>
+        <div class="input-block">
+         <textarea name="site_description" cols="83" rows="3" class="textarea" />{$language.site_description}</textarea>
+        </div>
+       </div>
+       <div class="form-item">
+        <div class="form-label">{$lang.language_site_logo}</div>
+        <div class="input-block">
+         <input type="file" name="site_logo" size="38" />
+         {if $language.site_logo}<a href="../{$language.site_logo}" target="_blank"><img src="images/icon_yes.png"></a>{else}<img src="images/icon_no.png">{/if}</div>
+       </div>
+       <div class="form-item">
+        <div class="form-label">{$lang.language_address}</div>
+        <div class="input-block">
+         <input type="text" name="address" value="{$language.address}" size="80" class="input" />
+        </div>
+       </div>
+       <div class="form-item">
+        <div class="form-label">{$lang.language_tel}</div>
+        <div class="input-block">
+         <input type="text" name="tel" value="{$language.tel}" size="40" class="input" />
+        </div>
+       </div>
+       <div class="form-item">
+        <div class="form-label">{$lang.language_fax}</div>
+        <div class="input-block">
+         <input type="text" name="fax" value="{$language.fax}" size="40" class="input" />
+        </div>
+       </div>
+       <div class="form-item">
+        <div class="form-label">{$lang.language_email}</div>
+        <div class="input-block">
+         <input type="text" name="email" value="{$language.email}" size="40" class="input" />
+        </div>
+       </div>
+       <div class="form-item">
+        <div class="form-label">{$lang.sort}</div>
+        <div class="input-block"><input type="text" name="sort" value="{if $language.sort}{$language.sort}{else}50{/if}" size="5" class="input" /></div>
+       </div>
+       <div class="form-item">
+        <!-- {if $rec eq 'system'} -->
+        <input type="hidden" name="name" value="{$language.name}" />
+        <input type="hidden" name="language_pack" value="{$language.language_pack}" />
+        <input type="hidden" name="mode" value="system" />
+        <!-- {/if} -->
+        <input type="hidden" name="token" value="{$token}" />
+        <input type="hidden" name="site_logo" value="{$language.site_logo}">
+        <input type="hidden" name="language_id" value="{$language.language_id}">
+        <input class="btn" type="submit" value="{$lang.btn_submit}" />
+       </div>
+      </div>
+     </form>
+    </div>
+    <!-- {/if} -->
+   </div>
+ </div>
+  </div>
+ {include file="inc/footer.tpl"}
+ </div>
+</body>
+</html>

@@ -1,0 +1,62 @@
+<!--pages/aftersale/aftersale_apply.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="aftersaleApply">
+   <form bindsubmit="aftersaleApply">
+    <view class="head">{{lang.aftersale_item_list}}
+     <text class="em">（可以不选）</text>
+    </view>
+    <view class="itemList">
+     <checkbox-group bindchange="checkboxChange">
+      <view class="dl" wx:for="{{item_list}}" wx:for-item="item" wx:key="i">
+       <label class="checkbox">
+        <view class="dt">
+         <checkbox value="{{item.item_id}}" checked="{{item.checked}}"/>
+         <image src="{{item.thumb}}" />
+        </view>
+        <view class="dd">
+         <view class="p">{{item.name}}</view>
+         <view class="span">{{item.price}}\n x {{item.item_number}}</view>
+        </view>
+       </label>
+      </view>
+     </checkbox-group>
+     <input type="text" name="item_list" value="{{item_list_data}}" hidden="true" />
+    </view>
+    <view class="form-basic">
+     <view class="dl">
+      <view class="dt">{{lang.aftersale_reason}}
+       <text class="i">*</text>
+      </view>
+      <view class="dd"> <textarea name="reason" cols="60" rows="5" class="text-area" value="{{user_info.defined}}" placeholder="请填写退换货原因" /> </view>
+     </view>
+     <view class="dl">
+      <view class="dt">{{lang.aftersale_image}}</view>
+      <view class="dd">
+       <view id="galleryFile" class="fileBox">
+        <view class="fileAdd">
+         <view class="li btnFile" data-type="gallery" data-module="aftersale" data-item_id="" data-draft_token="{{draft_token}}" data-folder="yes" bindtap="filebox">{{lang.btn_upload}}</view>
+        </view>
+        <view class="fileList">
+         <view class="li" wx:for="{{img_list}}" wx:for-item="gallery" wx:key="g">
+          <image src="{{gallery.file}}" class="img" />
+          <text data-number="{{gallery.number}}" data-item_id="" data-draft_token="{{draft_token}}" bindtap="fileDel" class="del">X</text>
+         </view>
+        </view>
+       </view>
+       <view class="cueGray">{{lang.aftersale_image_cue}}</view>
+      </view>
+     </view>
+     <view class="dl">
+      <view class="dd">
+       <input type="text" name="order_sn" value="{{order.order_sn}}" hidden="true" />
+       <input type="text" name="draft_token" value="{{draft_token}}" hidden="true" />
+       <button class="btn" formType="submit">{{lang.btn_submit}}</button>
+      </view>
+     </view>
+    </view>
+   </form>
+  </view>
+ </view>
+</view>

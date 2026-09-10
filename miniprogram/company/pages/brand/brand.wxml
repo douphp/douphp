@@ -1,0 +1,15 @@
+<!--pages/brand/brand.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="grid-list padding-y">
+   <navigator class="item" hover-class="mouseDown" wx:for="{{brand_list}}" wx:key="index" wx:for-item="brand" url="{{brand.url}}">
+    <view class="img">
+     <image src="{{brand.image}}" mode="widthFix" style="height: 183px" />
+    </view>
+    <view class="title">{{brand.name}}</view>
+   </navigator>
+   <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
+  </view>
+ </view>
+</view>

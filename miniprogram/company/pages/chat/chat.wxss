@@ -1,0 +1,2 @@
+/* pages/chat/chat.wxss AI助手默认应用对话页 */
+@import "conversation.wxss";

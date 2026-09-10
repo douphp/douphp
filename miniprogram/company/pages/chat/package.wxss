@@ -1,0 +1,67 @@
+/* pages/chat/package.wxss AI套餐 */
+.body {
+  padding-bottom: 40rpx;
+}
+.wrap {
+  padding: 20rpx 30rpx;
+}
+
+.chat-package-list .package-item {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 30rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+}
+.chat-package-list .package-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 20rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+.chat-package-list .package-header .name {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+.chat-package-list .package-header .price {
+  font-size: 36rpx;
+  color: #fa541c;
+  font-weight: bold;
+}
+.chat-package-list .package-header .unit {
+  font-size: 24rpx;
+  color: #999;
+  font-weight: normal;
+}
+.chat-package-list .package-features {
+  padding: 20rpx 0;
+}
+.chat-package-list .feature {
+  display: flex;
+  justify-content: space-between;
+  font-size: 26rpx;
+  padding: 10rpx 0;
+}
+.chat-package-list .feature .label {
+  color: #999;
+}
+.chat-package-list .feature .value {
+  color: #333;
+}
+.chat-package-list .package-action {
+  background: #4a90e2;
+  color: #fff;
+  text-align: center;
+  border-radius: 40rpx;
+  padding: 18rpx 0;
+  font-size: 28rpx;
+}
+
+.chat-empty {
+  text-align: center;
+  color: #999;
+  font-size: 26rpx;
+  padding: 80rpx 0;
+}

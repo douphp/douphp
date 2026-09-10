@@ -1,0 +1,26 @@
+/* pages/health/health_apply.wxss — 与 contact_create 共用 app.wxss 中 form-basic / page-head */
+
+.form-section-head {
+  font-size: 15px;
+  font-weight: bold;
+  color: #000;
+  padding: 16px 0 8px;
+  margin-top: 4px;
+  border-bottom: 1px solid #eee;
+}
+
+.form-section-head:first-child {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.form-basic .dl .dt .unit {
+  font-weight: normal;
+  color: #999;
+}
+
+.form-basic .dl .dd.select-box .select {
+  flex: 1;
+  min-width: 120px;
+  padding: 0 10px;
+}

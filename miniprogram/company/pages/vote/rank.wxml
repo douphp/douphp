@@ -1,0 +1,21 @@
+<!--pages/vote/rank.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="vote-head">
+   <view class="h1">{{vote.name}} <navigator class="a" url="{{vote.url_vote}}">{{lang.vote_list}}</navigator></view>
+  </view>
+  <view class="rank-list">
+   <view class="item head">
+    <view class="rank">{{lang.vote_option_rank}}</view>
+    <view class="name">{{lang.vote_option_name}}</view>
+    <view class="number">{{lang.vote_option_number}}</view>
+   </view>
+   <view class="item" wx:for="{{option_list}}" wx:key="index" wx:for-index="index" wx:for-item="option">
+    <view class="rank">{{index+1}}</view>
+    <view class="name">{{option.number}}：{{option.name}}</view>
+    <view class="number">{{option.poll}}{{lang.vote_option_poll_unit}}</view>
+   </view>
+  </view>
+ </view>
+</view>

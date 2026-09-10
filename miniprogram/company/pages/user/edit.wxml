@@ -1,0 +1,83 @@
+<!--pages/user/edit.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="form-basic form-padding">
+   <form bindsubmit="userEdit">
+    <view class="dl">
+     <view class="dt">{{lang.user_nickname}}</view>
+     <view class="dd">
+      <input name="nickname" type="text" class="input" value="{{dou.user.nickname}}" placeholder="{{lang.user_nickname_placeholder}}" placeholder-class="placeholder" />
+      <view class="cue" wx:if="{{wrong.nickname}}">{{wrong.nickname}}</view>
+     </view>
+    </view>
+    <view class="dl">
+     <view class="dt">{{lang.user_contact}}
+      <view class="i">*</view>
+     </view>
+     <view class="dd">
+      <input name="contact" type="text" class="input" value="{{dou.user.contact}}" placeholder="{{lang.user_contact_placeholder}}" placeholder-class="placeholder" />
+      <view class="cue" wx:if="{{wrong.contact}}">{{wrong.contact}}</view>
+     </view>
+    </view>
+    <view class="dl">
+     <view class="dt">{{lang.user_phone}}
+      <view class="i">*</view>
+     </view>
+     <view class="dd">
+      <input name="phone" type="text" class="input" value="{{dou.user.phone}}" placeholder="{{lang.user_telphone_placeholder}}" placeholder-class="placeholder" />
+      <view class="cue" wx:if="{{wrong.phone}}">{{wrong.phone}}</view>
+     </view>
+    </view>
+    <view class="dl">
+     <view class="dt">{{lang.user_address}}</view>
+     <view class="dd">
+      <input name="address" type="text" class="input" value="{{dou.user.address}}" placeholder="{{lang.user_address_placeholder}}" placeholder-class="placeholder" />
+      <view class="cue" wx:if="{{wrong.address}}">{{wrong.address}}</view>
+     </view>
+    </view>
+    <view class="dl">
+     <view class="dt">{{lang.user_postcode}}</view>
+     <view class="dd">
+      <input name="postcode" type="text" class="input" value="{{dou.user.postcode}}" placeholder="{{lang.user_postcode_placeholder}}" placeholder-class="placeholder" />
+      <view class="cue" wx:if="{{wrong.postcode}}">{{wrong.postcode}}</view>
+     </view>
+    </view>
+    <view class="dl">
+     <view class="dt">{{lang.user_sex}}</view>
+     <view class="dd">
+      <radio-group class="radio-group" bindchange="radioSex">
+       <label class="radio" wx:for="{{dou.user.sex_list}}" wx:key="sex">
+        <radio value="{{item.value}}" checked="{{item.checked}}"/>
+        {{item.lang}} </label>
+      </radio-group>
+      <input type="text" name="sex" value="{{sex}}" hidden="true" />
+     </view>
+    </view>
+    <view class="dl" wx:if="{{dou.user.avatar}}">
+     <view class="dt">{{lang.user_avatar}}
+      <view class="i">*</view>
+     </view>
+     <view class="dd">
+      <view class="inputFile">
+       <view class="imgShow">
+        <image class="img" src="{{avatarTemp}}" wx:if="{{avatarTemp}}" />
+        <image class="img" src="{{dou.user.avatar}}" wx:else />
+       </view>
+       <button class="imgBtn" bindtap="uploadAvatar">{{lang.user_avatar_upload}}</button>
+      </view>
+     </view>
+    </view>
+    <view class="dl" wx:if="{{dou.user.defined}}">
+     <view class="dt">{{lang.user_defined}}</view>
+     <view class="dd">
+      <textarea name="defined" bindblur="bindTextAreaBlur" auto-height value="{{dou.user.defined}}" />
+     </view>
+    </view>
+    <view class="action">
+     <button class="btn" formType="submit">{{lang.btn_submit}}</button>
+    </view>
+   </form>
+  </view>
+ </view>
+</view>

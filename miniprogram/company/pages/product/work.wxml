@@ -1,0 +1,31 @@
+<!--pages/user/product.wxml-->
+<navbar title="{{title}}" url="/pages/work/work" className="white"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="page-head">
+   <view class="action"><text class="link" data-url="/pages/product/add" bindtap="douNavigateTo">{{lang.product_add}}</text></view>
+   <view class="name">{{lang.product_list}}</view>
+  </view>
+  <view class="product-list" wx:if="{{product_list}}">
+   <view class="item" hover-class="mouseDown" wx:for="{{product_list}}" wx:key="data" wx:for-item="product">
+    <view class="img">
+     <image src="{{product.thumb}}" mode="widthFix" wx:if="{{product.thumb}}" />
+    </view>
+    <view class="info">
+     <view class="name">{{product.title}}</view>
+     <view class="sub">{{product.cate_info.name}}</view>
+     <view class="price-box">
+      <text class="price">{{product.sale_price.format}}</text>
+      <text class="price-cue" wx:if="{{product.sale_price.name}}">{{product.sale_price.name}}</text>
+      <text class="price-gray" wx:if="{{product.sale_price.type != 'original'}}">{{product.price}}</text>
+     </view>
+    </view>
+    <view class="handle">
+     <text class="action" data-url="/pages/product/edit?id={{product.id}}" bindtap="douNavigateTo">{{lang.edit}}</text>
+     <text class="action" data-id="{{product.id}}" bindtap="del">{{lang.del}}</text>
+    </view>
+   </view>
+   <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
+  </view>
+ </view>
+</view>

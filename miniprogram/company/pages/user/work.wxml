@@ -1,0 +1,22 @@
+<!--pages/user/work.wxml-->
+<navbar title="{{title}}" url="/pages/work/work"></navbar>
+<view class="body">
+ <view class='wrap'>
+  <view class="table">
+   <view class="head">
+    <view class="cell">{{lang.user_username}}</view>
+    <view class="cell" wx:if="{{user_level_has_data}}">{{lang.user_level}}</view>
+    <view class="cell">{{lang.user_add_time}}</view>
+   </view>
+
+   <view class="body">
+    <view wx:for="{{user_list}}" wx:key="user_id" wx:for-item="user" class="row">
+     <view class="cell">{{user.user.username}}</view>
+     <view class="cell" wx:if="{{user_level_has_data}}">{{user.level_name}}</view>
+     <view class="cell">{{user.created_at}}</view>
+    </view>
+   </view>
+  </view>
+  <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
+ </view>
+</view>

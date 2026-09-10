@@ -1,0 +1,12 @@
+<!--pages/page/about.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="page">
+   <view class="page-name">{{page.name}}</view>
+   <view class="content">
+    <mp-html content="{{page.content}}" />
+   </view>
+  </view>
+ </view>
+</view>

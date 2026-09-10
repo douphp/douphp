@@ -1,0 +1,23 @@
+<!--list.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="page-head no-margin">
+   <view class="name">{{lang.point}}</view>
+  </view>
+  <view class="sort-box">
+   <view class="item{{item.active ? ' active' : ''}}" wx:for="{{sort_list}}" wx:key="s" wx:for-item="item" data-b="{{item.param.b}}" data-s="{{item.param.s}}" bindtap="douSort">{{item.name}}<text class="bi bi-caret-{{item.icon}}" wx:if="{{item.icon}}"></text></view>
+  </view>
+  <view class="grid-list left">
+   <navigator class="item" hover-class="mouseDown" wx:for="{{product_list}}" wx:key="p" wx:for-index="i" wx:for-item="product" url="{{product.url}}">
+    <view class="img">
+     <image src="{{product.thumb}}" mode="widthFix" style="height: 183px" />
+    </view>
+    <view class="title">{{product.name}}</view>
+    <view class="row">{{lang.price}}：{{product.price}}</view>
+    <view class="row">{{lang.product_point}}：<text class="price">{{product.point}}</text></view>
+   </navigator>
+  </view>
+  <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
+ </view>
+</view>

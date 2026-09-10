@@ -1,0 +1,27 @@
+<!--search.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="page-search">
+  <view class="wrap">
+   <view class="search-bar">
+    <form bindsubmit="douSearch">
+     <view class="bar-form">
+      <view class="keyword-box">
+       <text class="bi bi-search"></text>
+       <input class="keyword" type="text" name="keyword" value="{{keyword}}" placeholder="{{lang.search_product_cue || '请输入关键词'}}" />
+      </view>
+      <button formType="submit" class="btn-search">{{lang.search || '搜索'}}</button>
+     </view>
+    </form>
+    <view class="bar-head">
+     <text>搜索历史</text>
+     <text class="del" bindtap="delHistory">删除</text>
+    </view>
+   </view>
+   <view class="history-list" wx:if="{{keyword_list.length}}">
+    <view class="item" wx:for="{{keyword_list}}" wx:key="k" wx:for-item="word" data-keyword="{{word}}" bindtap="douKeyword" wx:if="{{word}}">{{word}}</view>
+   </view>
+   <view class="loading" wx:if="{{loading}}">更多加载中…</view>
+  </view>
+ </view>
+</view>

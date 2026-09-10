@@ -1,0 +1,37 @@
+<!--pages/vote/options.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="vote-head">
+   <view class="h1">{{vote.name}} <navigator class="a" url="{{vote.url_rank}}">{{lang.vote_rank}}</navigator></view>
+   <view class="time">{{vote.start_at}} ~ {{vote.end_at}}</view>
+   <view class="timeStatus" wx:if="{{vote.time_status}}"> <text>{{vote.time_status}}</text> 
+    <navigator class="a" url="{{vote.url_rank}}" wx:if="{{vote.url_rank}}">{{lang.vote_rank}}</navigator>
+   </view>
+   <view class="countVote">
+    <view class="dl">
+     <view class="dd">{{count_vote.option}}</view>
+     <view class="dt">{{lang.vote_count_option}}</view>
+    </view>
+    <view class="dl">
+     <view class="dd">{{count_vote.log}}</view>
+     <view class="dt">{{lang.vote_count_log}}</view>
+    </view>
+    <view class="dl">
+     <view class="dd">{{count_vote.click}}</view>
+     <view class="dt">{{lang.vote_count_click}}</view>
+    </view>
+   </view>
+   <view class="maxVoteNumber">{{vote.max_vote_number_text}}</view>
+  </view>
+  <view class="option-list"> 
+   <view class="item" wx:for="{{option_list}}" wx:key="index" wx:for-index="index" wx:for-item="option">
+    <view class="img"><navigator class="a" url="{{option.url}}"><image src="{{option.image}}" mode="widthFix" /></navigator><view class="number">{{option.number}} <text>({{option.poll}}{{lang.vote_option_poll_unit}})</text></view></view>
+    <view class="name">{{option.name}}</view>
+    <view class="voteName">{{vote.name}}</view>
+    <view class="vote-btn"><text class="{{option.ip_voted ? 'lock' : ''}}" data-option_id="{{option.option_id}}" bindtap="douVote">{{lang.vote_btn}}</text></view>
+   </view>
+  </view>
+  <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
+ </view>
+</view>

@@ -1,0 +1,88 @@
+/* pages/money/work_desk.wxss */
+/* -- user-info -- */
+.work-desk .user-info {
+ display: flex;
+ justify-content: space-around;
+ color: #777;
+ margin-bottom: 20px;
+ border-bottom: 1px solid #EEE;
+ padding-bottom: 20px;
+}
+.work-desk .user-info .item {
+ font-size: 16px;
+ color: #333;
+}
+.work-desk .user-info .item text {
+ font-weight: bold;
+}
+/* -- use -- */
+.work-desk .use {
+ text-align: center;
+ border-bottom: 1px solid #EEE;
+ padding-bottom: 20px;
+ margin-bottom: 30px;
+}
+.work-desk .use .use-box {
+ padding: 20px 0;
+ box-sizing: border-box;
+ display: flex;
+ align-items: center;
+ justify-content: space-between;
+}
+.work-desk .use .use-box .keyword-box {
+ flex: 1;
+ display: flex;
+ align-items: center;
+ line-height: 36px;
+ height: 36px;
+ padding: 0 15px;
+ background-color: #F2F2F2;
+ border-radius: 20px;
+ margin-right: 10px;
+}
+.work-desk .use .use-box .keyword-box .fa-search {
+ font-size: 16px;
+ margin-right: 10px;
+ color: #999999;
+}
+.work-desk .use .use-box .keyword-box .keyword {
+ width: 100%;
+}
+.work-desk .use .use-box .btn-search {
+ width: 100px;
+ height: 36px;
+ line-height: 36px;
+ font-size: 14px;
+ border-radius: 20px;
+ background-color: #28B779;
+ color: #FFF;
+}
+/* -- used -- */
+.work-desk .used {
+ text-align: center;
+ border-bottom: 1px solid #EEE;
+ padding-bottom: 20px;
+ margin-bottom: 30px;
+}
+.work-desk .used .success {
+ color: red;
+ font-size: 20px;
+ margin-bottom: 20px;
+}
+.work-desk .used .action text {
+ display: inline-block;
+ margin: 0 5px;
+ padding: 0 20px;
+ line-height: 40px;
+ background-color: #DDD;
+ border-radius: 20px;
+}
+.work-desk .used .action text.next {
+ background-color: #0072C6;
+ color: #FFF;
+}
+/* -- user-money -- */
+.work-desk .user-money .head {
+ font-size: 18px;
+ margin-bottom: 20px;
+}

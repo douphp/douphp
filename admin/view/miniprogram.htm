@@ -1,0 +1,302 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="copyright" content="DouCo Co.,Ltd." />
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="csrf-token" content="{$csrf_token}">
+<title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+<link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+<link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+<link href="css/common.css" rel="stylesheet" type="text/css">
+<link href="css/cropper.min.css" rel="stylesheet" type="text/css">
+<link href="css/cloud.css" rel="stylesheet" type="text/css">
+<link href="css/miniprogram.css" rel="stylesheet" type="text/css">
+{include file="inc/javascript.tpl"}
+</head>
+<body>
+<div id="dou"> {include file="inc/header.tpl"}
+ {include file="inc/sidebar.tpl"}
+ <div id="dou-content"> {include file="inc/toolbar.tpl"}
+  <div class="dou-main{if $sub_cur neq 'miniprogram_nav'} has-subnav{/if}">
+   <!-- {if $sub_cur neq 'miniprogram_nav'} -->
+   {include file="inc/miniprogram_sub_menu.tpl"}
+   <!-- {/if} -->
+   <div id="miniprogram" class="dou-page">
+     <!-- {if $rec eq 'default'} 我的小程序 开始 -->
+     {include file="inc/page_header.tpl"}
+     <div class="enable">
+      <h2>{$lang.miniprogram_enabled}</h2>
+      <p><img src="{$miniprogram_enable.image}" width="170" height="230"></p>
+      <dl>
+       <dt>{$miniprogram_enable.miniprogram_name} {$miniprogram_enable.slug} {$miniprogram_enable.version}</dt>
+       <dd>{$lang.author}：<a href="{$miniprogram_enable.author_uri}" target="_blank">{$miniprogram_enable.author}</a></dd>
+       <dd>{$lang.miniprogram_description}：{$miniprogram_enable.description}</dd>
+       <dd style="margin-top: 20px"><a class="btn-sync js-post" href="{url link='admin.miniprogram.sync'}"><i class="bi-arrow-repeat"></i>{$lang.miniprogram_sync}</a></dd>
+      </dl>
+     </div>
+     <div class="miniprogram-list">
+      <h2>{$lang.miniprogram_installed}</h2>
+      <!-- {foreach from=$miniprogram_list item=miniprogram} -->
+      <dl class="miniprogram">
+       <p><a href="{url link='admin.miniprogram.enable' slug=$miniprogram.slug}" class="js-post"><img src="{$miniprogram.image}" width="170" height="230"></a></p>
+       <dt>{$miniprogram.miniprogram_name} {$miniprogram_enable.version}</dt>
+       <dd>{$lang.author}：<a href="{$miniprogram.author_uri}" target="_blank">{$miniprogram.author}</a></dd>
+       <dd class="btn-list"><a href="javascript:;" class="del js-delete" data-url="{url link='admin.miniprogram.destroy' slug=$miniprogram.slug}">{$lang.del}</a> <span><a href="{url link='admin.miniprogram.enable' slug=$miniprogram.slug}" class="js-post">{$lang.enabled}</a></span></dd>
+      </dl>
+      <!-- {/foreach} -->
+     </div>
+     <!-- {/if} 我的小程序 结束 -->
+     <!-- {if $rec eq 'release'} 发布小程序 开始 -->
+     {include file="inc/page_header.tpl"}
+     <div class="release"> 您需要知道：小程序最终是要允许在微信服务器上的，所您需要将DouPHP提供的小程序代码通过微信开发者工具发布到微信服务器，小程序通过接口调用网站内的数据！ <br>
+      <br>
+      小程序目录在站根目录下的“{$MINIPROGRAM_DIR}”目录下，其中“{$MINIPROGRAM_DIR}/{$site.miniprogram_code}”才是真正需要通过“微信开发者工具”上传的目录（也就是您小程序的项目目录），它是小程序真正的运行代码，而“{$MINIPROGRAM_DIR}”下面的PHP文件属于后端处理数据的，这些都是后期在小程序里在线调用的，没有直接传到小程序里。<br>
+      我们提供详细的图文说明，<a href="https://www.douphp.com/help/handbook/37.html" target="_blank">点击查看小程序发布帮助文档</a><br>
+      如果您不会发布，<a href="https://www.douphp.com/contact.html" target="_blank">申请客服协助</a> <br>
+      <br>
+      小程序要求网站必须开启SSL，也就是网址必须是https开头的，所以您需要咨询您的域名和主机的服务商开启SSL，如果是本机测试，可以临时关闭这个要求，方法是在 “微信开发者工具” 顶部菜单 “设置 -> 项目设置 -> 不校验合法域名、web-view（业务域名）、TLS 版本以及 HTTPS 证书”将这个选项打勾即可。<br>
+      这里附上“微信开发者工具”帮助文档连接，<a href="https://developers.weixin.qq.com/miniprogram/dev/devtools/devtools.html" target="_blank">点击查看小程序帮助文档</a><br>
+      <br>
+      DouPHP将陆续开发各类小程序，请点击左侧“更多小程序”，或访问我们的官方网站 <a href="https://www.douphp.com" target="_blank">www.douphp.com</a>。<br>
+     </div>
+     <!-- {/if} 发布小程序 结束 -->
+     <!-- {if $rec eq 'system'} 小程序设置 开始 -->
+     {include file="inc/page_header.tpl"}
+     <div class="system">
+      <form action="{url link='admin.miniprogram.system.update'}" method="post">
+       <div class="form">
+        <!-- {foreach from=$parameter_list item=parameter} -->
+        <div class="form-item">
+         <div class="form-label">{$parameter.lang}</div>
+         <div class="input-block">
+          <input type="text" name="{$parameter.name}" value="{$parameter.value}" size="50" class="input" />
+          <!-- {if $parameter.cue} -->
+          <p class="cue">{$parameter.cue}</p>
+          <!-- {/if} -->
+         </div>
+        </div>
+        <!-- {/foreach} -->
+        <div class="form-item">
+         <input type="hidden" name="token" value="{$token}" />
+         <input class="btn" type="submit" value="{$lang.btn_submit}" />
+        </div>
+       </div>
+      </form>
+     </div>
+     <!-- {/if} 小程序设置 结束 -->
+     <!-- {if $rec eq 'nav'} 小程序导航 开始 -->
+     {include file="inc/page_header.tpl"}
+      <!-- {if $act eq 'default'} 导航列表 -->
+      <div class="tab" id="miniprogram-nav-tabs">
+       <ul class="tab-title">
+        <li{if $type eq 'miniprogram_top'} class="active"{/if}><a href="{url link='admin.miniprogram.nav'}">{$lang.miniprogram_nav_miniprogram_top}</a></li>
+        <li{if $type eq 'miniprogram_tabbar'} class="active"{/if}><a href="{url link='admin.miniprogram.nav' type=miniprogram_tabbar}">{$lang.miniprogram_nav_miniprogram_tabbar}</a></li>
+       </ul>
+      </div>
+      <table class="table">
+       <tr>
+        <th width="113" class="text-center">{$lang.nav_name}</th>
+        <th class="text-left">{$lang.nav_link}</th>
+        <th width="80" class="text-center">{$lang.nav_status}</th>
+        <th width="80" class="text-center">{$lang.sort}</th>
+        <th width="120" class="text-center">{$lang.handler}</th>
+       </tr>
+       <!-- {foreach from=$nav_list item=nav} -->
+       <tr>
+        <td>{$nav.name} <!-- {if $nav.icon} --> <a href="{$nav.icon}" target="_blank"><img src="{$nav.icon}" width="12" height="12" align="absMiddle"></a><!-- {/if} --></td>
+        <td>{$nav.url}</td>
+        <td class="text-center">{$nav.status.format}</td>
+        <td class="text-center">{$nav.sort}</td>
+        <td class="text-center"><a href="{url link='admin.miniprogram.nav.edit' id=$nav.id}">{$lang.edit}</a> | <a href="javascript:;" class="js-delete" data-url="{url link='admin.miniprogram.nav.destroy' id=$nav.id}">{$lang.del}</a></td>
+       </tr>
+       <!-- {/foreach} -->
+      </table>
+      <!-- {/if} -->
+      <!-- {if $act eq 'add'} 导航添加 -->
+      <form action="{url link='admin.miniprogram.nav.store'}" method="post" enctype="multipart/form-data">
+       <div class="form">
+        <div class="form-item">
+         <div class="form-label">{$lang.nav_system}</div>
+         <div class="input-block">
+          <select class="select" name="nav_menu" onchange="change('name', this)">
+           <option value="">{$lang.nav_menu}</option>
+           <!-- {foreach from=$catalog_list item=catalog} -->
+           <option value="{$catalog.module},{$catalog.guide}"{if $catalog.cur} selected="selected"{/if} title="{$catalog.name}">{$catalog.mark} {$catalog.name}</option>
+           <!-- {/foreach} -->
+          </select>
+          <p class="cue">{$lang.miniprogram_nav_system_cue}</p>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.nav_name}</div>
+         <div class="input-block">
+          <input type="text" id="name" name="name" value="" size="40" class="input" />
+          <span class="action" data-field="name">{$btn_lang.name nofilter}</span>
+         </div>
+        </div>
+        <!-- {if $site.open_icon} -->
+        <div class="form-item">
+         <div class="form-label">{$lang.icon}</div>
+         <div class="input-block">
+          {include file="inc/file_input.tpl" name="icon" value=$nav_info.icon file_number=$nav_info.file_number}</div>
+        </div>
+        <!-- {/if} -->
+        <div class="form-item">
+         <div class="form-label">{$lang.nav_type}</div>
+         <div class="input-block">{$type_name}</div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.sort}</div>
+         <div class="input-block">
+          <input type="text" name="sort" value="50" size="5" class="input" />
+         </div>
+        </div>
+        <div class="form-item">
+         <input type="hidden" name="token" value="{$token}" />
+         <input type="hidden" name="type" value="{$type}" />
+         <input class="btn" type="submit" value="{$lang.btn_submit}" />
+        </div>
+       </div>
+      </form>
+      <!-- {/if} -->
+      <!-- {if $act eq 'edit'} 导航编辑 -->
+      <form action="{url link='admin.miniprogram.nav.update' id=$nav_info.id}" method="post" enctype="multipart/form-data"><input type="hidden" name="_method" value="PUT" />
+       <div class="form">
+        <!-- {if $nav_info.module neq 'nav'} -->
+        <div class="form-item">
+         <div class="form-label">{$lang.nav_system}</div>
+         <div class="input-block">
+          <select class="select" name="nav_menu" onchange="change('name', this)">
+           <option value="">{$lang.nav_menu}</option>
+           <!-- {foreach from=$catalog_list item=catalog} -->
+           <option value="{$catalog.module},{$catalog.guide}"{if $catalog.cur} selected="selected"{/if} title="{$catalog.name}">{$catalog.mark} {$catalog.name}</option>
+           <!-- {/foreach} -->
+          </select>
+         </div>
+        </div>
+        <!-- {/if} -->
+        <div class="form-item">
+         <div class="form-label">{$lang.nav_name}</div>
+         <div class="input-block">
+          <input type="text" id="name" name="name" value="{$nav_info.name}" size="40" class="input" />
+         </div>
+        </div>
+        <!-- {if $site.open_icon} -->
+        <div class="form-item">
+         <div class="form-label">{$lang.icon}</div>
+         <div class="input-block">
+          {include file="inc/file_input.tpl" name="icon" value=$nav_info.icon file_number=$nav_info.file_number}</div>
+        </div>
+        <!-- {/if} -->
+        <div class="form-item">
+         <div class="form-label">{$lang.nav_link}</div>
+         <div class="input-block">
+          <!-- {if $nav_info.module eq 'nav'} -->
+          <input type="text" name="guide" value="{$nav_info.url}" size="60" class="input" />
+          <!-- {else} -->
+          <input type="text" name="guide_no" value="{$nav_info.url}" size="60" readOnly="true" class="input" />
+          <b class="cue">{$lang.nav_not_modify}</b>
+          <!-- {/if} -->
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.nav_status}</div>
+         <div class="input-block">
+          <select class="select" name="status">
+           <option value="1"{if $nav_info.status eq '1'} selected{/if}>{$lang.nav_status_1}</option>
+           <option value="0"{if $nav_info.status eq '0'} selected{/if}>{$lang.nav_status_0}</option>
+          </select>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.sort}</div>
+         <div class="input-block">
+          <input type="text" name="sort" value="{if $nav_info.sort}{$nav_info.sort}{else}50{/if}" size="5" class="input" />
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="input-block">
+          <input type="hidden" name="token" value="{$token}" />
+          <input type="hidden" name="id" value="{$nav_info.id}" />
+          <input type="hidden" name="type" value="{$type}" />
+          <input class="btn" type="submit" value="{$lang.btn_submit}" />
+         </div>
+        </div>
+       </div>
+      </form>
+      <!-- {/if} -->
+     <!-- {/if} 小程序导航 结束 -->
+     <!-- {if $rec eq 'show'} 幻灯图片 开始 -->
+     {include file="inc/page_header.tpl"}
+     <div class="split-layout">
+      <div class="split-side">
+       <div class="title">{$lang.show_create}</div>
+       <div class="form-box">
+        <form action="{if $show.id}{url link='admin.miniprogram.show.update' id=$show.id}{else}{url link='admin.miniprogram.show.store'}{/if}"{if $show.id} class="form-edit"{/if} method="post" enctype="multipart/form-data"><!-- {if $show.id} --><input type="hidden" name="_method" value="PUT" /><!-- {/if} -->
+         <div class="form">
+          <div class="form-item">
+           <div class="form-label">{$lang.show_name}</div>
+           <div class="input-block"><input type="text" name="name" value="{$show.name}" size="20" class="input" /><span class="action" data-field="name"></span></div>
+          </div>
+          <div class="form-item">
+           <div class="form-label">{$lang.show_img}</div>
+           <div class="input-block">{include file="inc/file_input.tpl" name="image" value=$show.image file_number=$show.file_number}</div>
+          </div>
+          <div class="form-item">
+           <div class="form-label">{$lang.show_link}</div>
+           <div class="input-block"><input type="text" name="link" value="{$show.link}" size="40" class="input" /><span class="action" data-field="link"></span></div>
+          </div>
+          <div class="form-item">
+           <div class="form-label">{$lang.sort}</div>
+           <div class="input-block"><input type="text" name="sort" value="{if $show.sort}{$show.sort}{else}50{/if}" size="20" class="input" /></div>
+          </div>
+          <div class="form-item">
+           <!-- {if $show.id} -->
+           <a href="{url link='admin.miniprogram.show'}" class="btn-secondary">{$lang.cancel}</a>
+           <input type="hidden" name="id" value="{$show.id}">
+           <!-- {/if} -->
+           <input type="hidden" name="token" value="{$token}" />
+           <input class="btn" type="submit" value="{$lang.btn_submit}" />
+          </div>
+         </div>
+        </form>
+       </div>
+      </div>
+      <div class="split-main">
+       <div class="title">{$lang.show_list}</div>
+       <table class="table">
+        <tr>
+         <td width="100">{$lang.show_name}</td>
+         <td></td>
+         <td width="50" class="text-center">{$lang.sort}</td>
+         <td width="80" class="text-center">{$lang.handler}</td>
+        </tr>
+        <!-- {foreach from=$show_list item=item} -->
+
+        <tr{if $item.id eq $id} class="active"{/if}>
+
+        <td><a href="{$item.image}" target="_blank"><img src="{$item.image}" width="100" /></a></td>
+         <td>{$item.name}</td>
+         <td class="text-center">{$item.sort}</td>
+         <td class="text-center"><a href="{url link='admin.miniprogram.show.edit' id=$item.id}">{$lang.edit}</a> | <a href="javascript:;" class="js-delete" data-url="{url link='admin.miniprogram.show.destroy' id=$item.id}">{$lang.del}</a></td>
+        </tr>
+        <!-- {/foreach} -->
+       </table>
+      </div>
+     </div>
+     <!-- {/if} 幻灯图片 结束 -->
+     <!-- {if $rec eq 'install'} 更多小程序 开始 -->
+     {include file="inc/page_header.tpl"}
+     <div class="install">
+      {include file="inc/cloud_extend_list.tpl"}
+     </div>
+     <!-- {/if} 更多小程序 结束 -->
+    </div>
+
+  </div>
+ </div>
+ {include file="inc/footer.tpl"} </div>
+<script type="text/javascript" src="js/cropper.min.js"></script>
+</body>
+</html>

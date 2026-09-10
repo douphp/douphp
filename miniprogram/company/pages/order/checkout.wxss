@@ -1,0 +1,199 @@
+/* checkout */
+.checkout .box {
+ background-color:#FFF;
+ margin-bottom:15px;
+}
+.checkout .h2 {
+ font-size: 18px;
+ color: #000;
+ margin-bottom: 10px;
+ border-bottom: 1px solid #CCC;
+ padding-bottom: 10px;
+}
+.checkout .h2 .right {
+ float:right;
+}
+.checkout .address {
+}
+.checkout .address .title {
+ margin-bottom: 8px;
+}
+.checkout .address .title .bi {
+ font-size: 18px;
+}
+.checkout .address .title .edit {
+ font-size: 12px;
+ display: inline-block;
+ border: 1px solid #CCC;
+ background-color: #F5F5F5;
+ color: #999;
+ padding: 2px 10px;
+ margin-left: 10px;
+ cursor: pointer;
+}
+.checkout .address .title .add {
+ float: right;
+ display: inline-block;
+ border: 1px solid #DDD;
+ background-color: #F5F5F5;
+ padding: 2px 10px;
+ cursor: pointer;
+ font-size: 12px;
+}
+.checkout .address .con {
+ position: relative;
+}
+.checkout .address .con::after {
+ font-family: bootstrap-icons !important;
+ content: "\F285";
+ position: absolute;
+ font-size: 40px;
+ right: 0;
+ top: 50%;
+ margin-top: -20px;
+ color: #999;
+}
+.checkout .address .con .item {
+ margin-bottom: 8px;
+}
+.checkout .address .con .item text {
+ color: #999;
+}
+/* -- contact-box -- */
+.contact-box .overlay {
+ position: fixed;
+ top: 0;
+ left: 0;
+ width: 100%;
+ height: 100%;
+ background-color: rgba(0, 0, 0, 0.5);
+ z-index: 10001;
+}
+.contact-box .popup {
+ position: fixed;
+ bottom: -100%; /* 初始位置在屏幕外 */
+ left: 0;
+ width: 100%;
+ background-color: white;
+ z-index: 10002; /* 在遮罩层之上 */
+ transition: bottom 0.3s ease-out;
+}
+.contact-box .popup.active {
+ bottom: 0; /* 弹出到屏幕底部 */
+}
+.contact-box .head {
+ padding: 15px 25px 0 25px;
+ display: flex;
+ justify-content: space-between;
+ align-items: center;
+}
+.contact-box .head .title {
+ font-size: 16px;
+ font-weight: bold;
+}
+.contact-box .head .bi {
+ font-size: 20px;
+ cursor: pointer;
+}
+.contact-box .list {
+ padding: 10px 15px 10px 10px;
+ max-height: 60vh;
+ overflow: auto;
+}
+.contact-box .list .item {
+ padding: 15px;
+ cursor: pointer;
+}
+.contact-box .list .item text {
+ font-size: 20px;
+ margin-right: 10px;
+}
+.contact-box .list .item.active {
+ border: 1px solid #19B4EA;
+ color: #19B4EA;
+}
+.contact-box .list .item.active text {
+ color: #19B4EA;
+}
+/* -- totalAmount -- */
+.checkout .totalAmount {
+ font-size: 13px;
+ padding: 5px 10px;
+ background-color: #FFF;
+ margin-bottom:50px;
+}
+.checkout .totalAmount .dl {
+ zoom:1;
+ overflow:hidden;
+ padding:3px 0;
+}
+.checkout .totalAmount .dt {
+ float:left;
+ color:#999;
+}
+.checkout .totalAmount .dd {
+ float:right;
+ color:#e4393c;
+}
+.checkout .orderSubmit {
+ background-color:#EBEBEB;
+ width: 100%;
+ min-width: 320px;
+ margin: 0 auto;
+ max-width: 640px;
+ height:40px;
+ line-height:40px;
+ font-size:13px;
+}
+.checkout .orderSubmit .em {
+ float:left;
+ margin-left:10px;
+ color: #F00;
+}
+.checkout .orderSubmit .btnSubmit {
+ background-color:#e4393c;
+ float:right;
+ width: 80px;
+ line-height:40px;
+ font-size:12px;
+ padding:0;
+ cursor: pointer;
+ color:#FFF;
+ text-align:center;
+ border-radius: 0;
+}
+.checkout .payment {
+ zoom:1;
+ overflow:hidden;
+ padding:15px 0 0 15px;
+}
+.checkout .payment .dd {
+ float:left;
+ width:170px;
+ margin-bottom:15px;
+}
+.checkout .shipping {
+ padding-top:15px;
+}
+.checkout .shipping .dl {
+ zoom:1;
+ overflow:hidden;
+ padding:0 0 15px 15px;
+}
+.checkout .shipping .dt {
+ float:left;
+ width:120px;
+}
+.checkout .shipping .dd {
+ margin-left:120px;
+}
+.checkout .coupon {
+ padding-top: 15px;
+}
+.checkout .coupon .item {
+ padding: 0 0 15px 15px;
+}
+.checkout .coupon .item text {
+ color: #999;
+ margin-left: 10px;
+}

@@ -1,0 +1,70 @@
+/* pages/chat/history.wxss 历史会话 */
+.body {
+  padding-bottom: 40rpx;
+}
+.wrap {
+  padding: 20rpx 30rpx;
+}
+
+.history-list .history-item {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 26rpx 30rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+}
+.history-list .history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+.history-list .history-header .name {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+.history-list .history-header .app {
+  font-size: 22rpx;
+  color: #4a90e2;
+  background: #eef4fd;
+  border-radius: 8rpx;
+  padding: 4rpx 14rpx;
+  margin-left: 16rpx;
+  flex-shrink: 0;
+}
+.history-list .history-meta {
+  display: flex;
+  font-size: 24rpx;
+  color: #999;
+}
+.history-list .history-meta text {
+  margin-right: 30rpx;
+}
+
+.chat-empty {
+  text-align: center;
+  color: #999;
+  font-size: 26rpx;
+  padding: 80rpx 0;
+}
+.chat-empty .btn-start {
+  display: inline-block;
+  margin-top: 24rpx;
+  background: #4a90e2;
+  color: #fff;
+  border-radius: 40rpx;
+  padding: 14rpx 48rpx;
+  font-size: 26rpx;
+}
+.loadpage {
+  text-align: center;
+  color: #999;
+  font-size: 24rpx;
+  padding: 20rpx 0;
+}

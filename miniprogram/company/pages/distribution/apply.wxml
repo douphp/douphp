@@ -1,0 +1,62 @@
+<!--pages/distribution/apply.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="page-head">
+   <view class="action"><text class="link" data-url="/pages/distribution/user" bindtap="douNavigateTo">{{lang.distribution_user}}</text></view>
+   <view class="name">{{lang.distribution_apply}}</view>
+  </view>
+  <view class="distribution-apply">
+   <form bindsubmit="distributionApply">
+    <view class="form-basic">
+     <view class="dl">
+      <view class="dt">{{lang.distribution_name}} </view>
+      <view class="dd">
+       <block wx:if="{{distribution.id}}"><text class="text">{{distribution.name}}</text></block>
+       <block wx:else>
+        <input name="name" type="text" class="text-input" size="55" />
+       </block>
+       <view class="cue" wx:if="{{errors.name}}">{{errors.name}}</view>
+      </view>
+     </view>
+     <view class="dl">
+      <view class="dt">{{lang.distribution_gallery}}</view>
+      <view class="dd">
+       <view id="galleryFile" class="fileBox">
+        <view class="fileAdd" wx:if="{{!distribution.id}}">
+         <view class="li btnFile" data-type="gallery" data-module="distribution" data-item_id="{{item_id}}" bindtap="filebox">{{lang.btn_upload}}</view>
+        </view>
+        <view class="fileList{{distribution.id ? ' noLeft' : ''}}">
+         <view class="li" wx:for="{{img_list}}" wx:for-item="gallery" wx:key="g">
+          <image src="{{gallery.file}}" class="img" /><text data-number="{{gallery.number}}" data-item_id="{{item_id}}" bindtap="fileDel" class="del" wx:if="{{!distribution.id}}">X</text>
+         </view>
+        </view>
+       </view>
+      </view>
+     </view>
+     <view class="dl">
+      <view class="dt">{{lang.distribution_remark}}<text class="i">*</text></view>
+      <view class="dd">
+       <block wx:if="{{distribution.id}}"><text class="text">{{distribution.remark}}</text></block>
+       <block wx:else>
+        <textarea name="remark" cols="60" rows="5" class="text-area" />
+       </block>
+       <view class="cue" wx:if="{{errors.remark}}">{{errors.remark}}</view>
+      </view>
+     </view>
+     <view class="dl" wx:if="{{!distribution.id}}">
+      <view class="dd">
+       <button class="btn" formType="submit">{{lang.btn_submit}}</button>
+      </view>
+     </view>
+     <view class="dl" wx:else>
+      <view class="dt">{{lang.distribution_status}}</view>
+      <view class="dd">
+       <text class="text">{{distribution.status.format}}</text>
+      </view>
+     </view>
+    </view>
+   </form>
+  </view>
+ </view>
+</view>

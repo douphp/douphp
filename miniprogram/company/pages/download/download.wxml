@@ -1,0 +1,23 @@
+<!--download.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view id="download" class="wrap">
+  <view class="detail">
+   <view class="title">{{download.title}}</view>
+   <view class="img" wx:if="{{download.image}}">
+    <image src="{{download.image}}" mode="widthFix" />
+   </view>
+   <view class="info-list">
+    <view class="item"><text>{{lang.created_at}}：</text>{{download.created_at}}</view>
+    <view class="item"><text>{{lang.download_size}}：</text>{{download.size}}</view>
+    <view class="item"><text>{{lang.click}}：</text>{{download.click}}</view>
+    <view class="item" wx:for="{{defined}}" wx:key="defined" wx:for-item="defined"><text>{{defined.arr}}：</text>{{defined.value}} </view>
+    <view class="item"><text class="btn" data-link="{{download.download_link}}" bindtap="download">{{lang.download_btn}}</text></view>
+   </view>
+   <view class="head">{{lang.download_content}}</view>
+   <view class="content">
+    <mp-html content="{{download.content}}" />
+   </view>
+  </view>
+ </view>
+</view>

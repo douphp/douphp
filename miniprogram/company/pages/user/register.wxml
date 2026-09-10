@@ -1,0 +1,73 @@
+<!--register.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="login">
+  <view class="logo">
+   <image src="../../images/logo_icon.png" />
+  </view>
+  <view class="form-passport" style="margin-top: 8vh">
+   <form bindsubmit="registerPost">
+    <!-- 手机号模式 -->
+    <block wx:if="{{login_mode == 'telphone'}}">
+     <view class="dl">
+      <input name="telphone" type="text" class="input" value="{{form.telphone}}" placeholder="{{lang.user_telphone}}" bindinput="onAccountInput" />
+      <view class="cue" wx:if="{{wrong.telphone}}">{{wrong.telphone}}</view>
+     </view>
+     <view class="dl" wx:if="{{sms_accessKeyId}}">
+      <view class="input-with-action">
+       <input name="verification" type="text" class="input" placeholder="{{lang.please_input}}{{lang.captcha}}" />
+       <button class="btn-captcha" type="default" size="mini" bindtap="sendVerification" disabled="{{sending || countdown > 0}}">
+        {{countdown > 0 ? countdown + 's' : lang.verification_get}}
+       </button>
+      </view>
+      <view class="cue" wx:if="{{wrong.verification}}">{{wrong.verification}}</view>
+     </view>
+    </block>
+    <!-- 邮箱模式 -->
+    <block wx:else>
+     <view class="dl">
+      <input name="email" type="text" class="input" value="{{form.email}}" placeholder="{{lang.user_email}}" bindinput="onAccountInput" />
+      <view class="cue" wx:if="{{wrong.email}}">{{wrong.email}}</view>
+     </view>
+     <view class="dl" wx:if="{{mail_username}}">
+      <view class="input-with-action">
+       <input name="verification" type="text" class="input" placeholder="{{lang.please_input}}{{lang.captcha}}" />
+       <button class="btn-captcha" type="default" size="mini" bindtap="sendVerification" disabled="{{sending || countdown > 0}}">
+        {{countdown > 0 ? countdown + 's' : lang.verification_get}}
+       </button>
+      </view>
+      <view class="cue" wx:if="{{wrong.verification}}">{{wrong.verification}}</view>
+     </view>
+    </block>
+    <view class="dl">
+     <input name="password" type="text" password="true" class="input" placeholder="{{lang.user_password}}" />
+     <view class="cue" wx:if="{{wrong.password}}">{{wrong.password}}</view>
+    </view>
+    <view class="dl">
+     <input name="password_confirm" type="text" password="true" class="input" placeholder="{{lang.user_password_confirm}}" />
+     <view class="cue" wx:if="{{wrong.password_confirm}}">{{wrong.password_confirm}}</view>
+    </view>
+    <view class="dl">
+     <input type="text" name="sns_token" value="{{sns_token}}" hidden="true" />
+     <button class="btn-action blue" formType="submit" wx:if="{{agree}}">{{lang.user_register_btn}}</button>
+     <button class="btn-action blue" bindtap="termCue" wx:else>{{lang.user_register_btn}}</button>
+    </view>
+   </form>
+  </view>
+  <view class="agree-box">
+   <checkbox-group bindchange="agreeTerm">
+    <label class="agree">
+     <checkbox value="{{checkValue}}" class="agree-checkbox-check" />
+     <view class="agree-checkbox"></view>
+     <view class="agree-text">
+      <view class="show-term-cue" wx:if="{{showTermCue}}">
+       <text>请先阅读并勾选协议</text>
+      </view>
+      <text aria-hidden="true">{{lang.agreement_read}}</text>
+      <navigator>《{{lang.agreement}}》</navigator>
+     </view>
+    </label>
+   </checkbox-group>
+  </view>
+ </view>
+</view>

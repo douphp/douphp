@@ -1,0 +1,29 @@
+<!--cashier.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class='body miniH'>
+  <view class="cashier checkout">
+   <view class="info">
+    <view class="p">{{lang.order_cashier_pay}}</view>
+    <view class="orderSn">{{lang.order_sn}}：{{order.order_sn}}</view>
+   </view>
+   <view class="checkBox">
+    <view class="box">
+     <view class="h2">{{lang.order_payment}}</view>
+     <view class="payment">
+      <view class="dd {{payment == 'wxpay' ? 'cur' : ''}}" bindtap="selectPayment"><image src="/images/icon_wxpay.gif" /></view>
+      <view class="dd {{payment == 'offlinepay' ? 'cur' : ''}}" bindtap="selectPayment" wx:if="{{features.offlinepay}}"><image src="/images/icon_offlinepay.gif" /></view>
+     </view>
+    </view>
+    <view class="fixex">
+     <view class="orderSubmit">
+      <view class="em">{{lang.order_order_amount}}：<text class="order_amount">{{order.order_amount_format}}</text></view>
+      <view class="submit" wx:if="{{payment == 'wxpay'}}"><text class="btnSubmit" data-order_sn="{{order.order_sn}}" bindtap="wxpay">{{lang.order_cashier_pay_btn}}</text></view>
+      <view class="submit" wx:if="{{payment == 'offlinepay'}}"><text class="btnSubmit" data-url="/pages/order/offlinepay?order_sn={{order.order_sn}}" bindtap="douNavigateTo">上传付款截图</text></view>
+     </view>
+    </view>
+   </view>
+  </view>
+ </view>
+ <view class="footer"><text wx:if="{{lang.powered_by}}">{{lang.powered_by}}</text></view>
+</view>

@@ -1,0 +1,214 @@
+/* 对话页样式（app） */
+.chat-page {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - env(safe-area-inset-bottom));
+  padding-bottom: calc(112rpx + env(safe-area-inset-bottom));
+  background: #f5f7fa;
+  box-sizing: border-box;
+}
+
+/* 工具条 */
+.chat-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+  padding: 16rpx 30rpx;
+  border-bottom: 1rpx solid #eee;
+  flex-shrink: 0;
+}
+.chat-toolbar .model-picker {
+  font-size: 26rpx;
+  color: #4a90e2;
+  background: #eef4fd;
+  border-radius: 8rpx;
+  padding: 8rpx 20rpx;
+}
+.chat-toolbar .toolbar-actions {
+  display: flex;
+  align-items: center;
+}
+.chat-toolbar .action-btn {
+  font-size: 26rpx;
+  color: #666;
+  margin-left: 30rpx;
+}
+.chat-toolbar .toolbar-actions .action-btn:first-child {
+  margin-left: 0;
+}
+/* 会话抽屉 */
+.sessions-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 90;
+}
+.sessions-drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: -70%;
+  width: 70%;
+  background: #fff;
+  z-index: 91;
+  transition: left 0.3s;
+  display: flex;
+  flex-direction: column;
+  padding-top: env(safe-area-inset-top);
+}
+.sessions-drawer.show {
+  left: 0;
+}
+.sessions-drawer .drawer-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  padding: 100rpx 30rpx 20rpx;
+  border-bottom: 1rpx solid #eee;
+}
+.sessions-drawer .drawer-list {
+  flex: 1;
+  min-height: 0;
+}
+.sessions-drawer .session-item {
+  padding: 24rpx 30rpx;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+.sessions-drawer .session-item.active {
+  background: #eef4fd;
+}
+.sessions-drawer .session-title {
+  font-size: 28rpx;
+  color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sessions-drawer .session-time {
+  font-size: 22rpx;
+  color: #999;
+  margin-top: 6rpx;
+}
+
+/* 消息区 */
+.chat-messages {
+  flex: 1;
+  min-height: 0;
+  padding: 24rpx 30rpx;
+  box-sizing: border-box;
+}
+.chat-messages .msg {
+  display: flex;
+  margin-bottom: 28rpx;
+}
+.chat-messages .msg .avatar {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  background: #4a90e2;
+  color: #fff;
+  font-size: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-right: 16rpx;
+}
+.chat-messages .msg .content {
+  background: #fff;
+  border-radius: 4rpx 16rpx 16rpx;
+  padding: 18rpx 24rpx;
+  font-size: 28rpx;
+  color: #333;
+  line-height: 1.7;
+  max-width: 76%;
+  word-break: break-all;
+  white-space: pre-wrap;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+.chat-messages .msg.user {
+  flex-direction: row-reverse;
+}
+.chat-messages .msg.user .avatar {
+  background: #52c41a;
+  margin-right: 0;
+  margin-left: 16rpx;
+}
+.chat-messages .msg.user .content {
+  background: #d2e9ff;
+  border-radius: 16rpx 4rpx 16rpx 16rpx;
+}
+.chat-messages .msg.system {
+  justify-content: center;
+}
+.chat-messages .msg .content.system {
+  background: none;
+  box-shadow: none;
+  color: #999;
+  font-size: 24rpx;
+  max-width: 100%;
+}
+.chat-messages .msg .content.typing {
+  color: #999;
+}
+
+/* 输入区（fixed 贴底，避免被 navbar 占位推出视口） */
+.chat-input-area {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  background: #fff;
+  padding: 16rpx 30rpx calc(16rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid #eee;
+}
+.chat-input-area .chat-input {
+  flex: 1;
+  height: 76rpx;
+  line-height: 76rpx;
+  background: #f5f7fa;
+  border-radius: 38rpx;
+  padding: 0 28rpx;
+  font-size: 28rpx;
+  color: #333;
+  box-sizing: border-box;
+}
+.chat-input-area .chat-input-placeholder {
+  color: #999;
+  font-size: 28rpx;
+  line-height: 76rpx;
+}
+.chat-input-area .send-btn {
+  height: 76rpx;
+  line-height: 76rpx;
+  background: #4a90e2;
+  color: #fff;
+  font-size: 28rpx;
+  border-radius: 38rpx;
+  padding: 0 36rpx;
+  margin-left: 20rpx;
+  box-sizing: border-box;
+}
+.chat-input-area .send-btn.disabled {
+  opacity: 0.5;
+}
+.chat-input-area .stop-btn {
+  height: 76rpx;
+  line-height: 76rpx;
+  color: #ff6b6b;
+  font-size: 40rpx;
+  margin-left: 20rpx;
+}
+
+.chat-empty {
+  text-align: center;
+  color: #999;
+  font-size: 26rpx;
+  padding: 60rpx 0;
+}

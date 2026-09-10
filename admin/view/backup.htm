@@ -1,0 +1,91 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="copyright" content="DouCo Co.,Ltd." />
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="csrf-token" content="{$csrf_token}">
+<title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+<link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+<link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+<link href="css/common.css" rel="stylesheet" type="text/css">
+{include file="inc/javascript.tpl"}
+</head>
+<body>
+<div id="dou"> {include file="inc/header.tpl"}
+ {include file="inc/sidebar.tpl"}
+ <div id="dou-content"> {include file="inc/toolbar.tpl"}
+  <div class="dou-main">
+   <div class="dou-page">
+   {include file="inc/page_header.tpl"}
+   <!-- {if $rec eq 'default'} 数据备份 -->
+   <table class="table">
+    <form name="myform" method="post" action="{url link='admin.backup.backup'}">
+     <tr>
+      <th class="text-center"> <input name='chkall' type='checkbox' id='chkall' onclick='selectcheckbox(this.form)' value='check' checked>
+      </th>
+      <th class="text-left">{$lang.backup_table_name}</th>
+      <th class="m-none text-center">{$lang.backup_table_engine}</th>
+      <th class="m-none text-center">{$lang.backup_table_rows}</th>
+      <th class="m-none text-center">{$lang.backup_data_length}</th>
+      <th class="m-none text-center">{$lang.backup_index_length}</th>
+      <th class="m-none text-center">{$lang.backup_data_free}</th>
+     </tr>
+     <!-- {foreach from=$table_list item=tables} -->
+     <tr>
+      <td class="text-center"><input type=checkbox name=tables[] value={$tables.Name} checked></td>
+      <td class="text-left">{$tables.Name}</td>
+      <td class="m-none text-center">{$tables.Engine}</td>
+      <td class="m-none text-center">{$tables.Rows}</td>
+      <td class="m-none text-center">{$tables.Data_length}</td>
+      <td class="m-none text-center">{$tables.Index_length}</td>
+      <td class="m-none text-center">{$tables.Data_free}</td>
+     </tr>
+     <!-- {/foreach} -->
+     <tr>
+      <td colspan="7" style="text-align: right;">{$lang.backup_total_size} {$totalsize} KB </td>
+     </tr>
+     <tr>
+      <td colspan="7" class="text-center">{$lang.backup_vol_set}</td>
+     </tr>
+     <tr>
+      <td colspan="7" class="text-center"> {$lang.backup_sql_filename}：
+       <input type="text" class="input" name="filename" value="{$filename}" size=30>
+       {$lang.backup_vol_size}：
+       <input type="text" class="input" name="vol_size" value="2048" size="5">
+       K </td>
+     </tr>
+     <tr>
+      <td height="26" colspan="7" class="text-center"><input type="hidden" name="token" value="{$token}" />
+       <input type="hidden" name="totalsize" value="{$totalsize}">
+      <input type="submit" name="submit" class="btn" value="{$lang.backup_submit}"  onClick="document.myform.action='{url link='admin.backup.backup'}'">
+      <input type="submit" name="submit" class="btn-secondary" value="{$lang.backup_asset_submit}"  onClick="document.myform.action='{url link='admin.backup.backup' asset='yes'}'" style="margin-left: 20px;">
+      </td>
+     </tr>
+    </form>
+   </table>
+   <!--{/if}-->
+   <!-- {if $rec eq 'restore'} 恢复备份 -->
+   <table class="table">
+    <tr>
+     <th width="" class="text-left">{$lang.backup_sql_filename}</th>
+     <th class="m-none" width="100">{$lang.backup_sql_filesize}</th>
+     <th class="m-none" width="160">{$lang.backup_sql_maketime}</th>
+     <th width="140">{$lang.handler}</th>
+    </tr>
+    <!-- {foreach from=$file_list item=file} -->
+    <tr {if $file.number gt 1}class="child"{/if}>
+     <td{if $file.vol_number gt 1} title="{$lang.backup_vol_nmuber}：{$file.vol_number}"{/if} class="text-left">{$file.showname} {if $file.vol_number gt 1}<b style="color: #999">[{$file.vol_number}]</b>{/if} {if $file.ext eq 'zip'}<i class="bi-box-seam"></i>{/if}</td>
+     <td class="m-none text-center">{$file.filesize}</td>
+     <td class="m-none text-center">{$file.maketime}</td>
+     <td class="text-center"><!-- {if $file.number le 1} --><a href="javascript:;" data-dou-toggle="modal" data-dou-modal="restore" data-filename="{$file.filename}" data-token="{$token}">{$lang.backup_sql_pre}</a> | <a href="{url link='admin.backup.down' sql_filename=$file.filename}">{$lang.down}</a> | <a href="javascript:;" class="js-delete" data-url="{url link='admin.backup.destroy' sql_filename=$file.filename}">{$lang.del}</a><!-- {/if} --></td>
+    </tr>
+    <!-- {/foreach} -->
+   </table>
+   <!--{/if}-->
+  </div>
+ </div>
+  </div>
+ {include file="inc/footer.tpl"} </div>
+</body>
+</html>

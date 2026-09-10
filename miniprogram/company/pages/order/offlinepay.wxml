@@ -1,0 +1,19 @@
+<!--pages/order/offlinepay.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="cashier">
+ <view class="info">
+  <view class="timeOut">请您在<text>{{order.pay_time_limit}}</text>小时内完成支付，否则订单会被自动取消</view>
+  <view class="orderSn">{{lang.order_sn}}：{{order.order_sn}}</view>
+  <view class="orderAmount">{{lang.order_order_amount}}：<text class="red">{{order.order_amount_format}}</text></view>
+ </view>
+ <view class="checkBox">
+  <view class="box">
+   <view class="pay-evidence">
+    <view class="imgShow">
+     <image class="img" src="{{payEvidenceTemp}}" wx:if="{{payEvidenceTemp}}" />
+    </view>
+    <button class="imgBtn" data-order_sn="{{order.order_sn}}" bindtap="payEvidence">上传付款凭证</button>
+   </view>
+  </view>
+ </view>
+</view>

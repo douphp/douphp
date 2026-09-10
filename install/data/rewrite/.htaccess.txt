@@ -1,0 +1,42 @@
+<FilesMatch "\.(bak|inc|lib|sh|tpl|lbi|dwt)$">
+    # Apache 2.4以下
+    Order Deny,Allow 
+    Deny from all
+ 
+    # Apache 2.4以上
+    # Require all denied
+</FilesMatch>
+
+RewriteEngine On
+
+# Apache + PHP-CGI/FPM 默认会吃掉 Authorization 头（自己处理 Basic Auth），
+# 透传给后端 PHP（会以 $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] 暴露）。
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+# 静态入口文件
+RewriteRule ^index\.html$  index.php  [L]
+
+# API 入口
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !.*\.(ico|gif|jpg|jpeg|png|js|css)
+RewriteRule ^api/(.+)$ api/index.php?route=$1 [L,QSA]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^api/?$      api/index.php [L,QSA]
+
+# 后台入口
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !.*\.(ico|gif|jpg|jpeg|png|js|css)
+RewriteRule ^admin/(.+)$ admin/index.php?route=$1 [L,QSA]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^admin/?$    admin/index.php [L,QSA]
+
+# 前台入口
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !.*\.(ico|gif|jpg|jpeg|png|js|css)
+RewriteRule ^([^?]*) index.php?route=$1 [L,QSA]

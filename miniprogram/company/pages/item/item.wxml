@@ -1,0 +1,39 @@
+<!--item.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="item">
+   <view class="h1">{{item.title}}</view>
+   <view class="info">{{lang.created_at}}：{{item.created_at}} {{lang.click}}：{{item.click}} </view>
+   <view class="paid-use" wx:if="{{paid_use}}">
+    <view class="action-box" wx:if="{{!access}}">
+     <view href="{{site.root_url}}order.php?rec=insert&module=item&item_id={{item.id}}" class="action">{{lang.paid_use_buy}}:{{item.price}}<text class="original">{{item.original_price}}</text></view> <view href="{{url.vip}}" class="action vip"><text class="bi bi-gem"></text>{{lang.paid_use_buy_vip}}</view>
+    </view>
+    <view class="text" wx:else><text class="bi bi-cup-hot"></text>{{item.paid_cue}}</view>
+   </view>
+   <view class="content-box">
+    <view class="file-box" wx:if="{{item.file && (!paid_use || access)}}">
+     <view class="audio" wx:if="{{item.file_ext == 'mp3'}}">
+      <audio src="{{item.file}}" poster="{{item.image}}" name="{{item.title}}" author="-" controls></audio>
+     </view>
+     <view class="video" wx:elif="{{item.file_ext == 'mp4'}}">
+      <video id="myVideo" src="{{item.file}}" binderror="videoErrorCallback" controls></video>
+     </view>
+     <view class="file" wx:else>
+      <view href="{{item.file}}" class="btn-file"><text class="bi bi-download"></text>{{lang.item_download_btn}}</view>
+     </view>
+    </view>
+    <block wx:if="{{item.content}}">
+     <view class="head" wx:if="{{item.file}}">{{lang.item_content}}</view>
+     <view class="content"> 
+      <mp-html content="{{item.content}}" />
+      <view class="preview" wx:if="{{item.preview}}">
+       <view class="placeholder"></view>
+       <view class="text" href="{{url.vip}}">{{lang.item_remaining_a}}{{item.remaining}}{{lang.item_remaining_b}}<text class="bi bi-chevron-down"></text></view>
+      </view>
+     </view>
+    </block>
+   </view>
+  </view>
+ </view>
+</view>

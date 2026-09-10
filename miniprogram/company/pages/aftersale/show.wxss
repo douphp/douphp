@@ -1,0 +1,41 @@
+/* pages/aftersale/show.wxss */
+.aftersale .head {
+ padding: 8px 10px;
+ background-color: #FFF;
+ font-weight: normal;
+}
+.aftersale .head .em {
+ color: #999;
+}
+.aftersale .cueGray {
+ color: #999;
+}
+/* item-list */
+.aftersale .item-list {
+ background-color:#FFF;
+}
+.aftersale .item-list .item {
+ background-color:#F8F8F8;
+ padding:10px 10px;
+ margin-bottom:3px;
+ display: flex;
+ gap: 10px;
+}
+.aftersale .item-list .item .img {
+ width:50px;
+}
+.aftersale .item-list .item .img image {
+ width: 100%;
+}
+.aftersale .item-list .item .info {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.aftersale .item-list .item .info .name {
+ font-weight:bold;
+}
+.aftersale .item-list .item .info .desc {
+ color:#888;
+}

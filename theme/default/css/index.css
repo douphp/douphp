@@ -1,0 +1,218 @@
+/* 首页样式
+----------------------------------------------- */
+/* -- slideShow -- */
+#index .slide-show {
+ position: relative;
+}
+#index .slide-show .swiper {
+ position: static;
+}
+#index .slide-show .swiper-button-next.swiper-button-disabled, #index .slide-show .swiper-button-prev.swiper-button-disabled {
+ pointer-events: all;
+}
+#index .slide-show .swiper-slide a {
+ display: block;
+ background-color: #DDDDDD;
+ height: 400px;
+ background-repeat: no-repeat;
+ background-position: center center;
+ background-size: auto 100%;
+}
+#index .slide-show .swiper-pagination-bullet {
+ width: 12px;
+ height: 12px;
+}
+#index .slide-show .swiper-pagination-bullet-active {
+ background-color: #19B4EA;
+}
+#index .slide-show .swiper-button-prev {
+ left: 50px;
+}
+#index .slide-show .swiper-button-next {
+ right: 50px;
+}
+#index .slide-show .swiper-button-prev, #index .slide-show .swiper-button-next {
+ display: none;
+ color: #FFF;
+}
+#index .slide-show:hover .swiper-button-prev, #index .slide-show:hover .swiper-button-next {
+ display: block;
+}
+@media (max-width:992px) {
+ #index .slide-show .swiper-slide a {
+  height: 200px;
+ }
+}
+/* -- index-box -- */
+#index .index-box {
+ padding: 40px 0;
+ zoom: 1;
+ overflow: hidden;
+}
+@media (max-width:992px) {
+ #index .index-box {
+  padding: 30px 0;
+ }
+}
+#index .index-box.bg {
+ background-color: #F5F5F5;
+}
+#index .index-box h3 {
+ text-align: center;
+ margin-bottom: 30px;
+}
+#index .index-box h3 b {
+ color: #333;
+ font-size: 30px;
+}
+#index .index-box h3 em {
+ display: block;
+ margin-top: 8px;
+ text-transform: uppercase;
+ color: #999;
+}
+#index .index-box .more {
+ text-align: center;
+}
+#index .index-box .more a {
+ display: inline-block;
+ padding: 5px 30px;
+ border: 1px solid #DDD;
+ color: #19B4EA;
+}
+#index .index-box .more a:hover {
+ border: 1px solid #19B4EA;
+ background-color: #19B4EA;
+ color: #FFF;
+}
+/* -- about -- */
+#index .about .img img {
+ width: 100%;
+}
+#index .about h2 {
+ color: #333;
+ font-size: 30px;
+}
+#index .about .desc {
+ color: #666666;
+ margin: 20px 0 20px 0;
+ line-height: 200%;
+}
+#index .about .more {
+ text-align: left;
+}
+@media (max-width:992px) {
+ #index .about .img {
+  margin-bottom: 20px;
+ }
+ #index .about .more {
+  text-align: center;
+ }
+}
+/* -- recProduct -- */
+#index .product-list {
+ margin-bottom: 25px;
+}
+#index .product-list .row {
+ margin-left: -9px;
+ margin-right: -9px;
+}
+#index .product-list .col-md-3, #index .product-list .col-6 {
+ padding-left: 9px;
+ padding-right: 9px;
+}
+#index .product-list .item {
+ margin-bottom: 15px;
+}
+#index .product-list .item .img {
+ border: 1px solid #EEE;
+}
+#index .product-list .item .img img {
+ width: 100%;
+}
+#index .product-list .item .name {
+ margin-top: 12px;
+ font-size: 16px;
+}
+#index .product-list .item .price-box {
+ margin-top: 5px;
+}
+#index .product-list .item .price-box .price {
+ font-size: 18px;
+}
+/* -- article-list -- */
+#index .article-list {
+ margin-bottom: 20px;
+}
+#index .article-list .img {
+ text-align: center;
+ margin-bottom: 20px;
+ overflow: hidden;
+}
+#index .article-list .img img {
+ width: 100%;
+}
+@media (min-width: 1100px) {
+ #index .article-list .img img {
+  width: 445px;
+  height: 278px;
+ }
+}
+#index .article-list .img em {
+ display: block;
+ background-color: #EEE;
+ line-height: 278px;
+ color: #999;
+}
+#index .article-list .item {
+ zoom: 1;
+ overflow: hidden;
+ margin-bottom: 20px;
+}
+#index .article-list .item dt {
+ float: left;
+ width: 80px;
+ font-family: Arial, Lucida, Verdana, Helvetica, sans-serif;
+ text-align: center;
+}
+#index .article-list .item dt em {
+ display: block;
+ background-color: #EEE;
+ font-size: 36px;
+ padding-bottom: 3px;
+ color: #999;
+}
+#index .article-list .item dt b {
+ display: block;
+ background-color: #DDD;
+ font-size: 15px;
+ color: #555;
+}
+#index .article-list .item dd {
+ margin-left: 100px;
+ font-size: 14px;
+}
+#index .article-list .item dd a {
+ color: #000;
+ font-size: 16px;
+}
+#index .article-list .item dd p {
+ color: #9A9A9A;
+ line-height: 180%;
+}
+/* -- link-list -- */
+#index .link-list {
+ padding: 10px 0;
+}
+#index .link-list strong {
+ color: #7A7F81;
+ font-weight: bold;
+}
+#index .link-list a {
+ color: #555;
+ display: inline-block;
+ margin-right: 10px;
+}
+#index .link-list a img {
+ height: 50px;
+}

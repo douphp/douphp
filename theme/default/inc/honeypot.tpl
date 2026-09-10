@@ -1,0 +1,1 @@
+<div class="dou-hp" aria-hidden="true" style="position:absolute;left:-9999px;top:-9999px;height:0;width:0;overflow:hidden;" tabindex="-1"><input type="checkbox" name="_dou_hp" tabindex="-1" autocomplete="off" value="1" /><input type="hidden" name="_dou_ts" value="{$honeypot_ts}" autocomplete="off" /></div>

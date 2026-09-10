@@ -1,0 +1,46 @@
+/* pages/user/contact.wxss */
+.contact-list {
+ padding-bottom: 20px;
+}
+.contact-list .item {
+ margin-bottom: 20px;
+ border: 1px solid #EEE;
+ padding: 15px 20px 20px 20px;
+}
+.contact-list .item .text {
+ color: #999;
+}
+.contact-list .item .head {
+ font-size: 16px;
+ font-weight: bold;
+ margin-bottom: 10px;
+}
+.contact-list .item .head .a {
+ float: right;
+ font-weight: normal;
+ color: #999;
+}
+.contact-list .item .head .em {
+ display: inline-block;
+ background-color: #ffaa45;
+ color: #FFF;
+ padding: 0 10px;
+ font-size: 12px;
+}
+.contact-list .item .info {
+ color: #999;
+}
+.contact-list .item .info text {
+ margin-right: 20px;
+}
+.contact-list .item .handle {
+ margin-top: 20px;
+ text-align: right;
+}
+.contact-list .item .handle .action {
+ display: inline-block;
+ background-color: #EEE;
+ color: #555;
+ padding: 3px 10px;
+ margin-left: 10px;
+}

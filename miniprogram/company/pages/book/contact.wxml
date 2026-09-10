@@ -1,0 +1,85 @@
+<!--pages/book/contact.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="contact-select">
+   <view class="box">
+    <view class="item">
+     <view class="name">{{lang.book_item_name}}</view>
+     <view class="value">{{item.name}}</view>
+    </view>
+    <view class="item">
+     <view class="name">{{lang.book_class}}</view>
+     <view class="value">{{item.class_name}}</view>
+    </view>
+    <view class="item">
+     <view class="name">{{lang.book_time}}</view>
+     <view class="value">{{time_format}}</view>
+    </view>
+   </view>
+   <view class="box">
+    <view class="item" bindtap="contactPopup">
+     <view class="name">
+      <text class="bi bi-person"></text>
+      {{lang.book_name}}</view>
+     <view class="value">{{contact.name || '请选择预约人'}} <text class="bi bi-chevron-right"></text></view>
+    </view>
+    <view class="item">
+     <view class="name">
+      <text class="bi bi-telephone"></text>
+      {{lang.book_phone}}</view>
+     <view class="value">{{contact.phone || ''}}</view>
+    </view>
+   </view>
+   
+   <!-- 联系人选择弹出层 -->
+   <view class="contact-box">
+    <view class="overlay" wx:if="{{isPopupVisible}}" bindtap="contactPopup"></view>
+    <view class="popup {{isPopupVisible ? 'active' : ''}}">
+     <view class="head">
+      <text class="bi bi-x-lg" bindtap="contactPopup"></text>
+      {{lang.book_contact}}</view>
+     <view class="list">
+      <view class="item {{item.id == selected_contact_id ? 'active' : ''}}" wx:for="{{contact_list}}" wx:key="id" wx:for-item="item" data-contact_id="{{item.id}}" bindtap="contactSelect">
+       <text class="bi bi-person"></text>
+       {{item.name}} {{item.phone}}</view>
+     </view>
+    </view>
+   </view>
+
+   <!-- 自定义选项 -->
+   <view class="box custom-fields-box" wx:if="{{custom_fields && custom_fields.length}}">
+    <view class="custom-field" wx:for="{{custom_fields}}" wx:key="name" wx:for-item="cf">
+     <view class="label">{{cf.name}}<text class="required" wx:if="{{cf.required}}"> *</text></view>
+     <view class="value">
+      <input wx:if="{{cf.type === 'input'}}" class="text-input" data-name="{{cf.name}}" value="{{custom[cf.name]}}" bindinput="onCustomInput" placeholder="{{cf.name}}" />
+      <textarea wx:elif="{{cf.type === 'textarea'}}" class="custom-textarea" data-name="{{cf.name}}" value="{{custom[cf.name]}}" bindinput="onCustomInput" placeholder="{{cf.name}}" maxlength="500"></textarea>
+      <picker wx:elif="{{cf.type === 'select'}}" range="{{cf.options}}" data-name="{{cf.name}}" bindchange="onCustomPicker">
+       <view class="picker">{{custom[cf.name] || '--'}}</view>
+      </picker>
+      <radio-group wx:elif="{{cf.type === 'radio'}}" class="custom-radio-group" data-name="{{cf.name}}" bindchange="onCustomRadio">
+       <label class="radio-item" wx:for="{{cf.options}}" wx:for-item="opt" wx:key="*this">
+        <radio value="{{opt}}" checked="{{custom[cf.name] === opt}}" /> {{opt}}
+       </label>
+      </radio-group>
+      <checkbox-group wx:elif="{{cf.type === 'checkbox'}}" class="custom-checkbox-group" data-name="{{cf.name}}" bindchange="onCustomCheckbox">
+       <label class="checkbox-item" wx:for="{{cf.options}}" wx:for-item="opt" wx:key="*this">
+        <checkbox value="{{opt}}" checked="{{custom[cf.name] && custom[cf.name].indexOf(opt) > -1}}" /> {{opt}}
+       </label>
+      </checkbox-group>
+     </view>
+    </view>
+   </view>
+
+   <!-- 备注输入 -->
+   <view class="remark-box">
+    <view class="remark-head">{{lang.book_remark}}</view>
+    <textarea class="text-area" placeholder="{{lang.book_remark}}" bindinput="onRemarkInput" maxlength="500"></textarea>
+   </view>
+   
+   <view class="submit-box">
+    <view class="btn" bindtap="bookSubmit">{{lang.btn_submit}}</view>
+   </view>
+  </view>
+ </view>
+</view>

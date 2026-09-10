@@ -1,0 +1,38 @@
+/* pages/debug/debug.wxss */
+.body {
+ padding: 20rpx;
+}
+.wrap {
+ background-color: #FFF;
+ border-radius: 12rpx;
+ padding: 20rpx;
+}
+.tip {
+ font-size: 24rpx;
+ color: #999;
+ margin-bottom: 20rpx;
+}
+.list {
+ border-top: 1rpx solid #EEE;
+}
+.row {
+ display: flex;
+ flex-direction: row;
+ padding: 16rpx 0;
+ border-bottom: 1rpx solid #EEE;
+}
+.row-label {
+ width: 240rpx;
+ flex-shrink: 0;
+ font-size: 26rpx;
+ color: #666;
+}
+.row-value {
+ flex: 1;
+ font-size: 26rpx;
+ color: #333;
+ word-break: break-all;
+}
+.copy-btn {
+ margin-top: 30rpx;
+}

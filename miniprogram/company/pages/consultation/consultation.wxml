@@ -1,0 +1,47 @@
+<!--pages/consultation/consultation.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="form-basic">
+   <form bindsubmit="consultationAdd">
+    <view class="dl">
+     <view class="dt">{{lang.consultation_contact}}</view>
+     <view class="dd">
+      <input name="contact" type="text" class="input" placeholder="{{lang.consultation_contact_cue}}" placeholder-class="placeholder" />
+     </view>
+    </view>
+    <view class="dl">
+     <view class="dt">{{lang.consultation_telphone}}</view>
+     <view class="dd">
+      <input name="telphone" type="text" class="input" placeholder="{{lang.consultation_telphone_cue}}" placeholder-class="placeholder" />
+     </view>
+    </view>
+    <view class="dl">
+     <view class="dt">{{lang.consultation_email}}</view>
+     <view class="dd">
+      <input name="email" type="text" class="input" placeholder="{{lang.consultation_email_cue}}" placeholder-class="placeholder" />
+     </view>
+    </view>
+    <view class="dl">
+     <view class="dt">{{lang.consultation_company}}</view>
+     <view class="dd">
+      <input name="company" type="text" class="input" placeholder="{{lang.consultation_company_cue}}" placeholder-class="placeholder" />
+     </view>
+    </view>
+    <view class="dl full">
+     <view class="dt">{{lang.consultation_brief}}</view>
+     <view class="dd">
+      <view class="weui-cell__bd">
+       <textarea name="brief" class="weui-textarea" placeholder="{{lang.consultation_brief_cue}}" placeholder-class="weui-input__placeholder" rows="3" maxlength="{{textAreaMaxLen}}" bindinput="bindKeyInput"></textarea>
+       <view aria-role="option" class="weui-textarea-counter"><span>{{inputValueLength}}</span>/{{textAreaMaxLen}}</view>
+      </view>
+     </view>
+    </view>
+    <view class="action">
+     <input hidden="true" name="all_field" value="1" />
+     <button class="btn" formType="submit">{{lang.btn_submit}}</button>
+    </view>
+   </form>
+  </view>
+ </view>
+</view>

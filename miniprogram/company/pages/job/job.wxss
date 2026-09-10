@@ -1,0 +1,47 @@
+/* pages/job/job.wxss */
+/* -- job-list -- */
+.job-list {
+ padding-top:20px;
+}
+.job-list .item {
+ border-bottom: 1px solid #DDD;
+ margin-bottom: 25px;
+}
+.job-list .item .last {
+ border-bottom: 0;
+}
+.job-list .item .head  {
+ margin-bottom: 15px;
+}
+.job-list .item .head .position {
+ color: #333;
+ font-size: 18px;
+ margin-bottom: 10px;
+}
+.job-list .item .head .attribute {
+ display: block;
+ color: #999;
+}
+.job-list .item .con {
+ margin-bottom: 15px;
+}
+.job-list .item .con .name {
+ display: block;
+ margin-bottom: 5px;
+ font-weight: bold;
+ font-size: 14px;
+}
+.job-list .item .con .desc {
+ line-height: 200%;
+ margin: 0;
+ font-size: 14px;
+ font-family: Microsoft Yahei, \5FAE\8F6F\96C5\9ED1, \5b8b\4f53, Arial, Lucida, Verdana, Helvetica, sans-serif;
+ white-space: pre-wrap;
+ white-space: -moz-pre-wrap;
+ white-space: -pre-wrap;
+ white-space: -o-pre-wrap;
+}
+.job-list .item .apply {
+ color: #999;
+ margin-bottom: 15px;
+}

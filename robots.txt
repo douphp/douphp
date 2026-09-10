@@ -1,0 +1,10 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /api/
+Disallow: /config/
+Disallow: /core/
+Disallow: /front/
+Disallow: /languages/
+Disallow: /miniprogram/
+Disallow: /storage/
+Disallow: /theme/

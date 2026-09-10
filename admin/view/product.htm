@@ -1,0 +1,355 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+ <meta name="copyright" content="DouCo Co.,Ltd." />
+ <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+ <meta name="csrf-token" content="{$csrf_token}">
+ <title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+ <link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+ <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+ <link href="css/common.css" rel="stylesheet" type="text/css">
+ <link href="css/cropper.min.css" rel="stylesheet" type="text/css">
+ <link href="css/product.css" rel="stylesheet" type="text/css">
+ {include file="inc/javascript.tpl"}
+</head>
+
+<body>
+ <div id="dou"> {include file="inc/header.tpl"}
+  {include file="inc/sidebar.tpl"}
+  <div id="dou-content"> {include file="inc/toolbar.tpl"}
+   <div class="dou-main">
+    <div id="product" class="dou-page">
+    <!-- {if $rec eq 'default'} 商品列表 -->
+    {include file="inc/page_header.tpl"}
+    <div class="filter">
+     <form action="{url link='admin.product'}" method="get" onsubmit="return hideEmpty(this)">
+      <select class="select" name="category_id">
+       <option value="0">{$lang.uncategorized}</option>
+       <!-- {foreach from=$product_category item=cate} -->
+       <option value="{$cate.id}" {if $cate.id eq $category_id} selected="selected" {/if}>{$cate.mark} {$cate.name}</option>
+       <!-- {/foreach} -->
+      </select>
+      <input name="keyword" type="text" class="input" value="{$keyword}" size="20" />
+      <input class="btn-secondary" type="submit" value="{$lang.btn_filter}" />
+     </form>
+     <span>
+      <!-- {if $features.sort} -->
+      <a class="btn-secondary js-post" href="{url link='admin.tool.sort' act=reset module=product}">{$lang.sort_reset}</a> <a class="btn-secondary js-post" href="{url link='admin.tool.sort' act=close}">{$lang.sort_close}</a>
+      <!-- {else} -->
+      <a class="btn-secondary js-post" href="{url link='admin.product.thumb'}">{$lang.product_thumb}</a> <a class="btn-secondary js-post" href="{url link='admin.tool.sort' act=open}">{$lang.sort_open}</a>
+      <!-- {/if} -->
+     </span>
+    </div>
+    <div id="list" class="page-scroll-position">
+     <form name="action" method="post" action="{url link='admin.product.action'}">
+      <input type="hidden" name="token" value="{$token}" />
+      <table class="table">
+       <tr>
+        <th width="22" class="text-center"><input name='chkall' type='checkbox' id='chkall' onclick='selectcheckbox(this.form)' value='check'></th>
+        <th class="m-none text-center" width="40">{$lang.record_id}</th>
+        <th class="text-left">{$lang.product_title}</th>
+        <th class="m-none text-center">{$lang.product_price}</th>
+        <th class="m-none text-center">{$lang.price_promote}</th>
+        <!-- {foreach from=$user_level_option item=level} -->
+        <th class="m-none text-center">{$level.name}</th>
+        <!-- {/foreach} -->
+        <th class="m-none text-center" width="150">{$lang.product_category}</th>
+        <!-- {if $site.stock} -->
+        <th width="100" class="text-center">{$lang.product_stock}</th>
+        <!-- {/if} -->
+        <!-- {if $features.point} -->
+        <th width="100" class="text-center">{$lang.product_point}</th>
+        <!-- {/if} -->
+        <!-- {if $features.sort} -->
+        <th class="m-none text-center" width="80">{$lang.sort}</th>
+        <!-- {/if} -->
+        <th class="m-none text-center" width="80">{$lang.status}</th>
+        <th class="m-none text-center" width="80">{$lang.created_at}</th>
+        <th width="80" class="text-center">{$lang.handler}</th>
+       </tr>
+       <!-- {foreach from=$product_list item=product} -->
+       <tr class="{if !$product.status.value}row-disabled{/if}" data-off-row-class="row-disabled">
+        <td class="text-center"><input type="checkbox" name="checkbox[]" value="{$product.id}" /></td>
+        <td class="m-none text-center">{$product.id}</td>
+        <td><a href="{url link='admin.product.edit' id=$product.id}">{$product.title}</a><!-- {if $product.image} --> <a href="{$product.image}" target="_blank"><img src="images/icon_picture.png" width="16" height="16" align="absMiddle"></a><!-- {/if} --></td>
+        <td class="m-none text-center">{$product.price}</td>
+        <td class="m-none text-center">{$product.promote_price}</td>
+        <!-- {foreach from=$product.level_price item=level} -->
+        <td class="m-none text-center">{$level.price_format}</td>
+        <!-- {/foreach} -->
+        <td class="m-none text-center"><!-- {if $product.category.name} --><a href="{url link='admin.product' category_id=$product.category_id}">{$product.category.name}</a><!-- {else} -->{$lang.uncategorized}<!-- {/if} --></td>
+        <!-- {if $site.stock} -->
+        <td class="text-center">{$product.stock}</td>
+        <!-- {/if} -->
+        <!-- {if $features.point} -->
+        <td class="text-center">{$product.point}</td>
+        <!-- {/if} -->
+        <!-- {if $features.sort} -->
+        <td class="m-none text-center">{$product.sort}</td>
+        <!-- {/if} -->
+        <td class="m-none text-center"><em class="link js-toggle {if $product.status.value}ai-status ai-status-on{else}ai-status ai-status-off{/if}"
+         data-url="{url link='admin.tool.change_field' module='product' item_id=$product.id field='status'}"
+         data-state="{if $product.status.value}on{else}off{/if}"
+         data-on-class="ai-status ai-status-on" data-off-class="ai-status ai-status-off"
+         data-text-on="{$lang.status_1}" data-text-off="{$lang.status_0}"><span class="js-toggle-state">{$product.status.format}</span><span class="js-toggle-action">{if $product.status.value}{$lang.status_0}{else}{$lang.status_1}{/if}</span></em></td>
+        <td class="m-none text-center">{$product.created_at}</td>
+        <td class="text-center"><a href="{url link='admin.product.edit' id=$product.id}">{$lang.edit}</a> | <a href="javascript:;" class="js-delete" data-url="{url link='admin.product.destroy' id=$product.id}">{$lang.del}</a></td>
+       </tr>
+       <!-- {/foreach} -->
+      </table>
+      <div class="action">
+       <select class="select" name="action" onchange="douAction()">
+        <option value="0">{$lang.select}</option>
+        <option value="del_all">{$lang.del}</option>
+        <option value="category_move">{$lang.category_move}</option>
+       </select>
+       <select class="select" name="new_cat_id" style="display:none">
+        <option value="0">{$lang.uncategorized}</option>
+        <!-- {foreach from=$product_category item=cate} -->
+        <option value="{$cate.id}" {if $cate.id eq $category_id} selected="selected" {/if}>{$cate.mark} {$cate.name}</option>
+        <!-- {/foreach} -->
+       </select>
+       <input class="btn" type="submit" value="{$lang.btn_execute}" />
+      </div>
+     </form>
+    </div>
+    {include file="inc/pager.tpl"}
+    <!-- {/if} -->
+    <!-- {if $rec eq 'create' || $rec eq 'edit'} 商品添加或编辑 -->
+    {include file="inc/page_header.tpl"}
+    <form action="{$form_action}" method="post" enctype="multipart/form-data"><input type="hidden" name="_method" value="{$form_method}" />
+     <div class="form" x-data="slugApp">
+      <div class="form-item">
+       <div class="form-label">{$lang.product_title}</div>
+       <div class="input-block">
+        <input type="text" name="title" value="{$product.title}" size="80" class="input" />
+        <span class="action" data-field="title">{$btn_lang.title nofilter}</span>
+       </div>
+      </div>
+      <!-- {if $features.slug} -->
+      <div class="form-item">
+       <div class="form-label">{$lang.slug} <em class="btn-outline" @click="autoSlug">{$lang.slug_auto}</em></div>
+       <div class="input-block">
+        <input type="text" name="slug" value="{$product.slug}" size="80" class="input" />
+        <p class="cue">{$lang.slug_cue}</p>
+       </div>
+      </div>
+      <!-- {/if} -->
+      <div class="form-item">
+       <div class="form-label">{$lang.product_category}</div>
+       <div class="input-block">
+        <select class="select" name="category_id">
+         <option value="0">{$lang.uncategorized}</option>
+         <!-- {foreach from=$product_category item=cate} -->
+         <option value="{$cate.id}" {if $cate.id eq $product.category_id} selected="selected" {/if}>{$cate.mark} {$cate.name}</option>
+         <!-- {/foreach} -->
+        </select>
+       </div>
+      </div>
+      <!-- {if $features.brand} -->
+      <div class="form-item">
+       <div class="form-label">{$lang.brand}</div>
+       <div class="input-block">
+        <select class="select" name="brand_id">
+         <option value="0">{$lang.select}</option>
+         <!-- {foreach from=$brand_list item=brand} -->
+         <option value="{$brand.id}" {if $brand.id == $product.brand_id} selected="selected" {/if}>{$brand.name}</option>
+         <!-- {/foreach} -->
+        </select>
+       </div>
+      </div>
+      <!-- {/if} -->
+      <div class="form-item">
+       <div class="form-label">{$lang.product_price}</div>
+       <div class="input-block">
+        <input type="text" name="price" value="{if $product.price}{$product.price}{else}0{/if}" size="40" class="input" />
+       </div>
+      </div>
+      <div class="form-item">
+       <div class="form-label">{$lang.price_promote}</div>
+       <div class="input-block">
+        <input type="text" name="promote_price" value="{if $product.promote_price}{$product.promote_price}{else}0{/if}" size="40" class="input" />
+        <p class="cue">{$lang.price_promote_cue}</p>
+       </div>
+      </div>
+      <!-- {if $user_level_option} -->
+      <div class="form-item">
+       <div class="form-label">{$lang.product_level_price}</div>
+       <div class="input-block">
+        <div class="form-fields">
+         <!-- {foreach from=$user_level_option item=level} -->
+         <div class="form-fields-item">
+          <p>{$level.name}</p>
+          <input type="text" name="level_price[{$level.level_id}]" value="{$level.price}" size="10" class="input" />
+         </div>
+         <!-- {/foreach} -->
+        </div>
+       </div>
+      </div>
+      <!-- {/if} -->
+      <!-- {if $product.defined} -->
+      <div class="form-item">
+       <div class="form-label">{$lang.product_defined}</div>
+       <div class="input-block"> <textarea name="defined" cols="50" class="textarea-auto auto-textarea">{$product.defined}</textarea>
+        <p class="action" data-field="defined">{$btn_lang.defined nofilter}</p>
+       </div>
+      </div>
+      <!-- {/if} -->
+      <div class="form-item">
+       <div class="form-label">{$lang.product_content}</div>
+       <div class="input-block">
+        <!-- 编辑器（所需变量：$item_content） -->
+        {include file="inc/editor.tpl" name="content" value="$item_content"}
+        <p class="action" data-field="content">{$btn_lang.content nofilter}</p>
+       </div>
+      </div>
+      <div class="form-item">
+       <div class="form-label">{$lang.thumb}</div>
+       <div class="input-block">
+        {include file="inc/file_input.tpl" name="image" value=$product.image file_number=$product.file_number crop_ratio=$setting.theme.product_img_crop}
+        <p class="cue">{$setting.theme.product_img_size}</p>
+       </div>
+      </div>
+      <!-- {if $features.data} -->
+      <div class="form-item">
+       <div class="input-block">
+        {include file="inc/data_inner.tpl"}
+       </div>
+      </div>
+      <!-- {/if} -->
+      <div class="form-item">
+       <div class="form-label">{$lang.product_gallery}</div>
+       <div class="input-block">
+        {include file="inc/gallery_upload.tpl" type="gallery" list_html=$product.img_list_html}
+       </div>
+      </div>
+      <!-- {if $features.attribute} -->
+      <div class="form-item">
+       <div class="form-label">{$lang.attribute}</div>
+       <div class="input-block">
+        <!-- 规格属性 -->
+        {include file="inc/attribute_box.tpl"}
+       </div>
+      </div>
+      <!-- {else} -->
+      <div class="form-item">
+       <div class="form-label">{$lang.product_model}</div>
+       <div class="input-block">
+        <!-- FileBox -->
+        <div class="model-box">
+         <div class="model-add">
+          <input type="text" id="modelId" size="5" class="input" autocomplete="off" placeholder="{$lang.product_model_cue}" />
+          <a href="javascript:;" class="bi-plus" {if $rec eq 'edit' }onclick="modelBox('add', '{$product.id}');" {else}data-dou-toggle="modal" data-dou-modal="message" data-title="{$lang.product_model_wrong}" data-placement="center" {/if} title="{$lang.product_model_title}"></a>
+         </div>
+         <ul id="model-list" class="model-list">
+          {$product.model_list nofilter}
+         </ul>
+        </div>
+        <!-- /FileBox -->
+       </div>
+      </div>
+      <!-- {/if} -->
+      <!-- {if $site.stock} -->
+      <div class="form-item">
+       <div class="form-label">{$lang.product_stock}</div>
+       <div class="input-block">
+        <input type="text" name="stock" value="{if $rec eq 'edit'}{$product.stock}{else}100{/if}" size="10" class="input" />
+       </div>
+      </div>
+      <!-- {/if} -->
+      <!-- {if $features.point} -->
+      <div class="form-item">
+       <div class="form-label">{$lang.product_point}</div>
+       <div class="input-block">
+        <input type="text" name="point" value="{if $product.point}{$product.point}{else}0{/if}" size="10" class="input" />
+       </div>
+      </div>
+      <!-- {/if} -->
+      <!-- {if $features.sort} -->
+      <div class="form-item">
+       <div class="form-label">{$lang.sort}</div>
+       <div class="input-block">
+        <input type="text" name="sort" value="{if $product.sort}{$product.sort}{else}50{/if}" size="5" class="input" />
+       </div>
+      </div>
+      <!-- {/if} -->
+      <div class="form-item">
+       <div class="form-label">{$lang.keywords}</div>
+       <div class="input-block">
+        <input type="text" name="keywords" value="{$product.keywords}" size="114" class="input" />
+        <span class="action" data-field="keywords">{$btn_lang.keywords nofilter}</span>
+       </div>
+      </div>
+      <div class="form-item">
+       <div class="form-label">{$lang.description}</div>
+       <div class="input-block">
+        <textarea name="description" cols="115" rows="3" class="textarea" />{$product.description}</textarea>
+        <p class="action" data-field="description">{$btn_lang.description nofilter}</p>
+       </div>
+      </div>
+      <div class="form-item">
+       <!-- {if !$features.sort} -->
+       <input type="hidden" name="sort" value="{if $product.sort}{$product.sort}{else}50{/if}" />
+       <!-- {/if} -->
+       <input type="hidden" name="token" value="{$token}" />
+       <input type="hidden" name="id" value="{$product.id}">
+       <input type="hidden" name="draft_token" value="{$draft_token}" />
+       <input class="btn" type="submit" value="{$lang.btn_submit}" />
+      </div>
+     </div>
+    </form>
+    <!-- {/if} -->
+    <!-- {if $rec eq 'thumb'} -->
+    {include file="inc/page_header.tpl"}
+    <script type="text/javascript">
+     {literal}
+     function mask(i) {
+      document.getElementById('mask').innerHTML += i;
+      document.getElementById('mask').scrollTop = 100000000;
+     }
+     function success() {
+      var d = document.getElementById('success');
+      d.style.display = "block";
+     }
+     {/literal}
+    </script>
+    <dl id="mask-box" class="mask-box">
+     <dt><em>{$mask.count}</em><!-- {if !$mask.confirm} -->
+      <form action="{url link='admin.product.thumb'}" method="post">
+       <input type="hidden" name="token" value="{$token}" />
+       <input name="confirm" class="btn" type="submit" value="{$lang.product_thumb_start}" />
+      </form>
+      <!-- {/if} -->
+     </dt>
+     <dd class="mask-bg">{$mask.bg}<i id="success">{$lang.product_thumb_succes}</i></dd>
+     <dd id="mask"></dd>
+    </dl>
+    <!-- {/if} -->
+   </div>
+  </div>
+  </div>
+  {include file="inc/footer.tpl"}
+ </div>
+ <!-- {if $rec eq 'default'} 商品列表 -->
+ <script type="text/javascript">
+  {literal}
+  onload = function () { document.forms['action'].reset(); }
+  {/literal}
+ </script>
+ <!-- {else} -->
+ <!-- {if $rec eq 'default'} -->
+ <script type="text/javascript">
+  {literal}
+  onload = function () { document.forms['action'].reset(); }
+  {/literal}
+ </script>
+ <!-- {/if} -->
+ <!-- {/if} -->
+ <!-- {if $rec neq 're_thumb'} -->
+<script type="text/javascript" src="js/cropper.min.js"></script>
+</body>
+
+</html>
+<!-- {/if} -->
