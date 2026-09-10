@@ -12,7 +12,7 @@
  * ------------------------------------------------------------------------------------
  * Author: DouCo Co.,Ltd.
  * Release Date: 2026-05-11
- */
+ */ 
 define('IN_DOUCO', true);
 
 require(dirname(__FILE__) . '/core/bootstrap.php');
