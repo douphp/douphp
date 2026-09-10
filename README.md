@@ -4,8 +4,8 @@
 
 DouPHP 采用「三端入口 + 共享核心 + 模块化」架构，内置会员中心、工作人员端、订单支付、AI 能力等完整业务体系，既可快速搭建企业官网，也能支撑复杂的在线业务系统。
 
-![PHP](https://img.shields.io/badge/PHP-5.6%20--%208.x-777bb3)
-![License](https://img.shields.io/badge/License-MIT-green)
+- **开发语言**：PHP 5.6 – 8.x
+- **开源协议**：MIT，可自由使用、修改、分发（含商业用途），仅需保留版权声明，详见 [LICENSE](LICENSE)
 
 ## 特性
 
