@@ -54,6 +54,7 @@ $_LANG['home'] = '首頁';
 $_LANG['handler'] = '操作';
 $_LANG['handler_wrong'] = '操作有誤！';
 $_LANG['illegal'] = '非法操作';
+$_LANG['csrf_page_expired'] = '頁面狀態已失效，請重新整理頁面或重新登入後再試';
 $_LANG['illegal_char'] = '中含有非法字元';
 $_LANG['keywords'] = '關鍵字';
 $_LANG['link'] = '友情連結';
@@ -170,6 +171,7 @@ $_LANG['file_support'] = '上傳檔案類型僅支援';
 $_LANG['file_support_no'] = '不支援';
 $_LANG['file_out_size'] = '上傳檔案超過';
 $_LANG['file_wrong'] = '上傳檔案失敗，請確認您的上傳檔案不超過 d% KB 或上傳時間逾時';
+$_LANG['upload_failed'] = '上傳失敗，請重試';
 $_LANG['file_insert_image'] = '插入圖片';
 $_LANG['file_btn'] = '點擊上傳';
 

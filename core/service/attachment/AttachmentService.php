@@ -124,6 +124,7 @@ class AttachmentService
     {
         $options = ($options instanceof AttachmentUploadOptions) ? $options : AttachmentUploadOptions::create();
         if (!($file instanceof UploadedFile) || !$file->isValid()) {
+            $this->rejectInvalidUpload($file, $type);
             return '';
         }
 
@@ -273,6 +274,7 @@ class AttachmentService
     {
         $options = ($options instanceof AttachmentUploadOptions) ? $options : AttachmentUploadOptions::create();
         if (!($file instanceof UploadedFile) || !$file->isValid()) {
+            $this->rejectInvalidUpload($file, 'main');
             return '';
         }
 
@@ -605,6 +607,7 @@ class AttachmentService
     {
         $options = ($options instanceof AttachmentUploadOptions) ? $options : AttachmentUploadOptions::create();
         if (!($file instanceof UploadedFile) || !$file->isValid()) {
+            $this->rejectInvalidUpload($file, $type);
             return '';
         }
         if ($draftToken === '' || (int) $identityId <= 0) {
@@ -1154,6 +1157,29 @@ class AttachmentService
     public function formatFileWrong()
     {
         return UploadedFile::formatFileWrong($this->effectiveUploadMaxKb());
+    }
+
+    /**
+     * 已选择文件但被 PHP 层拒绝时抛出可提示异常，不再静默丢弃。
+     *
+     * 超过 upload_max_filesize / MAX_FILE_SIZE（isSizeLimitError）按 PHP 实际上限提示
+     * file_out_size（口径与 crop() 入口一致）；其余错误码（部分上传 / 写入失败等）提示
+     * file_wrong。未传文件（null）与表单文件域留空提交（UPLOAD_ERR_NO_FILE）不算失败，
+     * 维持调用方「无上传」语义，直接返回。
+     *
+     * @param UploadedFile|null $file
+     * @param string $type
+     * @return void
+     */
+    private function rejectInvalidUpload($file, $type)
+    {
+        if (!($file instanceof UploadedFile) || $file->getErrorCode() === UPLOAD_ERR_NO_FILE) {
+            return;
+        }
+        if ($file->isSizeLimitError()) {
+            $this->fail($type, UploadedFile::formatFileOutSize(UploadedFile::phpUploadMaxKb()));
+        }
+        $this->fail($type, $this->formatFileWrong());
     }
 
     /**

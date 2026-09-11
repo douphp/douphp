@@ -187,6 +187,17 @@ class UploadedFile
     }
 
     /**
+     * PHP 上传错误码（UPLOAD_ERR_OK / UPLOAD_ERR_INI_SIZE / UPLOAD_ERR_NO_FILE 等），
+     * 供调用方区分「未选择文件」与「已选择但被 PHP 拒绝」。
+     *
+     * @return int
+     */
+    public function getErrorCode()
+    {
+        return $this->errorCode;
+    }
+
+    /**
      * 原始文件名（来自客户端，仅供展示与扩展名提取；不可信任作为路径）。
      *
      * @return string

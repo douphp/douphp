@@ -55,6 +55,7 @@ $_LANG['home'] = '首页';
 $_LANG['handler'] = '操作';
 $_LANG['handler_wrong'] = '操作有误！';
 $_LANG['illegal'] = '非法操作';
+$_LANG['csrf_page_expired'] = '页面状态已失效，请刷新页面或重新登录后再试';
 $_LANG['illegal_char'] = '中含有非法字符';
 $_LANG['keywords'] = '关键字';
 $_LANG['link'] = '友情链接';
@@ -171,6 +172,7 @@ $_LANG['file_support'] = '上传文件类型仅支持';
 $_LANG['file_support_no'] = '不支持';
 $_LANG['file_out_size'] = '上传文件超过';
 $_LANG['file_wrong'] = '上传文件失败，请确认你的上传文件不超过 d% KB 或上传时间超时';
+$_LANG['upload_failed'] = '上传失败，请重试';
 $_LANG['file_insert_image'] = '插入图片';
 $_LANG['file_btn'] = '点击上传';
 

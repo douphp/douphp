@@ -54,6 +54,7 @@ $_LANG['home'] = 'Home';
 $_LANG['handler'] = 'Action';
 $_LANG['handler_wrong'] = 'Invalid action!';
 $_LANG['illegal'] = 'Invalid Operation';
+$_LANG['csrf_page_expired'] = 'This page has expired. Please refresh the page or sign in and try again.';
 $_LANG['illegal_char'] = ' contains invalid characters';
 $_LANG['keywords'] = 'Keywords';
 $_LANG['link'] = 'Links';
@@ -170,6 +171,7 @@ $_LANG['file_support'] = 'Only the following file types are supported:';
 $_LANG['file_support_no'] = 'Not supported';
 $_LANG['file_out_size'] = 'The uploaded file exceeds';
 $_LANG['file_wrong'] = 'File upload failed. Please make sure the file size does not exceed d% KB and the upload has not timed out';
+$_LANG['upload_failed'] = 'Upload failed. Please try again.';
 $_LANG['file_insert_image'] = 'Insert Image';
 $_LANG['file_btn'] = 'Click to Upload';
 

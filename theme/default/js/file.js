@@ -1,5 +1,30 @@
 /**
  +----------------------------------------------------------
+ * 文件盒子.上传失败提示
+ +----------------------------------------------------------
+ * 422 JSON envelope（{code, message}）取 message 弹出；
+ * 非 JSON 响应（如 413/500 错误页）剥掉标签后截取前 100 字符提示；
+ * 均无法解析时回退通用上传失败文案。
+ */
+function fileBoxAlertError(xhr) {
+    var msg = '';
+
+    if (xhr && xhr.responseText) {
+        try {
+            var json = $.parseJSON(xhr.responseText);
+            if (json && json.message) {
+                msg = String(json.message);
+            }
+        } catch (e) {
+            msg = String(xhr.responseText).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 100);
+        }
+    }
+
+    alert(msg || lang('upload_failed'));
+}
+
+/**
+ +----------------------------------------------------------
  * 文件盒子.文件上传
  +----------------------------------------------------------
  */
@@ -54,9 +79,10 @@ function fileBox(type, target, module, item_id, folder = 'no', img_width = '', d
                     status.hide();
                     btn.show();
                 },
-                error: function() {
+                error: function(xhr) {
                     status.hide();
                     btn.show();
+                    fileBoxAlertError(xhr);
                 },
                 clearForm: true
             }).submit();

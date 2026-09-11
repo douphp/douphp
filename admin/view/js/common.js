@@ -811,6 +811,32 @@ function douAction() {
 
 /**
  +----------------------------------------------------------
+ * 文件盒子.上传失败的可读错误文本
+ +----------------------------------------------------------
+ * JSON envelope（{code, message}）取 message；HTML 错误页（如 413 / 500）
+ * 剥掉标签后截取前 100 字符；均无法解析时回退通用上传失败文案。
+ */
+function fileBoxErrorText(xhr) {
+  if (xhr && xhr.responseText) {
+    try {
+      var json = $.parseJSON(xhr.responseText);
+      if (json && json.message) {
+        return String(json.message);
+      }
+    } catch (e) {}
+    var plain = String(xhr.responseText)
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (plain) {
+      return plain.slice(0, 100);
+    }
+  }
+  return lang("upload_failed");
+}
+
+/**
+ +----------------------------------------------------------
  * 文件盒子.文件上传
  +----------------------------------------------------------
  */
@@ -843,6 +869,13 @@ function fileBox(type, target, module, item_id, draft_token, img_width, editor, 
         btn.hide();
       },
       success: function (html) {
+        // 入口对 AJAX 的 DomainException 返回 200 + dou_msg.htm 整页提示（如上传超限），
+        // 不能塞进上传列表容器：提取 <h2> 提示文本弹窗
+        if (/<html[\s>]|<!DOCTYPE/i.test(html)) {
+          var msgMatch = String(html).match(/<h2[^>]*>([\s\S]*?)<\/h2>/i);
+          alert(msgMatch ? msgMatch[1].replace(/<[^>]*>/g, "").trim() : fileBoxErrorText(null));
+          return;
+        }
         if (type == "content") {
           if (html.indexOf("<img") >= 0) {
             if (editor == "vditor") {
@@ -862,8 +895,8 @@ function fileBox(type, target, module, item_id, draft_token, img_width, editor, 
           }
         }
       },
-      error: function () {
-        alert("Upload failed");
+      error: function (xhr) {
+        alert(fileBoxErrorText(xhr));
       },
       complete: function () {
         status.hide();

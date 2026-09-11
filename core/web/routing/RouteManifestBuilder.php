@@ -24,20 +24,10 @@ if (!defined('IN_DOUCO')) {
 /**
  * 路由清单批量生成器
  *
- * 输入源：
- *   - config/module.php 模块注册表（column_module / single_module / link_user_center / ...）
- *   - config/route.php 选中的 page / column / simple 风格规则（经 RouteRules 合并 route_custom）
- *   - 系统内置端点明文表（见 {@see buildSystemDeclared}：llms.txt / sitemap.xml / captcha / search /
- *     plugin / index）
- *   - admin|front|api/route/*.php 声明式路由文件夹
+ * 输入源：config/module.php、config/route.php 风格规则、系统内置端点表、
+ * front|admin|api/route/*.php 声明式路由文件。
  *
- * 产出：RouteEntry[]，迭代顺序与 PrettyRouteMatcher 入站匹配先后一致。
- *
- * 字段契约：见 docs/adr/2026-06-14-route-manifest-contract.md §2。
- *
- * 三端覆盖：三端入站匹配全部走 declared 条目（系统内置 + 声明文件展开）：
- *   - 前台：由 {@see \Dou\Front\Foundation\Routing\PrettyRouteMatcher} 顺序匹配；
- *   - 后台 / 接口：由 {@see BackendDeclaredMatcher} 顺序匹配。
+ * 产出：RouteEntry[]，顺序与 PrettyRouteMatcher / BackendDeclaredMatcher 入站匹配顺序一致。
  */
 class RouteManifestBuilder
 {
@@ -50,17 +40,10 @@ class RouteManifestBuilder
     }
 
     /**
-     * 构建完整 manifest 条目列表（按匹配器迭代顺序）。
+     * 构建完整 manifest 条目列表，顺序：home → 系统内置 declared → 声明文件 declared。
      *
-     * 顺序约定（与 PrettyRouteMatcher 匹配顺序一致）：
-     *   1. home（首页直达，FrontResolver 直返，不入匹配器迭代）
-     *   2. **system declared**（llms.txt / sitemap.xml / captcha / search / plugin 等内置端点，
-     *      route_type='declared'，按字面段优先匹配，先于 file-based 声明）
-     *   3. **file-based declared**（front/admin/api/route 声明式条目）
-     *
-     * 入站匹配清单不含 page / column / simple meta 模板：栏目 / 单表 / 单页的入站匹配已由
-     * 声明文件经 {@see StyleRuleExpander}（Route::column / simple / page）展开为具体 declared
-     * 条目承载。meta 模板仅作为出站生成视图保留，见 {@see buildRuleGroups}（供 UrlBuilder 读取）。
+     * 前台 declared 条目统一经 {@see withPaginationSegment} 补齐分页段；
+     * page / column / simple meta 模板不入清单（仅供出站，见 {@see buildRuleGroups}）。
      *
      * @return RouteEntry[]
      */
@@ -70,13 +53,38 @@ class RouteManifestBuilder
 
         $entries[] = $this->buildHome();
         foreach ($this->buildSystemDeclared() as $e) {
-            $entries[] = $e;
+            $entries[] = $this->withPaginationSegment($e);
         }
         foreach ($this->buildDeclared() as $e) {
-            $entries[] = $e;
+            $entries[] = $this->withPaginationSegment($e);
         }
 
         return $entries;
+    }
+
+    /**
+     * 前台 declared 条目补齐分页段 `[/o{page:\d*}]`。
+     *
+     * 已含 `{page` 占位符（风格规则条目）的不重复追加；admin / api 条目分页走查询串，不处理。
+     *
+     * @param RouteEntry $entry
+     * @return RouteEntry 补齐分页段的新条目；不适用时原样返回
+     */
+    private function withPaginationSegment(RouteEntry $entry)
+    {
+        if ($entry->route_type !== 'declared' || $entry->endNamespace() !== 'Front') {
+            return $entry;
+        }
+
+        $pattern = (string) $entry->pattern;
+        if ($pattern === '' || strpos($pattern, '{page') !== false) {
+            return $entry;
+        }
+
+        $fields = $entry->toArray();
+        $fields['pattern'] = $pattern . '[/o{page:\d*}]';
+
+        return new RouteEntry($fields);
     }
 
     /**
@@ -123,15 +131,10 @@ class RouteManifestBuilder
     }
 
     /**
-     * 系统内置端点声明（前台命名空间，明文表，逐 action 一条）。
+     * 系统内置端点声明（前台，逐 action 一条，route_type='declared'）。
      *
-     * 包含 llms.txt / sitemap.xml 等字面端点，以及 captcha / search / plugin 等需要按
-     * action 显式覆盖的系统控制器。所有条目 route_type='declared'、controller 明文填写，
-     * 由 {@see PrettyRouteMatcher} 当作普通 declared 入站规则匹配，同时计入
-     * {@see route-coverage-scan.php} 覆盖率，使「fully undeclared 控制器数 = 0」成为硬门禁。
-     *
-     * 注：home（首页空串）由 {@see buildHome} 独立承载，仍走 FrontResolver 短路；
-     * category 没有专属前台 Controller，不在此声明（`?route=category` 自然 404）。
+     * 含 llms.txt / sitemap.xml / captcha / search / index / plugin 等端点；
+     * plugin 的 finish / notify 为支付异步回调，豁免 csrf。
      *
      * @return RouteEntry[]
      */
@@ -235,11 +238,10 @@ class RouteManifestBuilder
     }
 
     /**
-     * 声明式条目（前台 / 后台 / 接口路由文件夹）。
+     * 声明式条目（加载 front / admin / api 三端 route 文件夹）。
      *
-     * 各端 route 文件夹缺失时返回空；front/route/<模块>.php 等声明 /user/<模块>/* 等
-     * 具名路由入站映射。每个 route 文件返回 RouteEntry[] 或字段数组列表，由 builder 统一
-     * 规范化为 RouteEntry。
+     * 每个 route 文件返回 RouteEntry[] 或字段数组列表，统一规范化为 RouteEntry；
+     * 文件夹缺失时跳过。
      *
      * @return RouteEntry[]
      */
@@ -302,8 +304,7 @@ class RouteManifestBuilder
     }
 
     /**
-     * 在隔离方法作用域内 include 路由声明文件，避免被 include 文件中同名变量污染调用方
-     * 的 $entries 等局部变量（PHP include 与调用作用域共享变量空间的副作用）。
+     * 在独立方法作用域内 include 路由声明文件，避免 include 文件中的变量污染调用方作用域。
      *
      * @param string $file 绝对路径
      * @return mixed include 文件的 return 值
@@ -314,14 +315,14 @@ class RouteManifestBuilder
     }
 
     /**
-     * 推断各端 route 文件夹绝对路径（不存在时返回 null）。
+     * 推断各端 route 文件夹绝对路径（末尾带 'route/'，推断失败返回 null）。
      *
-     * 优先用三端入口已定义的常量（FRONT_PATH / API_PATH）；admin 端根据 ROOT_PATH + ADMIN_DIR
-     * 推断（与 AdminResolver 中 init/route.php 加载方式一致）；以上常量缺失时回退到仓库根 + 端名。
+     * 优先用入口常量（FRONT_PATH / API_PATH）；admin 端用 ROOT_PATH + ADMIN_DIR；
+     * 均缺失时回退到 ROOT_PATH + 端名。
      *
      * @param string|null $constName
      * @param string $endLower 'front' | 'admin' | 'api'
-     * @return string|null 末尾带 'route/'，若推断失败返回 null
+     * @return string|null
      */
     private function endRoutePath($constName, $endLower)
     {

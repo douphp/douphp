@@ -66,13 +66,15 @@ class CsrfMiddleware extends AbstractCsrfMiddleware
     }
 
     /**
-     * 后台非法操作：抛 DomainException，由 admin 入口 catch 后走 message()->respond() 输出
+     * 后台 CSRF 校验失败：正常会话过期（页面停留过久、重新登录令牌旋转等）占绝大多数，
+     * 优先给出可操作指引（刷新页面 / 重新登录），语言包缺 csrf_page_expired 键时回退 illegal。
+     * 抛 DomainException，由 admin 入口 catch 后走 message()->respond() 输出
      * 后台 dou_msg.htm 统一提示页（含倒计时、返回按钮、admin 布局），与 front 端 reject 对称。
      *
      * @return void
      */
     protected function reject()
     {
-        throw new DomainException(lang('illegal'), route('admin.index'));
+        throw new DomainException(lang('csrf_page_expired', lang('illegal')), route('admin.index'));
     }
 }

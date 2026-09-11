@@ -83,12 +83,14 @@ class CsrfMiddleware extends AbstractCsrfMiddleware
     }
 
     /**
-     * 前台非法操作：提示后跳首页。
+     * 前台 CSRF 校验失败：正常会话过期（页面停留过久、重新登录令牌旋转等）占绝大多数，
+     * 优先给出可操作指引（刷新页面 / 重新登录），语言包缺 csrf_page_expired 键时回退 illegal。
+     * 提示后跳首页。
      *
      * @return void
      */
     protected function reject()
     {
-        throw new DomainException(lang('illegal'), HOME_URL);
+        throw new DomainException(lang('csrf_page_expired', lang('illegal')), HOME_URL);
     }
 }
