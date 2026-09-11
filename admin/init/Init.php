@@ -85,9 +85,9 @@ class Init
             define('IS_ADMIN', true);
         }
 
-        // 读取 config/admin_dir.php 中的 $admining（自定义后台目录）
-        if (file_exists(CONFIG_PATH . 'admin_dir.php')) {
-            include_once(CONFIG_PATH . 'admin_dir.php');
+        // 读取 storage/state/admin_dir.php 中的 $admining（自定义后台目录）
+        if (file_exists($adminingFile = STORAGE_PATH . 'state/admin_dir.php')) {
+            include_once($adminingFile);
             if (isset($admining) && !file_exists(ROOT_PATH . $admining)) {
                 unset($admining);
             }
@@ -371,7 +371,7 @@ class Init
         $engine = app(DouView::class);
         $engine->assign('pure_mode', false);
 
-        if (file_exists($cdkeyFile = CONFIG_PATH . 'cdkey.php')) {
+        if (file_exists($cdkeyFile = STORAGE_PATH . 'state/cdkey.php')) {
             // include_once 在本方法内执行；..cdkey.php 顶层声明的 $_CDKEY / $_PARTNER_AUTHORIZED
             // 按 PHP include 作用域规则进入本方法局部作用域，不会出现在 $GLOBALS 中。
             include_once($cdkeyFile);

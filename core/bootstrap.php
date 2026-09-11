@@ -57,8 +57,8 @@ if (!file_exists(STORAGE_PATH . 'install.lock')) {
 }
 
 // 载入站点配置文件（定义 $dbhost/$dbuser 等数据库变量及 DOU_CHARSET、ADMIN_DIR 等常量）
-// 先加载 config/admin_dir.php 文件（如果存在），用于定义 $admining 等变量
-$adminingFile = CONFIG_PATH . 'admin_dir.php';
+// 先加载 storage/state/admin_dir.php 文件（如果存在），用于定义 $admining 等变量
+$adminingFile = STORAGE_PATH . 'state/admin_dir.php';
 if (file_exists($adminingFile)) {
     require_once($adminingFile);
 }

@@ -273,7 +273,11 @@ class CloudService extends BaseService
         $cdkey = (string) $probe['cdkey'];
 
         if ($code === 0 && $status === 'ok' && $cdkey !== '') {
-            file_put_contents(CONFIG_PATH . 'cdkey.php', $cdkey);
+            $stateDir = STORAGE_PATH . 'state/';
+            if (!is_dir($stateDir)) {
+                @mkdir($stateDir, 0777, true);
+            }
+            file_put_contents($stateDir . 'cdkey.php', $cdkey);
             $msg = lang('cloud_copyright_success');
         } elseif ($code === 403 || (isset($probe['message']) && $probe['message'] === 'unauthorized')) {
             $msg = lang('cloud_copyright_no_vip');

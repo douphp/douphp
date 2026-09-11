@@ -291,7 +291,7 @@ class Init
 
         // 授权检测：结果落入 Config::set('app.licensed', bool)
         Config::set('app.licensed', false);
-        if (file_exists($cdkeyFile = CONFIG_PATH . 'cdkey.php')) {
+        if (file_exists($cdkeyFile = STORAGE_PATH . 'state/cdkey.php')) {
             // include_once 在本方法内执行；..cdkey.php 顶层声明的 $_CDKEY
             // 按 PHP include 作用域规则进入本方法局部作用域，不会出现在 $GLOBALS 中。
             include_once($cdkeyFile);

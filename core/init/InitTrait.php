@@ -111,25 +111,25 @@ trait InitTrait
     }
 
     /**
-     * 读取 config/admin_dir.php 自定义扩展（front/api 共用）
+     * 读取 storage/state/admin_dir.php 自定义扩展（front/api 共用）
      *
      * @return void
      */
     protected function loadCustomFile()
     {
-        if (file_exists($f = CONFIG_PATH . 'admin_dir.php')) {
+        if (file_exists($f = STORAGE_PATH . 'state/admin_dir.php')) {
             include_once($f);
         }
     }
 
     /**
-     * 加载 config/filesystems.php 至 Config
+     * 加载 config/file.php 至 Config
      *
      * @return void
      */
     protected function loadFilesystemsConfig()
     {
-        $path = CONFIG_PATH . 'filesystems.php';
+        $path = CONFIG_PATH . 'file.php';
         if (file_exists($path)) {
             $a = include $path;
             if (is_array($a) && isset($a['filesystems'])) {

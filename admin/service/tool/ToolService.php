@@ -59,40 +59,36 @@ class ToolService extends BaseService
     }
 
     /**
-     * 关键目录读写检测结果（缓存、data、images、theme 等），供环境自检页展示。
+     * 关键目录读写检测结果（storage 运行时存储全目录 + 图片 / 模板目录），供环境自检页展示。
+     *
+     * storage 根及其全部子目录均要求可读写：部分子目录由功能在运行时按需生成，
+     * 这里先确保必需目录存在，再按磁盘实况递归逐个检测，避免对缺失目录误报。
      *
      * @return array
      */
     protected function buildWriteableListRows()
     {
         $check_dirs = array();
+
+        // 运行时存储：state 目录承载 admin_dir.php / cdkey.php 等运行时状态，先确保存在
+        if (!is_dir(STORAGE_PATH . 'state')) {
+            @mkdir(STORAGE_PATH . 'state', 0777, true);
+        }
+
         $check_dirs[] = array(
-            'note' => '运行时存储目录，需要“读写权限”，如果权限不足将造成网站无法运行',
+            'note' => '运行时存储根目录，需要“读写权限”，如果权限不足将造成网站无法运行',
             'dir' => 'storage',
         );
-        $check_dirs[] = array(
-            'note' => '模板编译目录.后台',
-            'dir' => 'storage/cache/template/' . ADMIN_DIR,
-        );
-        if (file_exists(ROOT_PATH . M_DIR)) {
+        foreach ($this->collectStorageSubDirs(STORAGE_PATH) as $sub) {
             $check_dirs[] = array(
-                'note' => '模板编译目录.手机版',
-                'dir' => 'storage/cache/template/' . M_DIR,
+                'note' => '运行时存储子目录',
+                'dir' => 'storage/' . $sub,
             );
         }
-        if (file_exists(ROOT_PATH . MINIPROGRAM_DIR)) {
-            $check_dirs[] = array(
-                'note' => '模板编译目录.小程序',
-                'dir' => 'storage/cache/template/' . MINIPROGRAM_DIR,
-            );
-        }
+
         $check_dirs[] = array(
             'note' => '图片目录.首页幻灯广告',
             'dir' => 'images/slide',
-        );
-        $check_dirs[] = array(
-            'note' => '运行时存储目录.数据备份',
-            'dir' => 'storage/backup',
         );
         $check_dirs[] = array(
             'note' => '文件目录，需要“读写权限”，如果缺少写入权限，将无法上传产品图片、文章图片以及其他扩展模块图片上传（其它扩展模块不 会在这里做出提示，但如果出现问题，以此类推排除目录问题）',
@@ -141,6 +137,27 @@ class ToolService extends BaseService
         }
 
         return $writeable_list;
+    }
+
+    /**
+     * 递归收集目录下全部已存在的子目录（相对路径，/ 分隔，按名排序）。
+     *
+     * @param string $base 绝对路径（以 / 结尾）
+     * @param string $prefix 递归时拼在返回值前的相对前缀
+     * @return array 子目录相对路径列表（不含 $base 本身）
+     */
+    private function collectStorageSubDirs($base, $prefix = '')
+    {
+        $dirs = array();
+        foreach ((array) glob($base . '*', GLOB_ONLYDIR | GLOB_NOSORT) as $entry) {
+            $name = basename($entry);
+            $rel = $prefix === '' ? $name : $prefix . '/' . $name;
+            $dirs[] = $rel;
+            $dirs = array_merge($dirs, $this->collectStorageSubDirs($entry . '/', $rel));
+        }
+        sort($dirs);
+
+        return $dirs;
     }
 
     /**
@@ -213,7 +230,7 @@ class ToolService extends BaseService
             if ($old_dir && $new_dir && @rename($site_path . $old_dir, $site_path . $new_dir)) {
                 @rename($site_path . \'storage/cache/template/\' . $old_dir, $site_path . \'storage/cache/template/\' . $new_dir);
                 echo "修改成功 3 秒后跳转到新后台地址……";
-                file_put_contents($site_path . "config/admin_dir.php", \'<?php $admining = \' . "\'" . $new_dir . "\'" . \' ?>\');
+                file_put_contents($site_path . "storage/state/admin_dir.php", \'<?php $admining = \' . "\'" . $new_dir . "\'" . \' ?>\');
                 $path = $new_dir;
             } else {
                 echo "修改失败 3 秒后跳转回原后台地址……";
