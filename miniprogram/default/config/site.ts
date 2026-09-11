@@ -9,8 +9,8 @@
  * 业务侧请直接 `import { mp_url } from '../config/site.js'`，无须额外薄壳。
  */
 
-export const root_url = 'https://your-domain.com/'
-export const mp_url = 'https://your-domain.com/api/'
+export const root_url = 'http://localhost/douphp/'
+export const mp_url = 'http://localhost/douphp/api/'
 export const douLoading = true
 export const debug_enable = true
 export const rewrite_enable = true
