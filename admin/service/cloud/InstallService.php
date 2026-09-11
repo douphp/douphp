@@ -113,6 +113,16 @@ class InstallService extends BaseService
 
         $logs = array();
 
+        $unwriteable = $this->findUnwriteableDirs();
+        if ($unwriteable !== array()) {
+            @unlink($this->cacheDir . $cloudId . '.zip');
+            return array(
+                'ok' => false,
+                'error' => sprintf((string) lang('cloud_writeable_denied'), implode('、', $unwriteable)),
+                'logs' => $logs,
+            );
+        }
+
         if ($mode !== 'local' && $authStatus !== '' && $authStatus !== 'ok') {
             $denial = $this->buildAuthDenial($authStatus);
             if ($denial !== null) {
@@ -150,6 +160,59 @@ class InstallService extends BaseService
         }
 
         return array('ok' => true, 'error' => '', 'logs' => $logs);
+    }
+
+    /**
+     * 站点写入权限预检：模块包会摊开写入全站关键目录（模块/升级覆盖均如此），
+     * 任一关键目录不可写都应在下载前中止，提示用户开启写权限后再装。
+     *
+     * @return array 不可写目录清单（空数组表示全部可写）
+     */
+    private function findUnwriteableDirs()
+    {
+        $targets = array(
+            '',
+            ADMIN_DIR,
+            M_DIR,
+            API_DIR,
+            MINIPROGRAM_DIR,
+            'theme',
+            'languages',
+            'images',
+            'plugin',
+            'storage',
+            'config',
+        );
+
+        $failed = array();
+        foreach ($targets as $dir) {
+            $full = $dir === '' ? ROOT_PATH : ROOT_PATH . rtrim($dir, '/') . '/';
+            if (!file_exists($full)) {
+                $full = $this->nearestExistingAncestor($full);
+            }
+            if (!is_writable($full)) {
+                $failed[] = $dir === '' ? '站点根目录' : $dir;
+            }
+        }
+
+        return array_values(array_unique($failed));
+    }
+
+    /**
+     * 向上查找最近的已存在祖先目录（目录未创建时用祖先的可写性代替判断）。
+     *
+     * @param string $path 绝对路径
+     * @return string 最近的已存在祖先（含站点根本身）
+     */
+    private function nearestExistingAncestor($path)
+    {
+        $root = rtrim(ROOT_PATH, '/\\');
+        $ancestor = rtrim(dirname($path), '/\\');
+        while ($ancestor !== '' && strcasecmp($ancestor, $root) !== 0 && !file_exists($ancestor)) {
+            $ancestor = rtrim(dirname($ancestor), '/\\');
+        }
+
+        return file_exists($ancestor) ? $ancestor : $root;
     }
 
     /**

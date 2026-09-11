@@ -48,6 +48,7 @@ $_LANG['cloud_api_base_missing'] = '未設定雲端服務介面地址，無法�
 // 解壓縮
 $_LANG['cloud_unzip_ing'] = '正在解壓縮安裝包…';
 $_LANG['cloud_unzip_wrong'] = '壓縮包解壓失敗';
+$_LANG['cloud_writeable_denied'] = '以下目錄沒有寫入權限：%s。安裝/升級需要寫入全站關鍵目錄，請將站點根目錄及其全部子目錄設置為可寫（Linux 下可遞歸 chmod 777）後重試；安裝完成後建議收回 config/ 目錄的寫權限。';
 $_LANG['cloud_unzip_missing'] = '未找到已下載的安裝包檔案，請關閉本頁後重新發起安裝或更新。';
 
 // 下載

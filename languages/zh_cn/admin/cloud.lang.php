@@ -48,6 +48,7 @@ $_LANG['cloud_api_base_missing'] = '未配置云服务接口地址，无法使�
 // 解压缩
 $_LANG['cloud_unzip_ing'] = '正在解压缩安装包…';
 $_LANG['cloud_unzip_wrong'] = '压缩包解压失败';
+$_LANG['cloud_writeable_denied'] = '以下目录没有写入权限：%s。安装/升级需要写入全站关键目录，请将站点根目录及其全部子目录设置为可写（Linux 下可递归 chmod 777）后重试；安装完成后建议收回 config/ 目录的写权限。';
 $_LANG['cloud_unzip_missing'] = '未找到已下载的安装包文件，请关闭本页后重新发起安装或更新。';
 
 // 下载
