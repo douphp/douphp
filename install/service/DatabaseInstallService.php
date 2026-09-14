@@ -222,7 +222,7 @@ class DatabaseInstallService
 
         $douphp_version = DB::table('config')->where('name', 'douphp_version')->value('value');
         $version_date = substr(trim((string) $douphp_version), -8);
-        $update_date = 'a:3:{s:6:"system";a:2:{s:6:"update";s:8:"' . $version_date . '";s:5:"patch";s:8:"' . $version_date . '";}s:6:"module";a:3:{s:7:"article";s:8:"' . $version_date . '";s:7:"product";s:8:"' . $version_date . '";s:4:"data";s:8:"' . $version_date . '";}s:5:"theme";a:0:{}}';
+        $update_date = 'a:3:{s:6:"system";a:2:{s:6:"update";s:8:"' . $version_date . '";s:5:"patch";s:8:"' . $version_date . '";}s:6:"module";a:5:{s:7:"article";s:8:"' . $version_date . '";s:7:"product";s:8:"' . $version_date . '";s:4:"data";s:8:"' . $version_date . '";s:2:"ai";s:8:"' . $version_date . '";s:8:"language";s:8:"' . $version_date . '";}s:5:"theme";a:0:{}}';
 
         $configUpdates = array(
             'rewrite' => '0',

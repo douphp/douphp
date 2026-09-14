@@ -26,11 +26,14 @@ class EnvironmentCheckService
     /** @var array */
     private $lang;
 
-    /** @var array 与 MVC 主站当前所需运行时目录一致 */
+    /** @var array 安装时需确保存在的运行时目录（缺失会自动创建；storage 其余子目录按磁盘实况递归补查） */
     private $checkDirs = array(
         'storage',
+        'storage/cache',
         'storage/cache/template',
         'storage/cache/template/admin',
+        'storage/cache/throttle',
+        'storage/state',
         'storage/backup',
         'storage/log',
         'storage/log/front',
@@ -88,6 +91,9 @@ class EnvironmentCheckService
     /**
      * 检查目录可写性；不存在的目录会尝试自动创建。
      *
+     * 静态清单逐项检测后，再按磁盘实况递归补查 storage/ 下全部子目录
+     * （部分目录运行时才生成，先判断存在，已检过的跳过）。
+     *
      * @return array array('writeable' => array<array{dir,if_write}>, 'no_write' => bool)
      */
     public function collectWriteableInfo()
@@ -96,29 +102,71 @@ class EnvironmentCheckService
         $no_write = false;
 
         foreach ($this->checkDirs as $dir) {
-            $full_dir = ROOT_PATH . $dir;
-            if (!file_exists($full_dir)) {
-                @mkdir($full_dir, 0777, true);
-            }
+            $this->appendDirState($dir, $writeable, $no_write);
+        }
 
-            $state = $this->dirState($full_dir);
-            if ($state === 1) {
-                $if_write = "<b class='write'>" . $this->lang['write'] . '</b>';
-            } elseif ($state === 0) {
-                $if_write = "<b class='noWrite'>" . $this->lang['no_write'] . '</b>';
-                $no_write = true;
-            } else {
-                $if_write = "<b class='noWrite'>" . $this->lang['not_exist'] . '</b>';
-                $no_write = true;
+        foreach ($this->collectStorageSubDirs(ROOT_PATH . 'storage/') as $sub) {
+            $dir = 'storage/' . $sub;
+            if (in_array($dir, $this->checkDirs)) {
+                continue;
             }
-
-            $writeable[] = array(
-                'dir' => $dir,
-                'if_write' => $if_write,
-            );
+            $this->appendDirState($dir, $writeable, $no_write);
         }
 
         return array('writeable' => $writeable, 'no_write' => $no_write);
+    }
+
+    /**
+     * 检测单个目录并追加结果行（缺失时先尝试自动创建）。
+     *
+     * @param string $dir 相对站点根的目录
+     * @param array $writeable 结果行累积
+     * @param bool $no_write 是否存在不可写项（引用传入）
+     * @return void
+     */
+    private function appendDirState($dir, array &$writeable, &$no_write)
+    {
+        $full_dir = ROOT_PATH . $dir;
+        if (!file_exists($full_dir)) {
+            @mkdir($full_dir, 0777, true);
+        }
+
+        $state = $this->dirState($full_dir);
+        if ($state === 1) {
+            $if_write = "<b class='write'>" . $this->lang['write'] . '</b>';
+        } elseif ($state === 0) {
+            $if_write = "<b class='noWrite'>" . $this->lang['no_write'] . '</b>';
+            $no_write = true;
+        } else {
+            $if_write = "<b class='noWrite'>" . $this->lang['not_exist'] . '</b>';
+            $no_write = true;
+        }
+
+        $writeable[] = array(
+            'dir' => $dir,
+            'if_write' => $if_write,
+        );
+    }
+
+    /**
+     * 递归收集目录下全部已存在的子目录（相对路径，/ 分隔，按名排序）。
+     *
+     * @param string $base 绝对路径（以 / 结尾）
+     * @param string $prefix 递归时拼在返回值前的相对前缀
+     * @return array 子目录相对路径列表（不含 $base 本身）
+     */
+    private function collectStorageSubDirs($base, $prefix = '')
+    {
+        $dirs = array();
+        foreach ((array) glob($base . '*', GLOB_ONLYDIR | GLOB_NOSORT) as $entry) {
+            $name = basename($entry);
+            $rel = $prefix === '' ? $name : $prefix . '/' . $name;
+            $dirs[] = $rel;
+            $dirs = array_merge($dirs, $this->collectStorageSubDirs($entry . '/', $rel));
+        }
+        sort($dirs);
+
+        return $dirs;
     }
 
     /**
