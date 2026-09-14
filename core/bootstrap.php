@@ -28,13 +28,13 @@ define('ROOT_PATH', str_replace('\\', '/', dirname(dirname(__FILE__))) . '/');
 define('CONFIG_PATH', ROOT_PATH . 'config/');
 define('STORAGE_PATH', ROOT_PATH . 'storage/');
 
-// 判断传输协议
+// 判断传输协议。
+// 仅采信服务器自身变量（HTTPS / SERVER_PORT / REQUEST_SCHEME）：X-Forwarded-Proto 等转发头
+// 由客户端可伪造，其判定统一交给 Request::isSecure()，只有 REMOTE_ADDR 命中
+// security.trusted_proxies 时才生效。
 define('HTTP', (
-    (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') ||
-    (!empty($_SERVER['HTTP_FROM_HTTPS']) && strtolower($_SERVER['HTTP_FROM_HTTPS']) === 'on') ||
     (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off') ||
-    (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') ||
-    (!empty($_SERVER['HTTP_FRONT_END_HTTPS']) && strtolower($_SERVER['HTTP_FRONT_END_HTTPS']) !== 'off') ||
+    (isset($_SERVER['SERVER_PORT']) && (string) $_SERVER['SERVER_PORT'] === '443') ||
     (isset($_SERVER['REQUEST_SCHEME']) && $_SERVER['REQUEST_SCHEME'] === 'https')
 ) ? 'https://' : 'http://');
 define('IS_HTTPS', HTTP === 'https://');

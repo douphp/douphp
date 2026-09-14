@@ -37,9 +37,12 @@ class Zip
      *
      * @param string $zipPath
      * @param string $destinationDir
+     * @param array $allowRules 条目白名单（glob 形式，如 'storage/backup/*.sql'、'images/**'）。
+     *                          空数组 = 不限定条目种类，仅做 Zip Slip 防护。
+     * @param array $denyExtensions 禁止落盘的扩展名（大小写不敏感），命中即整包拒绝。
      * @return bool
      */
-    public function extract($zipPath, $destinationDir)
+    public function extract($zipPath, $destinationDir, array $allowRules = array(), array $denyExtensions = array())
     {
         $archive = Container::getInstance()->make(PclZip::class, array('p_zipname' => $zipPath));
 
@@ -52,6 +55,12 @@ class Zip
         foreach ($list as $entry) {
             $name = isset($entry['filename']) ? (string) $entry['filename'] : '';
             if ($this->isUnsafeEntryPath($name)) {
+                return false;
+            }
+            if (!empty($allowRules) && !$this->isAllowedEntryPath($name, $allowRules)) {
+                return false;
+            }
+            if (!empty($denyExtensions) && $this->hasDeniedExtension($name, $denyExtensions)) {
                 return false;
             }
         }
@@ -98,6 +107,95 @@ class Zip
         }
 
         return false;
+    }
+
+    /**
+     * 判断归档条目是否命中白名单。
+     *
+     * 规则为 glob 形式：`*` 匹配单层内任意字符（不跨 `/`），`**` 匹配任意层级。
+     * 目录条目（以 `/` 结尾）只要落在某条规则的目录前缀下即放行，便于恢复 `images/` 的多级子目录。
+     *
+     * @param string $name 归档内 stored filename
+     * @param array $rules 白名单规则
+     * @return bool
+     */
+    private function isAllowedEntryPath($name, array $rules)
+    {
+        $normalized = ltrim(str_replace('\\', '/', $name), '/');
+        if ($normalized === '') {
+            return true;
+        }
+
+        $isDir = substr($normalized, -1) === '/';
+        $trimmed = rtrim($normalized, '/');
+
+        foreach ($rules as $rule) {
+            $rule = ltrim(str_replace('\\', '/', (string) $rule), '/');
+            if ($rule === '') {
+                continue;
+            }
+
+            if ($this->matchGlob($trimmed, $rule)) {
+                return true;
+            }
+
+            // 目录条目：命中规则所在目录树即可，交由其下的文件条目各自受规则约束。
+            if ($isDir) {
+                $ruleDir = rtrim(preg_replace('#/[^/]*$#', '', $rule), '/');
+                if ($ruleDir !== '' && ($trimmed === $ruleDir || strpos($trimmed . '/', $ruleDir . '/') === 0)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * 判断归档条目的扩展名是否落在禁止清单内。
+     *
+     * 同时检查完整文件名，覆盖 `.htaccess` 这类无主名的点文件。
+     *
+     * @param string $name 归档内 stored filename
+     * @param array $denyExtensions 禁止的扩展名
+     * @return bool
+     */
+    private function hasDeniedExtension($name, array $denyExtensions)
+    {
+        $basename = strtolower(basename(str_replace('\\', '/', $name)));
+        if ($basename === '') {
+            return false;
+        }
+
+        $extension = strtolower((string) pathinfo($basename, PATHINFO_EXTENSION));
+        foreach ($denyExtensions as $denied) {
+            $denied = strtolower(ltrim(trim((string) $denied), '.'));
+            if ($denied === '') {
+                continue;
+            }
+            if ($extension === $denied || $basename === '.' . $denied || $basename === $denied) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * glob 规则匹配（`**` 跨层级，`*` 限单层）。
+     *
+     * @param string $path
+     * @param string $rule
+     * @return bool
+     */
+    private function matchGlob($path, $rule)
+    {
+        $pattern = preg_quote($rule, '#');
+        $pattern = str_replace('\*\*', '__DOU_GLOBSTAR__', $pattern);
+        $pattern = str_replace('\*', '[^/]*', $pattern);
+        $pattern = str_replace('__DOU_GLOBSTAR__', '.*', $pattern);
+
+        return (bool) preg_match('#^' . $pattern . '$#i', $path);
     }
 
     /**

@@ -39,6 +39,24 @@ class BackupService extends BaseService
     protected $lastDumpStartrow = 0;
 
     /**
+     * 备份包解压条目白名单。
+     *
+     * 备份包由 {@see runBackup()} 以 `Zip::create($zipfile, [分卷 sql..., ROOT_PATH.'images'], ROOT_PATH)`
+     * 生成，包内条目形如 `storage/backup/xxx.sql` 与 `images/**`，还原时必须解压回站点根才能
+     * 同时恢复 SQL 与附件。这里限定只放行这两类条目，杜绝包内夹带 `admin/x.php` 之类的
+     * 合法相对路径覆盖站内文件；`images/` 下再排除可执行与配置扩展名。
+     *
+     * @var array
+     */
+    protected static $restoreAllowRules = array(
+        'storage/backup/*.sql',
+        'images/**',
+    );
+
+    /** @var array images/ 下禁止落盘的扩展名（大小写不敏感） */
+    protected static $restoreDeniedExtensions = array('php', 'phtml', 'php3', 'php4', 'php5', 'php7', 'phps', 'phar', 'htaccess');
+
+    /**
      */
     public function __construct()
     {
@@ -300,7 +318,7 @@ class BackupService extends BaseService
             : preg_replace('/_([0-9])+/Ums', '', $sql_filename);
 
         if (FileHelper::extension($sql_filename) === 'zip') {
-            if (Zip::extract(STORAGE_PATH . 'backup/' . $sql_filename, ROOT_PATH)) {
+            if (Zip::extract(STORAGE_PATH . 'backup/' . $sql_filename, ROOT_PATH, self::$restoreAllowRules, self::$restoreDeniedExtensions)) {
                 $name = FileHelper::filename($sql_filename);
                 $vol_file_list = $this->globVolumeFiles($name, 'sql');
                 $sql_filename = $vol_file_list ? $name . '_1.sql' : $name . '.sql';

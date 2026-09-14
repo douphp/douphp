@@ -25,6 +25,9 @@
  *   trusted_proxies - 可信反向代理名单（精确 IP 或 CIDR）。空 = 不信任任何代理：
  *                     Request::ip() 仅用 REMOTE_ADDR，X-Forwarded-* 一律忽略。
  *                     部署在负载均衡 / Nginx 反代后时，把代理出口 IP 配进来才采信转发头。
+ *   trusted_hosts   - 可信 Host 白名单（精确域名或 '*.example.com' 子域通配）。空 = 不校验；
+ *                     非空时 Request::host() 对未命中的 Host 回落到名单首项，
+ *                     防止客户端伪造 Host 头污染对外 URL（邮件链接 / 跳转 / 缓存投毒）。
  *   headers         - 基线安全响应头（无 CSP；由三端 SecurityHeadersMiddleware 下发）：
  *                     frame_options          - X-Frame-Options（SAMEORIGIN / DENY；空串关闭）
  *                     content_type_options   - true 时下发 X-Content-Type-Options: nosniff
@@ -49,6 +52,12 @@ return [
     'security' => [
         // 默认不信任任何代理（trust-none）。示例：['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16']
         'trusted_proxies' => [],
+
+        // 可信 Host 白名单（精确域名或 '*.example.com' 子域通配）。
+        // 空 = 不校验，Host 原样使用（兼容未配置的既有站点）；
+        // 非空时未命中的 Host 回落到名单首项，杜绝 Host 头注入进对外 URL。
+        // 示例：['www.example.com', 'example.com', '*.example.com']
+        'trusted_hosts' => [],
 
         'headers' => [
             'frame_options' => 'SAMEORIGIN',

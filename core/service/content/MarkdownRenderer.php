@@ -48,6 +48,9 @@ class MarkdownRenderer extends BaseService
 
         if (Util::containsMarkdownSyntax($content)) {
             $parsedown = new Parsedown();
+            // safe mode：转义 Markdown 中的内联 HTML 并过滤 javascript: 等危险链接协议。
+            // 代价是正文里手写的内联 HTML 会按纯文本呈现。
+            $parsedown->setSafeMode(true);
             $content = $parsedown->text($content);
         }
 

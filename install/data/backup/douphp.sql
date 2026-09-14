@@ -1,7 +1,7 @@
--- DouPHP v1.x SQL Dump Program
+-- DouPHP v2.x SQL Dump Program
 -- http://localhost/douphp/
 -- 
--- DATE : 2026-09-12 15:42:25
+-- DATE : 2026-09-14 22:28:47
 -- MYSQL SERVER VERSION : 5.7.44-log
 -- PHP VERSION : 7.4.33
 -- DouPHP VERSION : v2.0 Release 20260909
@@ -9,9 +9,9 @@
 DROP TABLE IF EXISTS `dou_admin`;
 CREATE TABLE `dou_admin` (
   `id` smallint(5) unsigned NOT NULL AUTO_INCREMENT COMMENT '管理员ID',
-  `username` varchar(60) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '用户名',
+  `username` varchar(60) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '用户名',
   `email` varchar(60) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '邮箱',
-  `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '密码哈希',
+  `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '密码哈希',
   `token` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '登录令牌',
   `token_expires_at` datetime DEFAULT NULL,
   `reset_token` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '重置密码令牌',
@@ -45,11 +45,10 @@ CREATE TABLE `dou_admin_log` (
   KEY `created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-
 DROP TABLE IF EXISTS `dou_ai`;
 CREATE TABLE `dou_ai` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '应用名称',
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '应用名称',
   `placement` enum('assist','fill','batch','translate') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'assist' COMMENT '后台应用形态',
   `task_type` enum('assist','polish','rewrite','image','banner','translate','fill','batch') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'assist' COMMENT '任务形态（config/ai_prompts.php system 提示词匹配键）',
   `module` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '挂载的内容创作模块（含 _category 变体）',
@@ -77,7 +76,7 @@ INSERT INTO dou_ai VALUES('8','Banner 生成','assist','banner','','','','24',''
 DROP TABLE IF EXISTS `dou_ai_key`;
 CREATE TABLE `dou_ai_key` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '自增ID',
-  `provider_id` int(11) NOT NULL COMMENT '供应商ID',
+  `provider_id` int(11) NOT NULL DEFAULT '0' COMMENT '供应商ID',
   `api_key` mediumtext COLLATE utf8mb4_unicode_ci NOT NULL,
   `alias` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '密钥别名',
   `expires_at` datetime DEFAULT NULL COMMENT '过期时间',
@@ -124,9 +123,9 @@ CREATE TABLE `dou_ai_log` (
 DROP TABLE IF EXISTS `dou_ai_model`;
 CREATE TABLE `dou_ai_model` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '自增ID',
-  `provider_id` int(11) NOT NULL COMMENT '供应商ID',
-  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '模型名称',
-  `model_code` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '模型代码',
+  `provider_id` int(11) NOT NULL DEFAULT '0' COMMENT '供应商ID',
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '模型名称',
+  `model_code` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '模型代码',
   `context_length` int(11) DEFAULT NULL COMMENT '上下文长度',
   `max_tokens` int(11) DEFAULT NULL COMMENT '最大输出tokens',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -167,8 +166,8 @@ INSERT INTO dou_ai_model VALUES('27','2','qwen-image-3-pro','qwen-image-3.0-pro'
 DROP TABLE IF EXISTS `dou_ai_provider`;
 CREATE TABLE `dou_ai_provider` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '自增ID',
-  `name` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '供应商名称',
-  `code` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '供应商代码',
+  `name` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '供应商名称',
+  `code` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '供应商代码',
   `base_url` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'API基础地址',
   `sort` smallint(5) unsigned NOT NULL DEFAULT '50' COMMENT '排序',
   `status` tinyint(1) NOT NULL DEFAULT '1' COMMENT '状态:0禁用,1启用',
@@ -223,14 +222,14 @@ CREATE TABLE `dou_article` (
   `category_id` smallint(5) NOT NULL DEFAULT '0' COMMENT '分类ID',
   `operator_type` enum('admin','work') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'admin' COMMENT '创建者类型',
   `operator_id` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '创建者ID',
-  `title` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '标题',
+  `title` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '标题',
   `slug` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'URL标识',
   `defined` text COLLATE utf8mb4_unicode_ci COMMENT '自定义字段(序列化数组)',
   `content` longtext COLLATE utf8mb4_unicode_ci COMMENT '正文内容',
   `image` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '缩略图',
   `file` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '附件',
-  `click` smallint(6) unsigned NOT NULL DEFAULT '0' COMMENT '点击数',
-  `keywords` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'SEO关键词',
+  `click` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '点击数',
+  `keywords` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'SEO关键词',
   `description` text COLLATE utf8mb4_unicode_ci COMMENT 'SEO描述',
   `sort` smallint(5) unsigned NOT NULL DEFAULT '50' COMMENT '排序',
   `status` tinyint(1) unsigned NOT NULL DEFAULT '1' COMMENT '状态:1启用,0禁用',
@@ -240,7 +239,7 @@ CREATE TABLE `dou_article` (
   KEY `idx_operator` (`operator_type`,`operator_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO dou_article VALUES('1','1','admin','0','如何将网站提交给各大搜索引擎','','','<p><span>将网站提交给各大搜索引擎是一个重要的步骤，以确保网站能够被搜索引擎发现并收录。以下是一些主流搜索引擎的提交流程：</span></p><p><span><br/> </span></p><p><span>1. **Google搜索引擎提交**：</span></p><p><span>&nbsp; &nbsp;- 访问Google Search Console（[Google Search Console](https://search.google.com/search-console/welcome?hl=zh-CN&amp;utm_source=wmx&amp;utm_medium=deprecation-pane&amp;utm_content=home)）。</span></p><p><span>&nbsp; &nbsp;- 注册并验证您的网站所有权。</span></p><p><span>&nbsp; &nbsp;- 添加站点地图：在Google Search Console中点击“站点地图”，输入您的站点地图URL（例如：`yourdomain.com/sitemap.xml`），并点击“提交”。</span></p><p><span>&nbsp; &nbsp;- 监控索引状态：定期检查Google Search Console中的索引状态，查看您的网站页面是否被Google收录。</span></p><p><span><br/> </span></p><p><span>2. **百度搜索引擎提交**：</span></p><p><span>&nbsp; &nbsp;- 访问百度站长工具（[百度站长工具](https://ziyuan.baidu.com/site/index)）。</span></p><p><span>&nbsp; &nbsp;- 如果还没有账户，则需要注册一个。</span></p><p><span>&nbsp; &nbsp;- 单击“添加网站”按钮，将您的网站添加到站长工具中。</span></p><p><span>&nbsp; &nbsp;- 选择“推送历史记录”选项卡，然后单击“手动推送”按钮，将您的网站链接提交给百度。</span></p><p><span><br/> </span></p><p><span>3. **Bing搜索引擎提交**：</span></p><p><span>&nbsp; &nbsp;- 访问Bing Webmaster Tools（[Bing Webmaster Tools](https://www.bing.com/webmasters/home)）。</span></p><p><span>&nbsp; &nbsp;- 如果还没有账户，则需要注册一个。</span></p><p><span>&nbsp; &nbsp;- 单击“添加网站”按钮，将您的网站添加到站长中心中。</span></p><p><span>&nbsp; &nbsp;- 选择“提交网址”选项卡，然后将您的网站链接提交给Bing。</span></p><p><span><br/> </span></p><p><span>4. **其他搜索引擎提交**：</span></p><p><span>&nbsp; &nbsp;- 搜狗：访问搜狗站长平台（[搜狗站长平台](http://zhanzhang.sogou.com/index.php/urlSubmit/index)）提交URL。</span></p><p><span>&nbsp; &nbsp;- 360：访问360站长平台（[360站长平台](http://zhanzhang.so.com/?m=PageInclude&amp;a=index)）提交URL。</span></p><p><span>&nbsp; &nbsp;- 雅虎中国：访问雅虎中国网站登录（[雅虎中国](http://sitemap.cn.yahoo.com/)）提交网站。</span></p><p><span><br/> </span></p><p><span>提交网站给搜索引擎后，并不代表能够立即从搜索引擎搜到该网站，需要等待一段时间让搜索引擎进行处理。此外，由于手机端网址和电脑端网址不一样（手机网址是m开头），提交网址收录时需要分开提交。提交网址收录不收费。如果你的网站面向国际用户，还需要考虑将网站提交给其他国家和地区的搜索引擎，例如Yandex等。</span></p><p><br/></p>','pcrsl28.file','','1','','','50','1','2024-06-26 23:39:00');
+INSERT INTO dou_article VALUES('1','1','admin','0','如何将网站提交给各大搜索引擎','','','<p><span>将网站提交给各大搜索引擎是一个重要的步骤，以确保网站能够被搜索引擎发现并收录。以下是一些主流搜索引擎的提交流程：</span></p><p><span><br/> </span></p><p><span>1. **Google搜索引擎提交**：</span></p><p><span>&nbsp; &nbsp;- 访问Google Search Console（[Google Search Console](https://search.google.com/search-console/welcome?hl=zh-CN&amp;utm_source=wmx&amp;utm_medium=deprecation-pane&amp;utm_content=home)）。</span></p><p><span>&nbsp; &nbsp;- 注册并验证您的网站所有权。</span></p><p><span>&nbsp; &nbsp;- 添加站点地图：在Google Search Console中点击“站点地图”，输入您的站点地图URL（例如：`yourdomain.com/sitemap.xml`），并点击“提交”。</span></p><p><span>&nbsp; &nbsp;- 监控索引状态：定期检查Google Search Console中的索引状态，查看您的网站页面是否被Google收录。</span></p><p><span><br/> </span></p><p><span>2. **百度搜索引擎提交**：</span></p><p><span>&nbsp; &nbsp;- 访问百度站长工具（[百度站长工具](https://ziyuan.baidu.com/site/index)）。</span></p><p><span>&nbsp; &nbsp;- 如果还没有账户，则需要注册一个。</span></p><p><span>&nbsp; &nbsp;- 单击“添加网站”按钮，将您的网站添加到站长工具中。</span></p><p><span>&nbsp; &nbsp;- 选择“推送历史记录”选项卡，然后单击“手动推送”按钮，将您的网站链接提交给百度。</span></p><p><span><br/> </span></p><p><span>3. **Bing搜索引擎提交**：</span></p><p><span>&nbsp; &nbsp;- 访问Bing Webmaster Tools（[Bing Webmaster Tools](https://www.bing.com/webmasters/home)）。</span></p><p><span>&nbsp; &nbsp;- 如果还没有账户，则需要注册一个。</span></p><p><span>&nbsp; &nbsp;- 单击“添加网站”按钮，将您的网站添加到站长中心中。</span></p><p><span>&nbsp; &nbsp;- 选择“提交网址”选项卡，然后将您的网站链接提交给Bing。</span></p><p><span><br/> </span></p><p><span>4. **其他搜索引擎提交**：</span></p><p><span>&nbsp; &nbsp;- 搜狗：访问搜狗站长平台（[搜狗站长平台](http://zhanzhang.sogou.com/index.php/urlSubmit/index)）提交URL。</span></p><p><span>&nbsp; &nbsp;- 360：访问360站长平台（[360站长平台](http://zhanzhang.so.com/?m=PageInclude&amp;a=index)）提交URL。</span></p><p><span>&nbsp; &nbsp;- 雅虎中国：访问雅虎中国网站登录（[雅虎中国](http://sitemap.cn.yahoo.com/)）提交网站。</span></p><p><span><br/> </span></p><p><span>提交网站给搜索引擎后，并不代表能够立即从搜索引擎搜到该网站，需要等待一段时间让搜索引擎进行处理。此外，由于手机端网址和电脑端网址不一样（手机网址是m开头），提交网址收录时需要分开提交。提交网址收录不收费。如果你的网站面向国际用户，还需要考虑将网站提交给其他国家和地区的搜索引擎，例如Yandex等。</span></p><p><br/></p>','pcrsl28.file','','0','','','50','1','2024-06-26 23:39:00');
 INSERT INTO dou_article VALUES('2','1','admin','0','为什么企业做搭建小程序官网','','','<p style=\"text-wrap-mode: wrap;\">随着互联网的发展，4G网络覆盖面积越来越广，人们的上网工具由电脑逐步变成手机，流量由pc转向移动，网页版官网逐渐退出人们的视野，小程序官网受到广大企业的青睐。</p><p style=\"text-wrap-mode: wrap;\">小程序微官网能做什么？</p><p style=\"text-wrap-mode: wrap;\"><br/>1.树立品牌形象<br/>小程序微官网通过全方位展现企业运营情况、团队风采、业务内容、产品列表、新闻资讯等信息，帮助客户深入了解企业，增强用户对企业的信任。<br/><br/>2.提升企业知名度<br/>小程序微官网基于社交平台进行传播，方便用户相互分享，传播速度快，范围广，短时间内就可以进行大范围的传播，还可以结合公众号一起运营，增加更多的曝光量。<br/><br/>3.建立密切联系<br/>通过不断持续地更新公司最新动态，促进老客户对企业的了解，同时还可以针对客户特性策划一系列活动，挖掘更多潜在客户。<br/><br/>小程序微官网有什么优势？</p><p style=\"text-wrap-mode: wrap;\">1.营销更精准<br/>以前企业只能通过微信进行品牌宣传，并不能直接转化促进交易，在有了微官网以后，企业可以通过微信对粉丝进行划分，针对不同的粉丝推送不同的信息，达到精准营销的目的。<br/><br/>2.宣传更及时<br/>所有的信息都有时效性，企业在进行新品宣传的时候尤其需要注意这一点，在开始进行新品宣传的时候，最好一次性到位，用户都喜欢最新的产品，在第一时间看到新品信息和第二天才看到新品信息后的行动完全不一样，在第一时间看到新品信息的时候，购买欲会更强烈。<br/><br/>如果做微官网的话，可以通过微信各个入口进行新品宣传，实时将新品信息送达给客户，让客户第一时间看到新品信息。<br/><br/>3.制作更低价<br/>小程序微官网基于微信做官网，开发成本不高，相较于自己建站，做APP，成本低很多，是中小企业的最佳选择，而且微信已经拥有数十亿用户，64个小程序入口，自带流量，免去商家对于流量抓取，流量引导等多个方面的问题。<br/><br/>小程序微官网将微信内的现有资源进行整合，通过连接线上与线下，将人与商品、服务联系起来，将企业推送给更多的用户，提升了企业的曝光与商业效率。</p><p><br/></p>','9vffckc.file','','1','','','50','1','2024-06-26 23:43:00');
 INSERT INTO dou_article VALUES('3','1','admin','0','自助建站和独立建站有什么区别','','','<p>自助建站和独立建站是两种不同的网站搭建方式，它们各有特点和适用场景。以下是它们的主要区别：</p><p><br/></p><p>1. **技术要求**：</p><p>&nbsp; &nbsp;- **自助建站**：通常不需要用户具备专业的编程或设计技能。用户可以通过图形界面和预设模板来构建网站，操作简单，适合非技术背景的用户。</p><p>&nbsp; &nbsp;- **独立建站**：需要用户具备一定的编程和设计能力，或者需要聘请专业的开发人员。用户可以完全控制网站的每一个细节，包括后端代码、数据库结构和前端设计。</p><p><br/></p><p>2. **成本**：</p><p>&nbsp; &nbsp;- **自助建站**：成本相对较低，因为大多数自助建站平台提供免费或低成本的模板和托管服务。</p><p>&nbsp; &nbsp;- **独立建站**：成本可能较高，包括域名注册费、服务器托管费、开发工具费用以及可能的开发人员费用。</p><p><br/></p><p>3. **灵活性和控制度**：</p><p>&nbsp; &nbsp;- **自助建站**：灵活性较低，用户只能在平台提供的功能范围内进行操作，对于定制化需求难以满足。</p><p>&nbsp; &nbsp;- **独立建站**：灵活性高，用户可以根据自己的需求定制网站的所有方面，包括功能、设计和性能。</p><p><br/></p><p>4. **维护和更新**：</p><p>&nbsp; &nbsp;- **自助建站**：维护和更新通常由平台提供商负责，用户无需担心技术问题。</p><p>&nbsp; &nbsp;- **独立建站**：需要用户自己负责网站的维护和更新，或者需要聘请专业人员进行。</p><p><br/></p><p>5. **SEO和性能优化**：</p><p>&nbsp; &nbsp;- **自助建站**：SEO和性能优化可能受到限制，因为平台可能会对代码和结构有所限制。</p><p>&nbsp; &nbsp;- **独立建站**：用户可以自由进行SEO优化和性能调整，以提高网站的搜索引擎排名和用户体验。</p><p><br/></p><p>6. **扩展性**：</p><p>&nbsp; &nbsp;- **自助建站**：扩展性有限，通常受到平台功能的限制。</p><p>&nbsp; &nbsp;- **独立建站**：扩展性强，可以根据业务需求随时添加新功能和模块。</p><p><br/></p><p>7. **所有权和数据控制**：</p><p>&nbsp; &nbsp;- **自助建站**：网站和数据可能部分或全部归平台所有，用户对数据的控制权有限。</p><p>&nbsp; &nbsp;- **独立建站**：用户拥有网站和所有数据的完全所有权和控制权。</p><p><br/></p><p>8. **依赖性**：</p><p>&nbsp; &nbsp;- **自助建站**：对平台的依赖性较高，如果平台出现问题，可能会影响网站的运行。</p><p>&nbsp; &nbsp;- **独立建站**：不依赖于任何第三方平台，用户可以自主控制网站的运行。</p><p><br/></p><p>总的来说，自助建站适合快速、低成本地搭建网站，而独立建站则适合需要高度定制化和完全控制权的用户。选择哪种方式取决于个人的技术能力、预算、需求和业务目标。</p><p><br style=\"text-wrap-mode: wrap;\"/></p><p><br/></p>','1r4mciv.file','','0','','自助建站和独立建站是两种不同的网站搭建方式，它们各有特点和适用场景。总的来说，自助建站适合快速、低成本地搭建网站，而独立建站则适合需要高度定制化和完全控制权的用户。选择哪种方式取决于个人的技术能力、预算、需求和业务目标。','50','1','2024-06-26 23:45:00');
 INSERT INTO dou_article VALUES('4','1','admin','0','商城小程序怎么增加流量','','','<p style=\"text-wrap-mode: wrap;\">不知道大家有没有发现打开 微信很多人会使用小程序进行选购，更是有很多企业开发了独立的电商小程序。那么到底为什么电商小程序得到大家的认可呢？<br/><br/>一、根据核心用户画像决定商城的定位坚持目前品类和选品，走大众化路线，但寻找性价比更高的供应商或降低商品价格。走精品生活电商路线。二、强化商城的内容属性1.根据节日或热点制造内容专题，引导用户关注通过内容来包装卖货，这是微信电商的一个显著优势，不只是通过推文进行包装，商城里也可以强化文案的力量。2.挖掘商品卖点，优化标题移动营销服务中心建议大家可以从产品功能方面、使用技巧方面、行业分析多方面进行，有趣的+产品相关会得到意想不到的效果，不同行业卖点不同，需要根据商品，进行优化标题，吸引用户。<br/><br/>三、增加商品曝光量目前商品在小程序的曝光除了首页banner、商品页外，没有其他曝光渠道。移动营销服务中心建议可以在首页新增可编辑的标签制作商品聚合页：明星同款、抖音同款、销量排行榜、会员福利区等。只有你的商品深入人心，激发大家的购买欲，才会有卖点。<br/><br/>四、打造仪式感，揣摩用户心理将上新、会员日活动形成固定机制。&amp;ldquo;每周二上新&amp;rdquo;，上架前的预告，每次上新时推送的商品故事，都可以固定成一种仪式感;至于会员日能玩的更多了，只在那一天开放给会员购买一款类似于镇店之宝的明星产品，会员可以玩大转盘、砸金蛋、抢红包等等，让更多用户成为你的商城会员用户。</p><p><br/></p>','ysqxp3n.file','','0','','不知道大家有没有发现打开 微信很多人会使用小程序进行选购，更是有很多企业开发了独立的电商小程序。那么到底为什么电商小程序得到大家的认可呢？','50','1','2024-06-26 23:45:00');
@@ -255,7 +254,7 @@ DROP TABLE IF EXISTS `dou_article_category`;
 CREATE TABLE `dou_article_category` (
   `id` smallint(5) NOT NULL AUTO_INCREMENT COMMENT '分类ID',
   `slug` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'URL标识',
-  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '分类名称',
+  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '分类名称',
   `icon` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '分类图标',
   `keywords` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'SEO关键词',
   `description` text COLLATE utf8mb4_unicode_ci COMMENT 'SEO描述',
@@ -271,7 +270,7 @@ INSERT INTO dou_article_category VALUES('2','industry','行业新闻','','行业
 DROP TABLE IF EXISTS `dou_config`;
 CREATE TABLE `dou_config` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT '自增ID',
-  `name` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '配置名',
+  `name` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '配置名',
   `value` text COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '配置值',
   `type` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '表单控件类型',
   `box` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '可选项配置',
@@ -500,12 +499,12 @@ CREATE TABLE `dou_language_value` (
 DROP TABLE IF EXISTS `dou_nav`;
 CREATE TABLE `dou_nav` (
   `id` mediumint(8) NOT NULL AUTO_INCREMENT COMMENT '自增ID',
-  `module` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '所属模块',
-  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '导航名称',
+  `module` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '所属模块',
+  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '导航名称',
   `icon` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '图标',
   `guide` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '关联目标(分类/页面ID)',
   `parent_id` smallint(5) NOT NULL DEFAULT '0' COMMENT '父级ID',
-  `type` varchar(60) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '导航位置:middle中部,bottom底部',
+  `type` varchar(60) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '导航位置:middle中部,bottom底部',
   `status` tinyint(1) unsigned NOT NULL DEFAULT '1' COMMENT '状态:1显示,0隐藏',
   `sort` tinyint(3) unsigned NOT NULL DEFAULT '50' COMMENT '排序',
   PRIMARY KEY (`id`)
@@ -549,7 +548,7 @@ CREATE TABLE `dou_page` (
   `id` mediumint(8) unsigned NOT NULL AUTO_INCREMENT COMMENT '自增ID',
   `slug` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'URL标识',
   `parent_id` smallint(5) NOT NULL DEFAULT '0' COMMENT '父级ID',
-  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '页面名称',
+  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '页面名称',
   `content` longtext COLLATE utf8mb4_unicode_ci COMMENT '页面内容',
   `keywords` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'SEO关键词',
   `description` text COLLATE utf8mb4_unicode_ci COMMENT 'SEO描述',
@@ -568,7 +567,7 @@ INSERT INTO dou_page VALUES('6','market','0','营销网络','营销网络','营�
 DROP TABLE IF EXISTS `dou_parameter`;
 CREATE TABLE `dou_parameter` (
   `id` mediumint(8) unsigned NOT NULL AUTO_INCREMENT COMMENT '自增ID',
-  `name` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '参数键名',
+  `name` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '参数键名',
   `lang` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '参数显示名',
   `value` text COLLATE utf8mb4_unicode_ci COMMENT '参数值',
   `cue` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '提示说明',
@@ -592,19 +591,19 @@ CREATE TABLE `dou_product` (
   `operator_type` enum('admin','work') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'admin' COMMENT '创建者类型',
   `operator_id` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '创建者ID',
   `brand_id` mediumint(8) unsigned NOT NULL DEFAULT '0' COMMENT '品牌ID',
-  `title` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '商品标题',
+  `title` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '商品标题',
   `slug` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'URL标识',
   `price` decimal(10,2) unsigned NOT NULL DEFAULT '0.00' COMMENT '价格',
   `level_price` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '会员等级价(序列化数组)',
   `promote_price` decimal(10,2) unsigned NOT NULL DEFAULT '0.00' COMMENT '促销价',
   `promote_start_at` datetime DEFAULT NULL,
   `promote_end_at` datetime DEFAULT NULL,
-  `stock` smallint(6) unsigned NOT NULL DEFAULT '0' COMMENT '库存',
+  `stock` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '库存',
   `defined` text COLLATE utf8mb4_unicode_ci COMMENT '自定义字段(序列化数组)',
   `content` longtext COLLATE utf8mb4_unicode_ci COMMENT '商品详情',
   `image` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '缩略图',
   `model` varchar(60) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '型号',
-  `point` smallint(8) unsigned NOT NULL DEFAULT '0' COMMENT '赠送积分',
+  `point` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '赠送积分',
   `sales` mediumint(8) unsigned NOT NULL DEFAULT '0' COMMENT '销量',
   `keywords` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'SEO关键词',
   `description` text COLLATE utf8mb4_unicode_ci COMMENT 'SEO描述',
@@ -656,7 +655,7 @@ DROP TABLE IF EXISTS `dou_product_category`;
 CREATE TABLE `dou_product_category` (
   `id` smallint(5) NOT NULL AUTO_INCREMENT COMMENT '分类ID',
   `slug` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'URL标识',
-  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '分类名称',
+  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '分类名称',
   `icon` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '分类图标',
   `keywords` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'SEO关键词',
   `description` text COLLATE utf8mb4_unicode_ci COMMENT 'SEO描述',
@@ -679,7 +678,7 @@ CREATE TABLE `dou_show` (
   `link` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '跳转链接',
   `image` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '图片',
   `text` text COLLATE utf8mb4_unicode_ci COMMENT '说明文字',
-  `type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '展示位置:pc/mobile/miniprogram',
+  `type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '展示位置:pc/mobile/miniprogram',
   `sort` tinyint(1) unsigned NOT NULL DEFAULT '50' COMMENT '排序',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

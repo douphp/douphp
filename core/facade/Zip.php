@@ -23,7 +23,7 @@ if (!defined('IN_DOUCO')) {
 /**
  * Zip 静态门面：底层为 {@see \Dou\Core\Support\Zip} 容器单例。
  *
- * @method static bool extract(string $zipPath, string $destinationDir)
+ * @method static bool extract(string $zipPath, string $destinationDir, array $allowRules = array(), array $denyExtensions = array())
  * @method static bool create(string $zipPath, array $paths, string $removePath, string &$errorInfo = '')
  */
 class Zip extends StaticFacade

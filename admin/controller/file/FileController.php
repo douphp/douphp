@@ -238,15 +238,26 @@ class FileController extends BaseController
         $file_field = 'file';
 
         $custom_filename = date('YmdHis') . '_' . substr($file_md5_value, 0, 6);
+        $uploaded = $request->file($file_field);
+        if (is_array($uploaded)) {
+            $uploaded = isset($uploaded[0]) ? $uploaded[0] : null;
+        }
+        $chunkInput = array(
+            'blob_num' => $request->post('blob_num', ''),
+            'total_blob_num' => $request->post('total_blob_num', ''),
+            'file_name' => $request->post('file_name', ''),
+            'sql_link_url' => $request->post('sql_link_url', ''),
+            'file' => $uploaded,
+        );
         $useDraft = ($draft_token !== '' && $item_id <= 0);
         if ($useDraft) {
             $admin_id = (int) auth('admin')->id();
             if ($admin_id <= 0) {
                 return $this->response('');
             }
-            $data = attachment()->chunkedStoreDraft($module, 'admin', $admin_id, $draft_token, $file_field, $type, $custom_filename, $file_type);
+            $data = attachment()->chunkedStoreDraft($module, 'admin', $admin_id, $draft_token, $file_field, $type, $custom_filename, $file_type, null, $chunkInput);
         } else {
-            $data = attachment()->chunkedStore($module, $item_id, $file_field, $type, $custom_filename, $file_type, null, 'admin', (int) auth('admin')->id());
+            $data = attachment()->chunkedStore($module, $item_id, $file_field, $type, $custom_filename, $file_type, null, 'admin', (int) auth('admin')->id(), $chunkInput);
         }
 
         return $this->json($data);

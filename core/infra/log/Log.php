@@ -41,6 +41,35 @@ class Log
     const INFO = 'info';
     const DEBUG = 'debug';
 
+    /** @var string 敏感值落盘时的占位符 */
+    const REDACTED = '[REDACTED]';
+
+    /**
+     * 敏感字段键名片段（小写，子串匹配）。
+     *
+     * 命中的上下文键其值不落盘；同一份清单也用于 URL 查询串参数名的判定。
+     *
+     * @var array
+     */
+    protected static $sensitiveKeys = array(
+        'password',
+        'passwd',
+        'pwd',
+        'token',
+        'secret',
+        'api_key',
+        'apikey',
+        'access_key',
+        'private_key',
+        'authorization',
+        'credential',
+        'session_id',
+        'cookie',
+        'sign',
+        'cdkey',
+        'hash_code',
+    );
+
     /**
      * 日志存储路径
      *
@@ -367,7 +396,106 @@ class Log
         if (!$isDebug && isset($context['trace']) && is_string($context['trace'])) {
             $context['trace'] = substr($context['trace'], 0, 1200);
         }
-        return $context;
+
+        return static::redactSensitive($context);
+    }
+
+    /**
+     * 上下文脱敏。
+     *
+     * 日志文件可能被打包带走或误置于可读目录，凭据一旦随上下文落盘就等同泄露。
+     * 这里按键名递归掩码敏感字段，并单独处理 URL 类字段的查询串（?token=xxx）。
+     *
+     * @param array $context
+     * @return array
+     */
+    protected static function redactSensitive(array $context)
+    {
+        $out = array();
+        foreach ($context as $key => $value) {
+            if (is_array($value)) {
+                $out[$key] = static::redactSensitive($value);
+                continue;
+            }
+
+            if (static::isSensitiveKey((string) $key)) {
+                $out[$key] = is_scalar($value) && (string) $value !== '' ? self::REDACTED : $value;
+                continue;
+            }
+
+            if (is_string($value) && $value !== '' && static::isUrlLikeKey((string) $key)) {
+                $out[$key] = static::redactQueryString($value);
+                continue;
+            }
+
+            $out[$key] = $value;
+        }
+
+        return $out;
+    }
+
+    /**
+     * 键名是否属于敏感字段（子串匹配，覆盖 mail_password / X-CSRF-Token 等变体）。
+     *
+     * @param string $key
+     * @return bool
+     */
+    protected static function isSensitiveKey($key)
+    {
+        $key = strtolower($key);
+        foreach (static::$sensitiveKeys as $needle) {
+            if (strpos($key, $needle) !== false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * 键名是否承载 URL（需要对查询串做掩码）。
+     *
+     * @param string $key
+     * @return bool
+     */
+    protected static function isUrlLikeKey($key)
+    {
+        $key = strtolower($key);
+
+        return $key === 'request_uri' || $key === 'url' || $key === 'full_url' || $key === 'referer';
+    }
+
+    /**
+     * 掩掉 URL 查询串里的敏感参数值，保留路径与其余参数便于排障。
+     *
+     * @param string $url
+     * @return string
+     */
+    protected static function redactQueryString($url)
+    {
+        $pos = strpos($url, '?');
+        if ($pos === false) {
+            return $url;
+        }
+
+        $path = substr($url, 0, $pos);
+        $query = substr($url, $pos + 1);
+        $pairs = explode('&', $query);
+        foreach ($pairs as $i => $pair) {
+            if ($pair === '') {
+                continue;
+            }
+            $eq = strpos($pair, '=');
+            if ($eq === false) {
+                continue;
+            }
+            $name = substr($pair, 0, $eq);
+            if (static::isSensitiveKey(urldecode($name))) {
+                $pairs[$i] = $name . '=' . self::REDACTED;
+            }
+        }
+
+        return $path . '?' . implode('&', $pairs);
     }
 
     /**

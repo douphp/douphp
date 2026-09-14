@@ -83,7 +83,7 @@ class SchemaBuilder extends BaseService
             }
             $text = lang($module, $module);
             $list[] = array('name' => $module, 'text' => $text);
-            if (in_array($module, $columnModules, true) && DB::rowExist($module . '_category')) {
+            if (in_array($module, $columnModules, true) && DB::tableExist($module . '_category')) {
                 $list[] = array(
                     'name' => $module . '_category',
                     'text' => lang($module . '_category', $module . '_category'),
@@ -103,7 +103,7 @@ class SchemaBuilder extends BaseService
     public function fieldsFor($module)
     {
         $module = trim((string) $module);
-        if ($module === '' || !DB::rowExist($module)) {
+        if ($module === '' || !DB::tableExist($module)) {
             return array();
         }
 

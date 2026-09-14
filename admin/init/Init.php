@@ -33,6 +33,7 @@ use Dou\Core\Foundation\Provider\ProviderRegistry;
 use Dou\Core\Init\InitTrait;
 use Dou\Core\Service\Nav\MiniprogramNavigationBuilder;
 use Dou\Core\Service\System\ModuleSettingReader;
+use Dou\Core\Support\Cdkey;
 use Dou\Core\Support\Util;
 use Dou\Core\Support\ViewVars;
 use Dou\Core\Web\I18n\JsLangExporter;
@@ -155,7 +156,8 @@ class Init
         $this->defineShellConstants('admin', 'admin');
 
         // 计算 ROOT_URL（后台需要剥离 ADMIN_DIR）
-        $rootUrl = preg_replace('/' . ADMIN_DIR . '\//Ums', '', dirname(HTTP . $_SERVER['HTTP_HOST'] . $_SERVER['PHP_SELF']) . '/');
+        $rootHost = $container->make(\Dou\Core\Web\Http\Request::class)->host();
+        $rootUrl = preg_replace('/' . ADMIN_DIR . '\//Ums', '', dirname(HTTP . $rootHost . $_SERVER['PHP_SELF']) . '/');
         define('ROOT_URL', $rootUrl);
         define('SITE_URL', ROOT_URL);
         define('HOME_URL', ROOT_URL);
@@ -342,7 +344,7 @@ class Init
 
         if (Config::get('site.ssl', false) && HTTP !== 'https://') {
             $engine->assign('cue_open_ssl', true);
-            $engine->assign('ssl_url', 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']);
+            $engine->assign('ssl_url', 'https://' . $container->make(\Dou\Core\Web\Http\Request::class)->host() . $_SERVER['REQUEST_URI']);
         }
 
         // loadModules 内已 Config::set('param')，与视图引擎同步（setupViewEngine 阶段 param 可能未含模块设置）
@@ -368,11 +370,9 @@ class Init
         $engine->assign('pure_mode', false);
 
         if (file_exists($cdkeyFile = STORAGE_PATH . 'state/cdkey.php')) {
-            // include_once 在本方法内执行；..cdkey.php 顶层声明的 $_CDKEY / $_PARTNER_AUTHORIZED
-            // 按 PHP include 作用域规则进入本方法局部作用域，不会出现在 $GLOBALS 中。
-            include_once($cdkeyFile);
-            $cdkey = isset($_CDKEY) ? $_CDKEY : array();
-            $decompileInit = Util::fromCharCodes($cdkey);
+            // 凭据由云端下发，按纯文本解析取值，不作为 PHP 源码执行。
+            $cdkey = Cdkey::read($cdkeyFile);
+            $decompileInit = $cdkey['code'];
             $rootUrl = defined('ROOT_URL') ? ROOT_URL : '';
             if ($decompileInit === substr(md5(DOU_SHELL), 16) . Config::get('site.douphp_version', '') . Util::normalizeUrlHost($rootUrl)) {
                 Config::set('app.licensed', true);
@@ -381,7 +381,7 @@ class Init
                     lang_set('login', preg_replace('/DouPHP /Ums', '', lang('login')));
                     $engine->assign('pure_mode', true);
                 }
-                if (!empty($_PARTNER_AUTHORIZED)) {
+                if ($cdkey['partner']) {
                     $engine->assign('partner_authorize', true);
                 }
             }

@@ -486,9 +486,10 @@ class AttachmentService
      * @param string|null $diskName
      * @param string $uploaderKind 'admin' / 'user' / 'work'，owned 写入必填
      * @param int $uploaderId 对应身份表主键
+     * @param array $chunkInput 分片入参：blob_num / total_blob_num / file_name / sql_link_url / file
      * @return array
      */
-    public function chunkedStore($module, $itemId, $fileField = 'file', $type = 'main', $customFilename = '', $allowFileType = 'zip,rar', $diskName = null, $uploaderKind = '', $uploaderId = 0)
+    public function chunkedStore($module, $itemId, $fileField = 'file', $type = 'main', $customFilename = '', $allowFileType = 'zip,rar', $diskName = null, $uploaderKind = '', $uploaderId = 0, array $chunkInput = array())
     {
         $disk = $diskName !== null ? $this->storage->disk($diskName) : $this->resolveDisk($module, AttachmentUploadOptions::create());
         $ownedCtx = array(
@@ -496,7 +497,7 @@ class AttachmentService
             'uploader_id' => (int) $uploaderId,
         );
 
-        return $this->chunkedHandler->handle($disk, $module, $itemId, $fileField, $type, $customFilename, $allowFileType, array(), $ownedCtx);
+        return $this->chunkedHandler->handle($disk, $module, $itemId, $fileField, $type, $customFilename, $allowFileType, array(), $ownedCtx, $chunkInput);
     }
 
     /**
@@ -514,9 +515,10 @@ class AttachmentService
      * @param string $customFilename
      * @param string $allowFileType
      * @param string|null $diskName
+     * @param array $chunkInput 分片入参：blob_num / total_blob_num / file_name / sql_link_url / file
      * @return array
      */
-    public function chunkedStoreDraft($module, $identityKind, $identityId, $draftToken, $fileField = 'file', $type = 'main', $customFilename = '', $allowFileType = 'zip,rar', $diskName = null)
+    public function chunkedStoreDraft($module, $identityKind, $identityId, $draftToken, $fileField = 'file', $type = 'main', $customFilename = '', $allowFileType = 'zip,rar', $diskName = null, array $chunkInput = array())
     {
         $disk = $diskName !== null ? $this->storage->disk($diskName) : $this->resolveDisk($module, AttachmentUploadOptions::create());
         $uploaderType = $this->resolveUploaderType($identityKind);
@@ -526,7 +528,7 @@ class AttachmentService
             'uploader_id' => (int) $identityId,
             'draft_token' => (string) $draftToken,
             'draft_expire_at' => time() + self::DRAFT_LIFETIME_SECONDS,
-        ));
+        ), array(), $chunkInput);
     }
 
     // -----------------------------------------------------------------

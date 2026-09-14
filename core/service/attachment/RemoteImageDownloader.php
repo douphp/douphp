@@ -30,6 +30,15 @@ if (!defined('IN_DOUCO')) {
  */
 class RemoteImageDownloader
 {
+    /** @var int 单跳整体超时（秒） */
+    const REQUEST_TIMEOUT = 10;
+
+    /** @var int 单跳连接超时（秒） */
+    const CONNECT_TIMEOUT = 5;
+
+    /** @var int 最大重定向跳数（每跳单独校验目标地址） */
+    const MAX_REDIRECTS = 3;
+
     /** @var ImageManager */
     private $images;
 
@@ -53,7 +62,10 @@ class RemoteImageDownloader
      */
     public function fetch(Disk $disk, $remoteUrl, $folder, $customFilename, AttachmentUploadOptions $options)
     {
-        if (!preg_match('/^(https?|ftp):\/\/([^\s\/$.?#].[^\s]*)$/iu', $remoteUrl)) {
+        if (!preg_match('/^https?:\/\/([^\s\/$.?#].[^\s]*)$/iu', $remoteUrl)) {
+            return null;
+        }
+        if (!self::isPublicUrl($remoteUrl)) {
             return null;
         }
 
@@ -70,35 +82,53 @@ class RemoteImageDownloader
         $randName = date('YmdHis') . '_' . Str::randomByType('letter', 6) . '.' . $extension;
         $finalName = $customFilename !== '' ? $customFilename : $randName;
 
-        $ch = curl_init($remoteUrl);
-        $opts = array(
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_MAXREDIRS => 5,
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_SSL_VERIFYHOST => 0,
-            CURLOPT_TIMEOUT => 60,
-            CURLOPT_USERAGENT => 'Mozilla/5.0 Image Downloader',
-            CURLOPT_HEADER => false,
-        );
-        if (ini_get('open_basedir') == '' && !ini_get('safe_mode')) {
-            $opts[CURLOPT_FOLLOWLOCATION] = true;
-        } else {
-            $opts[CURLOPT_FOLLOWLOCATION] = false;
-        }
-        curl_setopt_array($ch, $opts);
-        $data = curl_exec($ch);
-        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        if ($data === false || $status !== 200) {
-            error_log('Download failed: ' . curl_error($ch));
+        // 重定向不交给 cURL 自动跟随：每一跳都要重新做公网地址校验，
+        // 否则可用 302 把已通过校验的公网 URL 折回内网地址。
+        $currentUrl = $remoteUrl;
+        $data = false;
+        $status = 0;
+        for ($hop = 0; $hop <= self::MAX_REDIRECTS; $hop++) {
+            $ch = curl_init($currentUrl);
+            curl_setopt_array($ch, array(
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => false,
+                CURLOPT_SSL_VERIFYPEER => true,
+                CURLOPT_SSL_VERIFYHOST => 2,
+                CURLOPT_TIMEOUT => self::REQUEST_TIMEOUT,
+                CURLOPT_CONNECTTIMEOUT => self::CONNECT_TIMEOUT,
+                CURLOPT_USERAGENT => 'Mozilla/5.0 Image Downloader',
+                CURLOPT_HEADER => false,
+            ));
+            $body = curl_exec($ch);
+            $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $location = (string) curl_getinfo($ch, CURLINFO_REDIRECT_URL);
+            $error = curl_error($ch);
             if (PHP_VERSION_ID < 80000) {
                 curl_close($ch);
             }
 
-            return null;
+            if ($body === false) {
+                error_log('Download failed: ' . $error);
+                return null;
+            }
+
+            if ($status >= 300 && $status < 400 && $location !== '') {
+                if (!preg_match('/^https?:\/\//i', $location) || !self::isPublicUrl($location)) {
+                    error_log('Download failed: redirect target rejected');
+                    return null;
+                }
+                $currentUrl = $location;
+                continue;
+            }
+
+            $data = $body;
+            break;
         }
-        if (PHP_VERSION_ID < 80000) {
-            curl_close($ch);
+
+        if ($data === false || $status !== 200) {
+            error_log('Download failed: unexpected status ' . $status);
+
+            return null;
         }
 
         $folderRel = $folder !== '' ? trim($folder, '/') . '/' : '';
@@ -128,6 +158,98 @@ class RemoteImageDownloader
             'absolute' => $absolutePath,
             'basename' => $finalName,
         );
+    }
+
+    /**
+     * 判断 URL 的目标主机是否解析到公网地址。
+     *
+     * 仅放行 http/https + 标准端口，并要求主机名解析出的每个 A/AAAA 记录都落在公网段，
+     * 拦住指向内网服务与云元数据端点（169.254.169.254）的抓取请求。
+     *
+     * @param string $url
+     * @return bool
+     */
+    private static function isPublicUrl($url)
+    {
+        $parts = parse_url($url);
+        if (!is_array($parts) || !isset($parts['host']) || $parts['host'] === '') {
+            return false;
+        }
+
+        $scheme = isset($parts['scheme']) ? strtolower($parts['scheme']) : '';
+        if ($scheme !== 'http' && $scheme !== 'https') {
+            return false;
+        }
+
+        if (isset($parts['port']) && !in_array((int) $parts['port'], array(80, 443), true)) {
+            return false;
+        }
+
+        $host = trim($parts['host'], '[]');
+        $addresses = self::resolveHost($host);
+        if (empty($addresses)) {
+            return false;
+        }
+
+        foreach ($addresses as $ip) {
+            if (!self::isPublicIp($ip)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * 解析主机名到 IP 列表；主机名本身即 IP 时直接返回。
+     *
+     * @param string $host
+     * @return array
+     */
+    private static function resolveHost($host)
+    {
+        if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
+            return array($host);
+        }
+
+        $addresses = array();
+        $v4 = gethostbynamel($host);
+        if (is_array($v4)) {
+            $addresses = $v4;
+        }
+        if (defined('DNS_AAAA')) {
+            $records = @dns_get_record($host, DNS_AAAA);
+            if (is_array($records)) {
+                foreach ($records as $record) {
+                    if (isset($record['ipv6']) && $record['ipv6'] !== '') {
+                        $addresses[] = $record['ipv6'];
+                    }
+                }
+            }
+        }
+
+        return $addresses;
+    }
+
+    /**
+     * 判断 IP 是否为公网地址（排除私有段、环回、链路本地与保留段）。
+     *
+     * @param string $ip
+     * @return bool
+     */
+    private static function isPublicIp($ip)
+    {
+        if (filter_var($ip, FILTER_VALIDATE_IP) === false) {
+            return false;
+        }
+
+        // FILTER_FLAG_NO_PRIV_RANGE/NO_RES_RANGE 覆盖 10/8、172.16/12、192.168/16、127/8、
+        // 169.254/16、::1、fc00::/7 等；返回 false 即命中私有或保留段。
+        return filter_var(
+            $ip,
+            FILTER_VALIDATE_IP,
+            FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+        ) !== false;
     }
 
     /**

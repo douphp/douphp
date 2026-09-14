@@ -29,6 +29,7 @@ use Dou\Core\Foundation\Provider\ProviderRegistry;
 use Dou\Core\Init\InitTrait;
 use Dou\Core\Service\Nav\MiniprogramNavigationBuilder;
 use Dou\Core\Service\Pricing\PricingService;
+use Dou\Core\Support\Cdkey;
 use Dou\Core\Support\Util;
 use Dou\Core\Web\Http\ApiResponse;
 
@@ -210,11 +211,9 @@ class Init
         // 授权检测：结果落入 Config::set('app.licensed', bool)
         Config::set('app.licensed', false);
         if (file_exists($cdkeyFile = STORAGE_PATH . 'state/cdkey.php')) {
-            // include_once 在本方法内执行；..cdkey.php 顶层声明的 $_CDKEY
-            // 按 PHP include 作用域规则进入本方法局部作用域，不会出现在 $GLOBALS 中。
-            include_once($cdkeyFile);
-            $cdkey = isset($_CDKEY) ? $_CDKEY : array();
-            $decompileInit = Util::fromCharCodes($cdkey);
+            // 凭据由云端下发，按纯文本解析取值，不作为 PHP 源码执行。
+            $cdkey = Cdkey::read($cdkeyFile);
+            $decompileInit = $cdkey['code'];
             if ($decompileInit === substr(md5(DOU_SHELL), 16) . Config::get('site.douphp_version', '') . Util::normalizeUrlHost(ROOT_URL)) {
                 Config::set('app.licensed', true);
             }

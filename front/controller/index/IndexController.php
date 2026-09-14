@@ -59,10 +59,6 @@ class IndexController extends BaseController
     {
         $data = $this->indexService->buildIndexData((int) auth('front')->id());
 
-        if (file_exists($codeIncludeFile = ROOT_PATH . '..code.php')) {
-            require $codeIncludeFile;
-        }
-
         return $this->view('index.dwt', [
             // 页面头信息
             'page_title' => $this->seo->pageTitle(),

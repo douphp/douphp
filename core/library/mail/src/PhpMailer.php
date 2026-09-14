@@ -1197,10 +1197,13 @@ class PHPMailer
         }
         $to = implode(', ', $toArr);
 
-        if (empty($this->Sender)) {
+        // Sender 会作为 mail() 的第五参（sendmail -f）落到命令行：必须先确认它是一个
+        // 合法邮箱地址再 escapeshellarg，否则可借额外 -X/-C 选项写文件或执行代码。
+        // 与 sendmailSend() 中既有的 escapeshellarg 处理保持一致。
+        if (empty($this->Sender) or !self::validateAddress($this->Sender)) {
             $params = ' ';
         } else {
-            $params = sprintf('-f%s', $this->Sender);
+            $params = sprintf('-f%s', escapeshellarg($this->Sender));
         }
         if ($this->Sender != '' and !ini_get('safe_mode')) {
             $old_from = ini_get('sendmail_from');
@@ -3051,12 +3054,17 @@ class PHPMailer
                             $message
                         );
                     }
-                } elseif (!preg_match('#^[A-z]+://#', $url)) {
+                } elseif (!preg_match('#^[A-z]+://#', $url) and $basedir !== '') {
                     // Do not change urls for absolute images (thanks to corvuscorax)
+                    // $basedir 为空时不解析相对路径：否则 HTML 正文里的 src 可指向任意本地
+                    // 文件并被作为内嵌附件外发（本地文件读取）。
                     $filename = basename($url);
                     $directory = dirname($url);
                     if ($directory == '.') {
                         $directory = '';
+                    }
+                    if (strpos($filename, '..') !== false or strpos($directory, '..') !== false) {
+                        continue;
                     }
                     $cid = md5($url) . '@phpmailer.0'; // RFC2392 S 2
                     if (strlen($basedir) > 1 && substr($basedir, -1) != '/') {

@@ -18,6 +18,7 @@ use Dou\Core\Facade\DB;
 use Dou\Core\Filesystem\Disk;
 use Dou\Core\Filesystem\PathNormalizer;
 use Dou\Core\Support\Check;
+use Dou\Core\Web\Http\UploadedFile;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
@@ -26,8 +27,8 @@ if (!defined('IN_DOUCO')) {
 /**
  * 大文件分块上传。
  *
- * 通过 $_POST['blob_num'] / $_POST['total_blob_num'] / $_POST['file_name'] / $_POST['sql_link_url']
- * 配合 $_FILES[$field] 接收分块并最终合并；完成后写 dou_file 表并返回 ajax payload。
+ * 由调用方显式传入 blob_num / total_blob_num / file_name / sql_link_url 与 UploadedFile，
+ * 合并分块后写 dou_file 表并返回 ajax payload。
  */
 class ChunkedUploadHandler
 {
@@ -58,9 +59,10 @@ class ChunkedUploadHandler
      * @param string $allowFileType
      * @param array $draftCtx 可选；含 'uploader_type'(string)、'uploader_id'(int)、'draft_token'(string)、'draft_expire_at'(int)
      * @param array $ownedCtx owned 写入路径的 uploader 身份，键：uploader_type / uploader_id
+     * @param array $chunkInput 分片入参：blob_num / total_blob_num / file_name / sql_link_url / file(UploadedFile)
      * @return array
      */
-    public function handle(Disk $disk, $module, $itemId, $fileField, $type, $customFilename, $allowFileType, array $draftCtx = array(), array $ownedCtx = array())
+    public function handle(Disk $disk, $module, $itemId, $fileField, $type, $customFilename, $allowFileType, array $draftCtx = array(), array $ownedCtx = array(), array $chunkInput = array())
     {
         $isDraft = !empty($draftCtx['draft_token']) && !empty($draftCtx['uploader_type']) && (int) (isset($draftCtx['uploader_id']) ? $draftCtx['uploader_id'] : 0) > 0;
         if ($isDraft) {
@@ -68,10 +70,17 @@ class ChunkedUploadHandler
         }
         $data = array('html' => '');
 
-        $blobNum = Check::number(isset($_POST['blob_num']) ? $_POST['blob_num'] : '') ? $_POST['blob_num'] : exit;
-        $totalBlobNum = Check::number(isset($_POST['total_blob_num']) ? $_POST['total_blob_num'] : '') ? $_POST['total_blob_num'] : exit;
+        $blobNumRaw = isset($chunkInput['blob_num']) ? $chunkInput['blob_num'] : '';
+        $totalBlobNumRaw = isset($chunkInput['total_blob_num']) ? $chunkInput['total_blob_num'] : '';
+        if (!Check::number($blobNumRaw) || !Check::number($totalBlobNumRaw)) {
+            return $data;
+        }
+        $blobNum = $blobNumRaw;
+        $totalBlobNum = $totalBlobNumRaw;
+        $sqlLinkUrl = isset($chunkInput['sql_link_url']) ? $chunkInput['sql_link_url'] : '';
+        $fileName = isset($chunkInput['file_name']) ? $chunkInput['file_name'] : '';
 
-        $nameParts = explode('.', isset($_POST['file_name']) ? $_POST['file_name'] : '');
+        $nameParts = explode('.', $fileName);
         $count = count($nameParts);
         $fileType = $count > 0 ? $nameParts[$count - 1] : '';
 
@@ -79,7 +88,7 @@ class ChunkedUploadHandler
         $allowList = array_map('trim', explode(',', strtolower((string) $allowFileType)));
         if ($fileType === '' || !in_array(strtolower($fileType), $allowList, true)) {
             $data['wrong'] = lang('file_support') . $allowFileType . lang('file_support_no') . $fileType;
-            die(json_encode($data));
+            return $data;
         }
 
         $fileDir = (string) $disk->getConfig('root', '');
@@ -91,12 +100,12 @@ class ChunkedUploadHandler
             @mkdir($fullFileDir, 0777, true);
         }
 
-        if (!empty($_POST['sql_link_url'])) {
-            $sqlDir = dirname($_POST['sql_link_url']) . '/';
+        if (!empty($sqlLinkUrl)) {
+            $sqlDir = dirname($sqlLinkUrl) . '/';
             if ($sqlDir === ROOT_URL . $fileDir) {
                 // 复用原文件主名以原地覆盖；扩展名强制取经白名单校验的 $fileType，
                 // 杜绝借 sql_link_url 改写扩展名（如 file_name=x.mp4 过校验却落盘为 evil.php）的 RCE 旁路。
-                $base = pathinfo(basename($_POST['sql_link_url']), PATHINFO_FILENAME);
+                $base = pathinfo(basename($sqlLinkUrl), PATHINFO_FILENAME);
                 $fullFileName = $base . '.' . $fileType;
             } else {
                 $fullFileName = $customFilename . '.' . $fileType;
@@ -117,19 +126,20 @@ class ChunkedUploadHandler
             $action = 'insert';
         }
 
-        if (!isset($_FILES[$fileField]['tmp_name'])) {
+        $uploaded = isset($chunkInput['file']) ? $chunkInput['file'] : null;
+        if (!$uploaded instanceof UploadedFile) {
             return $data;
         }
-        if (!move_uploaded_file($_FILES[$fileField]['tmp_name'], $fileAddress . '__' . $blobNum)) {
+        if (!$uploaded->move($fullFileDir, $fullFileName . '__' . $blobNum)) {
             $data['wrong'] = attachment()->formatFileWrong();
-            die(json_encode($data));
+            return $data;
         }
 
         if ($blobNum == $totalBlobNum) {
             $fp = fopen($fileAddress, 'w+');
             if ($fp === false) {
                 $data['wrong'] = attachment()->formatFileWrong();
-                die(json_encode($data));
+                return $data;
             }
             for ($i = 1; $i <= $totalBlobNum; $i++) {
                 $chunk = file_get_contents($fileAddress . '__' . $i);

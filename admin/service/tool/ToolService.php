@@ -17,9 +17,9 @@ namespace Dou\Admin\Service\Tool;
 use Dou\Admin\Model\Tool\Tool;
 use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Configuration\Config;
+use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Service\BaseService;
 use Dou\Core\Support\FileHelper;
-use Dou\Core\Support\Str;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
@@ -189,78 +189,94 @@ class ToolService extends BaseService
     }
 
     /**
-     * 生成 storage/state 下自定义后台路径更名临时脚本 PHP 源码（落地写文件由 Controller 负责）。
+     * 自定义后台目录页数据。
      *
-     * 脚本由浏览器直接访问 storage/state/custom_admin_dir.candel.php 触发；
-     * 内部需要把：①站点根 ②管理员模板编译目录 ③$admining 配置文件
-     * 三处的绝对路径 / URL 与本仓库 storage 布局保持一致。
-     *
-     * @param string $session_key 会话校验键名
-     * @param string $session_value 传入值占位（源码内拼接）
-     * @return string 完整脚本文本
-     */
-    public function buildCustomAdminDirScriptSource($session_key, $session_value)
-    {
-        $text = '<?php
-            session_start();
-            error_reporting(E_ALL ^ (E_NOTICE | E_WARNING));
-            header(\'Content-type: text/html; charset=utf-8\');
-            $site_path = str_replace(\'storage/state/custom_admin_dir.candel.php\', \'\', str_replace(\'\\\\\', \'/\', __FILE__));
-            $root_url = str_replace(\'storage/state\', \'\', dirname(\'http://\' . $_SERVER[\'HTTP_HOST\'] . $_SERVER[\'PHP_SELF\']));
-            $old_dir = preg_match("/^[A-Za-z0-9._-]+$/", $_REQUEST[\'old_dir\']) ? trim($_REQUEST[\'old_dir\'], ".php") : "";
-            $new_dir = preg_match("/^[A-Za-z0-9._-]+$/", $_REQUEST[\'new_dir\']) ? trim($_REQUEST[\'new_dir\'], ".php") : "";
-
-            if (isset($_SESSION[\'' . $session_key . '\']) && isset($_REQUEST[\'' . $session_key . '\'])) {
-                if ($_SESSION[\'' . $session_key . '\'] != $_REQUEST[\'' . $session_key . '\']) {
-                    header("Location: " . $root_url);
-                    exit;
-                }
-            } else {
-                header("Location: " . $root_url);
-                exit;
-            }
-
-            // 重命名后台目录与对应的模板编译目录
-            if ($old_dir && $new_dir && @rename($site_path . $old_dir, $site_path . $new_dir)) {
-                @rename($site_path . \'storage/cache/template/\' . $old_dir, $site_path . \'storage/cache/template/\' . $new_dir);
-                echo "修改成功 3 秒后跳转到新后台地址……";
-                file_put_contents($site_path . "storage/state/admin_dir.php", \'<?php $admining = \' . "\'" . $new_dir . "\'" . \' ?>\');
-                $path = $new_dir;
-            } else {
-                echo "修改失败 3 秒后跳转回原后台地址……";
-                $path = $old_dir;
-            }
-            unset($_SESSION[\'' . $session_key . '\']);
-            @unlink($site_path . \'storage/state/custom_admin_dir.candel.php\');
-            header("refresh:3; url=" . $root_url . $path);
-            exit;
-            ?>';
-
-        return $text;
-    }
-
-    /**
-     * 自定义后台目录页：会话校验值、更名脚本源码、开发者入口链接。
-     *
-     * @return array session_key, session_value, script_source, action_link
+     * @return array action_link
      */
     public function buildCustomAdminDirPageData()
     {
-        $session_key = Str::randomByType('letter', 6);
-        $session_value = Str::randomByType('number', 6);
-        $_SESSION[$session_key] = $session_value;
-
-        $script_source = $this->buildCustomAdminDirScriptSource($session_key, $session_value);
-
         return array(
-            'session_key' => $session_key,
-            'session_value' => $session_value,
-            'script_source' => $script_source,
             'action_link' => array(
                 'text' => lang('setting_developer'),
                 'href' => route('admin.setting', array(), array('query' => array('dou' => ''))),
             ),
         );
+    }
+
+    /**
+     * 后台目录更名。
+     *
+     * 同步处理三处：①站点根下的后台目录本身 ②对应的模板编译目录
+     * ③storage/state/admin_dir.php（bootstrap 据此定义 ADMIN_DIR）。
+     *
+     * 目录名只接受「字母、数字、点、下划线、横杠」，并排除会与站内既有目录冲突的名字。
+     *
+     * @param string $oldDir 当前后台目录名
+     * @param string $newDir 目标后台目录名
+     * @return string 更名后的后台目录名
+     * @throws DomainException 名称非法、目标已存在或重命名失败时
+     */
+    public function renameAdminDir($oldDir, $newDir)
+    {
+        $backUrl = route('admin.tool.custom_admin_dir');
+        $oldDir = trim((string) $oldDir);
+        $newDir = trim((string) $newDir);
+
+        if (!$this->isValidAdminDirName($oldDir) || !$this->isValidAdminDirName($newDir)) {
+            throw new DomainException(lang('tool_custom_admin_dir_cue'), $backUrl);
+        }
+
+        if ($oldDir === $newDir) {
+            return $newDir;
+        }
+
+        $oldPath = ROOT_PATH . $oldDir;
+        $newPath = ROOT_PATH . $newDir;
+        if (!is_dir($oldPath) || file_exists($newPath)) {
+            throw new DomainException(lang('illegal'), $backUrl);
+        }
+
+        if (!@rename($oldPath, $newPath)) {
+            throw new DomainException(lang('illegal'), $backUrl);
+        }
+
+        $compileBase = STORAGE_PATH . 'cache/template/';
+        if (is_dir($compileBase . $oldDir) && !file_exists($compileBase . $newDir)) {
+            @rename($compileBase . $oldDir, $compileBase . $newDir);
+        }
+
+        $stateDir = STORAGE_PATH . 'state/';
+        if (!is_dir($stateDir)) {
+            @mkdir($stateDir, 0777, true);
+        }
+        file_put_contents(
+            $stateDir . 'admin_dir.php',
+            "<?php\n\n\$admining = '" . $newDir . "';\n"
+        );
+
+        return $newDir;
+    }
+
+    /**
+     * 后台目录名是否合法。
+     *
+     * 仅允许「字母、数字、点、下划线、横杠」，且不得为 `.`/`..`、不得占用站内既有顶级目录。
+     *
+     * @param string $dir
+     * @return bool
+     */
+    private function isValidAdminDirName($dir)
+    {
+        if ($dir === '' || !preg_match('/^[A-Za-z0-9._-]+$/', $dir)) {
+            return false;
+        }
+        if ($dir === '.' || $dir === '..') {
+            return false;
+        }
+
+        $reserved = array('core', 'config', 'storage', 'images', 'theme', 'front', 'api', 'install', 'upgrade', 'languages', 'miniprogram', 'plugin');
+
+        return !in_array(strtolower($dir), $reserved, true);
     }
 
     /**

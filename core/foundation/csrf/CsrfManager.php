@@ -37,22 +37,21 @@ class CsrfManager
     /**
      * 生成并写入指定 id 的 CSRF 令牌，返回令牌值。
      *
-     * 优先用 CSPRNG 生成 32 hex（128bit）令牌；不可用时回退到 md5(uniqid) 派生。
+     * 令牌一律由 CSPRNG 生成 32 hex（128bit）。random_bytes 自 PHP 5.6 起为内置函数，
+     * 不再保留 md5(uniqid(rand())) 这类仅 64bit、且熵源可预测的降级分支；
+     * CSPRNG 不可用时直接抛出，避免静默发放弱令牌。
      *
      * @param string $id 令牌标记（static_admin / static_user / 一次性表单 id）
      * @return string
+     * @throws \RuntimeException 系统无可用 CSPRNG 时
      */
     public function generate($id)
     {
-        if (function_exists('random_bytes')) {
-            try {
-                $value = bin2hex(random_bytes(16));
-            } catch (\Exception $e) {
-                $value = substr(md5(uniqid((string) rand(), true)), 0, 16);
-            }
-        } else {
-            $value = substr(md5(uniqid((string) rand(), true)), 0, 16);
+        if (!function_exists('random_bytes')) {
+            throw new \RuntimeException('CSRF token generation requires random_bytes().');
         }
+
+        $value = bin2hex(random_bytes(16));
         Session::set('token', $value, $id);
 
         return $value;

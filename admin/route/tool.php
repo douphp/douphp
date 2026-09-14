@@ -30,7 +30,7 @@ Route::group('tool', ToolController::class)->name('admin.')
     ->prefix('tool')
     ->root('__noop__')
     ->get(['directory_check', 'replace_url', 'custom_admin_dir'])
-    ->post(['store', 'sort', 'change_field', 'editor']);
+    ->post(['store', 'sort', 'change_field', 'editor', 'custom_admin_dir_save']);
 
 // 命名路由 manifest 脚本：含登录页在内的每个后台页都要加载（与 captcha 同属登录前可取的子资源），
 // 故豁免 auth（登录页未鉴权也须能取，否则 <script src> 被 302 到登录页 HTML、MIME 报错）、

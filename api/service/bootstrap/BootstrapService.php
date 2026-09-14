@@ -38,7 +38,7 @@ class BootstrapService extends BaseService
         $data['param'] = Config::get('param', array());
         $data['data'] = $dataResult;
         $data['features'] = Config::get('features', array());
-        $data['user_level_has_data'] = Config::get('features.user', false) && DB::rowExist('user_level');
+        $data['user_level_has_data'] = Config::get('features.user', false) && DB::table('user_level')->exists();
         $data['nav_list'] = app(\Dou\Core\Service\Nav\MiniprogramNavigationBuilder::class)->build('miniprogram_top');
 
         // 语言包内容指纹：与独立 route=lang 接口返回的 lang_all() 同源同算法（见 JsLangExporter），

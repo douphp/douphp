@@ -105,7 +105,7 @@ class WorkspaceBuilder extends BaseService
             $actionAccess = true;
         }
 
-        $themeSupportText = DB::getValue('parameter', 'value', "name = 'theme_support_module'");
+        $themeSupportText = DB::table('parameter')->where('name', 'theme_support_module')->value('value');
         if ($themeSupportText) {
             $themeSupportModule = explode(',', $themeSupportText);
         }

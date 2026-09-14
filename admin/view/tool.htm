@@ -59,7 +59,7 @@
    <!-- {if $rec eq 'custom_admin_dir'} 后台目录自定义 -->
    <div class="dou-page is-standalone">
     {include file="inc/page_header.tpl"}
-    <form action="{$site.root_url}storage/state/custom_admin_dir.candel.php" method="post">
+    <form action="{url link='admin.tool.custom_admin_dir_save'}" method="post">
      <div class="form">
       <div class="form-item">
        <div class="form-label">{$lang.tool_custom_admin_dir_new}</div>
@@ -69,9 +69,7 @@
        </div>
       </div>
       <div class="form-item">
-       <input type="hidden" name="old_dir" value="{$admin_dir}" />
-       <input type="hidden" name="{$session_key}" value="{$session_value}" />
-       <input type="hidden" name="root_url" value="{$site.root_url}" />
+       <input type="hidden" name="token" value="{$token}" />
        <input class="btn" type="submit" value="{$lang.btn_submit}" />
       </div>
      </div>

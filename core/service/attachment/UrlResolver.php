@@ -77,7 +77,7 @@ class UrlResolver
                 return self::$urlCache[$cacheKey];
             }
 
-            $file = DB::getOne("SELECT file FROM " . DB::tableName('file') . " WHERE number = '$number'");
+            $file = DB::table('file')->where('number', $number)->value('file');
             if (empty($file)) {
                 self::$urlCache[$cacheKey] = '';
                 return '';

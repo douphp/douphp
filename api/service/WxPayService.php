@@ -13,6 +13,10 @@ namespace Dou\Api\Service;
  * Author: DouCo Co.,Ltd.
  * Release Date: 2026-09-08
  */
+
+use Dou\Core\Foundation\Container\Container;
+use Dou\Core\Web\Http\Request;
+
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
 }
@@ -103,7 +107,8 @@ class WxPayService
             return rtrim(ROOT_URL, '/') . '/api/wxpay_notify.php';
         }
 
-        $base = dirname(HTTP . $_SERVER['HTTP_HOST'] . $_SERVER['PHP_SELF']) . '/';
+        $host = Container::getInstance()->make(Request::class)->host();
+        $base = dirname(HTTP . $host . $_SERVER['PHP_SELF']) . '/';
         return rtrim($base, '/') . '/wxpay_notify.php';
     }
 
@@ -118,8 +123,8 @@ class WxPayService
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_TIMEOUT, $second);
         curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
         curl_setopt($ch, CURLOPT_HEADER, false);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POST, true);

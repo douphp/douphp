@@ -112,23 +112,31 @@ class ToolController extends BaseController
     {
         $bundle = $this->toolService->buildCustomAdminDirPageData();
 
-        $stateDir = STORAGE_PATH . 'state/';
-        if (!is_dir($stateDir)) {
-            @mkdir($stateDir, 0777, true);
-        }
-        file_put_contents($stateDir . 'custom_admin_dir.candel.php', $bundle['script_source']);
-
         return $this->view('tool.htm', [
             'ur_here' => lang('tool_custom_admin_dir'),
             'page_actions' => array(
                 array('href' => $bundle['action_link']['href'], 'text' => $bundle['action_link']['text'], 'style' => ''),
             ),
             'rec' => 'custom_admin_dir',
-            'session_key' => $bundle['session_key'],
-            'session_value' => $bundle['session_value'],
             'admin_dir' => ADMIN_DIR,
             'developer_mode' => true,
         ]);
+    }
+
+    /**
+     * 提交后台目录更名。
+     *
+     * @param Request $request
+     * @return Response
+     */
+    public function customAdminDirSave(Request $request)
+    {
+        $newDir = (string) $request->post('new_dir', '');
+
+        $applied = $this->toolService->renameAdminDir(ADMIN_DIR, $newDir);
+
+        // 后台目录已改名，当前 ADMIN_URL 随即失效，直接跳到新目录入口。
+        return redirect(rtrim(ROOT_URL, '/') . '/' . $applied . '/');
     }
 
     /**
@@ -143,7 +151,7 @@ class ToolController extends BaseController
 
         $this->toolService->applySortTool($act, $module, DOU_ID);
 
-        return redirect(isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : route('admin.index'));
+        return redirect($this->safeBackUrl($request));
     }
 
     /**
@@ -179,11 +187,47 @@ class ToolController extends BaseController
     /**
      * @return Response
      */
-    public function editor()
+    public function editor(Request $request)
     {
         $this->toolService->persistEditorToggle();
 
-        return redirect(isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : route('admin.index'));
+        return redirect($this->safeBackUrl($request));
+    }
+
+    /**
+     * 取「返回来源页」跳转地址。
+     *
+     * Referer 由客户端可控，直接回跳等于开放重定向；这里只接受与当前站点同源的
+     * 地址，其余一律回落后台首页。
+     *
+     * @param Request $request
+     * @return string
+     */
+    private function safeBackUrl(Request $request)
+    {
+        $fallback = route('admin.index');
+        $referer = trim((string) $request->header('referer', ''));
+        if ($referer === '') {
+            return $fallback;
+        }
+
+        // 站内相对路径（不含协议、且不是 //host 形式的协议相对 URL）直接放行
+        if (strpos($referer, '//') !== 0 && !preg_match('#^[a-z][a-z0-9+.\-]*:#i', $referer)) {
+            return substr($referer, 0, 1) === '/' ? $referer : $fallback;
+        }
+
+        $refererHost = parse_url($referer, PHP_URL_HOST);
+        if (!is_string($refererHost) || $refererHost === '') {
+            return $fallback;
+        }
+
+        $currentHost = parse_url(defined('ROOT_URL') ? ROOT_URL : '', PHP_URL_HOST);
+        if (!is_string($currentHost) || $currentHost === '') {
+            $currentHost = $request->host();
+        }
+        $currentHost = preg_replace('/:\d+$/', '', (string) $currentHost);
+
+        return strcasecmp($refererHost, $currentHost) === 0 ? $referer : $fallback;
     }
 
     /**

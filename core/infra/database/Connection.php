@@ -181,8 +181,11 @@ class Connection
             }
         }
 
-        // 设置 SQL 模式
-        $this->query("SET sql_mode=''");
+        // 设置 SQL 模式。
+        // STRICT_TRANS_TABLES：超长字符串与整型溢出由静默截断改为报错，避免脏数据静默入库。
+        // 刻意不含 NO_ZERO_DATE / NO_ZERO_IN_DATE：存量行仍存在 '0000-00-00 00:00:00'，
+        // 开启后历史数据将无法读写。
+        $this->query("SET sql_mode='STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION'");
 
         // 选择数据库
         if (mysqli_select_db($this->dou_link, $this->dbname) === false) {
@@ -545,111 +548,7 @@ class Connection
         return intval($count) > 0;
     }
 
-    /**
-     * 执行valueExist操作。
-     *
-     * @param mixed $table 参数table。
-     * @param mixed $field 参数field。
-     * @param mixed $value 参数value。
-     * @param string $and 参数and。
-     * @return bool 返回结果。
-     */
-    public function valueExist($table, $field, $value, $and = '')
-    {
-        $and = $and ? ' AND ' . $and : '';
-        $sql = "SELECT * FROM " . $this->tableName($table) . " WHERE $field = '" . $this->escapeString($value) . "'" . $and;
-        $number = $this->numRows($this->query($sql));
-
-        if ($number > 0) {
-            return true;
-        }
-    }
-
-    /**
-     * 执行getRow操作。
-     *
-     * @param mixed $table 参数table。
-     * @param mixed $field 参数field。
-     * @param string $where 参数where。
-     * @return mixed 返回结果。
-     */
-    public function getRow($table, $field, $where = '')
-    {
-        $field = $this->isSafeFieldName($field) ? $field : '*';
-        $sql = "SELECT $field FROM " . $this->tableName($table) . " WHERE " . $where;
-        $query = $this->query($sql);
-        if ($query !== false) {
-            $result = $this->fetchAssoc($query);
-            mysqli_free_result($query);
-            return $result;
-        } else {
-            return false;
-        }
-    }
-
-    // 验证是否有符合条件的记录
-    /**
-     * 执行rowExist操作。
-     *
-     * @param mixed $table 参数table。
-     * @param string $where 参数where。
-     * @return bool 返回结果。
-     */
-    public function rowExist($table, $where = '')
-    {
-        $where = $where ? " WHERE $where" : '';
-        $sql = "SELECT * FROM " . $this->tableName($table) . $where;
-        $number = $this->numRows($this->query($sql));
-
-        if ($number > 0) {
-            return true;
-        }
-        return false;
-    }
-
-    // 统计数量
-    /**
-     * 执行rowNumber操作。
-     *
-     * @param mixed $table 参数table。
-     * @param string $where 参数where。
-     * @return mixed 返回结果。
-     */
-    public function rowNumber($table, $where = '')
-    {
-        $where = $where ? " WHERE $where" : '';
-        $result = $this->query("SELECT COUNT(*) FROM " . $this->tableName($table) . $where);
-        if ($result === false) {
-            return 0;
-        }
-        $row = $this->fetchRow($result);
-        mysqli_free_result($result);
-        $number = $row[0];
-
-        return $number;
-    }
-
-    // 获取一条数据的一个值 ①
-    /**
-     * 执行getValue操作。
-     *
-     * @param mixed $table 参数table。
-     * @param mixed $field 参数field。
-     * @param string $where 参数where。
-     * @return mixed 返回结果。
-     */
-    public function getValue($table, $field, $where = '')
-    {
-        $field = $this->isSafeFieldName($field) ? $field : '*';
-        $value = $this->getOne("SELECT $field FROM " . $this->tableName($table) . " WHERE $where");
-        if ($value !== false) {
-            return $value;
-        } else {
-            return false;
-        }
-    }
-
-    // 读取一条数据的一个值 ②
+    // 读取一条数据的一个值
     /**
      * 执行getOne操作。
      *

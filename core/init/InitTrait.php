@@ -174,6 +174,8 @@ trait InitTrait
         }
         $proxies = Config::get('security.trusted_proxies', array());
         Request::setTrustedProxies(is_array($proxies) ? $proxies : array());
+        $hosts = Config::get('security.trusted_hosts', array());
+        Request::setTrustedHosts(is_array($hosts) ? $hosts : array());
     }
 
     // -----------------------------------------------------------------
@@ -190,10 +192,12 @@ trait InitTrait
      */
     protected function computeRootUrl()
     {
-        $dirname = dirname(HTTP . $_SERVER['HTTP_HOST'] . $_SERVER['PHP_SELF']) . '/';
         $container = Container::getInstance();
-        if ($container->has(Request::class)) {
-            $container->make(Request::class)->setBaseUrl($dirname);
+        $request = $container->has(Request::class) ? $container->make(Request::class) : null;
+        $host = $request !== null ? $request->host() : $_SERVER['HTTP_HOST'];
+        $dirname = dirname(HTTP . $host . $_SERVER['PHP_SELF']) . '/';
+        if ($request !== null) {
+            $request->setBaseUrl($dirname);
         }
         return $dirname;
     }

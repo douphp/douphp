@@ -30,7 +30,8 @@ if (!defined('IN_DOUCO')) {
  *
  * @method static string|false store(string $module, $itemId, UploadedFile $file, string $type = 'main', AttachmentUploadOptions $options = null)
  * @method static string|false storeToDirectory(UploadedFile $file, string $disk, string $directory = '', string $basename = '', string $type = 'main', AttachmentUploadOptions $options = null)
- * @method static array chunkedStore(string $module, $itemId, string $fileField = 'file', string $type = 'main', string $customFilename = '', string $allowFileType = 'zip,rar', $diskName = null)
+ * @method static array chunkedStore(string $module, $itemId, string $fileField = 'file', string $type = 'main', string $customFilename = '', string $allowFileType = 'zip,rar', $diskName = null, string $uploaderKind = '', int $uploaderId = 0, array $chunkInput = array())
+ * @method static array chunkedStoreDraft(string $module, string $identityKind, int $identityId, string $draftToken, string $fileField = 'file', string $type = 'main', string $customFilename = '', string $allowFileType = 'zip,rar', $diskName = null, array $chunkInput = array())
  * @method static string storeContentImages(string $module, $itemId, string $content, string $type = 'content', string $folder = '', AttachmentUploadOptions $options = null)
  * @method static string|false storeFromUrl(string $module, $itemId, string $remoteUrl, string $type = 'content', string $folder = '', string $customFilename = '', AttachmentUploadOptions $options = null, string $outputFormat = 'path')
  * @method static bool delete(string $number)

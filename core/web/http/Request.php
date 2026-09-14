@@ -83,6 +83,20 @@ class Request
     private static $trustedProxies = array();
 
     /**
+     * 可信 Host 白名单（精确域名，或 `*.example.com` 形式的子域通配）。
+     *
+     * Host 头由客户端可控，直接用于拼装站点根 URL 会造成 Host 头注入（邮件 / 通知里的
+     * 钓鱼链接、缓存投毒）。名单非空时 {@see host()} 仅放行命中项，未命中回落到名单首项
+     * 作为规范域名；名单为空（默认）则保持原样返回，不影响未配置该项的既有站点。
+     *
+     * null 表示尚未从 config/security.php 载入；{@see trustedHosts()} 惰性加载，
+     * 以免依赖 Init 各阶段的调用顺序（ROOT_URL 推导早于 loadSecurityConfig）。
+     *
+     * @var array|null
+     */
+    private static $trustedHosts = null;
+
+    /**
      * @param array|null $get
      * @param array|null $post
      * @param array|null $cookie
@@ -881,6 +895,78 @@ class Request
     }
 
     /**
+     * 设置可信 Host 白名单（精确域名或 `*.example.com` 子域通配）。
+     *
+     * @param array $hosts
+     * @return void
+     */
+    public static function setTrustedHosts(array $hosts)
+    {
+        $clean = array();
+        foreach ($hosts as $h) {
+            $h = strtolower(trim((string) $h));
+            if ($h !== '') {
+                $clean[] = $h;
+            }
+        }
+        self::$trustedHosts = $clean;
+    }
+
+    /**
+     * 取可信 Host 白名单，首次调用时从 config/security.php 惰性载入。
+     *
+     * @return array
+     */
+    private static function trustedHosts()
+    {
+        if (self::$trustedHosts !== null) {
+            return self::$trustedHosts;
+        }
+
+        self::$trustedHosts = array();
+        $path = defined('CONFIG_PATH') ? CONFIG_PATH . 'security.php' : '';
+        if ($path !== '' && file_exists($path)) {
+            $a = include $path;
+            if (is_array($a) && isset($a['security']['trusted_hosts']) && is_array($a['security']['trusted_hosts'])) {
+                self::setTrustedHosts($a['security']['trusted_hosts']);
+            }
+        }
+
+        return self::$trustedHosts;
+    }
+
+    /**
+     * 判断 Host 是否命中白名单（比较时忽略大小写与端口）。
+     *
+     * @param string $host
+     * @param array $allowed
+     * @return bool
+     */
+    private static function hostAllowed($host, array $allowed)
+    {
+        $host = strtolower($host);
+        $bare = $host;
+        $colon = strrpos($bare, ':');
+        if ($colon !== false && strpos($bare, ']') === false) {
+            $bare = substr($bare, 0, $colon);
+        }
+
+        foreach ($allowed as $rule) {
+            if ($rule === $host || $rule === $bare) {
+                return true;
+            }
+            if (substr($rule, 0, 2) === '*.') {
+                $suffix = substr($rule, 1);
+                if (substr($bare, -strlen($suffix)) === $suffix) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * 当前请求的 REMOTE_ADDR 是否来自可信代理。
      *
      * @return bool
@@ -1062,6 +1148,23 @@ class Request
      * @return string
      */
     public function host()
+    {
+        $host = $this->rawHost();
+        $allowed = self::trustedHosts();
+        if (empty($allowed) || self::hostAllowed($host, $allowed)) {
+            return $host;
+        }
+
+        // Host 头不可信时回落到白名单首项，保证对外 URL 始终指向规范域名。
+        return $allowed[0];
+    }
+
+    /**
+     * 未经白名单校验的原始主机名（含端口）。
+     *
+     * @return string
+     */
+    private function rawHost()
     {
         if (isset($this->server['HTTP_HOST']) && $this->server['HTTP_HOST'] !== '') {
             return $this->server['HTTP_HOST'];
