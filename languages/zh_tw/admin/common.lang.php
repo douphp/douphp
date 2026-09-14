@@ -342,7 +342,7 @@ $_LANG['log_clean_keep_days'] = '日誌保留天數';
 $_LANG['debug'] = '站點除錯';
 
 // 系統設定提示
-$_LANG['rewrite_cue'] = '需要 Rewrite 支援，啟用前請重新命名根目錄和"' . M_DIR . '"目錄下 "d%.txt" 檔案為 "d%"，如果不存在請手動下載偽靜態規則<a class="btn-outline" href="http://down.douphp.com/rewrite.rar" target="_blank">點擊下載</a>';
+$_LANG['rewrite_cue'] = '需要 Rewrite 支援，啟用前請重新命名根目錄下 "d%.txt" 檔案為 "d%"，如果不存在請手動下載偽靜態規則<a class="btn-outline" href="http://down.douphp.com/rewrite.rar" target="_blank">點擊下載</a>';
 $_LANG['rewrite_cue_nginx'] = 'URL 重寫需要 Rewrite 支援，請將偽靜態規則新增至您的 Nginx 伺服器（以寶塔面板為例，在「站點->設定->偽靜態」裡新增）<a href="javascript:;" data-dou-toggle="modal" data-dou-modal="message" data-title="Nginx 偽靜態規則" data-html=\'<textarea row="10" cols="80" class="text-area-auto" style="width:100%;height:210px">location / {
     # 真實目錄缺尾斜線時 301 補上，避免目錄內相對路徑資源錯亂
     if (-d $request_filename) {

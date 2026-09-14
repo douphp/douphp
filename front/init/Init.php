@@ -207,7 +207,6 @@ class Init
 
         define('ROOT_URL', Config::get('site.root_url', '/'));
         define('HOME_URL', Config::get('site.home_url', ROOT_URL));
-        define('M_URL', Config::get('site.m_url', ROOT_URL . M_DIR . '/'));
         define('PLUGIN_URL', ROOT_URL . 'plugin/');
 
         $defaultLanguage = Config::get('site.language', '') ?: 'zh_cn';

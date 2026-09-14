@@ -187,7 +187,7 @@ class BackupService extends BaseService
         }
 
         if (trim($sqldump)) {
-            $sqldump = "-- DouPHP v1.x SQL Dump Program\n-- " . ROOT_URL . "\n-- \n-- DATE : " . date('Y-m-d H:i:s')
+            $sqldump = "-- DouPHP v2.x SQL Dump Program\n-- " . ROOT_URL . "\n-- \n-- DATE : " . date('Y-m-d H:i:s')
                 . "\n-- MYSQL SERVER VERSION : " . DB::version()
                 . "\n-- PHP VERSION : " . PHP_VERSION
                 . "\n-- DouPHP VERSION : " . Config::get('site.douphp_version', '') . "\n\n" . $sqldump;

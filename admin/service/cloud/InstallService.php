@@ -164,7 +164,9 @@ class InstallService extends BaseService
 
     /**
      * 站点写入权限预检：模块包会摊开写入全站关键目录（模块/升级覆盖均如此），
-     * 任一关键目录不可写都应在下载前中止，提示用户开启写权限后再装。
+     * 任一已存在的关键目录不可写都应在下载前中止。
+     *
+     * 不以 {@see is_writable()} 为准：Windows 上站点根目录常被判为不可写，但 PHP 实际可以创建文件。
      *
      * @return array 不可写目录清单（空数组表示全部可写）
      */
@@ -173,13 +175,11 @@ class InstallService extends BaseService
         $targets = array(
             '',
             ADMIN_DIR,
-            M_DIR,
             API_DIR,
             MINIPROGRAM_DIR,
             'theme',
             'languages',
             'images',
-            'plugin',
             'storage',
             'config',
         );
@@ -188,9 +188,9 @@ class InstallService extends BaseService
         foreach ($targets as $dir) {
             $full = $dir === '' ? ROOT_PATH : ROOT_PATH . rtrim($dir, '/') . '/';
             if (!file_exists($full)) {
-                $full = $this->nearestExistingAncestor($full);
+                continue;
             }
-            if (!is_writable($full)) {
+            if (!$this->directoryIsWritable($full)) {
                 $failed[] = $dir === '' ? '站点根目录' : $dir;
             }
         }
@@ -199,20 +199,14 @@ class InstallService extends BaseService
     }
 
     /**
-     * 向上查找最近的已存在祖先目录（目录未创建时用祖先的可写性代替判断）。
+     * 以创建临时文件探测目录是否可写（与 {@see FileHelper::permission()} 一致）。
      *
-     * @param string $path 绝对路径
-     * @return string 最近的已存在祖先（含站点根本身）
+     * @param string $dir 绝对路径
+     * @return bool
      */
-    private function nearestExistingAncestor($path)
+    private function directoryIsWritable($dir)
     {
-        $root = rtrim(ROOT_PATH, '/\\');
-        $ancestor = rtrim(dirname($path), '/\\');
-        while ($ancestor !== '' && strcasecmp($ancestor, $root) !== 0 && !file_exists($ancestor)) {
-            $ancestor = rtrim(dirname($ancestor), '/\\');
-        }
-
-        return file_exists($ancestor) ? $ancestor : $root;
+        return FileHelper::permission($dir) === 'write';
     }
 
     /**
@@ -450,6 +444,58 @@ class InstallService extends BaseService
     }
 
     /**
+     * include 升级 / 模板初始化脚本：隔离多余输出，并把可恢复异常写入 $wrong。
+     *
+     * 脚本与本方法共享 $wrong（引用），以便脚本内 `$wrong[] = …` 仍能回传到 {@see install()}。
+     *
+     * @param string $file
+     * @param array $wrong
+     * @return void
+     */
+    private function includeOptionalScript($file, array &$wrong)
+    {
+        if (!is_file($file)) {
+            return;
+        }
+
+        $bufferLevel = ob_get_level();
+        ob_start();
+        $caught = null;
+        try {
+            include_once $file;
+        } catch (\Exception $e) {
+            $caught = $e;
+        } catch (\Throwable $e) {
+            // PHP 7+ Error（如 class not found）不继承 Exception；5.6 无 Throwable，本分支不匹配。
+            $caught = $e;
+        }
+        while (ob_get_level() > $bufferLevel) {
+            ob_end_clean();
+        }
+
+        if ($caught === null) {
+            return;
+        }
+        if ($this->isOptionalUpdateHookError($caught)) {
+            return;
+        }
+        $wrong[] = $caught->getMessage();
+    }
+
+    /**
+     * 升级脚本末尾对已移除类的调用视为可跳过，避免拷贝/SQL 已成功后被当成整单失败。
+     *
+     * @param \Exception|\Throwable $e
+     * @return bool
+     */
+    private function isOptionalUpdateHookError($e)
+    {
+        $message = $e->getMessage();
+
+        return strpos($message, 'CredentialCipher') !== false;
+    }
+
+    /**
      * 安装实际处理：根据 type / mode 完成文件拷贝、SQL 注入、配置文件改写。
      *
      * @param string $type
@@ -509,9 +555,7 @@ class InstallService extends BaseService
                     $this->changeNav($cloudId, $moduleType);
                 }
             } else {
-                if (file_exists($updateDir)) {
-                    include_once($updateFile);
-                }
+                $this->includeOptionalScript($updateFile, $wrong);
             }
 
             if ($moduleType !== '') {
@@ -521,12 +565,10 @@ class InstallService extends BaseService
                 $this->changeMiniprogramConfigFile();
             }
         } elseif ($type === 'system' || $type === 'miniprogram' || $type === 'dou') {
-            if (file_exists($updateDir)) {
-                include_once($updateFile);
-            }
+            $this->includeOptionalScript($updateFile, $wrong);
         } elseif ($type === 'theme' && $mode !== 'update') {
             if (file_exists($themeInitDir)) {
-                include_once($themeInitFile);
+                $this->includeOptionalScript($themeInitFile, $wrong);
                 FileHelper::copyDir($themeInitImage, $this->rootDir . 'images/');
             }
         }
@@ -782,7 +824,7 @@ class InstallService extends BaseService
     }
 
     /**
-     * 同步目录名（主题、小程序、m/admin 别名等）。
+     * 同步目录名（主题、小程序、admin 别名等）。
      *
      * @param string $type
      * @param string $itemDir
@@ -803,9 +845,6 @@ class InstallService extends BaseService
             }
         }
 
-        if (M_DIR !== 'm') {
-            @rename($itemDir . '/m', $itemDir . '/' . M_DIR);
-        }
         if (file_exists($itemDir . '/miniprogram')) {
             if (MINIPROGRAM_DIR !== 'miniprogram') {
                 @rename($itemDir . '/miniprogram', $itemDir . '/' . MINIPROGRAM_DIR);
@@ -1058,7 +1097,7 @@ class InstallService extends BaseService
     /**
      * 解析 installed 清单中的单行路径，输出相对 ROOT_PATH 的实际路径数组。
      *
-     * 复用安装时的 `#admin/` / `#m/` / `#miniprogram/` 前缀替换；当原路径含
+     * 复用安装时的 `#admin/` / `#miniprogram/` 前缀替换；当原路径含
      * `theme/default` 或 `miniprogram/default` 且当前站点改用了其它主题 / 小程序代号时，
      * 追加变体路径，保证两份目录都能被清理。
      *
@@ -1068,7 +1107,6 @@ class InstallService extends BaseService
     private function resolveInstalledRelativePaths($line)
     {
         $line = str_replace('#admin/', '#' . ADMIN_DIR . '/', $line);
-        $line = str_replace('#m/', '#' . M_DIR . '/', $line);
         $line = str_replace('#miniprogram/', '#' . MINIPROGRAM_DIR . '/', $line);
         $line = str_replace('#', '', $line);
 

@@ -106,12 +106,6 @@ class ToolService extends BaseService
             'note' => '模板目录，需要“读写权限”，如果缺少写入权限，将无法在线下载模板',
             'dir' => 'theme',
         );
-        if (file_exists(ROOT_PATH . M_DIR)) {
-            $check_dirs[] = array(
-                'note' => '模板目录.手机版',
-                'dir' => M_DIR . '/theme',
-            );
-        }
 
         $writeable_list = array();
         foreach ($check_dirs as $row) {

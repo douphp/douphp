@@ -96,9 +96,6 @@ class Init
         if (!defined('ADMIN_DIR')) {
             define('ADMIN_DIR', isset($GLOBALS['admining']) ? $GLOBALS['admining'] : 'admin');
         }
-        if (!defined('M_DIR')) {
-            define('M_DIR', 'm');
-        }
         if (!defined('MINIPROGRAM_DIR')) {
             define('MINIPROGRAM_DIR', 'miniprogram');
         }
@@ -161,7 +158,6 @@ class Init
         $rootUrl = preg_replace('/' . ADMIN_DIR . '\//Ums', '', dirname(HTTP . $_SERVER['HTTP_HOST'] . $_SERVER['PHP_SELF']) . '/');
         define('ROOT_URL', $rootUrl);
         define('SITE_URL', ROOT_URL);
-        define('M_URL', ROOT_URL . M_DIR . '/');
         define('HOME_URL', ROOT_URL);
         define('ADMIN_URL', ROOT_URL . ADMIN_DIR . '/');
         define('API_URL', ROOT_URL . API_DIR . '/');

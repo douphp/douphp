@@ -20,6 +20,7 @@ use Dou\Core\Facade\Route;
 use Dou\Core\Foundation\Exception\SiteDebugExceptionRenderer;
 use Dou\Core\Web\Http\ApiResponse;
 use Dou\Core\Web\Http\HttpResponseException;
+use Dou\Core\Web\Http\JsonResponse;
 use Dou\Core\Web\Http\Response;
 
 Route::setDelegate(new \Dou\Admin\Foundation\Routing\Router());
@@ -62,15 +63,34 @@ try {
 }
 
 /**
- * 处理后台入口未捕获的 Exception。
+ * 处理后台入口未捕获的 Exception / Error。
  *
- * @param \Exception $e
+ * Ajax / JSON 请求返回 `{ok:false, error}`，避免 HTML 提示页被前端当成「非 JSON」。
+ *
+ * @param \Exception|\Throwable $e
  * @param bool $booted Init 是否已完成（决定能否安全调用 message() 走提示页）
  * @return void
  */
 function admin_render_uncaught($e, $booted)
 {
     error_log('[DouPHP Admin] ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+
+    $wantJson = SiteDebugExceptionRenderer::isJsonLikeRequest();
+    if ($booted && !$wantJson) {
+        $wantJson = request()->wantsJson();
+    }
+    if ($wantJson) {
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+        $payload = array(
+            'ok' => false,
+            'error' => $e->getMessage(),
+        );
+        (new JsonResponse($payload, 200, JSON_UNESCAPED_UNICODE))->send();
+        exit;
+    }
+
     if (SiteDebugExceptionRenderer::isSiteDebugEnabled()) {
         SiteDebugExceptionRenderer::renderAndExitForHtml($e, 'admin');
     }

@@ -73,11 +73,6 @@ define('ADMIN_PATH', ROOT_PATH . ADMIN_DIR . '/');
 define('MINIPROGRAM_PATH', ROOT_PATH . MINIPROGRAM_DIR . '/');
 define('PLUGIN_PATH', ROOT_PATH . 'plugin/');
 
-// 手机站目录名（业务代码中被大量引用的全局常量）
-if (!defined('M_DIR')) {
-    define('M_DIR', 'm');
-}
-
 // 统一读取一次 config/module.php（供 autoload / Common / Router 复用）
 if (!defined('DOU_MODULE_SETTING')) {
     $moduleSetting = array();

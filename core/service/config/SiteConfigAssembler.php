@@ -61,7 +61,6 @@ class SiteConfigAssembler extends BaseService
         }
 
         $_ROOT_URL = !empty($config['domain']) ? $config['domain'] : $rootUrl;
-        $_M_URL = $_ROOT_URL . M_DIR . '/';
 
         if ($publicFormatting) {
             if (!empty($config['qq'])) {
@@ -93,7 +92,6 @@ class SiteConfigAssembler extends BaseService
         $config['site_logo'] = ($siteLogo ? $siteLogo : '') . attachment()->cacheTag($fileUpdateTime);
 
         $config['root_url'] = $_ROOT_URL;
-        $config['m_url'] = $_M_URL;
         $config['admin_url'] = $_ROOT_URL . ADMIN_DIR . '/';
         $siteTheme = isset($config['site_theme']) ? $config['site_theme'] : '';
         $config['theme_url'] = $_ROOT_URL . 'theme/' . $siteTheme . '/';

@@ -343,7 +343,7 @@ $_LANG['log_clean_keep_days'] = '日志保留天数';
 $_LANG['debug'] = '站点调试';
 
 // 设置提示
-$_LANG['rewrite_cue'] = '需要Rewrite支持，启用前请重命名根目录和"' . M_DIR . '"目录下 "d%.txt" 文件为 "d%"，如果不存在请手动下载伪静态规则<a class="btn-outline" href="http://down.douphp.com/rewrite.rar" target="_blank">点击下载</a>';
+$_LANG['rewrite_cue'] = '需要Rewrite支持，启用前请重命名根目录下 "d%.txt" 文件为 "d%"，如果不存在请手动下载伪静态规则<a class="btn-outline" href="http://down.douphp.com/rewrite.rar" target="_blank">点击下载</a>';
 $_LANG['rewrite_cue_nginx'] = 'URL重写需要Rewrite支持，请将伪静态规则添加至您的Nginx服务器（以宝塔面板为例，在"站点->设置->伪静态"里添加）<a href="javascript:;" data-dou-toggle="modal" data-dou-modal="message" data-title="Nginx伪静态规则" data-html=\'<textarea row="10" cols="80" class="text-area-auto" style="width:100%;height:210px">location / {
     # 真实目录缺尾斜杠时 301 补上，避免目录内相对路径资源错乱
     if (-d $request_filename) {

@@ -232,6 +232,11 @@
       clearActiveSpinner();
     }, function (jqXHR, textStatus) {
       clearActiveSpinner();
+      var parsed = jqXHR && jqXHR.responseJSON ? jqXHR.responseJSON : null;
+      if (parsed && typeof parsed === 'object' && parsed.error) {
+        showFailure(parsed);
+        return $.Deferred().reject().promise();
+      }
       var netMsg = langPack.cloud_install_request_failed || '';
       if (jqXHR && jqXHR.status) {
         netMsg = netMsg !== '' ? netMsg + ' (HTTP ' + jqXHR.status + ')' : 'HTTP ' + jqXHR.status;

@@ -1,7 +1,7 @@
 -- DouPHP v1.x SQL Dump Program
 -- http://localhost/douphp/
 -- 
--- DATE : 2026-09-10 09:36:28
+-- DATE : 2026-09-12 15:42:25
 -- MYSQL SERVER VERSION : 5.7.44-log
 -- PHP VERSION : 7.4.33
 -- DouPHP VERSION : v2.0 Release 20260909
@@ -44,6 +44,7 @@ CREATE TABLE `dou_admin_log` (
   KEY `ip` (`ip`),
   KEY `created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 
 DROP TABLE IF EXISTS `dou_ai`;
 CREATE TABLE `dou_ai` (
@@ -542,7 +543,6 @@ INSERT INTO dou_nav VALUES('30','page','公司简介','','1','0','miniprogram_to
 INSERT INTO dou_nav VALUES('31','page','联系我们','','4','0','miniprogram_top','1','50');
 INSERT INTO dou_nav VALUES('32','page','人才招聘','','5','0','miniprogram_top','1','50');
 INSERT INTO dou_nav VALUES('33','page','企业荣誉','','2','0','miniprogram_top','1','50');
-INSERT INTO dou_nav VALUES('34','ai','AI','','0','0','middle','1','50');
 
 DROP TABLE IF EXISTS `dou_page`;
 CREATE TABLE `dou_page` (
