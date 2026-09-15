@@ -252,7 +252,7 @@ class DatabaseInstallService
             'username' => $username,
             'password' => password_hash($password, PASSWORD_BCRYPT),
             'email' => $email,
-            'add_time' => $buildDate,
+            'created_at' => date('Y-m-d H:i:s', $buildDate),
         ));
     }
 
