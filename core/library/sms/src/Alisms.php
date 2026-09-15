@@ -113,7 +113,7 @@ class Alisms extends BaseService
         }
 
         // 此处可能会抛出异常，注意catch
-        $content = request()(
+        $content = $this->request(
             $accessKeyId,
             $accessKeySecret,
             "dysmsapi.aliyuncs.com",

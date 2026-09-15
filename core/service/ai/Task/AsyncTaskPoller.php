@@ -270,9 +270,9 @@ class AsyncTaskPoller extends BaseService
      */
     private function timeoutMinutes($taskType)
     {
-        return isset(self::TIMEOUT_MINUTES_BY_TYPE[$taskType])
-            ? self::TIMEOUT_MINUTES_BY_TYPE[$taskType]
-            : 15;
+        $map = self::TIMEOUT_MINUTES_BY_TYPE;
+
+        return isset($map[$taskType]) ? $map[$taskType] : 15;
     }
 
     /**
