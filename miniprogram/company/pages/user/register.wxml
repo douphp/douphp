@@ -8,10 +8,10 @@
   <view class="form-passport" style="margin-top: 8vh">
    <form bindsubmit="registerPost">
     <!-- 手机号模式 -->
-    <block wx:if="{{login_mode == 'telphone'}}">
+    <block wx:if="{{login_mode == 'mobile'}}">
      <view class="dl">
-      <input name="telphone" type="text" class="input" value="{{form.telphone}}" placeholder="{{lang.user_telphone}}" bindinput="onAccountInput" />
-      <view class="cue" wx:if="{{wrong.telphone}}">{{wrong.telphone}}</view>
+      <input name="mobile" type="text" class="input" value="{{form.mobile}}" placeholder="{{lang.user_mobile}}" bindinput="onAccountInput" />
+      <view class="cue" wx:if="{{wrong.mobile}}">{{wrong.mobile}}</view>
      </view>
      <view class="dl" wx:if="{{sms_accessKeyId}}">
       <view class="input-with-action">

@@ -25,7 +25,7 @@
       <view class="i">*</view>
      </view>
      <view class="dd">
-      <input name="phone" type="text" class="input" value="{{dou.user.phone}}" placeholder="{{lang.user_telphone_placeholder}}" placeholder-class="placeholder" />
+      <input name="phone" type="text" class="input" value="{{dou.user.phone}}" placeholder="{{lang.user_mobile_placeholder}}" placeholder-class="placeholder" />
       <view class="cue" wx:if="{{wrong.phone}}">{{wrong.phone}}</view>
      </view>
     </view>

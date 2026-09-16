@@ -365,12 +365,12 @@ class Captcha
         $code = Str::randomByType('number', 6);
 
         if ($type == 'sms') {
-            $telphone = Check::telphone($account) ? $account : '';
-            if ($telphone === '') {
-                return array('code' => 'fail', 'msg' => lang('user_telphone_cue'));
+            $mobile = Check::mobile($account) ? $account : '';
+            if ($mobile === '') {
+                return array('code' => 'fail', 'msg' => lang('user_mobile_cue'));
             }
-            if (DB::table('user')->where('telphone', $telphone)->find() && $check == 'no_allow_phone_exist') {
-                return array('code' => 'fail', 'msg' => lang('user_telphone_exist'));
+            if (DB::table('user')->where('mobile', $mobile)->find() && $check == 'no_allow_phone_exist') {
+                return array('code' => 'fail', 'msg' => lang('user_mobile_exist'));
             }
 
             $sms = $this->getSms();
@@ -378,7 +378,7 @@ class Captcha
                 return array('code' => 'fail', 'msg' => lang('mail_send_wrong'));
             }
             $TemplateCode = array('code' => $code);
-            $msg = $sms->sendSms($telphone, Config::get('param.sms_TemplateCode'), $TemplateCode);
+            $msg = $sms->sendSms($mobile, Config::get('param.sms_TemplateCode'), $TemplateCode);
             if ($msg != 'success') {
                 return array('code' => 'fail', 'msg' => lang('mail_send_wrong'));
             }

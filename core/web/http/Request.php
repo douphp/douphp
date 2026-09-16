@@ -566,16 +566,16 @@ class Request
     }
 
     /**
-     * 手机号（委托 Check::telphone）。
+     * 手机号（委托 Check::mobile）。
      *
      * @param string $key
      * @param mixed $default
      * @param string $from
      * @return mixed
      */
-    public function telphone($key, $default = '', $from = 'input')
+    public function mobile($key, $default = '', $from = 'input')
     {
-        return $this->checked($key, 'telphone', $default, $from);
+        return $this->checked($key, 'mobile', $default, $from);
     }
 
     /**

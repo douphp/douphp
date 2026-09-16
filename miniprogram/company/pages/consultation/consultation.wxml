@@ -11,9 +11,9 @@
      </view>
     </view>
     <view class="dl">
-     <view class="dt">{{lang.consultation_telphone}}</view>
+     <view class="dt">{{lang.consultation_mobile}}</view>
      <view class="dd">
-      <input name="telphone" type="text" class="input" placeholder="{{lang.consultation_telphone_cue}}" placeholder-class="placeholder" />
+      <input name="mobile" type="text" class="input" placeholder="{{lang.consultation_mobile_cue}}" placeholder-class="placeholder" />
      </view>
     </view>
     <view class="dl">

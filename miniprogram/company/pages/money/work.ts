@@ -42,7 +42,7 @@ Page({
   },
 
   searchUser(e: WechatMiniprogram.CustomEvent) {
-    wx.navigateTo({ url: '/pages/money/work_desk?number=' + e.detail.value.telphone })
+    wx.navigateTo({ url: '/pages/money/work_desk?number=' + e.detail.value.mobile })
   },
 
   scanCode() {

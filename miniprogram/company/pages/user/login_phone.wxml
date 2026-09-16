@@ -9,7 +9,7 @@
    <view class="form-passport" style="margin-top: 15vh">
     <form bindsubmit="sendSms">
      <view class="dl">
-      <input type="text" name="telphone" class="input" placeholder="{{lang.user_telphone}}" />
+      <input type="text" name="mobile" class="input" placeholder="{{lang.user_mobile}}" />
      </view>
      <view class="errorMsg" wx:if="{{errorMsg}}">{{errorMsg}}</view>
      <view class="dl">
@@ -53,7 +53,7 @@
    <view class="content">
     <view class="head"> 输入短信验证码 </view>
     <view class="sendto"> 短信验证码至
-     <text>{{telphone}}</text>
+     <text>{{mobile}}</text>
     </view>
     <view class="code-box">
      <form bindsubmit="formSubmit">

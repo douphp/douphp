@@ -190,7 +190,7 @@ class Check
      * @param mixed $mobile
      * @return bool
      */
-    public static function telphone($mobile)
+    public static function mobile($mobile)
     {
         if ($mobile === null || !is_string($mobile)) {
             return false;
@@ -448,7 +448,7 @@ class Check
             return false;
         }
 
-        if (self::telphone($username) || self::email($username)) {
+        if (self::mobile($username) || self::email($username)) {
             return true;
         } elseif (!self::illegalChar($username)) {
             return true;

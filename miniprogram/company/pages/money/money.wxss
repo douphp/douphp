@@ -23,7 +23,7 @@
  font-size: 20px;
  color: #999;
 }
-.pay-code .con-box .head .telphone {
+.pay-code .con-box .head .mobile {
  font-size: 18px;
  vertical-align: middle;
 }

@@ -174,7 +174,7 @@ class CloudService extends BaseService
         $cloudUser = isset($validated['cloud_user']) ? $validated['cloud_user'] : '';
         $cloudPassword = isset($validated['cloud_password']) ? $validated['cloud_password'] : '';
 
-        if (!Check::email($cloudUser) && !Check::telphone($cloudUser)) {
+        if (!Check::email($cloudUser) && !Check::mobile($cloudUser)) {
             throw new DomainException(lang('cloud_account_user_wrong'), route('admin.cloud.account', array(), array('query' => array('action' => 'set'))));
         }
 

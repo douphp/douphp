@@ -110,7 +110,7 @@ class Str
     /**
      * 将仅含空白或空字符串的值规范为 null。
      *
-     * 适用于 UNIQUE 可空字段（如 user.telphone / user.email）：
+     * 适用于 UNIQUE 可空字段（如 user.mobile / user.email）：
      * 空串会触发 #1062 重复键冲突，需统一转 SQL NULL；非空字符串去除首尾空白。
      *
      * @param mixed $value

@@ -20,7 +20,7 @@ Page({
     vcode: '',
     ispassword: false,
     time: 0,
-    telphone: '',
+    mobile: '',
     wrong: false,
     verification_data: null,
     captcha_token: '',
@@ -38,8 +38,8 @@ Page({
 
     this.setData({ title: pageTitle('site_name') })
 
-    if (options.telphone) {
-      that.setData({ telphone: options.telphone })
+    if (options.mobile) {
+      that.setData({ mobile: options.mobile })
     }
   },
 
@@ -91,7 +91,7 @@ Page({
 
     http
       .post(route('user.login_phone_post'), {
-        telphone: verificationData.account || that.data.telphone,
+        mobile: verificationData.account || that.data.mobile,
         verification: e.detail.value,
         verification_data: JSON.stringify(verificationData),
         promotion_user_sn: getPromotionUserSn(),
@@ -122,10 +122,10 @@ Page({
 
   sendSms(e: WechatMiniprogram.CustomEvent) {
     const that = this
-    const telphone = e.detail.value.telphone
+    const mobile = e.detail.value.mobile
 
-    if (!telphone) {
-      douMsg((that.data.lang && that.data.lang.user_telphone_cue) || '请输入手机号')
+    if (!mobile) {
+      douMsg((that.data.lang && that.data.lang.user_mobile_cue) || '请输入手机号')
       return
     }
     if (!that.data.captcha_token) {
@@ -135,7 +135,7 @@ Page({
 
     sendCaptcha({
       type: 'sms',
-      account: telphone,
+      account: mobile,
       captcha_token: that.data.captcha_token,
       storage_captcha_token: that.data.storage_captcha_token,
       check: '',
@@ -143,7 +143,7 @@ Page({
       .then(function (verification) {
         that.setData({
           rec: 'code',
-          telphone: verification.account || telphone,
+          mobile: verification.account || mobile,
           verification_data: verification,
           wrong: false,
           vcode: '',

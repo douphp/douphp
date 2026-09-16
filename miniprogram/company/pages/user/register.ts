@@ -59,7 +59,7 @@ Page({
 
   registerPost(e: WechatMiniprogram.CustomEvent) {
     const that = this
-    const isPhone = this.data.login_mode === 'telphone'
+    const isPhone = this.data.login_mode === 'mobile'
     const form = e.detail.value || {}
 
     const payload: Record<string, any> = {
@@ -70,7 +70,7 @@ Page({
       sns: wx.getStorageSync('sns'),
     }
     if (isPhone) {
-      payload.telphone = form.telphone
+      payload.mobile = form.mobile
     } else {
       payload.email = form.email
     }
@@ -108,13 +108,13 @@ Page({
 
   sendVerification() {
     const that = this
-    const isPhone = this.data.login_mode === 'telphone'
+    const isPhone = this.data.login_mode === 'mobile'
     const account = this.data.currentAccount
 
     if (!account) {
       douMsg(
         isPhone
-          ? (this.data.lang && this.data.lang.user_telphone_cue) || '请输入手机号'
+          ? (this.data.lang && this.data.lang.user_mobile_cue) || '请输入手机号'
           : (this.data.lang && this.data.lang.user_email_cue) || '请输入邮箱'
       )
       return

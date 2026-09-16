@@ -227,21 +227,21 @@ class Alisms extends BaseService
      * 执行captcha操作。
      *
      * @param mixed $sms_token 参数sms_token。
-     * @param mixed $telphone 参数telphone。
+     * @param mixed $mobile 参数mobile。
      * @return mixed 返回结果。
      */
-    function captcha($sms_token, $telphone) {
+    function captcha($sms_token, $mobile) {
         if ($this->smsTokenCheck($sms_token)) {
-            $telphone = Check::telphone($telphone) ? $telphone : '';
+            $mobile = Check::mobile($mobile) ? $mobile : '';
 
-            if (!empty($telphone)) {
+            if (!empty($mobile)) {
                 $TemplateCode['code'] = Str::randomByType('number', 4); // 随机验证码
-                $msg = $this->sendSms($telphone, Config::get('param.sms_TemplateCode'), $TemplateCode); // 发送短信并返回信息给AJAX
+                $msg = $this->sendSms($mobile, Config::get('param.sms_TemplateCode'), $TemplateCode); // 发送短信并返回信息给AJAX
 
                 if ($msg == 'success') {
-                    Session::set('sms', $telphone, 'telphone'); // 缓存发送验证码的手机号
+                    Session::set('sms', $mobile, 'mobile'); // 缓存发送验证码的手机号
                     Session::set('sms', time(), 'ontime');
-                    Session::set('sms', md5($TemplateCode['code'] . $telphone . DOU_SHELL), 'code');
+                    Session::set('sms', md5($TemplateCode['code'] . $mobile . DOU_SHELL), 'code');
                     Session::set('sms', $TemplateCode['code'], 'number');
 
                     if ($this->client == 'miniprogram' || $this->client == 'api')
@@ -249,7 +249,7 @@ class Alisms extends BaseService
                 }
                 $response['msg'] = $msg;
             } else {
-                $response['msg'] = lang('user_telphone_cue');
+                $response['msg'] = lang('user_mobile_cue');
             }
         } else {
             $response['msg'] = lang('illegal');

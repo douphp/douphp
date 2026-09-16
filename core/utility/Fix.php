@@ -105,7 +105,7 @@ class Fix
                 . '|edit|edit_post|password|password_post'
                 . '|verification|verification_post'
                 . '|password_reset|password_reset_post'
-                . '|telphone|telphone_post|email|email_post'
+                . '|mobile|mobile_post|email|email_post'
                 . '|logout|order_list|order|order_cancel'
                 . '|sns|sns_link|area|filebox|filedel|promotion_qrcode|contact',
             'order' => 'cart|insert|checkout|update|del|success|cashier|charge|pay_evidence|cod'

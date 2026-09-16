@@ -17,7 +17,7 @@
      <view class="search-box">
       <view class="keyword-box">
        <text class="bi bi-search"></text>
-       <input type="text" name="telphone" class="keyword" value="{{work.telphone}}" placeholder="{{lang.money_work_telphone_cur}}" placeholder-class="placeholder" />
+       <input type="text" name="mobile" class="keyword" value="{{work.mobile}}" placeholder="{{lang.money_work_mobile_cur}}" placeholder-class="placeholder" />
       </view>
       <button formType="submit" class="btn-search">{{lang.btn_search}}</button>
      </view>

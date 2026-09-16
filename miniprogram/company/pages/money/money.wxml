@@ -4,7 +4,7 @@
  <view class="con-box">
   <view class="head">
    <text class="bi bi-x-lg" bindtap="douNavigateBack"></text>
-   <text class="telphone">{{user.telphone}}</text>
+   <text class="mobile">{{user.mobile}}</text>
    <text class="icon">会员</text>
   </view>
   <view class="code-box">

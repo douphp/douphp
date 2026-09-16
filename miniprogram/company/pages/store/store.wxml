@@ -19,7 +19,7 @@
     </view>
     <view class="title">{{store.name}}</view>
     <view class="desc">{{lang.store_address}}：{{store.address}}</view>
-    <view class="desc">{{lang.store_telphone}}：{{store.telphone}}</view>
+    <view class="desc">{{lang.store_mobile}}：{{store.mobile}}</view>
    </navigator>
    <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
   </view>

@@ -7,7 +7,7 @@
   </view>
   <view class="work-desk">
    <view class="user-info">
-    <view class="item">{{user.telphone}}</view>
+    <view class="item">{{user.mobile}}</view>
     <view class="item"><text class="price">{{work.total}}</text></view>
     <view class="item">{{user.contact}}</view>
    </view>
@@ -17,13 +17,13 @@
       <view class="keyword-box">
        <input type="text" name="money" class="keyword" value="{{work.money}}" placeholder="{{lang.money_work_money_number}}" placeholder-class="placeholder" />
       </view>
-      <input type="text" name="number" value="{{user.telphone}}" hidden="true" />
+      <input type="text" name="number" value="{{user.mobile}}" hidden="true" />
       <button formType="submit" class="btn-search">{{lang.money_work_use}}</button>
      </view>
     </form>
     <view class="used" wx:else>
      <view class="success">{{lang.money_work_use_success}} {{work.money}} ！</view>
-     <view class="action"><text class="again" data-url="/pages/money/work_desk?telphone={{user.telphone}}" bindtap="douRedirectTo">{{lang.money_work_use_again}}</text><text class="next" data-delta="2" bindtap="douNavigateBack">{{lang.money_work_use_next}}</text></view>
+     <view class="action"><text class="again" data-url="/pages/money/work_desk?mobile={{user.mobile}}" bindtap="douRedirectTo">{{lang.money_work_use_again}}</text><text class="next" data-delta="2" bindtap="douNavigateBack">{{lang.money_work_use_next}}</text></view>
     </view>
    </view>
    <view class="user-money">

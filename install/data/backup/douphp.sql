@@ -1,9 +1,9 @@
 -- DouPHP v2.x SQL Dump Program
 -- http://localhost/douphp/
 -- 
--- DATE : 2026-09-14 22:28:47
+-- DATE : 2026-09-16 22:06:36
 -- MYSQL SERVER VERSION : 5.7.44-log
--- PHP VERSION : 7.4.33
+-- PHP VERSION : 8.2.30
 -- DouPHP VERSION : v2.0 Release 20260909
 
 DROP TABLE IF EXISTS `dou_admin`;
@@ -508,7 +508,7 @@ CREATE TABLE `dou_nav` (
   `status` tinyint(1) unsigned NOT NULL DEFAULT '1' COMMENT '状态:1显示,0隐藏',
   `sort` tinyint(3) unsigned NOT NULL DEFAULT '50' COMMENT '排序',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=35 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=34 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO dou_nav VALUES('1','page','公司简介','','1','0','middle','1','10');
 INSERT INTO dou_nav VALUES('2','page','企业荣誉','','2','1','middle','1','10');
