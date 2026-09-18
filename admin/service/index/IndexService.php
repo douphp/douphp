@@ -133,9 +133,11 @@ class IndexService extends BaseService
         if (FileHelper::permission(ROOT_PATH . 'upgrade') != 'no_exist') {
             $warning[] = lang('warning_upgrade_exists');
         }
-        $candel = STORAGE_PATH . 'state/custom_admin_path.candel.php';
-        if (file_exists($candel)) {
-            @unlink($candel);
+        // 兜底清理后台目录改名引导脚本残留（正常流程执行后自删，此处只兜底未跟随跳转的情况）
+        foreach ((array) glob(STORAGE_PATH . 'cache/admin_dir_relocate_*.php') as $relocateScript) {
+            if (is_file($relocateScript)) {
+                @unlink($relocateScript);
+            }
         }
 
         $check_dirs = array(

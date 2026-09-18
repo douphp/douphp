@@ -126,6 +126,9 @@ class ToolController extends BaseController
     /**
      * 提交后台目录更名。
      *
+     * Windows 下本请求进程占用 admin/index.php 句柄，无法在框架内直接 rename 后台目录，
+     * 故校验通过后 302 到一次性引导脚本，由其在独立请求中完成改名并跳转到新后台入口。
+     *
      * @param Request $request
      * @return Response
      */
@@ -133,10 +136,14 @@ class ToolController extends BaseController
     {
         $newDir = (string) $request->post('new_dir', '');
 
-        $applied = $this->toolService->renameAdminDir(ADMIN_DIR, $newDir);
+        $relocateUrl = $this->toolService->prepareAdminDirRename(ADMIN_DIR, $newDir);
 
-        // 后台目录已改名，当前 ADMIN_URL 随即失效，直接跳到新目录入口。
-        return redirect(rtrim(ROOT_URL, '/') . '/' . $applied . '/');
+        // 同名无需改名，直接回后台首页。
+        if ($relocateUrl === '') {
+            return redirect(ADMIN_URL);
+        }
+
+        return redirect($relocateUrl);
     }
 
     /**

@@ -20,6 +20,7 @@ use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Service\BaseService;
 use Dou\Core\Support\FileHelper;
+use Dou\Core\Support\Str;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
@@ -195,6 +196,9 @@ class ToolService extends BaseService
      */
     public function buildCustomAdminDirPageData()
     {
+        // 顺带兜底清理历史残留的引导脚本（正常流程执行后自删）
+        $this->removeStaleRelocateScripts();
+
         return array(
             'action_link' => array(
                 'text' => lang('setting_developer'),
@@ -204,19 +208,22 @@ class ToolService extends BaseService
     }
 
     /**
-     * 后台目录更名。
+     * 后台目录更名准备（两阶段，兼容 Windows）。
      *
-     * 同步处理三处：①站点根下的后台目录本身 ②对应的模板编译目录
-     * ③storage/state/admin_dir.php（bootstrap 据此定义 ADMIN_DIR）。
+     * Windows 下当前请求进程持有 admin/index.php 句柄，同请求内 rename 后台目录必然失败，
+     * 因此真正的 rename 必须延后到独立请求执行。本方法只做校验，并把校验通过的目标目录
+     * 固化进一次性引导脚本（storage/cache/admin_dir_relocate_{token}.php），由浏览器 302
+     * 跳转触发执行；引导脚本不在被改名目录内、执行时句柄已释放，Windows/Linux 均可成功。
      *
-     * 目录名只接受「字母、数字、点、下划线、横杠」，并排除会与站内既有目录冲突的名字。
+     * 目录名只接受「字母、数字、点、下划线、横杠」（新名不允许大写字母），并排除会与
+     * 站内既有目录冲突的名字。
      *
      * @param string $oldDir 当前后台目录名
      * @param string $newDir 目标后台目录名
-     * @return string 更名后的后台目录名
-     * @throws DomainException 名称非法、目标已存在或重命名失败时
+     * @return string 引导脚本 URL；新旧目录同名时返回空串（无需改名）
+     * @throws DomainException 名称非法、含大写、目标已存在或脚本落盘失败时
      */
-    public function renameAdminDir($oldDir, $newDir)
+    public function prepareAdminDirRename($oldDir, $newDir)
     {
         $backUrl = route('admin.tool.custom_admin_dir');
         $oldDir = trim((string) $oldDir);
@@ -226,35 +233,119 @@ class ToolService extends BaseService
             throw new DomainException(lang('tool_custom_admin_dir_cue'), $backUrl);
         }
 
+        // 新目录名不允许大写字母：Windows 文件系统不区分大小写，禁止大写可避免
+        // 「仅大小写不同」的目录在目标存在性判断上出现跨平台行为不一致。
+        if ($newDir !== strtolower($newDir)) {
+            throw new DomainException(lang('tool_custom_admin_dir_lowercase'), $backUrl);
+        }
+
         if ($oldDir === $newDir) {
-            return $newDir;
+            return '';
         }
 
         $oldPath = ROOT_PATH . $oldDir;
         $newPath = ROOT_PATH . $newDir;
-        if (!is_dir($oldPath) || file_exists($newPath)) {
+        if (!is_dir($oldPath)) {
             throw new DomainException(lang('illegal'), $backUrl);
         }
-
-        if (!@rename($oldPath, $newPath)) {
-            throw new DomainException(lang('illegal'), $backUrl);
+        if (file_exists($newPath)) {
+            throw new DomainException(lang('tool_custom_admin_dir_occupied'), $backUrl);
         }
 
-        $compileBase = STORAGE_PATH . 'cache/template/';
-        if (is_dir($compileBase . $oldDir) && !file_exists($compileBase . $newDir)) {
-            @rename($compileBase . $oldDir, $compileBase . $newDir);
+        $this->removeStaleRelocateScripts();
+
+        $token = Str::randomHex(16);
+        $scriptPath = STORAGE_PATH . 'cache/admin_dir_relocate_' . $token . '.php';
+        if (@file_put_contents($scriptPath, self::buildRelocateScript($oldDir, $newDir, $token)) === false) {
+            throw new DomainException(lang('tool_custom_admin_dir_write_fail'), $backUrl);
         }
 
-        $stateDir = STORAGE_PATH . 'state/';
-        if (!is_dir($stateDir)) {
-            @mkdir($stateDir, 0777, true);
-        }
-        file_put_contents(
-            $stateDir . 'admin_dir.php',
-            "<?php\n\n\$admining = '" . $newDir . "';\n"
-        );
+        // token 需同时作为 query 参数回传（脚本据此校验执行权限）
+        return ROOT_URL . 'storage/cache/admin_dir_relocate_' . $token . '.php?token=' . $token;
+    }
 
-        return $newDir;
+    /**
+     * 清理超过 1 小时未被执行的残留引导脚本（浏览器未跟随跳转时的兜底）。
+     *
+     * @return void
+     */
+    public function removeStaleRelocateScripts()
+    {
+        $expired = time() - 3600;
+        foreach ((array) glob(STORAGE_PATH . 'cache/admin_dir_relocate_*.php') as $file) {
+            if (is_file($file) && (int) filemtime($file) < $expired) {
+                @unlink($file);
+            }
+        }
+    }
+
+    /**
+     * 生成后台目录一次性引导脚本源码。
+     *
+     * 脚本自包含、零请求输入（old/new/token 已固化）：token 双重校验（文件名 + query，
+     * hash_equals）→ 1 小时有效期 → 目标冲突复查 → rename 后台目录（失败重试 3 次，
+     * 应对杀软/索引服务瞬时锁）→ 同步改名模板编译目录 → 写 storage/state/admin_dir.php
+     * → 自删除 → 输出极简结果页（meta refresh + 手动链接兜底）。
+     *
+     * @param string $oldDir 当前后台目录名（已过框架校验）
+     * @param string $newDir 目标后台目录名（已过框架校验）
+     * @param string $token 一次性执行令牌
+     * @return string 脚本源码
+     */
+    private static function buildRelocateScript($oldDir, $newDir, $token)
+    {
+        return '<?php
+// 后台目录一次性引导脚本（系统自动生成，执行后自删除，请勿手工修改）。
+$OLD = ' . var_export($oldDir, true) . ';
+$NEW = ' . var_export($newDir, true) . ';
+$TOKEN = ' . var_export($token, true) . ';
+$BORN = ' . time() . ';
+
+if (!isset($_GET["token"]) || !hash_equals($TOKEN, (string) $_GET["token"])) {
+    header("HTTP/1.1 403 Forbidden");
+    exit("Denied");
+}
+if (time() - $BORN > 3600) {
+    @unlink(__FILE__);
+    header("HTTP/1.1 410 Gone");
+    exit("Expired");
+}
+
+$root = dirname(dirname(__DIR__));
+$storage = dirname(__DIR__);
+
+$ok = false;
+for ($i = 0; $i < 3 && !$ok; $i++) {
+    $ok = @rename($root . "/" . $OLD, $root . "/" . $NEW);
+    if (!$ok) {
+        usleep(300000);
+    }
+}
+
+if ($ok) {
+    $compile = $storage . "/cache/template/";
+    if (is_dir($compile . $OLD) && !file_exists($compile . $NEW)) {
+        @rename($compile . $OLD, $compile . $NEW);
+    }
+    $stateDir = $storage . "/state/";
+    if (!is_dir($stateDir)) {
+        @mkdir($stateDir, 0777, true);
+    }
+    @file_put_contents($stateDir . "admin_dir.php", "<?php\n\$admining = " . var_export($NEW, true) . ";\n");
+}
+
+@unlink(__FILE__);
+
+// SCRIPT_NAME 首次 dirname 剥去文件名，再到站点根共需三层
+$base = rtrim(str_replace("\\\\", "/", dirname(dirname(dirname($_SERVER["SCRIPT_NAME"])))), "/");
+$target = $base . "/" . ($ok ? $NEW : $OLD) . "/";
+header("Content-type: text/html; charset=utf-8");
+echo "<!doctype html><html><head><meta charset=\"utf-8\"><title>" . ($ok ? "修改成功" : "修改失败") . "</title>";
+echo "<meta http-equiv=\"refresh\" content=\"3; url=" . $target . "\"></head><body>";
+echo "<p>" . ($ok ? "后台目录修改成功，3 秒后跳转到新后台地址……" : "后台目录修改失败（目录可能被占用），请稍后重试，3 秒后返回原后台……") . "</p>";
+echo "<p><a href=\"" . $target . "\">如未自动跳转，请点此进入</a></p>";
+echo "</body></html>";
+';
     }
 
     /**
