@@ -972,11 +972,22 @@ class InstallService extends BaseService
         }
 
         foreach ($bucketKeys as $bucket) {
-            $buckets[$bucket] = array_values($buckets[$bucket]);
+            $buckets[$bucket] = array_values(array_unique($buckets[$bucket]));
+        }
+
+        // 按原文件键序回写：已知桶用处理后的结果，账本中的其它键原样透传；文件缺失的桶补到末尾。
+        $output = array();
+        foreach ($ledger as $key => $value) {
+            $output[$key] = in_array($key, $bucketKeys, true) ? $buckets[$key] : $value;
+        }
+        foreach ($bucketKeys as $bucket) {
+            if (!array_key_exists($bucket, $output)) {
+                $output[$bucket] = $buckets[$bucket];
+            }
         }
 
         $moduleFile = $this->rootDir . 'config/module.php';
-        $payload = "<?php\nreturn " . Arr::export($buckets) . ";\n";
+        $payload = "<?php\nreturn " . Arr::export($output) . ";\n";
         if (file_put_contents($moduleFile, $payload)) {
             return true;
         }
@@ -996,7 +1007,7 @@ class InstallService extends BaseService
         $display = unserialize(Config::get('site.display', ''));
         $defined = unserialize(Config::get('site.defined', ''));
         if ($operate === 'DELL') {
-            unset($display[$cloudId], $display['home_' . $cloudId]);
+            unset($display[$cloudId], $display['home_' . $cloudId], $defined[$cloudId]);
         } else {
             if (in_array('CREATE-CONFIG-DISPLAY', $operate)) {
                 $display[$cloudId] = 10;
