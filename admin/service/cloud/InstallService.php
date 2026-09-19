@@ -1760,7 +1760,7 @@ class InstallService extends BaseService
                 $btnBack = '<a href="' . Util::absolutizeEntryUrl(route('admin.plugin')) . '" class="btn-secondary">' . lang('cloud_plugin_home') . '</a>';
                 break;
             case 'theme':
-                $btnAction = '<a href="' . Util::absolutizeEntryUrl(route('admin.theme.enable', array('slug' => $cloudId))) . '" class="btn-secondary">' . lang('cloud_theme_enable') . '</a>';
+                $btnAction = '<a href="' . Util::absolutizeEntryUrl(route('admin.theme.enable', array('slug' => $cloudId))) . '" class="btn-secondary js-post">' . lang('cloud_theme_enable') . '</a>';
                 $btnBack = '<a href="' . Util::absolutizeEntryUrl(route('admin.theme')) . '" class="btn-secondary">' . lang('cloud_theme_home') . '</a>';
                 break;
             case 'module':

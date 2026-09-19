@@ -44,6 +44,7 @@
    <ul class="search">
     <div class="search-box">
      <form method="get" action="{url link='search'}">
+      <!-- {if !$site.rewrite} --><input type="hidden" name="route" value="search"><!-- {/if} -->
       <input name="q" type="text" class="keyword" value="{$keyword|escape}" placeholder="{$lang.search_placeholder}" size="25">
       <button type="submit" class="btnSearch bi bi-search"></button>
      </form>

@@ -24,10 +24,81 @@
     return names;
   }
 
+  // pattern 迷你语言出站填充，语义对齐 PHP 端 PrettyUrlCompiler::fill：
+  // [...] 可选段仅在内部任一占位符取到非空值时渲染，{name} / {name:regex} 按值替换
   function fillPattern(pattern, values) {
-    return pattern.replace(/\{([a-zA-Z_][a-zA-Z0-9_]*)(?::[^}]*)?\}/g, function (_full, name) {
-      return values[name] !== undefined && values[name] !== null ? String(values[name]) : "";
-    }).replace(/\/+/g, "/");
+    return fillSegment(pattern, values).replace(/\/+/g, "/");
+  }
+
+  function fillSegment(pattern, values) {
+    var result = "";
+    var i = 0;
+    while (i < pattern.length) {
+      var ch = pattern.charAt(i);
+
+      if (ch === "[") {
+        var bracketEnd = skipBalancedBrackets(pattern, i, "[", "]");
+        if (bracketEnd === i) {
+          result += ch;
+          i++;
+          continue;
+        }
+        var segment = pattern.slice(i + 1, bracketEnd - 1);
+        if (shouldRenderOptionalSegment(segment, values)) {
+          result += fillSegment(segment, values);
+        }
+        i = bracketEnd;
+        continue;
+      }
+
+      if (ch === "{") {
+        var braceEnd = skipBalancedBrackets(pattern, i, "{", "}");
+        if (braceEnd === i) {
+          result += ch;
+          i++;
+          continue;
+        }
+        var placeholder = pattern.slice(i + 1, braceEnd - 1);
+        var colon = placeholder.indexOf(":");
+        var name = colon !== -1 ? placeholder.slice(0, colon) : placeholder;
+        var value = Object.prototype.hasOwnProperty.call(values, name) ? values[name] : "";
+        result += value === undefined || value === null ? "" : String(value);
+        i = braceEnd;
+        continue;
+      }
+
+      result += ch;
+      i++;
+    }
+    return result;
+  }
+
+  function skipBalancedBrackets(text, start, open, close) {
+    var depth = 1;
+    var j = start + 1;
+    while (j < text.length && depth > 0) {
+      var c = text.charAt(j);
+      if (c === open) {
+        depth++;
+      } else if (c === close) {
+        depth--;
+      }
+      j++;
+    }
+    return depth === 0 ? j : start;
+  }
+
+  function shouldRenderOptionalSegment(segment, values) {
+    var re = /\{([a-zA-Z_][a-zA-Z0-9_]*)(?::[^}]*)?\}/g;
+    var match;
+    while ((match = re.exec(segment)) !== null) {
+      var name = match[1];
+      var value = Object.prototype.hasOwnProperty.call(values, name) ? values[name] : "";
+      if (value !== undefined && value !== null && String(value) !== "") {
+        return true;
+      }
+    }
+    return false;
   }
 
   function appendQuery(url, query) {

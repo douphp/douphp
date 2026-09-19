@@ -33,7 +33,10 @@ class Zip
     /**
      * 解压 zip 到目标目录。
      *
-     * 使用 `@` 抑制 PclZip 在损坏包等场景下的 Notice，避免污染 JSON 安装步骤响应。
+     * 优先使用原生 ZipArchive 扩展（C 实现，解压速度快、内存占用低，避免大包
+     * 在低配服务器上解压超时触发网关 502）；扩展不可用时回落 PclZip。
+     *
+     * 使用 `@` 抑制解压库在损坏包等场景下的 Notice，避免污染 JSON 安装步骤响应。
      *
      * @param string $zipPath
      * @param string $destinationDir
@@ -44,6 +47,71 @@ class Zip
      */
     public function extract($zipPath, $destinationDir, array $allowRules = array(), array $denyExtensions = array())
     {
+        if (class_exists('ZipArchive')) {
+            return $this->extractWithZipArchive($zipPath, $destinationDir, $allowRules, $denyExtensions);
+        }
+
+        return $this->extractWithPclZip($zipPath, $destinationDir, $allowRules, $denyExtensions);
+    }
+
+    /**
+     * 原生 ZipArchive 解压。
+     *
+     * 与 PclZip 路径共享同一套条目校验（Zip Slip / 白名单 / 禁止扩展名）。
+     *
+     * @param string $zipPath
+     * @param string $destinationDir
+     * @param array $allowRules
+     * @param array $denyExtensions
+     * @return bool
+     */
+    private function extractWithZipArchive($zipPath, $destinationDir, array $allowRules, array $denyExtensions)
+    {
+        $archive = new \ZipArchive();
+        if (@$archive->open($zipPath) !== true) {
+            return false;
+        }
+
+        $names = array();
+        $count = (int) $archive->numFiles;
+        for ($i = 0; $i < $count; $i++) {
+            $name = (string) $archive->getNameIndex($i);
+            if ($name === '') {
+                $archive->close();
+                return false;
+            }
+            $names[] = $name;
+        }
+        if (!$this->entriesPass($names, $allowRules, $denyExtensions)) {
+            $archive->close();
+            return false;
+        }
+
+        if (!is_dir($destinationDir)) {
+            @mkdir($destinationDir, 0777, true);
+            if (!is_dir($destinationDir)) {
+                $archive->close();
+                return false;
+            }
+        }
+
+        $result = @$archive->extractTo($destinationDir);
+        $archive->close();
+
+        return (bool) $result;
+    }
+
+    /**
+     * PclZip 解压（ZipArchive 扩展不可用时的兜底路径）。
+     *
+     * @param string $zipPath
+     * @param string $destinationDir
+     * @param array $allowRules
+     * @param array $denyExtensions
+     * @return bool
+     */
+    private function extractWithPclZip($zipPath, $destinationDir, array $allowRules, array $denyExtensions)
+    {
         $archive = Container::getInstance()->make(PclZip::class, array('p_zipname' => $zipPath));
 
         // Zip Slip 防护：解压前枚举条目，拒绝任何越出目标目录的路径
@@ -52,8 +120,36 @@ class Zip
         if (!is_array($list)) {
             return false;
         }
+        $names = array();
         foreach ($list as $entry) {
-            $name = isset($entry['filename']) ? (string) $entry['filename'] : '';
+            $names[] = isset($entry['filename']) ? (string) $entry['filename'] : '';
+        }
+        if (!$this->entriesPass($names, $allowRules, $denyExtensions)) {
+            return false;
+        }
+
+        $result = @$archive->extract(PCLZIP_OPT_PATH, $destinationDir);
+        if ($result === false || $result === 0) {
+            return false;
+        }
+        if (is_array($result) && count($result) === 0) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * 逐条目执行解压前校验，任一条目不通过即整包拒绝。
+     *
+     * @param array $names 归档内 stored filename 列表
+     * @param array $allowRules 条目白名单
+     * @param array $denyExtensions 禁止的扩展名
+     * @return bool
+     */
+    private function entriesPass(array $names, array $allowRules, array $denyExtensions)
+    {
+        foreach ($names as $name) {
             if ($this->isUnsafeEntryPath($name)) {
                 return false;
             }
@@ -63,14 +159,6 @@ class Zip
             if (!empty($denyExtensions) && $this->hasDeniedExtension($name, $denyExtensions)) {
                 return false;
             }
-        }
-
-        $result = @$archive->extract(PCLZIP_OPT_PATH, $destinationDir);
-        if ($result === false || $result === 0) {
-            return false;
-        }
-        if (is_array($result) && count($result) === 0) {
-            return false;
         }
 
         return true;

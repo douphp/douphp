@@ -16,6 +16,7 @@
  <ul class="search">
   <div class="search-box">
   <form method="get" action="{url link='search'}">
+    <!-- {if !$site.rewrite} --><input type="hidden" name="route" value="search"><!-- {/if} -->
     <input type="hidden" name="module" value="article">
     <input name="q" type="text" class="keyword" title="{$lang.search_cue}" value="{$keyword_article|escape}" placeholder="{$lang.search_article}">
     <button type="submit" class="btnSearch bi bi-search"></button>
