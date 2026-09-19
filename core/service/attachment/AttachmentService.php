@@ -527,7 +527,7 @@ class AttachmentService
             'uploader_type' => $uploaderType,
             'uploader_id' => (int) $identityId,
             'draft_token' => (string) $draftToken,
-            'draft_expire_at' => time() + self::DRAFT_LIFETIME_SECONDS,
+            'draft_expire_at' => date('Y-m-d H:i:s', time() + self::DRAFT_LIFETIME_SECONDS),
         ), array(), $chunkInput);
     }
 

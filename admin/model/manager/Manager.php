@@ -115,7 +115,9 @@ class Manager extends Model
     {
         return static::where('id', intval($adminId))->update(array(
             'login_fail_count' => (int) $failCount,
-            'login_locked_at' => (int) $lockTime,
+            // 未锁定必须写 NULL：写 0 会落库成零日期（'0000-00-00 00:00:00'），
+            // 非严格模式下污染数据、严格模式下（NO_ZERO_DATE）直接报错
+            'login_locked_at' => $lockTime > 0 ? date('Y-m-d H:i:s', (int) $lockTime) : null,
         ));
     }
 
@@ -178,7 +180,9 @@ class Manager extends Model
     {
         return static::where('id', intval($adminId))->update(array(
             'reset_token' => $resetTokenHash,
-            'reset_token_expires_at' => (int) $resetTokenExpire,
+            // 与 updateRememberToken 一致：必须转成 DATETIME 字符串，
+            // 直接写 unix 时间戳会被 MySQL 按 YYYYMMDDHHMMSS 解析而落成零日期或报错
+            'reset_token_expires_at' => $resetTokenExpire > 0 ? date('Y-m-d H:i:s', (int) $resetTokenExpire) : null,
         ));
     }
 

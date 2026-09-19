@@ -506,11 +506,12 @@ class BackupService extends BaseService
             $rows = DB::query("SELECT * FROM $table LIMIT $startfrom, $offset");
             $numfields = DB::numFields($rows);
             $numrows = DB::numRows($rows);
+            $fieldTypes = self::fetchFieldTypes($rows);
             while ($row = DB::fetchArray($rows, MYSQLI_NUM)) {
                 $comma = "";
                 $tabledump .= "INSERT INTO $table VALUES(";
                 for ($i = 0; $i < $numfields; $i++) {
-                    $tabledump .= $comma . "'" . DB::escapeString($row[$i]) . "'";
+                    $tabledump .= $comma . self::formatDumpValue($row[$i], isset($fieldTypes[$i]) ? $fieldTypes[$i] : null);
                     $comma = ",";
                 }
                 $tabledump .= ");\n";
@@ -520,6 +521,66 @@ class BackupService extends BaseService
         $this->lastDumpStartrow = $startfrom;
         $tabledump .= "\n";
         return $tabledump;
+    }
+
+    /**
+     * 取结果集各字段的 mysqli 类型（下标与 SELECT 列顺序一致）。
+     *
+     * @param mixed $result mysqli 结果集
+     * @return array 字段下标 => mysqli 类型常量
+     */
+    protected static function fetchFieldTypes($result)
+    {
+        $types = array();
+        foreach ((array) @mysqli_fetch_fields($result) as $index => $field) {
+            $types[$index] = $field->type;
+        }
+
+        return $types;
+    }
+
+    /**
+     * 把字段值格式化为 SQL 字面量。
+     *
+     * 两点必须处理，否则备份文件在新版 MySQL/MariaDB 严格模式（STRICT_TRANS_TABLES）
+     * 下无法导入：
+     *  ① NULL 必须原样导出为裸 NULL：导出成 '' 会被 DATETIME 等列拒绝（#1292）；
+     *  ② 零日期（'0000-00-00 00:00:00'）是旧版非严格模式遗留的哨兵值，语义即“无值”，
+     *     新版默认 sql_mode 含 NO_ZERO_DATE，原样导出同样会被拒绝。
+     * 零日期只对日期时间列转换，避免误改字符串列中恰好同形的文本。
+     *
+     * @param mixed $value 字段值
+     * @param int|null $type mysqli 字段类型（未知时传 null）
+     * @return string SQL 字面量
+     */
+    protected static function formatDumpValue($value, $type)
+    {
+        if ($value === null) {
+            return 'NULL';
+        }
+
+        if (self::isZeroDateValue($value, $type)) {
+            return 'NULL';
+        }
+
+        return "'" . DB::escapeString($value) . "'";
+    }
+
+    /**
+     * 判断是否为日期时间列上的零日期值。
+     *
+     * @param mixed $value 字段值
+     * @param int|null $type mysqli 字段类型
+     * @return bool
+     */
+    protected static function isZeroDateValue($value, $type)
+    {
+        $datetimeTypes = array(MYSQLI_TYPE_DATE, MYSQLI_TYPE_DATETIME, MYSQLI_TYPE_NEWDATE, MYSQLI_TYPE_TIMESTAMP);
+        if (!in_array($type, $datetimeTypes, true)) {
+            return false;
+        }
+
+        return $value === '0000-00-00 00:00:00' || $value === '0000-00-00';
     }
 
     /**
