@@ -8,7 +8,6 @@ RewriteRule ^(.*\.php)$ $1 [L]
 
 # 静态入口文件
 RewriteRule ^index\.html$  /index.php [L]
-RewriteRule ^sitemap\.xml$ /sitemap.php [L]
 
 # API 入口（!-f/!-d 排除真实文件与真实目录）
 RewriteCond %{REQUEST_FILENAME} !-f
@@ -18,7 +17,10 @@ RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^api/?$    /api/index.php [L,QSA]
 
-# 后台入口（!-f/!-d 排除 admin/view/css 等真实静态文件与真实目录）
+# 后台入口
+# admin/service 与物理目录同名，须优先路由，故 service 规则不判 !-d
+RewriteRule ^admin/service/?$ /admin/index.php?route=service [L,QSA]
+RewriteRule ^admin/service/(.+)$ /admin/index.php?route=service/$1 [L,QSA]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^admin/(.+)$ /admin/index.php?route=$1 [L,QSA]

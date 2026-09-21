@@ -474,7 +474,8 @@ p.cue {
   font-size: 18px;
 }
 /* 侧栏栏目子菜单：同一份 ul.sub-menu 两种形态——当前模块（li.cur）内联展开，
-   非当前模块悬停弹出（fixed 定位逃出 .menu-scroll 裁剪，坐标由 common.js 补充） */
+   非当前模块悬停弹出（fixed 定位逃出 .menu-scroll 裁剪，坐标由 common.js 补充），
+   弹层带 300ms 进入 / 150ms 退出延迟，避免鼠标划过时误触 */
 #dou-sidebar li.has-sub {
   height: auto;
   overflow: visible;
@@ -503,7 +504,7 @@ p.cue {
   padding: 0;
   border: 0;
 }
-#dou-sidebar li.has-sub:not(.cur):hover > ul.sub-menu {
+#dou-sidebar li.has-sub:not(.cur) > ul.sub-menu {
   display: block;
   position: fixed;
   z-index: 1001;
@@ -513,6 +514,16 @@ p.cue {
   border: 0;
   background-color: #fff;
   box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.08);
+  visibility: hidden;
+  pointer-events: none;
+  /* 退出延迟 150ms 后瞬间隐藏 */
+  transition: visibility 0s linear 0.15s;
+}
+#dou-sidebar li.has-sub:not(.cur):hover > ul.sub-menu {
+  visibility: visible;
+  pointer-events: auto;
+  /* 进入延迟 300ms 后瞬间显示，无渐变 */
+  transition: visibility 0s linear 0.3s;
 }
 /* 子菜单项（两种形态共用）：高度同主菜单项，淡色文字，当前项加亮 */
 #dou-sidebar .sub-menu li {
@@ -537,15 +548,15 @@ p.cue {
   background-color: transparent;
 }
 /* 弹出形态：无图标缩进，视觉对齐悬停弹层 */
-#dou-sidebar li.has-sub:not(.cur):hover > ul.sub-menu li {
+#dou-sidebar li.has-sub:not(.cur) > ul.sub-menu li {
   width: auto;
 }
-#dou-sidebar li.has-sub:not(.cur):hover > ul.sub-menu li a {
+#dou-sidebar li.has-sub:not(.cur) > ul.sub-menu li a {
   padding: 0 16px;
   color: #555;
   font-weight: bold;
 }
-#dou-sidebar li.has-sub:not(.cur):hover > ul.sub-menu li a em {
+#dou-sidebar li.has-sub:not(.cur) > ul.sub-menu li a em {
   margin-left: 0;
 }
 #dou-sidebar li.has-sub:not(.cur):hover > ul.sub-menu li a:hover {

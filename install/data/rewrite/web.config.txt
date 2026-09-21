@@ -15,10 +15,6 @@
             <match url="^index\.html$" ignoreCase="true" />
             <action type="Rewrite" url="index.php" appendQueryString="true" />
           </rule>
-          <rule name="static-sitemap" stopProcessing="true">
-            <match url="^sitemap\.xml$" ignoreCase="true" />
-            <action type="Rewrite" url="sitemap.php" appendQueryString="true" />
-          </rule>
 
           <!-- API 入口（IsFile/IsDirectory negate 排除真实文件与真实目录） -->
           <rule name="api-route" stopProcessing="true">
@@ -35,6 +31,15 @@
           </rule>
 
           <!-- 后台入口（IsFile/IsDirectory negate 排除 admin/view/css 等真实静态文件与真实目录） -->
+          <!-- admin/service 与物理目录同名，须优先路由，故 service 规则不判 IsDirectory -->
+          <rule name="admin-service-root" stopProcessing="true">
+            <match url="^admin/service/?$" ignoreCase="true" />
+            <action type="Rewrite" url="admin/index.php?route=service" appendQueryString="true" />
+          </rule>
+          <rule name="admin-service-route" stopProcessing="true">
+            <match url="^admin/service/(.+)$" ignoreCase="true" />
+            <action type="Rewrite" url="admin/index.php?route=service/{R:1}" appendQueryString="true" />
+          </rule>
           <rule name="admin-route" stopProcessing="true">
             <match url="^admin/(.+)$" ignoreCase="true" />
             <conditions>

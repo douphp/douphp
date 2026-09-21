@@ -4,7 +4,7 @@
 -- DATE : 2026-09-20 16:05:25
 -- MYSQL SERVER VERSION : 5.7.44-log
 -- PHP VERSION : 8.2.30
--- DouPHP VERSION : v2.0 Release 20260909
+-- DouPHP VERSION : v2.0 Release 20260921
 
 DROP TABLE IF EXISTS `dou_admin`;
 CREATE TABLE `dou_admin` (
@@ -356,11 +356,11 @@ INSERT INTO dou_config VALUES('74','site_theme','default','hidden','','');
 INSERT INTO dou_config VALUES('75','miniprogram_code','default','hidden','','');
 INSERT INTO dou_config VALUES('76','build_date','1377768032','hidden','','');
 INSERT INTO dou_config VALUES('77','update_number','a:5:{s:6:\"update\";i:0;s:5:\"patch\";i:0;s:6:\"module\";i:0;s:6:\"plugin\";i:0;s:5:\"theme\";i:0;}','hidden','','');
-INSERT INTO dou_config VALUES('78','update_date','a:3:{s:6:\"system\";a:2:{s:6:\"update\";s:8:\"20260909\";s:5:\"patch\";s:8:\"20260909\";}s:6:\"module\";a:5:{s:7:\"article\";s:8:\"20260909\";s:7:\"product\";s:8:\"20260909\";s:4:\"data\";s:8:\"20260909\";s:2:\"ai\";s:8:\"20260909\";s:8:\"language\";s:8:\"20260909\";}s:5:\"theme\";a:0:{}}','hidden','','');
+INSERT INTO dou_config VALUES('78','update_date','a:3:{s:6:\"system\";a:2:{s:6:\"update\";s:8:\"20260921\";s:5:\"patch\";s:8:\"20260921\";}s:6:\"module\";a:5:{s:7:\"article\";s:8:\"20260921\";s:7:\"product\";s:8:\"20260921\";s:4:\"data\";s:8:\"20260921\";s:2:\"ai\";s:8:\"20260921\";s:8:\"language\";s:8:\"20260921\";}s:5:\"theme\";a:0:{}}','hidden','','');
 INSERT INTO dou_config VALUES('79','file_update_time','1653395208','hidden','','');
 INSERT INTO dou_config VALUES('80','cloud_account','','hidden','','');
 INSERT INTO dou_config VALUES('81','hash_code','166d0de32dafdef9ab26e10130dd115b','hidden','','');
-INSERT INTO dou_config VALUES('82','douphp_version','v2.0 Release 20260909','hidden','','');
+INSERT INTO dou_config VALUES('82','douphp_version','v2.0 Release 20260921','hidden','','');
 
 DROP TABLE IF EXISTS `dou_data`;
 CREATE TABLE `dou_data` (

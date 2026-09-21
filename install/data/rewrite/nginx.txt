@@ -13,6 +13,15 @@ location / {
     try_files $uri $uri/ @rewrites;
 }
 
+# admin/service 与物理目录同名，须优先路由到后台入口（放在 location / 之后、@rewrites 兜底之前）
+location = /admin/service {
+    rewrite ^ /admin/index.php?route=service last;
+}
+location ^~ /admin/service/ {
+    rewrite ^/admin/service/(.+)$ /admin/index.php?route=service/$1 last;
+    rewrite ^ /admin/index.php?route=service last;
+}
+
 location @rewrites {
     if ($uri ~ \.php$) {
         return 404;
@@ -20,7 +29,6 @@ location @rewrites {
 
     # 静态入口
     rewrite ^/index\.html$  /index.php last;
-    rewrite ^/sitemap\.xml$ /sitemap.php last;
 
     # API
     rewrite ^/api/(.+)$ /api/index.php?route=$1 last;

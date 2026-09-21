@@ -22,6 +22,8 @@ use Dou\Core\Service\Admin\AdminLogAction;
 use Dou\Core\Service\BaseService;
 use Dou\Core\Support\Arr;
 use Dou\Core\Support\FileHelper;
+use Dou\Core\Web\Http\CloudApi;
+use Dou\Core\Web\Http\Client;
 use Dou\Core\Web\I18n\JsLangExporter;
 use Dou\Core\Web\Manifest\ManifestCacheGeneration;
 use Dou\Core\Web\Routing\JsRouteExporter;
@@ -152,6 +154,11 @@ class IndexService extends BaseService
                 $warning[] = $dir . ' not writable';
             }
         }
+
+        $cloud_status = $this->checkCloudConnectStatus();
+        if ($cloud_status === 'fail') {
+            $warning[] = lang('cloud_connect_warning');
+        }
         $warning = array_values(array_filter($warning));
 
         $build_date = '';
@@ -198,6 +205,9 @@ class IndexService extends BaseService
             'zlib' => function_exists('gzclose') ? $yes : $no,
             'timezone' => $timezone,
             'socket' => function_exists('fsockopen') ? $yes : $no,
+            'cloud_connect' => $cloud_status === 'ok'
+                ? lang('cloud_connect_ok')
+                : ($cloud_status === 'unset' ? lang('cloud_connect_unconfigured') : lang('cloud_connect_fail')),
             'mysql_ver' => DB::version(),
             'os' => PHP_OS,
             'ip' => Arr::get($_SERVER, 'SERVER_ADDR', ''),
@@ -205,6 +215,39 @@ class IndexService extends BaseService
             'safe_mode' => $safe_mode ? $yes : $no,
             'safe_mode_gid' => $safe_mode_gid ? $yes : $no,
         );
+    }
+
+    /**
+     * 云服务连通性检测（复用 Client 的 HTTPS 通道验证 SSL 校验链路）
+     *
+     * 结果缓存 10 分钟，避免云服务故障时拖慢首页加载。
+     *
+     * @return string ok|fail|unset
+     */
+    private function checkCloudConnectStatus()
+    {
+        $cacheFile = STORAGE_PATH . 'cache/cloud_connect_check.json';
+        if (is_file($cacheFile) && (time() - (int) filemtime($cacheFile)) < 600) {
+            $cached = @file_get_contents($cacheFile);
+            if (in_array($cached, array('ok', 'fail', 'unset'), true)) {
+                return $cached;
+            }
+        }
+
+        $url = CloudApi::url('/health');
+        if ($url === '') {
+            $status = 'unset';
+        } else {
+            $meta = Client::request('GET', $url, array(), array(), array(
+                'connect_timeout' => 3,
+                'timeout' => 5,
+                'return_meta' => true,
+            ));
+            $status = (is_array($meta) && (int) $meta['errno'] === 0 && (int) $meta['http_code'] === 200) ? 'ok' : 'fail';
+        }
+
+        @file_put_contents($cacheFile, $status);
+        return $status;
     }
 
     /**

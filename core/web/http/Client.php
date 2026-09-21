@@ -132,6 +132,13 @@ class Client
 
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, $verifySsl ? 2 : 0);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, $verifySsl);
+        if ($verifySsl) {
+            // 优先使用程序内置 CA 证书包，避免因服务器 php.ini 未配置 curl.cainfo 导致校验失败
+            $caBundle = isset($options['ca_info']) ? (string) $options['ca_info'] : __DIR__ . '/cacert.pem';
+            if (is_file($caBundle)) {
+                curl_setopt($ch, CURLOPT_CAINFO, $caBundle);
+            }
+        }
 
         if (!empty($headers)) {
             curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);

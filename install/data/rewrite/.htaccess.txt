@@ -1,4 +1,4 @@
-<FilesMatch "\.(bak|inc|lib|sh|tpl|lbi|dwt)$">
+<FilesMatch "\.(bak|inc|lib|sh|tpl|lbi|dwt|pem)$">
     # Apache 2.4以下
     Order Deny,Allow 
     Deny from all
@@ -27,6 +27,9 @@ RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^api/?$      api/index.php [L,QSA]
 
 # 后台入口
+# service 与 admin/service/ 物理目录同名，须优先改写，故 service 规则不判 !-d
+RewriteRule ^admin/service/?$    admin/index.php?route=service    [L,QSA]
+RewriteRule ^admin/service/(.+)$ admin/index.php?route=service/$1 [L,QSA]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_URI} !.*\.(ico|gif|jpg|jpeg|png|js|css)
