@@ -25,9 +25,10 @@ if (!defined('IN_DOUCO')) {
  * 实例字段全部 public 只读约定（PHP 5.6 不强制 readonly，靠规则与代码评审）；
  * 业务代码须经构造函数创建，禁止动态写入字段。
  *
- * route_type ∈ {'home','static','system_reserved','family','page','column','simple','declared'}
- * - meta 模板条目（page/column/simple）来自 config/route.php，pattern 含 {module} 等占位符；
+ * route_type ∈ {'home','static','system_reserved','family','page','column','column_short','simple','declared'}
+ * - meta 模板条目（page/column/column_short/simple）来自 config/route.php，pattern 含 {module} 等占位符；
  *   匹配时由调用方做 ModuleRegistry::isColumn/isSingle 等准入校验。
+ *   column_short 为短地址模块专用家族（风格声明 short_rules 时存在），与 column 族互斥选用。
  * - 具体条目（declared）pattern 已无元变量，供具名反查（如 user_center.member）使用。
  * - 家族条目（family / system_reserved）一条 entry 承载一族 URL，is_family=true 豁免控制器缺失检测。
  */

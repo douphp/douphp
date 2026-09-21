@@ -37,6 +37,7 @@ if (!defined('IN_DOUCO')) {
  * 关键设计：
  *   - 本类不做 ModuleRegistry 准入校验（声明文件本身就是「模块是这一类的」断言）
  *   - 默认 controller FQCN 由调用方传入；不做约定式 fallback
+ *   - column 模块为短地址模块时整族选用风格的 short_rules，与 rules 族互斥不并存
  *   - 风格切换在每次构建 manifest 时生效（route_custom.php / site.route_* 改变后 clearCache 即可）
  */
 class StyleRuleExpander
@@ -48,6 +49,9 @@ class StyleRuleExpander
      *   - 规则有 target（{module}_category 等） → action='index'（列表 / 分类列表）
      *   - 规则无 target → action='show'（详情）
      *
+     * 模块为短地址模块（site.short_url_module）时整族选用风格的 short_rules（模块名段被顶级分类
+     * 别名取代），否则用 rules 族；两族均来自配置声明，此处只做选择，不改写任何正则。
+     *
      * @param string $module 模块名（如 'product'）
      * @param string $controllerFqcn 控制器 FQCN（不含前导反斜杠归一化由调用方处理）
      * @param string $sourcePrefix RouteEntry::source 前缀（如 'declared:front/route/product.php'）
@@ -56,7 +60,9 @@ class StyleRuleExpander
     public static function expandColumn($module, $controllerFqcn, $sourcePrefix)
     {
         $groups = RouteRules::getSelectedRuleGroups();
-        $rules = isset($groups['column']) ? $groups['column'] : array();
+        $rules = (ShortUrlPolicy::isShort($module) && !empty($groups['column_short']))
+            ? $groups['column_short']
+            : (isset($groups['column']) ? $groups['column'] : array());
         return self::expandRules($module, $controllerFqcn, $sourcePrefix, $rules, 'column');
     }
 

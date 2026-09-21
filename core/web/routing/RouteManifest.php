@@ -88,11 +88,12 @@ class RouteManifest
     }
 
     /**
-     * UrlBuilder 出站生成用的 page / column / simple 分组视图。
+     * UrlBuilder 出站生成用的 page / column / column_short / simple 分组视图。
      *
-     * 仅含 page / column / simple meta 模板（家族条目 / 具名条目 / home / static 不进此视图）。
+     * 仅含 page / column / column_short / simple meta 模板（家族条目 / 具名条目 / home / static
+     * 不进此视图）；column_short 为短地址模块家族，供出站按模块整族选用。
      *
-     * @return array {page?: array, column?: array, simple?: array}
+     * @return array {page?: array, column?: array, column_short?: array, simple?: array}
      */
     public static function getRuleGroups()
     {

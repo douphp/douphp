@@ -88,18 +88,18 @@ class RouteManifestBuilder
     }
 
     /**
-     * 仅构建匹配器使用的 meta 规则视图（page / column / simple 分组）。
+     * 仅构建匹配器使用的 meta 规则视图（page / column / column_short / simple 分组）。
      *
-     * 供 UrlBuilder 按 page/column/simple 分组取规则；不返回家族条目 / 具名条目。
+     * 供 UrlBuilder 按分组取规则（column_short 为短地址模块家族）；不返回家族条目 / 具名条目。
      *
-     * @return array {page?: array, column?: array, simple?: array}
+     * @return array {page?: array, column?: array, column_short?: array, simple?: array}
      */
     public function buildRuleGroups()
     {
         $groups = array();
         foreach ($this->buildFromRouteRules() as $entry) {
             $type = $entry->route_type;
-            if (!in_array($type, array('page', 'column', 'simple'), true)) {
+            if (!in_array($type, array('page', 'column', 'column_short', 'simple'), true)) {
                 continue;
             }
             if (!isset($groups[$type])) {
@@ -201,7 +201,7 @@ class RouteManifestBuilder
     }
 
     /**
-     * 风格规则条目（page / column / simple，按 RouteRules 顺序）。
+     * 风格规则条目（page / column / column_short / simple，按 RouteRules 顺序）。
      *
      * 保留 meta 模板（{module} 占位符），匹配时由调用方通过 ModuleRegistry 准入校验。
      * 同一规则的多个条目按 RouteRules 顺序入清单。
@@ -213,8 +213,8 @@ class RouteManifestBuilder
         $entries = array();
         $groups = RouteRules::getSelectedRuleGroups();
 
-        // 顺序与 PrettyRouteMatcher::loadRoutePatterns 一致：page → column → simple
-        $order = array('page', 'column', 'simple');
+        // 顺序与 PrettyRouteMatcher::loadRoutePatterns 一致：page → column → column_short → simple
+        $order = array('page', 'column', 'column_short', 'simple');
         foreach ($order as $type) {
             if (empty($groups[$type])) {
                 continue;
@@ -227,7 +227,7 @@ class RouteManifestBuilder
                     'params' => isset($rule['params']) && is_array($rule['params']) ? $rule['params'] : array(),
                     'target' => isset($rule['target']) ? $rule['target'] : null,
                     'module_fixed' => isset($rule['module_fixed']) ? $rule['module_fixed'] : null,
-                    'is_short_url_aware' => ($type === 'column'),
+                    'is_short_url_aware' => in_array($type, array('column', 'column_short'), true),
                     'is_family' => false,
                     'source' => 'rules:' . $type . ':' . $idx,
                 ));

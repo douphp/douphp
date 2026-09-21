@@ -37,12 +37,17 @@ if (!defined('IN_DOUCO')) {
  *   - 输入不规范应由调用面提前格式化，禁止在此处吞错或回退兼容。
  *   - 不读取 IS_ADMIN 等调用方上下文常量；按入参与站点配置生成 URL，admin / front 调用输出一致。
  *
+ * 短地址模块（site.short_url_module）：该模块整族选用风格的 short_rules（{@see RouteRules}），
+ * 模块名段被顶级分类别名取代 —— 分类页取分类全链（/顶级/次级），详情页分类段取所属分类的
+ * 顶级祖先别名（/顶级/123.html），模块根路径无 URL。风格未声明 short_rules 时沿用省略模块名段行为。
+ *
  * 内部处理阶段（与类内方法顺序大致对应）：
  *   - 路径片段：buildPrettyPath()，按 $intent['kind'] 直接分发；按站点 site.rewrite + config/route.php 选中 style 决定输出形态。
  *   - 完整 URL：composeFullUrl() 拼接 ROOT_URL、语言前缀；$page 非空时由 applyPagination() 追加分页。
  *     开启伪静态时，buildFullUrl() 会先把 /oN 嵌入路径再调用 composeFullUrl()，此时 $page 通常已清空。
- *   - 规则与模板：mergeRouteConfig() 合并 config/route.php 与 config/route_custom.php；按站点配置选中各 type 的 style 规则集。
- *   - 缓存：warmupUrlCache()、cachedField()、cachedCategorySlug() 使用进程级静态缓存，列表预热与单条生成共用。
+ *   - 规则与模板：RouteManifest::getRuleGroups() 提供 page / column / column_short / simple meta 模板；
+ *     短地址模块整族选用 column_short，其余模块用 column。
+ *   - 缓存：warmupUrlCache()、cachedField()、cachedCategoryRow() 使用进程级静态缓存，列表预热与单条生成共用。
  *
  * DouPHP 路由命名约定（与 $intent['kind'] 对应）：
  *   list      模块根路径（{module}）
@@ -57,14 +62,17 @@ if (!defined('IN_DOUCO')) {
  */
 class UrlBuilder
 {
+    /** 分类链上溯深度上限（防数据环，超出视为异常数据） */
+    const CATEGORY_CHAIN_MAX_DEPTH = 20;
+
     /** @var \Dou\Core\Infra\Database\Connection */
     private $db;
 
     /** @var array<string, array> URL 字段缓存：slug / created_at / category_id 等（进程级） */
     private static $urlFieldCache = array();
 
-    /** @var array<string, array> 分类 slug 缓存（进程级） */
-    private static $urlSlugCache = array();
+    /** @var array<string, array> 分类行缓存：表名 => [id => ['slug' => string, 'parent_id' => int]]（进程级） */
+    private static $urlCategoryCache = array();
 
     public function __construct()
     {
@@ -266,6 +274,9 @@ class UrlBuilder
     /**
      * 获取模块 / 分类的 slug 路径片段（传统路由场景使用）
      *
+     * 短地址模块（mode='full'）下模块名段被顶级分类别名取代：分类模块入参（*_category）返回分类全链
+     * （/顶级/次级/…），内容模块入参返回其所属分类的顶级祖先别名；其它模块维持 module[/slug] 形态。
+     *
      * @param string $module 模块名（可带 _category 后缀）
      * @param string|int $id 内容 ID 或分类 ID
      * @param string $mode 'full' 返回含模块前缀的片段；其它值返回 slug 或模块回退值
@@ -273,7 +284,6 @@ class UrlBuilder
      */
     public function getSlugPath($module, $id, $mode = 'full')
     {
-        $field = 'id';
         $tableModule = $module;
         $isCategoryModule = (strpos($module, '_category') !== false);
 
@@ -285,12 +295,19 @@ class UrlBuilder
             $tableModule = $module . '_category';
         }
 
+        $moduleBase = Naming::baseModule($module);
+        $isShort = ShortUrlPolicy::isShort($moduleBase);
+
         $slug = '';
         if ($id && $this->db->tableExist($tableModule) && $this->db->fieldExist($tableModule, 'slug')) {
-            $slug = (string) $this->db->table($tableModule)->where($field, intval($id))->value('slug');
+            if ($isShort && $mode === 'full') {
+                $slug = $isCategoryModule
+                    ? $this->cachedCategorySlugPath($tableModule, $id)
+                    : $this->cachedTopCategorySlug($tableModule, $id);
+            } else {
+                $slug = $this->cachedCategorySlug($tableModule, $id);
+            }
         }
-
-        $moduleBase = Naming::baseModule($module);
 
         if ($mode === 'full') {
             if ($moduleBase === 'page') {
@@ -299,8 +316,8 @@ class UrlBuilder
             if ($moduleBase === 'article') {
                 return 'news' . ($slug ? '/' . $slug : '');
             }
-            // 短地址模块下，模块名段被省略：列表/详情的路径片段就是 slug（无 slug 时为空段）
-            if (ShortUrlPolicy::isShort($moduleBase)) {
+            // 短地址模块下，模块名段被省略：路径片段即分类全链 / 顶级祖先别名（无 slug 时为空段）
+            if ($isShort) {
                 return $slug;
             }
             return $moduleBase . ($slug ? '/' . $slug : '');
@@ -544,6 +561,9 @@ class UrlBuilder
      *   - root  规则：其余（模块根路径）
      *   归档型规则（含 {year}）不在此函数处理。
      *
+     * 规则族由模块决定：短地址模块取 column_short（模块名段被顶级分类别名取代，分类段取全链），
+     * 其余模块取 column。
+     *
      * @param array $rules
      * @param string $urlModule URL 展示用模块名（如 article → news）
      * @param string $baseModule 数据库模块名
@@ -552,13 +572,16 @@ class UrlBuilder
      */
     private function buildColumnCategoryPath(array $rules, $urlModule, $baseModule, $catId)
     {
-        $columnRules = isset($rules['column']) ? $rules['column'] : array();
+        $isShort = ShortUrlPolicy::isShort($baseModule);
+        $columnRules = $this->columnRules($rules, $baseModule);
 
-        // 短链模块：模块根路径被省略，分类页直接用别名（或 ID）作为整段路径
-        if (ShortUrlPolicy::isShort($baseModule)) {
-            if (!$catId) {
-                return '';
-            }
+        // 短地址模块：模块根路径无 URL（模块名段被顶级分类别名整段取代）
+        if ($isShort && !$catId) {
+            return '';
+        }
+
+        // 短地址模块而风格未声明 short_rules：沿用省略模块名段、分类段取自身别名的既有行为
+        if ($isShort && empty($columnRules)) {
             $categorySlug = $this->cachedCategorySlug($baseModule . '_category', $catId);
             return $categorySlug ? $categorySlug : strval($catId);
         }
@@ -570,7 +593,10 @@ class UrlBuilder
         list($aliasRule, $idRule, $rootRule) = $this->classifyColumnCategoryRules($columnRules);
 
         if ($catId && $aliasRule) {
-            $categorySlug = $this->cachedCategorySlug($baseModule . '_category', $catId);
+            // 短地址模块的分类段取分类全链（/顶级/次级），其余取自身别名
+            $categorySlug = $isShort
+                ? $this->cachedCategorySlugPath($baseModule . '_category', $catId)
+                : $this->cachedCategorySlug($baseModule . '_category', $catId);
             return PrettyUrlCompiler::fill($aliasRule['pattern'], array(
                 'module' => $urlModule,
                 'id' => $catId,
@@ -624,7 +650,9 @@ class UrlBuilder
     /**
      * 栏目内容详情页伪静态路径
      *
-     * 详情规则即 column 规则里第一条无 target 的规则；按其 pattern 中的占位符填值。
+     * 详情规则即所选规则族里第一条无 target 的规则；按其 pattern 中的占位符填值。
+     * 规则族由模块决定：短地址模块取 column_short（pattern 无模块名段，其分类段取内容所属分类的
+     * 顶级祖先别名），其余模块取 column（填充后去除模块名段）。
      *
      * @param array $rules
      * @param string $urlModule
@@ -634,7 +662,9 @@ class UrlBuilder
      */
     private function buildColumnDetailPath(array $rules, $urlModule, $baseModule, $id)
     {
-        $columnRules = isset($rules['column']) ? $rules['column'] : array();
+        $isShort = ShortUrlPolicy::isShort($baseModule);
+        $columnRules = $this->columnRules($rules, $baseModule);
+        $shortFamily = ($isShort && !empty($columnRules));
 
         if (empty($columnRules)) {
             return $this->getSlugPath($baseModule, $id) . '/' . $id . '.html';
@@ -660,7 +690,12 @@ class UrlBuilder
             if ($id && $this->db->fieldExist($baseModule, 'category_id')) {
                 $catId = $this->cachedField($baseModule . '_category_id', $id, $baseModule, 'category_id');
             }
-            $categorySlug = $catId ? $this->cachedCategorySlug($baseModule . '_category', $catId) : '';
+            // 短地址家族：分类段取顶级祖先别名（内容属于次级分类时仍出 /顶级/123.html）
+            if ($shortFamily) {
+                $categorySlug = $catId ? $this->cachedTopCategorySlug($baseModule . '_category', $catId) : '';
+            } else {
+                $categorySlug = $catId ? $this->cachedCategorySlug($baseModule . '_category', $catId) : '';
+            }
             $values['category_slug'] = $categorySlug ? $categorySlug : ($catId ? $catId : '');
         }
 
@@ -686,6 +721,11 @@ class UrlBuilder
         }
 
         $path = PrettyUrlCompiler::fill($pattern, $values);
+
+        // 短地址家族 pattern 无模块名段，无需去前缀（且顶级分类别名可能与模块名同字面）
+        if ($shortFamily) {
+            return $path;
+        }
 
         return ShortUrlPolicy::stripModulePrefix($path, $urlModule, $baseModule);
     }
@@ -846,7 +886,10 @@ class UrlBuilder
     }
 
     /**
-     * 预热分类 category_id → slug 缓存
+     * 预热分类行缓存（id → slug / parent_id），并沿 parent_id 上溯补齐祖先分类
+     *
+     * 短地址模块的分类段取分类全链 / 顶级祖先别名，逐级上溯若走懒加载会多次查库，
+     * 故在此按层级批量预热（列表页与单条生成共用进程级缓存）。
      *
      * @param string $module
      * @return void
@@ -866,23 +909,41 @@ class UrlBuilder
             return;
         }
 
-        $cachedCats = isset(self::$urlSlugCache[$catTable]) ? self::$urlSlugCache[$catTable] : array();
-        $missCats = array_values(array_diff($catIds, array_keys($cachedCats)));
-        if (empty($missCats)) {
-            return;
-        }
+        $pending = array_map('intval', $catIds);
+        for ($depth = 0; $depth < self::CATEGORY_CHAIN_MAX_DEPTH; $depth++) {
+            $cachedRows = isset(self::$urlCategoryCache[$catTable]) ? self::$urlCategoryCache[$catTable] : array();
+            $missCats = array_values(array_diff($pending, array_keys($cachedRows)));
+            if (empty($missCats)) {
+                return;
+            }
 
-        $uidRows = $this->db->table($catTable)
-            ->field('id, slug')
-            ->where('id', 'IN', $missCats)
-            ->select();
+            $uidRows = $this->db->table($catTable)
+                ->field('id, slug, parent_id')
+                ->where('id', 'IN', $missCats)
+                ->select();
 
-        foreach ((array) $uidRows as $r) {
-            self::$urlSlugCache[$catTable][$r['id']] = $r['slug'];
-        }
-        foreach ($missCats as $cid) {
-            if (!isset(self::$urlSlugCache[$catTable][$cid])) {
-                self::$urlSlugCache[$catTable][$cid] = '';
+            foreach ((array) $uidRows as $r) {
+                self::$urlCategoryCache[$catTable][$r['id']] = array(
+                    'slug' => (string) $r['slug'],
+                    'parent_id' => isset($r['parent_id']) ? (int) $r['parent_id'] : 0,
+                );
+            }
+            foreach ($missCats as $cid) {
+                if (!isset(self::$urlCategoryCache[$catTable][$cid])) {
+                    self::$urlCategoryCache[$catTable][$cid] = array('slug' => '', 'parent_id' => 0);
+                }
+            }
+
+            // 收集未缓存的父分类，下一轮继续上溯
+            $pending = array();
+            foreach ($missCats as $cid) {
+                $parentId = self::$urlCategoryCache[$catTable][$cid]['parent_id'];
+                if ($parentId > 0 && !isset(self::$urlCategoryCache[$catTable][$parentId])) {
+                    $pending[] = $parentId;
+                }
+            }
+            if (empty($pending)) {
+                return;
             }
         }
     }
@@ -908,7 +969,32 @@ class UrlBuilder
     }
 
     /**
-     * 从 slug 缓存读取分类别名；miss 时查库并回填（含表 / 字段存在判断）
+     * 从分类行缓存读取分类行（slug / parent_id）；miss 时查库并回填（含表 / 字段存在判断）
+     *
+     * @param string $table 分类表（如 article_category）
+     * @param int $catId
+     * @return array {slug: string, parent_id: int}
+     */
+    private function cachedCategoryRow($table, $catId)
+    {
+        $catId = intval($catId);
+        if (!isset(self::$urlCategoryCache[$table][$catId])) {
+            $row = array('slug' => '', 'parent_id' => 0);
+            if ($this->db->tableExist($table) && $this->db->fieldExist($table, 'slug')) {
+                $found = $this->db->table($table)->where('id', $catId)->find();
+                if (is_array($found)) {
+                    $row['slug'] = (string) $found['slug'];
+                    $row['parent_id'] = isset($found['parent_id']) ? (int) $found['parent_id'] : 0;
+                }
+            }
+            self::$urlCategoryCache[$table][$catId] = $row;
+        }
+
+        return self::$urlCategoryCache[$table][$catId];
+    }
+
+    /**
+     * 从分类行缓存读取分类别名（单段）
      *
      * @param string $table 分类表（如 article_category）
      * @param int $catId
@@ -916,16 +1002,81 @@ class UrlBuilder
      */
     private function cachedCategorySlug($table, $catId)
     {
-        if (!isset(self::$urlSlugCache[$table][$catId])) {
-            if ($this->db->tableExist($table) && $this->db->fieldExist($table, 'slug')) {
-                self::$urlSlugCache[$table][$catId] = (string) $this->db->table($table)
-                    ->where('id', intval($catId))
-                    ->value('slug');
-            } else {
-                self::$urlSlugCache[$table][$catId] = '';
+        $row = $this->cachedCategoryRow($table, $catId);
+        return $row['slug'];
+    }
+
+    /**
+     * 分类别名全链（顶级 → 当前，以 / 连接）
+     *
+     * 链上任一段缺别名，或上溯超过深度上限（数据环），返回空串由调用方退化处理。
+     *
+     * @param string $table 分类表（如 article_category）
+     * @param int $catId
+     * @return string
+     */
+    private function cachedCategorySlugPath($table, $catId)
+    {
+        $segments = array();
+        $id = intval($catId);
+        for ($depth = 0; $id > 0; $depth++) {
+            if ($depth >= self::CATEGORY_CHAIN_MAX_DEPTH) {
+                return '';
             }
+            $row = $this->cachedCategoryRow($table, $id);
+            if ($row['slug'] === '') {
+                return '';
+            }
+            array_unshift($segments, $row['slug']);
+            $id = $row['parent_id'];
         }
-        return (string) self::$urlSlugCache[$table][$catId];
+
+        return implode('/', $segments);
+    }
+
+    /**
+     * 分类所属顶级祖先（parent_id = 0）的别名
+     *
+     * @param string $table 分类表（如 article_category）
+     * @param int $catId
+     * @return string
+     */
+    private function cachedTopCategorySlug($table, $catId)
+    {
+        $slug = '';
+        $id = intval($catId);
+        for ($depth = 0; $id > 0; $depth++) {
+            if ($depth >= self::CATEGORY_CHAIN_MAX_DEPTH) {
+                return '';
+            }
+            $row = $this->cachedCategoryRow($table, $id);
+            if ($row['slug'] === '') {
+                return '';
+            }
+            $slug = $row['slug'];
+            $id = $row['parent_id'];
+        }
+
+        return $slug;
+    }
+
+    /**
+     * 按模块选用 column 规则族：短地址模块取风格的 short_rules（未声明时返回空数组，
+     * 由调用方走「省略模块名段」的退化路径），其余模块取 column 族。
+     *
+     * @param array $rules RouteManifest::getRuleGroups() 结果
+     * @param string $baseModule 数据库模块名
+     * @return array
+     */
+    private function columnRules(array $rules, $baseModule)
+    {
+        if (ShortUrlPolicy::isShort($baseModule)) {
+            return (isset($rules['column_short']) && is_array($rules['column_short']))
+                ? $rules['column_short']
+                : array();
+        }
+
+        return isset($rules['column']) ? $rules['column'] : array();
     }
 
     /**

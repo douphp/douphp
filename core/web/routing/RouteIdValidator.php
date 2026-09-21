@@ -16,6 +16,7 @@ namespace Dou\Core\Web\Routing;
 
 use Dou\Core\Facade\DB;
 use Dou\Core\Support\Check;
+use Dou\Core\Support\Naming;
 use Dou\Core\Support\Util;
 
 if (!defined('IN_DOUCO')) {
@@ -29,15 +30,22 @@ if (!defined('IN_DOUCO')) {
  * -1: 非法或未命中
  *  0: 分类列表（仅 *_category 且 id=0/无参数）
  * >0: 合法内容 ID
+ *
+ * 短地址模块（site.short_url_module）下分类段为分类全链（/顶级/次级）：分类页按链逐级下行解析，
+ * 单段仅接受顶级分类（规范 URL 收敛）；内容详情的分类段取所属分类的顶级祖先别名。
+ * 非短地址模块的分类段维持单段别名语义；API 端入参不是站点 URL，两端均沿用单段别名语义。
  */
 class RouteIdValidator
 {
+    /** 分类链上溯深度上限（防数据环，超出视为异常数据） */
+    const CATEGORY_CHAIN_MAX_DEPTH = 20;
+
     /**
      * 获取分类模块的合法分类 ID
      *
      * @param string $module 分类模块名（如 article_category）
      * @param string $categoryId 数字分类 ID（可选，0 表示全部分类）
-     * @param string $slug 分类唯一标识（可选）
+     * @param string $slug 分类唯一标识（可选；短地址模块下可为分类全链 /顶级/次级）
      * @param string $year 风格7 归档年（可选；非空时校验落在 1970-2100，否则视为非法 URL 返 -1）
      * @param string $month 风格7 归档月（可选；与 year 配合校验落在 1-12）
      * @return int 分类 ID，0 表示全部分类，-1 表示无效
@@ -55,10 +63,21 @@ class RouteIdValidator
             return -1;
         }
 
-        // 格式校验
-        if (($categoryId !== '' && !Check::number($categoryId)) ||
-            ($slug !== '' && !Check::slug($slug))
-        ) {
+        // 短地址模块的分类段为全链；其余模块（含 API 端）仅单段别名
+        $isShort = $this->isShortModule(Naming::baseModule($module));
+
+        // 格式校验：多段分类链仅短地址模块允许，逐段过 slug 校验
+        $slugSegments = ($slug === '') ? array() : explode('/', $slug);
+        if (count($slugSegments) > 1 && !$isShort) {
+            return -1;
+        }
+        foreach ($slugSegments as $segment) {
+            if (!Check::slug($segment)) {
+                return -1;
+            }
+        }
+
+        if ($categoryId !== '' && !Check::number($categoryId)) {
             return -1;
         }
 
@@ -69,8 +88,22 @@ class RouteIdValidator
 
         // 优先使用 slug 查询
         if ($slug !== '') {
+            if (count($slugSegments) > 1) {
+                return $this->resolveCategoryChain($module, $slugSegments);
+            }
+
             $found = DB::table($module)->where('slug', $slug)->value('id');
-            return $found ? (int) $found : -1;
+            if (!$found) {
+                return -1;
+            }
+            $found = (int) $found;
+
+            // 短地址模块的分类段以顶级分类别名起头：非顶级分类须走全链 URL，单段访问按非法处理
+            if ($isShort && $this->categoryParentId($module, $found) > 0) {
+                return -1;
+            }
+
+            return $found;
         }
 
         // 使用 category_id 查询
@@ -88,7 +121,7 @@ class RouteIdValidator
      *
      * @param string $module 模块名（如 article、product）
      * @param string $id 数字 ID（可选）
-     * @param string $categorySlug 分类别名（可选，用于验证）
+     * @param string $categorySlug 分类别名（可选，用于验证；短地址模块下为顶级祖先别名）
      * @param string $slug 友好 URL（可选）
      * @param string $year 风格7 详情年（可选；非空时与记录 created_at 校验）
      * @param string $month 风格7 详情月（可选；非空时与记录 created_at 校验）
@@ -101,6 +134,9 @@ class RouteIdValidator
         $slug = (string) $slug;
         $year = (string) $year;
         $month = (string) $month;
+
+        // 短地址模块详情段的分类取顶级祖先别名；其余模块（含 API 端）取直属分类别名
+        $isShort = $this->isShortModule(Naming::baseModule($module));
 
         // 格式校验
         if (($id !== '' && !Check::number($id)) ||
@@ -144,9 +180,14 @@ class RouteIdValidator
             if (!$categoryId) {
                 return -1;
             }
-            $cat_unique = DB::table($module . '_category')
-                ->where('id', $categoryId)
-                ->value('slug');
+            // 短地址模块的分类段取顶级祖先别名（内容属于次级分类时 URL 仍为 /顶级/123.html）
+            if ($isShort) {
+                $cat_unique = $this->topCategorySlug($module . '_category', $categoryId);
+            } else {
+                $cat_unique = DB::table($module . '_category')
+                    ->where('id', $categoryId)
+                    ->value('slug');
+            }
             if ($cat_unique != $categorySlug) {
                 return -1;
             }
@@ -217,5 +258,89 @@ class RouteIdValidator
         }
 
         return -1;
+    }
+
+    /**
+     * 分类链逐段下行解析（短地址模块的分类全链，/顶级/次级/…）
+     *
+     * 自 parent_id = 0 起，每段要求 slug = 段值且 parent_id = 上一段命中分类 ID；任一段未命中返回 -1。
+     *
+     * @param string $table 分类表（如 product_category）
+     * @param string[] $slugSegments 分类别名链（自顶级到当前）
+     * @return int 链末分类 ID，-1 表示无效
+     */
+    private function resolveCategoryChain($table, array $slugSegments)
+    {
+        $parentId = 0;
+        $catId = 0;
+        foreach ($slugSegments as $segment) {
+            $found = DB::table($table)
+                ->where('slug', $segment)
+                ->where('parent_id', $parentId)
+                ->value('id');
+            if (!$found) {
+                return -1;
+            }
+            $catId = (int) $found;
+            $parentId = $catId;
+        }
+
+        return $catId ? $catId : -1;
+    }
+
+    /**
+     * 分类的父分类 ID（分类不存在返回 -1）
+     *
+     * @param string $table 分类表（如 product_category）
+     * @param int $catId
+     * @return int
+     */
+    private function categoryParentId($table, $catId)
+    {
+        $parentId = DB::table($table)->where('id', $catId)->value('parent_id');
+        return ($parentId === null) ? -1 : (int) $parentId;
+    }
+
+    /**
+     * 短地址模块语义是否适用于本次入参
+     *
+     * 分类全链与顶级祖先别名都是「站点 URL 形态」的规则，仅在前台 / 后台（URL 来自路由解析）生效；
+     * API 端的 category_slug 是调用方自传的校验参数，沿用单段别名语义（与 column() 既有 IS_API 分支一致）。
+     *
+     * @param string $baseModule 数据库模块名
+     * @return bool
+     */
+    private function isShortModule($baseModule)
+    {
+        return !defined('IS_API') && ShortUrlPolicy::isShort($baseModule);
+    }
+
+    /**
+     * 分类所属顶级祖先（parent_id = 0）的别名
+     *
+     * @param string $table 分类表（如 product_category）
+     * @param int $catId
+     * @return string 缺别名 / 分类缺失 / 超深度上限（数据环）时返回空串
+     */
+    private function topCategorySlug($table, $catId)
+    {
+        $slug = '';
+        $id = (int) $catId;
+        for ($depth = 0; $id > 0; $depth++) {
+            if ($depth >= self::CATEGORY_CHAIN_MAX_DEPTH) {
+                return '';
+            }
+            $row = DB::table($table)->where('id', $id)->find();
+            if (!is_array($row)) {
+                return '';
+            }
+            $slug = isset($row['slug']) ? (string) $row['slug'] : '';
+            if ($slug === '') {
+                return '';
+            }
+            $id = isset($row['parent_id']) ? (int) $row['parent_id'] : 0;
+        }
+
+        return $slug;
     }
 }

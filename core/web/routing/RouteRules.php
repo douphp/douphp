@@ -42,7 +42,10 @@ class RouteRules
     }
 
     /**
-     * 返回当前站点选中的规则分组（page / column / simple → rules 数组）
+     * 返回当前站点选中的规则分组（page / column / column_short / simple → rules 数组）
+     *
+     * column_short 为短地址模块专用家族（仅当风格声明 short_rules 时存在），与 column 并存：
+     * 消费者按「模块是否为短地址模块」整族选择，不在运行时改写正则。
      *
      * @return array
      */
@@ -88,10 +91,15 @@ class RouteRules
             $styles = $config[$type];
             $selected = isset($cfg[$cfgKey]) ? $cfg[$cfgKey] : '';
             if ($selected !== '' && isset($styles[$selected])) {
-                $result[$type] = $styles[$selected]['rules'];
+                $style = $styles[$selected];
             } else {
-                $first = reset($styles);
-                $result[$type] = $first['rules'];
+                $style = reset($styles);
+            }
+            $result[$type] = $style['rules'];
+
+            // 短地址模块家族与 column 族并存（风格未声明 short_rules 时缺省，沿用 strip 行为）
+            if ($type === 'column' && !empty($style['short_rules']) && is_array($style['short_rules'])) {
+                $result['column_short'] = $style['short_rules'];
             }
         }
 

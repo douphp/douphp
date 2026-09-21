@@ -1,17 +1,15 @@
 <?php
 
 /**
- * DouPHP
+ * DouPHP®
  * ------------------------------------------------------------------------------------
- * 版权所有 2013-2026 漳州豆壳网络科技有限公司，并保留所有权利。
+ * Copyright (c) 2013-2026 漳州豆壳网络科技有限公司 (DouCo® Co.,Ltd.)
+ *
+ * 本软件基于 MIT 协议开源发布，完整协议文本见项目根目录 LICENSE 文件。
  * 网站地址：http://www.douphp.com
  * ------------------------------------------------------------------------------------
- * 这不是一个自由软件！您只能在遵守授权协议前提下对程序代码进行修改和使用；
- * 不允许对程序代码以任何形式任何目的的再发布。
- * 授权协议：http://www.douphp.com/license.html
- * ------------------------------------------------------------------------------------
  * Author: DouCo Co.,Ltd.
- * Release Date: 2026-09-04
+ * Release Date: 2026-09-08
  */
 
 /**
@@ -25,6 +23,9 @@
  * $params 参数默认正则（可选，pattern内嵌正则优先）
  * $target 目标文件名模板（可选，默认 {module}.php）
  * $module_fixed 固定模块名（可选，用于URL不含模块段的情况）
+ * $short_rules 短地址模块（site.short_url_module）专用规则家族（可选，仅 column 风格）：
+ *              模块名段被顶级分类别名取代（{category_slug} 取分类全链），其余结构与 $rules 一致；
+ *              两级分类族并存声明，运行时按「模块是否为短地址模块」整族选择，不做正则改写。
  * 规则命名参数会原样进入 params（由统一路由层解释）
  * +----------------------------------------------------------
  */
@@ -91,6 +92,19 @@ return [
                     'params' => ['module' => '[a-z]+', 'category_slug' => '[a-zA-Z][a-zA-Z0-9_-]*'],
                 ],
             ],
+            // 短地址模块：顶级分类别名取代模块名段，分类段取全链（惰性量词优先让位给 /oN 分页段），
+            // 详情段的分类仅取顶级祖先别名（单段），无分类内容省略该段
+            'short_rules' => [
+                [
+                    'pattern' => '{category_slug}[/o{page:\d*}]',
+                    'params' => ['category_slug' => '[a-zA-Z][a-zA-Z0-9_-]*(?:/[a-zA-Z][a-zA-Z0-9_-]*)*?'],
+                    'target' => '{module}_category',
+                ],
+                [
+                    'pattern' => '[{category_slug}/]{id:\d+}.html',
+                    'params' => ['category_slug' => '[a-zA-Z][a-zA-Z0-9_-]*'],
+                ],
+            ],
         ],
 
         // 风格2：分类前缀 collections + 详情 slug
@@ -110,6 +124,18 @@ return [
                 [
                     'pattern' => '{module}/{slug}',
                     'params' => ['module' => '[a-z]+', 'slug' => '[a-zA-Z][a-zA-Z0-9_-]*'],
+                ],
+            ],
+            // 短地址模块：仅去掉模块名段，collections 前缀与详情 slug 结构保持不变
+            'short_rules' => [
+                [
+                    'pattern' => 'collections/{category_slug}[/o{page:\d*}]',
+                    'params' => ['category_slug' => '[a-zA-Z][a-zA-Z0-9_-]*(?:/[a-zA-Z][a-zA-Z0-9_-]*)*?'],
+                    'target' => '{module}_category',
+                ],
+                [
+                    'pattern' => '{slug}',
+                    'params' => ['slug' => '[a-zA-Z][a-zA-Z0-9_-]*'],
                 ],
             ],
         ],
@@ -133,6 +159,17 @@ return [
                     'params' => ['module' => '[a-z]+'],
                 ],
             ],
+            // 短地址模块：分类段取代模块名段并取全链；详情仅 ID 后缀，不含分类段
+            'short_rules' => [
+                [
+                    'pattern' => '{category_slug}[/o{page:\d*}]',
+                    'params' => ['category_slug' => '[a-zA-Z][a-zA-Z0-9_-]*(?:/[a-zA-Z][a-zA-Z0-9_-]*)*?'],
+                    'target' => '{module}_category',
+                ],
+                [
+                    'pattern' => '{id:\d+}.html',
+                ],
+            ],
         ],
 
         // 风格4：分类别名 + 详情嵌套别名无后缀
@@ -152,6 +189,18 @@ return [
                 [
                     'pattern' => '{module}[/{category_slug}]/{id:\d+}',
                     'params' => ['module' => '[a-z]+', 'category_slug' => '[a-zA-Z][a-zA-Z0-9_-]*'],
+                ],
+            ],
+            // 短地址模块：分类段取代模块名段并取全链；详情段的分类取顶级祖先别名（单段）
+            'short_rules' => [
+                [
+                    'pattern' => '{category_slug}[/o{page:\d*}]',
+                    'params' => ['category_slug' => '[a-zA-Z][a-zA-Z0-9_-]*(?:/[a-zA-Z][a-zA-Z0-9_-]*)*?'],
+                    'target' => '{module}_category',
+                ],
+                [
+                    'pattern' => '[{category_slug}/]{id:\d+}',
+                    'params' => ['category_slug' => '[a-zA-Z][a-zA-Z0-9_-]*'],
                 ],
             ],
         ],
@@ -175,6 +224,17 @@ return [
                     'params' => ['module' => '[a-z]+'],
                 ],
             ],
+            // 短地址模块：category 前缀与详情 ID 结构保持不变，仅去掉模块名段
+            'short_rules' => [
+                [
+                    'pattern' => 'category/{category_slug}[/o{page:\d*}]',
+                    'params' => ['category_slug' => '[a-zA-Z][a-zA-Z0-9_-]*(?:/[a-zA-Z][a-zA-Z0-9_-]*)*?'],
+                    'target' => '{module}_category',
+                ],
+                [
+                    'pattern' => '{id:\d+}',
+                ],
+            ],
         ],
 
         // 风格6：分类前缀ID + 详情ID无后缀
@@ -194,6 +254,16 @@ return [
                 [
                     'pattern' => '{module}/{id:\d+}',
                     'params' => ['module' => '[a-z]+'],
+                ],
+            ],
+            // 短地址模块：category 前缀与详情 ID 结构保持不变，仅去掉模块名段
+            'short_rules' => [
+                [
+                    'pattern' => 'category/{id:\d+}[/o{page:\d*}]',
+                    'target' => '{module}_category',
+                ],
+                [
+                    'pattern' => '{id:\d+}',
                 ],
             ],
         ],
@@ -225,6 +295,26 @@ return [
                 [
                     'pattern' => '{module}/{year:\d{4}}/{month:\d{2}}/{id:\d+}.html',
                     'params' => ['module' => '[a-z]+'],
+                ],
+            ],
+            // 短地址模块：归档与详情结构保持不变，仅去掉模块名段（模块根无 URL）；
+            // 分类段取代模块名段并取全链（与 {year} 归档段以「首字符为字母」区分）
+            'short_rules' => [
+                [
+                    'pattern' => '{year:\d{4}}[/o{page:\d*}]',
+                    'target' => '{module}_category',
+                ],
+                [
+                    'pattern' => '{year:\d{4}}/{month:\d{2}}[/o{page:\d*}]',
+                    'target' => '{module}_category',
+                ],
+                [
+                    'pattern' => '{category_slug}[/o{page:\d*}]',
+                    'params' => ['category_slug' => '[a-zA-Z][a-zA-Z0-9_-]*(?:/[a-zA-Z][a-zA-Z0-9_-]*)*?'],
+                    'target' => '{module}_category',
+                ],
+                [
+                    'pattern' => '{year:\d{4}}/{month:\d{2}}/{id:\d+}.html',
                 ],
             ],
         ],

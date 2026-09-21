@@ -250,7 +250,7 @@ class DataService extends BaseService
             'text' => Arr::get($post, 'text', ''),
             'image' => '',
             'link' => Arr::get($post, 'link', ''),
-            'is_class' => Arr::get($post, 'is_class', ''),
+            'is_class' => Arr::get($post, 'is_class', '0'),
         );
 
         $newId = (int) Data::insertData($insertData);
@@ -372,7 +372,7 @@ class DataService extends BaseService
             'code' => $code,
             'text' => Arr::get($post, 'text', ''),
             'link' => Arr::get($post, 'link', ''),
-            'is_class' => Arr::get($post, 'is_class', ''),
+            'is_class' => Arr::get($post, 'is_class', '0'),
         );
         if ($image) {
             $updateData['image'] = $image;
