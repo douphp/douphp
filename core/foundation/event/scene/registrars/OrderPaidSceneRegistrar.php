@@ -15,6 +15,7 @@
 namespace Dou\Core\Foundation\Event\Scene\Registrars;
 
 use Dou\Core\Foundation\Configuration\Config;
+use Dou\Core\Foundation\Event\Scene\SceneHandler;
 use Dou\Core\Foundation\Event\Scene\SceneNames;
 use Dou\Core\Foundation\Event\Scene\SceneRegistry;
 use Dou\Core\Foundation\Extension\Module;
@@ -70,9 +71,23 @@ class OrderPaidSceneRegistrar
 
         foreach ($keys as $key) {
             $key = trim((string) $key);
-            if ($key !== '' && isset($map[$key]) && Module::has($key)) {
-                SceneRegistry::register(SceneNames::ORDER_PAID, $key, $map[$key]);
+            if ($key === '' || !Module::has($key)) {
+                continue;
             }
+
+            if (isset($map[$key])) {
+                SceneRegistry::register(SceneNames::ORDER_PAID, $key, $map[$key]);
+                continue;
+            }
+
+            // 内置映射之外：按模块键取模块服务（命名规约 Dou\{Layer}\Service\{Studly}\{Studly}Service），
+            // 实现 SceneHandler 即挂载到 order.paid。云市场模块把 cloudId 写进 link_order_item
+            // 后，只要其服务实现 SceneHandler 即可自行接管付款后联动，无需改动本注册器。
+            SceneRegistry::register(SceneNames::ORDER_PAID, $key, function () use ($key) {
+                $service = Module::make($key);
+
+                return $service instanceof SceneHandler ? $service : null;
+            });
         }
     }
 }
