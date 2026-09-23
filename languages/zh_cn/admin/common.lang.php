@@ -300,6 +300,7 @@ $_LANG['stock'] = '启用商品库存功能';
 $_LANG['show_price'] = '是否显示商品价格';
 $_LANG['input_must_include_chinese'] = '前台输入必须包含中文';
 $_LANG['site_favicon'] = 'Favicon图标';
+$_LANG['site_favicon_cue'] = '支持上传 PNG / JPG / GIF / WEBP / ICO 等图片，系统将自动转换为 32×32 的 ICO 图标';
 $_LANG['code_head'] = '顶部JS代码（位于顶部head之间）';
 $_LANG['code'] = '底部JS代码（如统计/在线客服代码）';
 $_LANG['show_customer'] = '显示右侧漂浮在线客服';
@@ -422,17 +423,28 @@ $_LANG['chat_link_cue'] = '请输入第三方在线客服的链接；若已启�
 $thumbSizeCue = '';
 $logoImgSizeCue = '';
 if (isset($_SETTING) && is_array($_SETTING) && isset($_SETTING['theme']) && is_array($_SETTING['theme'])) {
-    if (isset($_SETTING['theme']['product_thumb_size'])) {
-        $thumbSizeCue = (string) $_SETTING['theme']['product_thumb_size'];
+    // $_SETTING['theme'] 为 ThemeSettingsReader 标准化 item 表（width/height/note/tip）
+    $thumbItem = isset($_SETTING['theme']['product_thumb']) && is_array($_SETTING['theme']['product_thumb'])
+        ? $_SETTING['theme']['product_thumb'] : array();
+    if (!empty($thumbItem['width']) && !empty($thumbItem['height'])) {
+        $thumbSizeCue = $thumbItem['width'] . '*' . $thumbItem['height'];
+    } elseif (!empty($thumbItem['tip'])) {
+        $thumbSizeCue = (string) $thumbItem['tip'];
     }
 
-    if (isset($_SETTING['theme']['logo_img_size'])) {
-        $logoImgSizeCue = (string) $_SETTING['theme']['logo_img_size'];
+    $logoItem = isset($_SETTING['theme']['logo_img']) && is_array($_SETTING['theme']['logo_img'])
+        ? $_SETTING['theme']['logo_img'] : array();
+    if (!empty($logoItem['tip'])) {
+        $logoImgSizeCue = (string) $logoItem['tip'];
+    } elseif (!empty($logoItem['width']) && !empty($logoItem['height'])) {
+        $logoImgSizeCue = $logoItem['width'] . '*' . $logoItem['height'];
     }
 }
 
 $_LANG['thumb_width_cue'] = '宽度和高度设置成：' . $thumbSizeCue;
 $_LANG['site_logo_cue'] = $logoImgSizeCue;
+$_LANG['theme_size_fixed'] = '推荐尺寸：{w}×{h}px';
+$_LANG['theme_size_note_sep'] = '，';
 $_LANG['site_logo_other_cue'] = '一般无需上传该LOGO，只有部分模板需要使用到两个LOGO，比如一个深色、一个白色的';
 
 // 参数设置

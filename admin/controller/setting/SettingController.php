@@ -17,6 +17,7 @@ namespace Dou\Admin\Controller\Setting;
 use Dou\Admin\Controller\BaseController;
 use Dou\Admin\Request\Setting\SettingFormRequest;
 use Dou\Admin\Service\Setting\SettingService;
+use Dou\Core\Facade\Image;
 use Dou\Core\Filesystem\Storage;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Web\Http\Request;
@@ -156,7 +157,13 @@ class SettingController extends BaseController
             $data['site_logo_miniprogram'] = attachment()->storeToDirectory(UploadedFile::fromGlobals('site_logo_miniprogram'), $this->miniLogoDisk, '', 'logo', 'main');
         }
         if (!empty($_FILES['site_favicon']['name'])) {
-            $data['site_favicon'] = attachment()->storeToDirectory(UploadedFile::fromGlobals('site_favicon'), $this->siteRootDisk, '', 'favicon', 'main');
+            $faviconFile = UploadedFile::fromGlobals('site_favicon');
+            if ($faviconFile instanceof UploadedFile && $faviconFile->isValid()) {
+                // 上传任意图片统一转换为站点根目录下固定 32×32 的 favicon.ico
+                if (Image::toIco($faviconFile->getRealPath(), $this->siteRootDisk->path('favicon.ico'), 32)) {
+                    $data['site_favicon'] = 'favicon.ico';
+                }
+            }
         }
         if (!empty($_FILES['weixin_img']['name'])) {
             $data['weixin_img'] = attachment()->storeToDirectory(UploadedFile::fromGlobals('weixin_img'), $this->uploadDisk, '', 'weixin', 'main');

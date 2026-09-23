@@ -1620,7 +1620,6 @@
         },
         ext,
         {
-          centerVertically: true,
           outputWidth: cropTarget.width,
           maxEdge: Math.max(cropTarget.width, cropTarget.height),
           onRegenerate: function () {

@@ -255,6 +255,15 @@ class Init
         $container->instance(\Dou\Core\Contract\LanguageContract::class, $adminLanguage);
         $container->instance(PluginServiceContract::class, $container->make(PluginServiceContract::class));
 
+        // 主题图片尺寸配置：先于语言包读取——lang common.lang.php 依赖 $_SETTING['theme'] 拼缩略图/LOGO cue；
+        // 视图变量 $setting.theme 仍由 ViewVars 在语言包就绪后装配（自动文案依赖 lang()）
+        $container->instance(ThemeSettingsReader::class, new ThemeSettingsReader());
+        $themeSetting = $container->make(ThemeSettingsReader::class)->read();
+        $themeItems = (is_array($themeSetting) && isset($themeSetting['theme']) && is_array($themeSetting['theme']))
+            ? $themeSetting['theme']
+            : array();
+        $GLOBALS['_SETTING'] = array('theme' => $themeItems);
+
         $this->loadLanguageFiles();
 
         // 导航同步 / 清缓存（依赖 language->deleteLang 的须在 language 就绪后注册）
@@ -295,15 +304,9 @@ class Init
             $container->make(AdminMenuService::class)
         ));
         $container->instance(UpdateBadgeBuilder::class, new UpdateBadgeBuilder());
-        $container->instance(ThemeSettingsReader::class, new ThemeSettingsReader());
-
         $settingForView = $module;
-        $themeSetting = $container->make(ThemeSettingsReader::class)->read();
-        // 后台各模块缩略图提示依赖 theme.*_img_size；主题 ..setting.php 缺行时补空串，避免 PHP 8 未定义下标
-        $themeFromFile = (is_array($themeSetting) && isset($themeSetting['theme']) && is_array($themeSetting['theme']))
-            ? $themeSetting['theme']
-            : array();
-        $settingForView['theme'] = ViewVars::theme($themeFromFile);
+        // 后台各模块缩略图提示依赖 theme.*_img_size；主题配置缺键时 ViewVars 补空串，避免 PHP 8 未定义下标
+        $settingForView['theme'] = ViewVars::theme($themeItems);
 
         $engine = app(DouView::class);
         $engine->assign('setting', $settingForView);
@@ -330,6 +333,8 @@ class Init
         $engine->assign('csrf_token', $staticAdminToken);
         $engine->assign('thumb_crop', Session::get('thumb_crop', 0) ? 1 : 0);
         $engine->assign('gallery_crop', Session::get('gallery_crop', 0) ? 1 : 0);
+        // 站点设置文件域默认开启上传时裁剪（未记忆过偏好时为 1）
+        $engine->assign('setting_crop', Session::get('setting_crop', 1) ? 1 : 0);
         $engine->assign('features', ViewVars::features(Config::get('features', array())));
         $engine->assign('_SYSTEM_SIGN', SYSTEM_SIGN);
         $workspaceRequest = $container->make(\Dou\Core\Web\Http\Request::class);

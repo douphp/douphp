@@ -127,9 +127,13 @@ class ViewVars
     }
 
     /**
-     * 后台 $setting.theme：主题 setting 缺行时补 *_img_size 空串，并派生 *_img_crop
+     * 后台 $setting.theme：消费 ThemeSettingsReader 标准化 item 表，
+     * 派生旧契约键 {key}_size（文字说明）与 {key}_crop（裁剪预设比例 "宽/高"）。
      *
-     * @param array $theme 来自主题的 theme 子数组
+     * 文字说明：tip 优先原样输出；否则由 width/height 套语言包模板自动生成并追加 note。
+     * 主题缺键时补空串，避免 PHP 8 未定义下标。
+     *
+     * @param array $theme 标准化 item 表（key => ['width','height','note','tip']）
      * @return array
      */
     public static function theme(array $theme)
@@ -144,19 +148,45 @@ class ViewVars
             'product_img_size' => '',
         );
 
-        $out = self::fill($theme, $defaults);
-        if ($out['case_img_size'] !== '' && $out['cases_img_size'] === '') {
-            $out['cases_img_size'] = $out['case_img_size'];
-        }
-
-        foreach (array_keys($out) as $key) {
-            if (substr($key, -9) !== '_img_size') {
+        $out = array();
+        foreach ($theme as $key => $item) {
+            if (!is_string($key) || $key === '' || !is_array($item)) {
                 continue;
             }
-            $cropKey = substr($key, 0, -9) . '_img_crop';
-            $out[$cropKey] = self::parseWidthHeightHint(
-                isset($out[$key]) ? (string) $out[$key] : ''
-            );
+            $width = isset($item['width']) ? (int) $item['width'] : 0;
+            $height = isset($item['height']) ? (int) $item['height'] : 0;
+            $note = isset($item['note']) ? (string) $item['note'] : '';
+            $tip = isset($item['tip']) ? (string) $item['tip'] : '';
+
+            $text = '';
+            if ($tip !== '') {
+                $text = $tip;
+            } elseif ($width > 0 && $height > 0) {
+                $text = str_replace(
+                    array('{w}', '{h}'),
+                    array((string) $width, (string) $height),
+                    lang('theme_size_fixed', '推荐尺寸：{w}×{h}px')
+                );
+                if ($note !== '') {
+                    $text .= lang('theme_size_note_sep', '，') . $note;
+                }
+            }
+
+            $out[$key . '_size'] = $text;
+            $out[$key . '_crop'] = ($width > 0 && $height > 0) ? $width . '/' . $height : '';
+        }
+
+        $out = self::fill($out, $defaults);
+        foreach (array_keys($defaults) as $key) {
+            $cropKey = substr($key, 0, -5) . '_crop';
+            if (!array_key_exists($cropKey, $out)) {
+                $out[$cropKey] = '';
+            }
+        }
+
+        if ($out['case_img_size'] !== '' && $out['cases_img_size'] === '') {
+            $out['cases_img_size'] = $out['case_img_size'];
+            $out['cases_img_crop'] = isset($out['case_img_crop']) ? $out['case_img_crop'] : '';
         }
 
         return $out;

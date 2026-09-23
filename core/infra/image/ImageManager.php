@@ -102,6 +102,19 @@ class ImageManager
     }
 
     /**
+     * 转为固定尺寸的标准 ICO 图标（PNG 压缩型，保留透明通道）。
+     *
+     * @param string $srcAbs
+     * @param string $dstAbs
+     * @param int $size
+     * @return bool
+     */
+    public function toIco($srcAbs, $dstAbs, $size = 32)
+    {
+        return $this->driver()->toIco($srcAbs, $dstAbs, $size);
+    }
+
+    /**
      * 写缩略图（绝对路径）。
      *
      * @param string $srcAbs

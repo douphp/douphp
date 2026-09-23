@@ -398,6 +398,111 @@ class GdDriver
     }
 
     /**
+     * 将任意图片转换为固定尺寸的标准 ICO 图标（PNG 压缩型，保留透明通道）。
+     *
+     * 源图等比缩放后居中绘制到 size×size 透明画布，再封装为 ICO 容器写入目标路径。
+     * PNG-in-ICO 为现代浏览器普遍支持的格式，可无损保留 alpha；用于站点 favicon（32×32）。
+     *
+     * @param string $srcAbs 源图片绝对路径（png/jpg/gif/webp/bmp/ico 等 GD 可解码格式）
+     * @param string $dstAbs 目标 .ico 绝对路径
+     * @param int $size 图标边长（像素），范围 1-256
+     * @return bool
+     */
+    public function toIco($srcAbs, $dstAbs, $size = 32)
+    {
+        $size = (int) $size;
+        if ($size < 1 || $size > 256 || !is_file($srcAbs)) {
+            return false;
+        }
+        $binary = @file_get_contents($srcAbs);
+        if ($binary === false || $binary === '') {
+            return false;
+        }
+        // imagecreatefromstring 统一解码，兼容 png/jpg/gif/webp/bmp/ico 等格式
+        $srcImage = @imagecreatefromstring($binary);
+        if (!$srcImage) {
+            return false;
+        }
+        $srcWidth = imagesx($srcImage);
+        $srcHeight = imagesy($srcImage);
+        if ($srcWidth <= 0 || $srcHeight <= 0) {
+            if (PHP_VERSION_ID < 80000) {
+                imagedestroy($srcImage);
+            }
+
+            return false;
+        }
+
+        // 透明底画布
+        $canvas = imagecreatetruecolor($size, $size);
+        imagealphablending($canvas, false);
+        imagesavealpha($canvas, true);
+        $transparent = imagecolorallocatealpha($canvas, 0, 0, 0, 127);
+        imagefilledrectangle($canvas, 0, 0, $size, $size, $transparent);
+        imagealphablending($canvas, true);
+
+        // 等比缩放后居中绘制（保持比例，四周留透明边距）
+        $scale = min($size / $srcWidth, $size / $srcHeight);
+        $dstWidth = max(1, (int) round($srcWidth * $scale));
+        $dstHeight = max(1, (int) round($srcHeight * $scale));
+        $dstX = (int) round(($size - $dstWidth) / 2);
+        $dstY = (int) round(($size - $dstHeight) / 2);
+        if (function_exists('imagecopyresampled')) {
+            imagecopyresampled($canvas, $srcImage, $dstX, $dstY, 0, 0, $dstWidth, $dstHeight, $srcWidth, $srcHeight);
+        } else {
+            imagecopyresized($canvas, $srcImage, $dstX, $dstY, 0, 0, $dstWidth, $dstHeight, $srcWidth, $srcHeight);
+        }
+        imagealphablending($canvas, false);
+        imagesavealpha($canvas, true);
+
+        ob_start();
+        $pngOk = imagepng($canvas);
+        $pngData = ob_get_clean();
+
+        if (PHP_VERSION_ID < 80000) {
+            imagedestroy($canvas);
+            imagedestroy($srcImage);
+        }
+        if (!$pngOk || $pngData === false || $pngData === '') {
+            return false;
+        }
+
+        $this->ensureDir(dirname($dstAbs));
+        if (file_exists($dstAbs)) {
+            @unlink($dstAbs);
+        }
+
+        return file_put_contents($dstAbs, $this->buildIcoContainer($pngData, $size)) !== false;
+    }
+
+    /**
+     * 用单张 PNG 数据组装标准 ICO 容器（ICONDIR + ICONDIRENTRY + 图像数据）。
+     *
+     * @param string $pngData PNG 二进制
+     * @param int $size 边长像素
+     * @return string ICO 二进制
+     */
+    private function buildIcoContainer($pngData, $size)
+    {
+        // 目录项宽高字段为 1 字节，256 记 0
+        $dim = $size >= 256 ? 0 : $size;
+        $iconDir = pack('vvv', 0, 1, 1);
+        $iconDirEntry = pack(
+            'CCCCvvVV',
+            $dim,             // bWidth
+            $dim,             // bHeight
+            0,                // bColorCount
+            0,                // bReserved
+            1,                // wPlanes
+            32,               // wBitCount
+            strlen($pngData), // dwBytesInRes
+            6 + 16            // dwImageOffset
+        );
+
+        return $iconDir . $iconDirEntry . $pngData;
+    }
+
+    /**
      * 扩展名 → getimagesize 类型常量。
      *
      * @param string $ext

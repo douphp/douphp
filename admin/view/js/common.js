@@ -152,10 +152,12 @@ $(function () {
     var initialNumber = box.data("initial-number") || "";
     var hasLocalFile = false;
 
-    // 已保存图才显示蒙板「裁剪」；本地未保存文件无可替换的附件号
+    // 已保存图才显示蒙板「裁剪」：有附件号走服务端原路径覆盖；
+    // data-local-crop 场景（站点设置等无附件号的字段）裁剪产物回写本地 file input 随表单提交
     function refreshCropAction() {
       var src = String(initialSrc || "");
-      var show = !!initialNumber && !hasLocalFile && window.douCrop && window.douCrop.editableExt(src);
+      var canEdit = window.douCrop && window.douCrop.editableExt(src);
+      var show = canEdit && !hasLocalFile && (!!initialNumber || !!box.data("local-crop"));
       box.toggleClass("file-input-croppable", show);
     }
 
@@ -232,7 +234,7 @@ $(function () {
 
     function restoreInitial() {
       hasLocalFile = false;
-      if (initialSrc && initialNumber) {
+      if (initialSrc) {
         showPreview(initialSrc);
       } else {
         showEmpty();
@@ -297,6 +299,21 @@ $(function () {
     cropBtn.on("click", function (e) {
       e.preventDefault();
       e.stopPropagation();
+      if (!initialNumber && box.data("local-crop")) {
+        // 无附件号的本地裁剪：取已存图 → douCrop 弹窗 → 产物写回 file input（提交时随表单上传）
+        var baseName = String(initialSrc).split("/").pop();
+        window.douCrop.edit(initialSrc, box.data("crop-ratio"), function (blob) {
+          if (!blob) {
+            return;
+          }
+          if (!replaceInputFile(fileInput[0], blob, baseName)) {
+            return;
+          }
+          applyLocalFile(fileInput[0].files[0]);
+          flashUpdated(box);
+        });
+        return;
+      }
       fileCrop(initialNumber, initialSrc, box.data("crop-ratio"), function (url) {
         if (!url) {
           return;
@@ -2375,27 +2392,34 @@ window.douTab = {
  * 模板直接引用（参考 ai.htm 对 ai.css / ai.js 的引用方式，AdminPrefilter 编译期重写路径）；
  * 未引入插件的页面编辑入口不生效。EXIF 方向由 cropperjs 内置 checkOrientation 矫正。
  *
- * 输出策略：扩展名跟随原图（.png → PNG，.jpg/.jpeg → JPEG），
- * 路径与文件名保持不变；最长边不超过后台设置的 site.image_width（未配置取 1000）。
- * 弹窗工具栏宽、高输入框同步选区像素，确认时按框内尺寸导出（同上封顶）。
+ * 输出策略：扩展名跟随原图（.png → PNG，.jpg/.jpeg → JPEG），路径与文件名保持不变。
+ * 弹窗工具栏宽、高输入框为最终导出尺寸的唯一来源：打开时按配置尺寸（data-crop-ratio 整数对）预填，
+ * 确认时严格按框内宽高导出（原图大则裁小、原图小则拉大）；输入框为空时回退选区尺寸按 site.image_width 封顶。
+ *
+ * 选区布局：打开 / 切换比例 / 重置三个时机统一按「该比例在当前可见图片区域内的最大内接矩形 + 双轴居中」
+ * 摆放选区（图片总是填满选区，比例与图片比例决定哪一边吃满）；自由比例时选区为可见图片区域整块。
  *
  * 对外接口：
  *   douCrop.editableExt(src)  URL 是否为可编辑图片扩展（jpg/jpeg/png/webp）
  *   douCrop.editableFile(file)  本地 File 是否为可编辑图片
  *   douCrop.edit(src, ratioValue, callback)
  *     - src        已上传图片的 URL
- *     - ratioValue 初始宽高比（"1920/400"、"1.3333"；整数对且非 1:1/4:3/16:9 时作为末项精确比例）
+ *     - ratioValue 初始宽高比（"1920/400"、"1.3333"；整数对且非 1:1/4:3/16:9 时作为末项精确比例；
+ *       整数对同时作为宽/高输入框的预设尺寸）
  *     - callback(blob|null)  裁剪产物（扩展名与原图一致）；取消/失败回传 null
  *   douCrop.editFile(file, ratioValue, callback, exportExt, options)
  *     - file       本地 File（选图后、提交前裁剪）
  *     - exportExt  可选，覆盖导出扩展名（换图时与原附件扩展名对齐）
- *     - options    可选 {centerVertically, outputWidth, maxEdge}
+ *     - options    可选 {outputWidth, maxEdge}
  *     - 其余同 edit；未传 exportExt 时导出 MIME 跟文件名/类型
  */
 (function (global, $) {
   "use strict";
 
   var JPEG_QUALITY = 0.85;
+
+  // 宽/高输入框与导出的 sanity 上限（防画布爆炸）；配置尺寸与用户输入不受 site.image_width 封顶
+  var HARD_MAX = 8000;
 
   // 输出最长边上限：来自后台设置 site.image_width（javascript.tpl 输出），未配置取 1000
   function maxEdge() {
@@ -2608,7 +2632,7 @@ window.douTab = {
     };
   }
 
-  function buildToolbarHtml(ratioValue, edgeCap) {
+  function buildToolbarHtml(ratioValue) {
     var html = '<div class="dou-crop-toolbar"><div class="dou-crop-ratios">';
     html += '<span class="dou-crop-label">' + tr("crop_ratio_label", "比例") + "</span>";
     var presets = ratioPresetsFor(ratioValue);
@@ -2621,9 +2645,9 @@ window.douTab = {
       html += '<a href="javascript:;" data-ratio="' + preset.key + '" class="' + active.replace(" ", "") + '">' + label + "</a>";
     }
     html += '</div><div class="dou-crop-size">';
-    html += '<label class="dou-crop-outw" title="' + tr("crop_size_width", "宽度") + '"><input type="number" class="dou-crop-width" min="1" max="' + edgeCap + '" placeholder="' + tr("crop_size_width", "宽度") + '"></label>';
+    html += '<label class="dou-crop-outw" title="' + tr("crop_size_width", "宽度") + '"><input type="number" class="dou-crop-width" min="1" max="' + HARD_MAX + '" placeholder="' + tr("crop_size_width", "宽度") + '"></label>';
     html += '<span class="dou-crop-size-x">×</span>';
-    html += '<label class="dou-crop-outw" title="' + tr("crop_size_height", "高度") + '"><input type="number" class="dou-crop-height" min="1" max="' + edgeCap + '" placeholder="' + tr("crop_size_height", "高度") + '"></label>';
+    html += '<label class="dou-crop-outw" title="' + tr("crop_size_height", "高度") + '"><input type="number" class="dou-crop-height" min="1" max="' + HARD_MAX + '" placeholder="' + tr("crop_size_height", "高度") + '"></label>';
     html += '<span class="dou-crop-size-x">px</span>';
     html += '</div><div class="dou-crop-ops">';
     html += '<a href="javascript:;" data-op="left">' + tr("crop_rotate_left", "向左旋转") + "</a>";
@@ -2655,29 +2679,50 @@ window.douTab = {
   }
 
   /**
-   * 把裁剪框沿原图垂直方向居中（横幅从 16:9 裁到 1920x400 时默认切中部条带）。
+   * 选区布局：按指定比例在「当前可见图片区域」内求最大内接矩形并双轴居中（图片总是填满选区）。
+   *
+   * 在 canvas 空间计算：getCanvasData 天然是旋转后包围盒与缩放后绘制矩形，任意角度旋转 / zoom 后均统一正确；
+   * 可用区 = 画布矩形 ∩ 容器矩形（缩放超出容器时取可见部分）；比例决定哪一边吃满：
+   * 图更宽（画布比例 > 目标比例）时高度吃满，否则宽度吃满。自由比例（NaN）选区为可用区整块。
    *
    * @param {Cropper} cropper
+   * @param {number} ratio 目标宽高比（NaN 表示自由比例）
    */
-  function centerCropVertically(cropper) {
+  function fitCropBoxToRatio(cropper, ratio) {
     if (!cropper) {
       return;
     }
     try {
-      var data = cropper.getData(true);
-      var imageData = cropper.getImageData();
-      if (!data || !imageData || imageData.naturalHeight <= 0 || data.height <= 0) {
+      var canvas = cropper.getCanvasData();
+      var container = cropper.getContainerData();
+      if (!canvas || !container || canvas.width <= 0 || canvas.height <= 0) {
         return;
       }
-      var y = Math.round((imageData.naturalHeight - data.height) / 2);
-      if (y < 0) {
-        y = 0;
+      var left = Math.max(canvas.left, 0);
+      var top = Math.max(canvas.top, 0);
+      var right = Math.min(canvas.left + canvas.width, container.width);
+      var bottom = Math.min(canvas.top + canvas.height, container.height);
+      var aw = right - left;
+      var ah = bottom - top;
+      if (aw <= 0 || ah <= 0) {
+        return;
       }
-      cropper.setData({
-        x: data.x,
-        y: y,
-        width: data.width,
-        height: data.height,
+      var w = aw;
+      var h = ah;
+      if (isFinite(ratio) && ratio > 0) {
+        h = w / ratio;
+        if (h > ah) {
+          h = ah;
+          w = h * ratio;
+        }
+      }
+      var cx = (left + right) / 2;
+      var cy = (top + bottom) / 2;
+      cropper.setCropBoxData({
+        left: cx - w / 2,
+        top: cy - h / 2,
+        width: w,
+        height: h,
       });
     } catch (e) {
       /* noop */
@@ -2728,9 +2773,6 @@ window.douTab = {
       edgeCap = Math.max(edgeCap, pixelPair.width, pixelPair.height);
     }
     var currentRatio = initialRatio;
-    var editingSize = false;
-    // 滚轮/双指缩放期间标记为 true：缩放只改变留在选区里的图像，不回写选区尺寸
-    var zooming = false;
 
     // 兜底：X / ESC 关闭弹窗不经按钮回调，轮询 DOM 移除后按取消结算
     var timer = setInterval(function () {
@@ -2769,22 +2811,25 @@ window.douTab = {
       }
       processing = true;
 
-      // 导出：宽高输入框有值则精确导出（最长边 edgeCap 封顶）；否则按选区尺寸封顶
-      var canvasOpts = {
-        imageSmoothingEnabled: true,
-        imageSmoothingQuality: "high",
-        maxWidth: edgeCap,
-        maxHeight: edgeCap,
-      };
+      // 导出：宽/高输入框为唯一来源——按框内尺寸原样导出（仅受 HARD_MAX sanity 封顶）；
+      // 输入框为空时回退选区尺寸按 edgeCap 封顶
       var outW = parseInt($modal.find(".dou-crop-width").val(), 10);
       var outH = parseInt($modal.find(".dou-crop-height").val(), 10);
-      var sized = clampExportSize(outW, outH, edgeCap, null);
+      var sized = clampExportSize(outW, outH, HARD_MAX, null);
+      var canvasOpts;
       if (sized) {
         canvasOpts = {
           imageSmoothingEnabled: true,
           imageSmoothingQuality: "high",
           width: sized.width,
           height: sized.height,
+        };
+      } else {
+        canvasOpts = {
+          imageSmoothingEnabled: true,
+          imageSmoothingQuality: "high",
+          maxWidth: edgeCap,
+          maxHeight: edgeCap,
         };
       }
 
@@ -2794,9 +2839,26 @@ window.douTab = {
       } catch (e) {
         canvas = null;
       }
+      // cropperjs 导出时保持选区比例（自由模式下选区比例可与框内比例不一致）；
+      // 输入框为唯一尺寸来源，不一致时按框内尺寸精确重绘（拉伸由用户手改尺寸自担）
+      if (canvas && sized && (canvas.width !== sized.width || canvas.height !== sized.height)) {
+        var exact = document.createElement("canvas");
+        exact.width = sized.width;
+        exact.height = sized.height;
+        var exactCtx = exact.getContext("2d");
+        if (exactCtx) {
+          exactCtx.imageSmoothingEnabled = true;
+          exactCtx.imageSmoothingQuality = "high";
+          exactCtx.drawImage(canvas, 0, 0, sized.width, sized.height);
+          canvas = exact;
+        }
+      }
       if (!canvas || !canvas.toBlob) {
-        settle(null);
-        done();
+        try {
+          settle(null);
+        } finally {
+          done();
+        }
         return;
       }
 
@@ -2811,8 +2873,12 @@ window.douTab = {
       }
       canvas.toBlob(
         function (blob) {
-          settle(blob || null);
-          done();
+          // 业务回调抛异常也不能卡住弹窗：done 必须结算（douModal 依赖它关窗）
+          try {
+            settle(blob || null);
+          } finally {
+            done();
+          }
         },
         type,
         type === "image/jpeg" ? JPEG_QUALITY : undefined
@@ -2824,7 +2890,7 @@ window.douTab = {
       size: "lg",
       width: 720,
       closeOnOverlay: false,
-      bodyHtml: buildToolbarHtml(ratioValue, edgeCap),
+      bodyHtml: buildToolbarHtml(ratioValue),
       onOpen: function ($m) {
         var $img = $m.find(".dou-crop-stage img");
         $img.attr("src", src);
@@ -2841,29 +2907,41 @@ window.douTab = {
           rotatable: true,
           scalable: true,
           aspectRatio: initialRatio,
-          zoom: function () {
-            zooming = true;
-            setTimeout(function () {
-              zooming = false;
-            }, 0);
-          },
           ready: function () {
-            if (options.centerVertically) {
-              centerCropVertically(this);
-            }
-          },
-          crop: function (event) {
-            if (editingSize || zooming) {
-              return;
-            }
-            var w = Math.round(event.detail.width);
-            var h = Math.round(event.detail.height);
-            if (w > 0 && h > 0) {
-              $m.find(".dou-crop-width").val(w);
-              $m.find(".dou-crop-height").val(h);
-            }
+            // cropperjs 的 ready 回调 this 指向 img 元素，实例挂在 element.cropper 上
+            var instance = this.cropper || this;
+            fitCropBoxToRatio(instance, initialRatio);
+            prefillSizeInputs($m, instance);
           },
         });
+
+        // 一次性预填：配置整数对优先；无配置时取初始选区像素；之后输入框不再被选区回写
+        var sizePrefilled = false;
+        function prefillSizeInputs($host, cropperInstance) {
+          if (sizePrefilled) {
+            return;
+          }
+          sizePrefilled = true;
+          var w = 0;
+          var h = 0;
+          if (pixelPair) {
+            w = pixelPair.width;
+            h = pixelPair.height;
+          } else {
+            try {
+              var initData = cropperInstance.getData(true);
+              w = Math.round(initData.width);
+              h = Math.round(initData.height);
+            } catch (e) {
+              w = 0;
+              h = 0;
+            }
+          }
+          if (w > 0 && h > 0) {
+            $host.find(".dou-crop-width").val(w);
+            $host.find(".dou-crop-height").val(h);
+          }
+        }
 
         function applySizeFromInputs(changedEl) {
           if (!cropper) {
@@ -2895,13 +2973,8 @@ window.douTab = {
               }
             }
           }
-          var imageData = null;
-          try {
-            imageData = cropper.getImageData();
-          } catch (e) {
-            imageData = null;
-          }
-          var sized = clampExportSize(w, h, edgeCap, imageData);
+          // 输入框为唯一来源：联动结果仅受 HARD_MAX sanity 约束，允许大于原图尺寸（放大场景）
+          var sized = clampExportSize(w, h, HARD_MAX, null);
           if (!sized) {
             return;
           }
@@ -2920,12 +2993,8 @@ window.douTab = {
           }
         }
 
-        $m.on("focus", ".dou-crop-width, .dou-crop-height", function () {
-          editingSize = true;
-        });
         $m.on("blur", ".dou-crop-width, .dou-crop-height", function () {
           applySizeFromInputs(this);
-          editingSize = false;
         });
         $m.on("change", ".dou-crop-width, .dou-crop-height", function () {
           applySizeFromInputs(this);
@@ -2939,23 +3008,14 @@ window.douTab = {
           if (!cropper) {
             return;
           }
-          var prev = null;
-          try {
-            prev = cropper.getData();
-          } catch (e) {
-            prev = null;
-          }
           cropper.setAspectRatio(currentRatio);
-          if (prev && prev.width > 0 && prev.height > 0) {
-            try {
-              cropper.setData({
-                x: prev.x,
-                y: prev.y,
-                width: prev.width,
-                height: prev.height,
-              });
-            } catch (e2) {
-              /* noop */
+          // 选区按新比例在可见图片区域内最大内接 + 双轴居中（图片填满选区）
+          fitCropBoxToRatio(cropper, currentRatio);
+          // 比例切换：输入框保持宽度、按新比例重算高度；自由比例不动输入框
+          if (isFinite(currentRatio) && currentRatio > 0) {
+            var ratioWidth = parseInt($m.find(".dou-crop-width").val(), 10);
+            if (ratioWidth > 0) {
+              $m.find(".dou-crop-height").val(Math.max(1, Math.round(ratioWidth / currentRatio)));
             }
           }
         });
@@ -2978,11 +3038,11 @@ window.douTab = {
             if (cropper.setAspectRatio) {
               cropper.setAspectRatio(currentRatio);
             }
-            if (options.centerVertically) {
-              setTimeout(function () {
-                centerCropVertically(cropper);
-              }, 0);
-            }
+            sizePrefilled = false;
+            setTimeout(function () {
+              fitCropBoxToRatio(cropper, currentRatio);
+              prefillSizeInputs($m, cropper);
+            }, 0);
           }
         });
       },

@@ -300,6 +300,7 @@ $_LANG['stock'] = '啟用商品庫存功能';
 $_LANG['show_price'] = '是否顯示商品價格';
 $_LANG['input_must_include_chinese'] = '前台輸入必須包含中文';
 $_LANG['site_favicon'] = 'Favicon 圖示';
+$_LANG['site_favicon_cue'] = '支援上傳 PNG / JPG / GIF / WEBP / ICO 等圖片，系統將自動轉換為 32×32 的 ICO 圖示';
 $_LANG['code_head'] = '頂部 JS 程式碼（位於頂部 head 之間）';
 $_LANG['code'] = '底部 JS 程式碼（如統計/線上客服程式碼）';
 $_LANG['show_customer'] = '顯示右側漂浮線上客服';
@@ -420,17 +421,28 @@ $_LANG['chat_link_cue'] = '請輸入第三方線上客服的連結；若已啟�
 $thumbSizeCue = '';
 $logoImgSizeCue = '';
 if (isset($_SETTING) && is_array($_SETTING) && isset($_SETTING['theme']) && is_array($_SETTING['theme'])) {
-    if (isset($_SETTING['theme']['product_thumb_size'])) {
-        $thumbSizeCue = (string) $_SETTING['theme']['product_thumb_size'];
+    // $_SETTING['theme'] 為 ThemeSettingsReader 標準化 item 表（width/height/note/tip）
+    $thumbItem = isset($_SETTING['theme']['product_thumb']) && is_array($_SETTING['theme']['product_thumb'])
+        ? $_SETTING['theme']['product_thumb'] : array();
+    if (!empty($thumbItem['width']) && !empty($thumbItem['height'])) {
+        $thumbSizeCue = $thumbItem['width'] . '*' . $thumbItem['height'];
+    } elseif (!empty($thumbItem['tip'])) {
+        $thumbSizeCue = (string) $thumbItem['tip'];
     }
 
-    if (isset($_SETTING['theme']['logo_img_size'])) {
-        $logoImgSizeCue = (string) $_SETTING['theme']['logo_img_size'];
+    $logoItem = isset($_SETTING['theme']['logo_img']) && is_array($_SETTING['theme']['logo_img'])
+        ? $_SETTING['theme']['logo_img'] : array();
+    if (!empty($logoItem['tip'])) {
+        $logoImgSizeCue = (string) $logoItem['tip'];
+    } elseif (!empty($logoItem['width']) && !empty($logoItem['height'])) {
+        $logoImgSizeCue = $logoItem['width'] . '*' . $logoItem['height'];
     }
 }
 
 $_LANG['thumb_width_cue'] = '寬度和高度設定成：' . $thumbSizeCue;
 $_LANG['site_logo_cue'] = $logoImgSizeCue;
+$_LANG['theme_size_fixed'] = '推薦尺寸：{w}×{h}px';
+$_LANG['theme_size_note_sep'] = '，';
 $_LANG['site_logo_other_cue'] = '一般無需上傳該 LOGO，只有部分模板需要使用到兩個 LOGO，比如一個深色、一個白色的';
 
 // 參數設定

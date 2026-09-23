@@ -15,6 +15,7 @@
 namespace Dou\Admin\Controller\File;
 
 use Dou\Admin\Controller\BaseController;
+use Dou\Admin\Service\Theme\ThemeSettingsReader;
 use Dou\Core\Facade\DB;
 use Dou\Core\Facade\Session;
 use Dou\Core\Filesystem\Storage;
@@ -56,6 +57,13 @@ class FileController extends BaseController
         // img_width 未传时的兜底按类型区分：编辑器插图(content)用 editor_image_width，
         // 其余（相册 gallery 等主图类）用 image_width，避免两处配置混淆
         $img_width_fallback = ($type == 'content') ? (int) Config::get('site.editor_image_width', 0) : (int) Config::get('site.image_width', 1000);
+        // 主题配置的主图尺寸优先于全局缩图限宽：避免服务端（只缩不放）把客户端裁剪产物二次压缩
+        if ($type != 'content') {
+            $themeWidth = (int) app(ThemeSettingsReader::class)->imageWidthForModule($module);
+            if ($themeWidth > $img_width_fallback) {
+                $img_width_fallback = $themeWidth;
+            }
+        }
         $img_width = $request->digits('img_width', $img_width_fallback);
         $field = $target . '_file';
 
@@ -134,13 +142,22 @@ class FileController extends BaseController
             return $this->json(array('error' => attachment()->formatFileWrong()));
         }
 
-        // 后处理口径与 box 一致：gallery/main 限宽 image_width，重打水印
+        // 裁剪产物尺寸由裁剪弹窗输入框唯一决定：以产物自身宽度作为限宽，
+        // 在「只缩不放」策略下成为 no-op，避免 site.image_width 把精确尺寸二次压缩
+        $file = UploadedFile::fromGlobals('file');
+        $cropWidth = (int) Config::get('site.image_width', 1000);
+        if ($file instanceof UploadedFile && $file->isValid()) {
+            $info = @getimagesize($file->getRealPath());
+            if (is_array($info) && (int) $info[0] > $cropWidth) {
+                $cropWidth = (int) $info[0];
+            }
+        }
+
+        // 后处理口径与 box 一致：重打水印
         $opts = AttachmentUploadOptions::create()
-            ->withImageWidth((int) Config::get('site.image_width', 1000))
+            ->withImageWidth($cropWidth)
             ->withWatermark(Config::get('site.watermark', false))
             ->withUploader('admin', (int) auth('admin')->id());
-
-        $file = UploadedFile::fromGlobals('file');
         if (!($file instanceof UploadedFile) || !$file->isValid()) {
             if ($file instanceof UploadedFile && $file->isSizeLimitError()) {
                 return $this->json(array('error' => UploadedFile::formatFileOutSize(UploadedFile::phpUploadMaxKb())));
@@ -158,7 +175,7 @@ class FileController extends BaseController
     }
 
     /**
-     * 记住「上传时裁剪」勾选（缩略图 / 主图各自一份）。
+     * 记住「上传时裁剪」勾选（缩略图 / 相册 / 站点设置各自一份）。
      *
      * @param Request $request
      * @return \Dou\Core\Web\Http\Response
@@ -167,10 +184,10 @@ class FileController extends BaseController
     {
         $on = $request->integer('crop', 0) ? 1 : 0;
         $scope = $request->alpha('scope', 'thumb');
-        if ($scope !== 'gallery') {
+        if (!in_array($scope, array('thumb', 'gallery', 'setting'), true)) {
             $scope = 'thumb';
         }
-        Session::set($scope === 'gallery' ? 'gallery_crop' : 'thumb_crop', $on);
+        Session::set($scope . '_crop', $on);
 
         return $this->json(array('crop' => $on, 'scope' => $scope));
     }

@@ -30,6 +30,7 @@ if (!defined('IN_DOUCO')) {
  * @method static ImageEditor open(string $absolutePath)
  * @method static array|false info(string $absolutePath)
  * @method static bool resize(string $srcAbs, string $dstAbs, int $width, int $height, int $quality = 90)
+ * @method static bool toIco(string $srcAbs, string $dstAbs, int $size = 32)
  * @method static bool thumb(string $srcAbs, string $thumbAbs, int $width, int $height, int $quality = 90)
  * @method static bool watermark(string $srcAbs, string $dstAbs, array $options, int $quality = 90)
  * @method static string buildThumbPath(string $sourceRelative, string $thumbSubdir = '')

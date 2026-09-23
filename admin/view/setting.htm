@@ -9,6 +9,7 @@
 <link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
 <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
 <link href="css/common.css" rel="stylesheet" type="text/css">
+<link href="css/cropper.min.css" rel="stylesheet" type="text/css">
 {include file="inc/javascript.tpl"}
 </head>
 <body>
@@ -68,8 +69,26 @@
             <!-- {/foreach} -->
            </select>
            <!-- {elseif $cfg_list.type eq 'file'} -->
+           {if $cfg_list.name eq 'site_favicon'}
            <input type="file" name="{$cfg_list.name}" size="18" />
            {if $cfg_list.value}<a href="../{$cfg_list.value}" target="_blank"><img src="images/icon_yes.png"></a>{else}<img src="images/icon_no.png">{/if}
+           {else}
+           <div class="file-input{if $cfg_list.value} file-input-filled{/if}" data-initial-src="{if $cfg_list.value}../{$cfg_list.value}{/if}" data-crop-ratio="{if $cfg_list.name eq 'site_logo' || $cfg_list.name eq 'site_logo_other' || $cfg_list.name eq 'site_logo_miniprogram'}{$setting.theme.logo_img_crop}{/if}" data-local-crop="1">
+            <div class="file-input-stage">
+             <label for="{$cfg_list.name}" class="file-input-label"><i class="file-input-placeholder bi-plus-lg"></i><!-- {if $cfg_list.value} --><img class="file-input-preview" src="../{$cfg_list.value}" alt="" /><!-- {else} --><img class="file-input-preview" alt="" /><!-- {/if} --><input type="file" id="{$cfg_list.name}" name="{$cfg_list.name}" accept="image/*" /></label>
+             <div class="file-input-mask">
+              <button type="button" class="file-input-action file-input-action-upload bi-upload" title="{$lang.file_btn}" tabindex="-1"></button>
+              <button type="button" class="file-input-action file-input-action-replace bi-arrow-repeat" title="{$lang.replace}" tabindex="-1"></button>
+              <button type="button" class="file-input-action file-input-action-crop bi-scissors" title="{$lang.crop_title}"></button>
+              <button type="button" class="file-input-action file-input-remove bi-x" title="{$lang.del}"></button>
+             </div>
+            </div>
+            <div class="file-input-rail">
+             <i class="file-input-rail-icon bi-scissors" aria-hidden="true"></i>
+             <label class="file-input-crop-check" title="{$lang.crop_on_upload}"><input type="checkbox" class="file-input-crop-pref" data-crop-scope="setting"{if $setting_crop} checked="checked"{/if} /></label>
+            </div>
+           </div>
+           {/if}
            <!-- {elseif $cfg_list.type eq 'textarea'} -->
            <textarea name="{$cfg_list.name}" cols="83" rows="8" class="textarea" />{$cfg_list.value}</textarea>
            <!-- {else} -->
@@ -160,6 +179,7 @@
   </div>
  {include file="inc/footer.tpl"}
 </div>
+<script type="text/javascript" src="js/cropper.min.js"></script>
 <script type="text/javascript">
 {literal}
 $(function () {
