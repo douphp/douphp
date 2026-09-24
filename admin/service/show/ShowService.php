@@ -47,11 +47,10 @@ class ShowService extends BaseService
         foreach ($rows as $model) {
             $row = $model->toArray();
 
-            $text_array = array();
-            if (isset($row['text']) && preg_match("(\r)", $row['text'])) {
-                $show_text = str_replace("\r\n", "\r", $row['text']);
-                $text_array = explode("\r", $show_text);
-            }
+            $text = isset($row['text']) ? (string) $row['text'] : '';
+            $text_array = $text === ''
+                ? array()
+                : explode("\n", str_replace(array("\r\n", "\r"), "\n", $text));
 
             $show_list[] = array(
                 'id' => $row['id'],

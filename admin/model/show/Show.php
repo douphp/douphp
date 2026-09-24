@@ -95,11 +95,10 @@ class Show extends Model
         foreach ((array) $rows as $row) {
             $row = language()->langBox($row, 'show', 'name, image, link, text');
 
-            $text_array = array();
-            if (preg_match("(\r)", $row['text'])) {
-                $show_text = str_replace("\r\n", "\r", $row['text']);
-                $text_array = explode("\r", $show_text);
-            }
+            $text = (string) $row['text'];
+            $text_array = $text === ''
+                ? array()
+                : explode("\n", str_replace(array("\r\n", "\r"), "\n", $text));
 
             $show_list[] = array(
                 'id' => $row['id'],

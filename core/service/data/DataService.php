@@ -139,11 +139,10 @@ class DataService extends BaseService implements DataServiceContract
         foreach ((array) $result as $row) {
             $row = language()->langBox($row, 'data', 'name, text, link');
 
-            $textArray = array();
-            if (preg_match("(\r)", $row['text'])) {
-                $text = str_replace("\r\n", "\r", $row['text']);
-                $textArray = explode("\r", $text);
-            }
+            $text = (string) $row['text'];
+            $textArray = $text === ''
+                ? array()
+                : explode("\n", str_replace(array("\r\n", "\r"), "\n", $text));
 
             $child = array();
             if ($row['is_class']) {
