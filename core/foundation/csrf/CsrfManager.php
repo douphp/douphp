@@ -15,6 +15,7 @@
 namespace Dou\Core\Foundation\Csrf;
 
 use Dou\Core\Facade\Session;
+use Dou\Core\Support\Str;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
@@ -37,21 +38,16 @@ class CsrfManager
     /**
      * 生成并写入指定 id 的 CSRF 令牌，返回令牌值。
      *
-     * 令牌一律由 CSPRNG 生成 32 hex（128bit）。random_bytes 自 PHP 5.6 起为内置函数，
-     * 不再保留 md5(uniqid(rand())) 这类仅 64bit、且熵源可预测的降级分支；
-     * CSPRNG 不可用时直接抛出，避免静默发放弱令牌。
+     * 令牌一律由 CSPRNG 生成 32 hex（128bit）。random_bytes 需 PHP 7.0+，
+     * 5.6 回退到同为 CSPRNG 的 openssl_random_pseudo_bytes（见 {@see Str::randomHex()}），
+     * 不保留 md5(uniqid(rand())) 这类仅 64bit、且熵源可预测的降级分支。
      *
      * @param string $id 令牌标记（static_admin / static_user / 一次性表单 id）
      * @return string
-     * @throws \RuntimeException 系统无可用 CSPRNG 时
      */
     public function generate($id)
     {
-        if (!function_exists('random_bytes')) {
-            throw new \RuntimeException('CSRF token generation requires random_bytes().');
-        }
-
-        $value = bin2hex(random_bytes(16));
+        $value = Str::randomHex(16);
         Session::set('token', $value, $id);
 
         return $value;

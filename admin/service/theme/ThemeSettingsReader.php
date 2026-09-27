@@ -90,16 +90,18 @@ class ThemeSettingsReader extends BaseService
     public function imageWidthForModule($module)
     {
         $module = (string) $module;
-        if (!isset(self::MODULE_IMAGE_KEYS[$module])) {
+        // PHP 5.6 不允许 isset() 直接作用于类常量下标，先取到局部变量再判断
+        $imageKeys = self::MODULE_IMAGE_KEYS;
+        if (!isset($imageKeys[$module])) {
             return 0;
         }
 
         $setting = $this->read();
-        if (!is_array($setting) || !isset($setting['theme'][self::MODULE_IMAGE_KEYS[$module]])) {
+        if (!is_array($setting) || !isset($setting['theme'][$imageKeys[$module]])) {
             return 0;
         }
 
-        return (int) $setting['theme'][self::MODULE_IMAGE_KEYS[$module]]['width'];
+        return (int) $setting['theme'][$imageKeys[$module]]['width'];
     }
 
     /**

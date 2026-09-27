@@ -16,6 +16,7 @@ namespace Dou\Core\Filesystem;
 
 use Dou\Core\Filesystem\Contracts\Filesystem;
 use Dou\Core\Filesystem\Contracts\FilesystemAdapter;
+use Dou\Core\Support\Str;
 use Dou\Core\Web\Http\UploadedFile;
 
 if (!defined('IN_DOUCO')) {
@@ -372,14 +373,15 @@ class Disk implements Filesystem
     /**
      * 生成加密安全的随机文件名（不含扩展名）。
      *
-     * 使用 random_bytes 生成 8 位十六进制串，碰撞概率约 1/2^32，
-     * 远优于原 mt_rand 方案（1/9000）。
+     * 使用 CSPRNG 生成 8 位十六进制串，碰撞概率约 1/2^32，
+     * 远优于原 mt_rand 方案（1/9000）；random_bytes 需 PHP 7.0+，
+     * 5.6 回退 openssl（见 {@see Str::randomHex()}）。
      *
      * @return string
      */
     private function randomBasename()
     {
-        return bin2hex(random_bytes(4));
+        return Str::randomHex(4);
     }
 
     /**

@@ -74,6 +74,9 @@ class Init
     {
         $this->bootCommon($routeInfo);
         $this->bootCore();
+        // 授权检测须早于视图引擎：SiteThemePolicy::effectiveTheme() 依 app.licensed 判定商业
+        // 主题（^m\d{3}$）是否降级 default；晚于 setupViewEngine 赋值会让已授权站点前台误回退。
+        $this->detectAuthorization();
         // 先建立视图引擎（依赖 cfg，cfg 已在 bootCore 就绪）；
         // 让后续 loadLanguageAndModules 里的 data/user 等能真正向模板注入变量。
         $this->setupViewEngine();
@@ -126,6 +129,7 @@ class Init
     {
         $this->bootCommon($routeInfo);
         $this->bootCore();
+        $this->detectAuthorization();
         $this->loadLanguageAndModules();
         $this->checkSiteClosed();
 
@@ -137,6 +141,26 @@ class Init
         }
 
         ob_start();
+    }
+
+    /**
+     * 授权检测：解析云端下发的凭据文件，结果落入 Config::set('app.licensed', bool)。
+     *
+     * 由 boot() / bootForPluginEntry() 在 setupViewEngine() 之前显式调用（主题降级判定依赖本结果）。
+     *
+     * @return void
+     */
+    private function detectAuthorization()
+    {
+        Config::set('app.licensed', false);
+        if (file_exists($cdkeyFile = STORAGE_PATH . 'state/cdkey.php')) {
+            // 凭据由云端下发，按纯文本解析取值，不作为 PHP 源码执行。
+            $cdkey = Cdkey::read($cdkeyFile);
+            $decompileInit = $cdkey['code'];
+            if ($decompileInit === substr(md5(DOU_SHELL), 16) . Config::get('site.douphp_version', '') . Util::normalizeUrlHost(ROOT_URL)) {
+                Config::set('app.licensed', true);
+            }
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -291,16 +315,8 @@ class Init
             exit;
         }
 
-        // 授权检测：结果落入 Config::set('app.licensed', bool)
-        Config::set('app.licensed', false);
-        if (file_exists($cdkeyFile = STORAGE_PATH . 'state/cdkey.php')) {
-            // 凭据由云端下发，按纯文本解析取值，不作为 PHP 源码执行。
-            $cdkey = Cdkey::read($cdkeyFile);
-            $decompileInit = $cdkey['code'];
-            if ($decompileInit === substr(md5(DOU_SHELL), 16) . Config::get('site.douphp_version', '') . Util::normalizeUrlHost(ROOT_URL)) {
-                Config::set('app.licensed', true);
-            }
-        }
+        // 授权检测已在 boot()/bootForPluginEntry() 中先于视图引擎完成（见 detectAuthorization()），
+        // 此处直接复用 Config::get('app.licensed') 的结果。
 
         // 版权信息 / 语言包
         $powerText = Util::fromCharCodes(array(0x50, 0x6f, 0x77, 0x65, 0x72, 0x65, 0x64, 0x20, 0x62, 0x79));

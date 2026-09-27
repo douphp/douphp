@@ -1279,6 +1279,18 @@ class InstallService extends BaseService
             return false;
         }
 
+        // 云在鉴权/授权未通过时会返回 2xx + 纯文本占位内容（如 login_required），
+        // 若仍按原样落盘，后续解压步骤会对一个非 ZIP 文件报出误导性的「压缩包解压失败」。
+        // 此处在下载阶段就识别常见哨兵与 ZIP 归档签名，直接给出可操作错误并拒绝写入。
+        if ($trimBody === 'login_required') {
+            $this->lastDownloadFailureDetail = 'login_required';
+            return false;
+        }
+        if (!$this->looksLikeZipArchive($body)) {
+            $this->lastDownloadFailureDetail = 'invalid_package';
+            return false;
+        }
+
         if (!@file_put_contents($saveFile, $body)) {
             $this->lastDownloadFailureDetail = 'write_failed';
             @unlink($saveFile);
@@ -1286,6 +1298,22 @@ class InstallService extends BaseService
         }
 
         return $saveFile;
+    }
+
+    /**
+     * 判断下载内容是否为合法 ZIP 归档（校验本地文件头 / 空归档 / 跨卷签名）。
+     *
+     * @param string $binary 响应体原始字节
+     * @return bool
+     */
+    private function looksLikeZipArchive($binary)
+    {
+        if (strlen($binary) < 4) {
+            return false;
+        }
+        $signature = substr($binary, 0, 4);
+
+        return $signature === "PK\x03\x04" || $signature === "PK\x05\x06" || $signature === "PK\x07\x08";
     }
 
     /**
@@ -1300,6 +1328,8 @@ class InstallService extends BaseService
             'upstream_not_found' => 'cloud_down_upstream_not_found',
             'upstream_unavailable' => 'cloud_down_upstream_unavailable',
             'upstream_misconfigured' => 'cloud_down_upstream_misconfigured',
+            'login_required' => 'cloud_down_login_required',
+            'invalid_package' => 'cloud_down_invalid_package',
         );
         if (isset($map[$detail]) && lang_has($map[$detail])) {
             return lang($map[$detail]);

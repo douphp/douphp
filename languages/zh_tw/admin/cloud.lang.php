@@ -59,6 +59,8 @@ $_LANG['cloud_local_zip_missing'] = '未在 cache 目錄找到本地安裝包，
 $_LANG['cloud_down_upstream_not_found'] = '雲端未找到該安裝包（可能版本或編號不存在），請確認後再試。';
 $_LANG['cloud_down_upstream_unavailable'] = '下載服務暫時不可用或上游鏡像無法存取，請稍後再試。';
 $_LANG['cloud_down_upstream_misconfigured'] = '雲端下載服務未正確設定上游地址，請聯絡管理員。';
+$_LANG['cloud_down_login_required'] = '目前雲帳號沒有該資源的下載權限。';
+$_LANG['cloud_down_invalid_package'] = '下載內容不是有效的安裝包（未獲得該資源權限或資源不存在），請確認後重試。';
 
 // 安裝
 $_LANG['cloud_install_ing'] = '正在安裝 ';
