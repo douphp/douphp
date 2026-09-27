@@ -36,7 +36,7 @@ class UpdateStateService extends BaseService
     public function localSitePayload($type = '')
     {
         $updateDate = unserialize(Config::get('site.update_date', ''));
-        $cloudAccount = unserialize(Config::get('site.cloud_account', ''));
+        $cloudAccount = CloudService::loadCloudAccount();
 
         if ($type) {
             $localSite = isset($updateDate[$type]) ? $updateDate[$type] : array();

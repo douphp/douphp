@@ -17,6 +17,7 @@ namespace Dou\Admin\Service\Theme;
 use Dou\Admin\Facade\Cloud;
 use Dou\Admin\Model\Theme\Theme;
 use Dou\Admin\Service\Cache\CacheClearService;
+use Dou\Admin\Service\Cloud\CloudService;
 use Dou\Core\Service\BaseService;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Support\Check;
@@ -207,10 +208,7 @@ class ThemeService extends BaseService
         $themeId = (string) Config::get('site.site_theme', '');
         $text = '';
 
-        $cloud_account = unserialize(Config::get('site.cloud_account', ''));
-        if (!is_array($cloud_account)) {
-            $cloud_account = array();
-        }
+        $cloud_account = CloudService::loadCloudAccount();
 
         $envelope = CloudApi::postJson(CloudApi::PATH_THEME_MODULE_SUPPORT, array(
             'theme_id' => $themeId,

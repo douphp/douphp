@@ -18,6 +18,7 @@ use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Service\Admin\AdminLogAction;
+use Dou\Core\Service\Ai\CredentialCipher;
 use Dou\Core\Service\BaseService;
 use Dou\Core\Support\Check;
 use Dou\Core\Web\Http\CloudApi;
@@ -133,7 +134,7 @@ class CloudService extends BaseService
      */
     public function fetchOrderHtml($type, $action, $cloudId)
     {
-        $cloudAccount = unserialize(Config::get('site.cloud_account', ''));
+        $cloudAccount = self::loadCloudAccount();
         $data = array(
             'type' => $type,
             'action' => $action,
@@ -178,19 +179,22 @@ class CloudService extends BaseService
             throw new DomainException(lang('cloud_account_user_wrong'), route('admin.cloud.account', array(), array('query' => array('action' => 'set'))));
         }
 
-        $cloudAccount = array(
-            'user' => $cloudUser,
-            'password' => md5($cloudPassword),
-        );
-
+        // 提交明文口令：云端按「明文 / MD5 双协议」宽版验证（见 .api/lib/Check::verifyPassword），
+        // 先做 MD5 转换在云端为 bcrypt(明文) 存储时数学上无法验证。
         $envelope = CloudApi::postJson(CloudApi::PATH_USER_CLIENT_CHECK, array(
-            'user' => $cloudAccount['user'],
-            'password' => $cloudAccount['password'],
+            'user' => $cloudUser,
+            'password' => (string) $cloudPassword,
         ));
 
         if (!is_array($envelope) || empty($envelope['valid'])) {
             throw new DomainException(lang('cloud_account_wrong'), route('admin.cloud.account', array(), array('query' => array('action' => 'set'))));
         }
+
+        // 校验通过后密文落库（与 AI 凭据同款加密器）；历史版本存 MD5 值，见 loadCloudAccount() 兼容读取
+        $cloudAccount = array(
+            'user' => $cloudUser,
+            'password' => (new CredentialCipher())->encrypt((string) $cloudPassword),
+        );
 
         DB::table('config')
             ->where('name', 'cloud_account')
@@ -214,6 +218,36 @@ class CloudService extends BaseService
     }
 
     /**
+     * 读取本站已保存的云端账号（user + 可提交给云端的口令）。
+     *
+     * password 存储形态：新值为 {@see CredentialCipher} 加密串（enc:v1: 前缀）；
+     * 历史版本存 MD5 值（不可逆），按原样返回以保持旧账号可用——云端宽版验证
+     * 对「MD5 输入 + MD5 存储」仍可通过（见 .api/lib/Check::verifyPassword）。
+     * 密文损坏或密钥失配时返回空口令，等价未登录云账号。
+     *
+     * @return array{user:string, password:string}
+     */
+    public static function loadCloudAccount()
+    {
+        $cloudAccount = unserialize((string) Config::get('site.cloud_account', ''));
+        if (!is_array($cloudAccount)) {
+            return array('user' => '', 'password' => '');
+        }
+
+        $user = isset($cloudAccount['user']) ? (string) $cloudAccount['user'] : '';
+        $password = isset($cloudAccount['password']) ? (string) $cloudAccount['password'] : '';
+        if ($password !== '') {
+            try {
+                $password = (new CredentialCipher())->decrypt($password);
+            } catch (\RuntimeException $e) {
+                $password = '';
+            }
+        }
+
+        return array('user' => $user, 'password' => $password);
+    }
+
+    /**
      * 探测云端版权授权状态（无副作用，不写入文件）。
      *
      * 用于安装流程在 preflight 阶段前置拦截：仅当云端明确返回 401/403 时阻断。
@@ -223,7 +257,7 @@ class CloudService extends BaseService
      */
     public function probeCopyright()
     {
-        $cloudAccount = unserialize(Config::get('site.cloud_account', ''));
+        $cloudAccount = self::loadCloudAccount();
         $data = array(
             'user' => isset($cloudAccount['user']) ? $cloudAccount['user'] : '',
             'password' => isset($cloudAccount['password']) ? $cloudAccount['password'] : '',
@@ -258,15 +292,6 @@ class CloudService extends BaseService
      */
     public function copyright($showMsg = false)
     {
-        $cloudAccount = unserialize(Config::get('site.cloud_account', ''));
-        $data = array(
-            'user' => isset($cloudAccount['user']) ? $cloudAccount['user'] : '',
-            'password' => isset($cloudAccount['password']) ? $cloudAccount['password'] : '',
-            'domain' => ROOT_URL,
-            'shell' => substr(md5(DOU_SHELL), 16),
-            'version' => Config::get('site.douphp_version', ''),
-            'system_sign' => SYSTEM_SIGN,
-        );
         $probe = $this->probeCopyright();
         $status = (string) $probe['status'];
         $code = (int) $probe['code'];
@@ -591,7 +616,8 @@ class CloudService extends BaseService
      *
      * 请求体携带：
      *   - `localsystem`（与 `/connect`、`/update/system` 同格式），便于云端识别客户端环境；
-     *   - `user`、`password`：本地 `cloud_account` 中的云账号邮箱/手机 + MD5 密码，
+     *   - `user`、`password`：本地 `cloud_account` 中的云账号邮箱/手机 + 口令
+     *     （明文或历史 MD5 值，见 {@see self::loadCloudAccount()}），
      *     供云端对四类付费扩展（module/theme/plugin/miniprogram）做「已购 OR VIP 在期」判定；
      *   - `site_url`：当前站点根 URL，云端用作访问审计。
      *
@@ -611,15 +637,15 @@ class CloudService extends BaseService
      */
     public function resolveInstallDownload($type, $cloudId, $mode)
     {
-        $cloudAccount = unserialize((string) Config::get('site.cloud_account', ''));
+        $cloudAccount = self::loadCloudAccount();
 
         $envelope = CloudApi::postJsonEnvelope(CloudApi::PATH_DOWNLOAD_INSTALL_RESOLVE, array(
             'type' => (string) $type,
             'cloud_id' => (string) $cloudId,
             'mode' => (string) $mode,
             'localsystem' => $this->updateState->localSystemPayload(),
-            'user' => is_array($cloudAccount) && isset($cloudAccount['user']) ? (string) $cloudAccount['user'] : '',
-            'password' => is_array($cloudAccount) && isset($cloudAccount['password']) ? (string) $cloudAccount['password'] : '',
+            'user' => isset($cloudAccount['user']) ? (string) $cloudAccount['user'] : '',
+            'password' => isset($cloudAccount['password']) ? (string) $cloudAccount['password'] : '',
             'site_url' => defined('ROOT_URL') ? (string) ROOT_URL : '',
         ));
 

@@ -1210,7 +1210,7 @@ class InstallService extends BaseService
         $fileName = strpos($basename, '.html') ? str_replace('.html', '.zip', $basename) : $basename;
         $saveFile = $savePath . $fileName;
         $fileUrl = str_replace(' ', '%20', $fileUrl);
-        $cloudAccount = unserialize(Config::get('site.cloud_account', ''));
+        $cloudAccount = CloudService::loadCloudAccount();
         $data = array(
             'user' => isset($cloudAccount['user']) ? $cloudAccount['user'] : '',
             'password' => isset($cloudAccount['password']) ? $cloudAccount['password'] : '',
