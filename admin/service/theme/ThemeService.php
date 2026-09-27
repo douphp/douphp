@@ -88,13 +88,13 @@ class ThemeService extends BaseService
     /**
      * 从云服务拉取扩展 Web 预览 iframe URL（已安装云主题列表用）。
      *
-     * @param string $uniqueId 主题 slug / 扩展 unique_id
+     * @param string $slug 主题 slug
      * @return string
      */
-    protected function fetchCloudPreviewFrameUrl($uniqueId)
+    protected function fetchCloudPreviewFrameUrl($slug)
     {
         $data = CloudApi::getJson(CloudApi::PATH_EXTEND_ITEM, array(
-            'unique_id' => (string) $uniqueId,
+            'slug' => (string) $slug,
         ));
         if (!is_array($data) || empty($data['preview_frame_url'])) {
             return '';

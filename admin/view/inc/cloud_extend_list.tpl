@@ -42,8 +42,8 @@
     <!-- {else} -->
     <dl class="cloud-theme-card">
      <!-- {/if} -->
-     <p class="cloud-theme-thumb"><!-- {if $item.preview_frame_url} --><a href="javascript:void(0)" onclick="douFrame('{$item.name}', '{$item.preview_frame_url}', '{url link='admin.cloud.details'}')"><!-- {/if} --><!-- {if $item.thumb_url} --><img src="{$item.thumb_url}" alt="{$item.name}"><!-- {elseif $item.image} --><img src="{$item.image}" alt="{$item.name}"><!-- {/if} --><!-- {if $item.preview_frame_url} --></a><!-- {/if} --></p>
-     <dt>{$item.name} {$item.unique_id}</dt>
+     <p class="cloud-theme-thumb"><!-- {if $item.preview_frame_url} --><a href="javascript:void(0)" onclick="douFrame('{$item.title}', '{$item.preview_frame_url}', '{url link='admin.cloud.details'}')"><!-- {/if} --><!-- {if $item.thumb_url} --><img src="{$item.thumb_url}" alt="{$item.title}"><!-- {elseif $item.image} --><img src="{$item.image}" alt="{$item.title}"><!-- {/if} --><!-- {if $item.preview_frame_url} --></a><!-- {/if} --></p>
+     <dt>{$item.title} {$item.slug}</dt>
      <dd>{$lang.cloud_extend_price_label}{$item.price_display}</dd>
      <dd>{$lang.cloud_extend_author_label}{$item.developer}</dd>
      <dd class="cloud-need-module">
@@ -65,10 +65,10 @@
     <div class="cloud-extend-item">
      <div class="cloud-extend-head">
       <div class="cloud-extend-count">{$lang.cloud_extend_download_count}{$item.count}</div>
-      <div class="cloud-extend-name">{$item.name}<!-- {if $item.miniprogram} --><em>{$lang.cloud_extend_miniprogram_badge}</em><!-- {/if} --></div>
+      <div class="cloud-extend-name">{$item.title}<!-- {if $item.miniprogram} --><em>{$lang.cloud_extend_miniprogram_badge}</em><!-- {/if} --></div>
      </div>
      <div class="cloud-extend-info">
-      <span>{$lang.cloud_extend_update_time_label}<b>{$item.updated_at}</b></span>
+      <span>{$lang.cloud_extend_update_time_label}<b>{$item.update_time}</b></span>
       <span>{$lang.cloud_extend_min_version_label}<b>{$item.mini_version_support}</b></span>
      </div>
      <div class="cloud-extend-desc" title="{$item.description}">{$item.description}</div>
@@ -76,7 +76,7 @@
       <div class="cloud-extend-price">{$item.price_display}</div>
       {include file="inc/cloud_extend_action.tpl" action=$item.action}
       <!-- {if $item.preview_frame_url} -->
-      <a href="javascript:void(0)" onclick="douFrame('{$item.name}', '{$item.preview_frame_url}', '{url link='admin.cloud.details'}')">{$lang.cloud_extend_detail}</a>
+      <a href="javascript:void(0)" onclick="douFrame('{$item.title}', '{$item.preview_frame_url}', '{url link='admin.cloud.details'}')">{$lang.cloud_extend_detail}</a>
       <!-- {/if} -->
      </div>
     </div>
