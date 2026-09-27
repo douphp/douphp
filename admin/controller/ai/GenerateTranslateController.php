@@ -45,17 +45,6 @@ class GenerateTranslateController extends BaseController
     }
 
     /**
-     * {@inheritDoc}
-     */
-    protected function layoutVars()
-    {
-        return parent::layoutVars() + array(
-            'cur' => 'ai',
-            'submenu' => 'ai',
-        );
-    }
-
-    /**
      * 多语言翻译（route=ai/generate/translate POST）
      *
      * @param GenerateTranslateFormRequest $formRequest

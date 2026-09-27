@@ -20,11 +20,7 @@
   {include file="inc/sidebar.tpl"}
   <div id="dou-content"> {include file="inc/toolbar.tpl"}
    <div class="dou-main has-subnav{if $in_page} is-in-page{/if}">
-    <!-- {if $group eq 'miniprogram'} 小程序数据分组加载小程序子菜单 -->
-    {include file="inc/miniprogram_sub_menu.tpl"}
-    <!-- {else} -->
-    {include file="inc/site_home_sub_menu.tpl"}
-    <!-- {/if} -->
+    {include file="inc/sub_menu.tpl"}
     <div class="dou-page">
       {include file="inc/page_header.tpl"}
       <!-- {if $rec eq 'default'} 数据列表 -->

@@ -74,11 +74,12 @@
      <th width="140">{$lang.handler}</th>
     </tr>
     <!-- {foreach from=$file_list item=file} -->
-    <tr {if $file.number gt 1}class="child"{/if}>
+    <!-- 一套分卷在列表里已被合并为一行（见 BackupService::buildRestoreFileList），故本行总是可操作行 -->
+    <tr>
      <td{if $file.vol_number gt 1} title="{$lang.backup_vol_nmuber}：{$file.vol_number}"{/if} class="text-left">{$file.showname} {if $file.vol_number gt 1}<b style="color: #999">[{$file.vol_number}]</b>{/if} {if $file.ext eq 'zip'}<i class="bi-box-seam"></i>{/if}</td>
      <td class="m-none text-center">{$file.filesize}</td>
      <td class="m-none text-center">{$file.maketime}</td>
-     <td class="text-center"><!-- {if $file.number le 1} --><a href="javascript:;" data-dou-toggle="modal" data-dou-modal="restore" data-filename="{$file.filename}" data-token="{$token}">{$lang.backup_sql_pre}</a> | <a href="{url link='admin.backup.down' sql_filename=$file.filename}">{$lang.down}</a> | <a href="javascript:;" class="js-delete" data-url="{url link='admin.backup.destroy' sql_filename=$file.filename}">{$lang.del}</a><!-- {/if} --></td>
+     <td class="text-center"><a href="javascript:;" data-dou-toggle="modal" data-dou-modal="restore" data-filename="{$file.filename}" data-token="{$token}">{$lang.backup_sql_pre}</a> | <a href="{url link='admin.backup.down' sql_filename=$file.filename}">{$lang.down}</a> | <a href="javascript:;" class="js-delete" data-url="{url link='admin.backup.destroy' sql_filename=$file.filename}">{$lang.del}</a></td>
     </tr>
     <!-- {/foreach} -->
    </table>

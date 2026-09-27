@@ -47,16 +47,6 @@ class ManagerController extends BaseController
     }
 
     /**
-     * {@inheritDoc}
-     */
-    protected function layoutVars()
-    {
-        return parent::layoutVars() + array(
-            'cur' => 'manager',
-        );
-    }
-
-    /**
      * @return Response
      */
     public function index()
@@ -276,7 +266,6 @@ class ManagerController extends BaseController
 
         return $this->view('manager.htm', [
             'ur_here' => lang('manager_log'),
-            'cur' => 'log',
             'rec' => 'log',
             'req' => array(
                 'username' => $usernameRaw,

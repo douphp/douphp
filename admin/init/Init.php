@@ -19,6 +19,7 @@ use Dou\Admin\Http\AdminMessageResponder;
 use Dou\Admin\Service\Auth\AuthService;
 use Dou\Admin\Service\Cache\CacheClearService;
 use Dou\Admin\Service\Menu\AdminMenuService;
+use Dou\Admin\Service\Menu\AdminNavResolver;
 use Dou\Admin\Service\Nav\NavCategorySyncService;
 use Dou\Admin\Service\Theme\ThemeSettingsReader;
 use Dou\Admin\Service\Workspace\UpdateBadgeBuilder;
@@ -276,10 +277,6 @@ class Init
             if ($userService !== null) {
                 $container->instance(\Dou\Core\Service\User\UserService::class, $userService);
             }
-            $container->instance(
-                \Dou\Admin\Service\User\UserCenterNavBuilder::class,
-                new \Dou\Admin\Service\User\UserCenterNavBuilder()
-            );
         }
 
         // 短信服务（仅在 core/library/sms 存在时给模板打开短信验证码开关，
@@ -314,7 +311,8 @@ class Init
         $engine->assign('js', '');
         $engine->assign('paid_use', false);
         $engine->assign('ur_here', '');
-        $engine->assign('sub_cur', '');
+        // $nav 契约（route_name / sub_menu / side）：正常派发由 AdminResolver 覆盖写入，此处仅兜底未派发场景
+        $engine->assign('nav', AdminNavResolver::emptyNav());
         $engine->assign('cue_open_ssl', false);
         $engine->assign('data_list', array());
         $engine->assign('cloud_list_class', '');
@@ -340,7 +338,8 @@ class Init
         $workspaceRequest = $container->make(\Dou\Core\Web\Http\Request::class);
         $engine->assign('workspace', $container->make(WorkspaceBuilder::class)->build(
             (string) $workspaceRequest->routeModule(),
-            (string) $workspaceRequest->route('category_id', '')
+            (string) $workspaceRequest->route('category_id', ''),
+            (string) $workspaceRequest->route('id', '')
         ));
         $updateBadge = $container->make(UpdateBadgeBuilder::class)->build();
         if ($updateBadge !== null) {

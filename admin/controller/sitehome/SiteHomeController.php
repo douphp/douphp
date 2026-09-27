@@ -43,16 +43,6 @@ class SiteHomeController extends BaseController
     }
 
     /**
-     * {@inheritDoc}
-     */
-    protected function layoutVars()
-    {
-        return parent::layoutVars() + array(
-            'cur' => 'site_home',
-        );
-    }
-
-    /**
      * @return Response
      */
     public function index()

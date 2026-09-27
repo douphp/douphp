@@ -64,16 +64,6 @@ class SettingController extends BaseController
     }
 
     /**
-     * {@inheritDoc}
-     */
-    protected function layoutVars()
-    {
-        return parent::layoutVars() + array(
-            'cur' => 'setting',
-        );
-    }
-
-    /**
      * @param Request $request
      * @return Response
      */

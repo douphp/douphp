@@ -50,16 +50,6 @@ class LanguageController extends BaseController
     }
 
     /**
-     * {@inheritDoc}
-     */
-    protected function layoutVars()
-    {
-        return parent::layoutVars() + array(
-            'cur' => 'language',
-        );
-    }
-
-    /**
      * @return Response
      */
     public function index()

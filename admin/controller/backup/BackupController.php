@@ -134,6 +134,10 @@ class BackupController extends BaseController
     /**
      * 删除备份文件
      *
+     * 本动作为 DELETE 路由，dou_msg.htm 的二次确认表单必须以 `_method=DELETE` 提交，
+     * 否则 POST 打中 DELETE-only 路由会 405（表现为「点了确认什么也没删」），
+     * 故统一走 {@see BaseController::respondDeleteResult()} 分流而非自拼 message()。
+     *
      * @param Request $request
      * @return Response
      */
@@ -141,13 +145,7 @@ class BackupController extends BaseController
     {
         $result = $this->backupService->runDelete($request->all(), $request->post());
 
-        return message()->respond(
-            $result['message'],
-            $result['back_url'],
-            '',
-            isset($result['timeout']) ? $result['timeout'] : '',
-            isset($result['confirm_url']) ? $result['confirm_url'] : ''
-        );
+        return $this->respondDeleteResult($result);
     }
 
     /**

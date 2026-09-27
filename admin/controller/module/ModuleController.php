@@ -51,16 +51,6 @@ class ModuleController extends BaseController
     }
 
     /**
-     * {@inheritDoc}
-     */
-    protected function layoutVars()
-    {
-        return parent::layoutVars() + array(
-            'cur' => 'module',
-        );
-    }
-
-    /**
      * 在线安装（云端列表）。
      *
      * @param Request $request

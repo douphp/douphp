@@ -56,16 +56,6 @@ class ThemeController extends BaseController
     }
 
     /**
-     * {@inheritDoc}
-     */
-    protected function layoutVars()
-    {
-        return parent::layoutVars() + array(
-            'cur' => 'theme',
-        );
-    }
-
-    /**
      * @return Response
      */
     public function index()

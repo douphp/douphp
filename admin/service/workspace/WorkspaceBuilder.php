@@ -31,6 +31,12 @@ if (!defined('IN_DOUCO')) {
  *
  * 返回值用于模板顶层 {$workspace.*}（见 admin/view/inc/header.tpl、sidebar.tpl、toolbar.tpl）。
  * 本类只组装数据数组，禁止直接 touch Smarty；由调用方显式 assign。
+ *
+ * 活跃态协议（与 $nav 契约配合）：
+ *   - 栏目 / 单页节点（menu_column / menu_single）：不携带活跃态，侧栏按模块短名索引
+ *     中央解析结果 $nav.side[<模块名>]，保证控制器层 override 生效；
+ *   - 商品分类行（menu_item）与页面树（menu_simple）：记录驱动动态节点，路由阶段无法解析，
+ *     由本类在枚举的同一次遍历中就地计算 is_active（$nav.side 不含这些逐行 id）。
  */
 class WorkspaceBuilder extends BaseService
 {
@@ -58,16 +64,18 @@ class WorkspaceBuilder extends BaseService
      *
      * @param string $currentModule 当前路由 module（dispatch 之前可传空串）
      * @param string $catId 当前 URL 选中的商品分类 category_id（查询参数，由调用方从 Request 取好传入，用于侧栏高亮）
+     * @param string $pageId 当前 URL 选中的单页 id（路由参数，仅 module=page 时消费，用于页面树高亮）
      * @return array
      */
-    public function build($currentModule = '', $catId = '')
+    public function build($currentModule = '', $catId = '', $pageId = '')
     {
         $menuList = $this->buildModuleMenus();
 
         $workspace = array();
         $workspace['menu_column'] = isset($menuList['column_module']) ? $menuList['column_module'] : array();
         $workspace['menu_single'] = isset($menuList['single_module']) ? $menuList['single_module'] : array();
-        $workspace['menu_simple'] = $this->buildPageMenuTree();
+        // 页面树高亮仅认单页编辑路由（其余模块的同名 id 参数不参与）
+        $workspace['menu_simple'] = $this->buildPageMenuTree(0, $currentModule === 'page' ? (string) $pageId : '');
         $workspace['admin_theme_custom'] = array_merge(
             array(
                 'header' => false,
@@ -160,7 +168,7 @@ class WorkspaceBuilder extends BaseService
      * 页面树形菜单。
      *
      * @param int $parentId
-     * @param string $currentId
+     * @param string $currentId 当前编辑的单页 id（空串=无高亮）
      * @return array
      */
     private function buildPageMenuTree($parentId = 0, $currentId = '')
@@ -169,7 +177,10 @@ class WorkspaceBuilder extends BaseService
         $data = DB::table('page')->field('id, slug, parent_id, name')->order('id ASC')->select();
         foreach ((array) $data as $value) {
             if ($value['parent_id'] == $parentId) {
-                $value['cur'] = $value['id'] == $currentId ? true : false;
+                $isActive = $currentId !== '' && (string) $value['id'] === (string) $currentId;
+                // is_active 为 $nav 契约字段；cur 为迁移期旧字段（模板切换后移除）
+                $value['cur'] = $isActive;
+                $value['is_active'] = $isActive;
                 $value['icon'] = MenuIconMap::resolve($parentId > 0 ? 'menu-page' : '_default');
 
                 foreach ($data as $child) {
@@ -206,12 +217,16 @@ class WorkspaceBuilder extends BaseService
                 $rowCatId = isset($row['id']) ? $row['id'] : 0;
                 $addTime = Util::toTimestamp(isset($row['created_at']) ? $row['created_at'] : null);
 
+                $isActive = $rowCatId == $catId && $currentModule == 'item' ? true : false;
+
                 $categoryList[] = array(
                     'category_id' => $rowCatId,
                     'name' => isset($row['name']) ? $row['name'] : '',
                     'icon' => attachment()->url(isset($row['icon']) ? $row['icon'] : ''),
                     'slug' => isset($row['slug']) ? $row['slug'] : '',
-                    'cur' => $rowCatId == $catId && $currentModule == 'item' ? true : false,
+                    // is_active 为 $nav 契约字段；cur 为迁移期旧字段（模板切换后移除）
+                    'cur' => $isActive,
+                    'is_active' => $isActive,
                     'created_at' => $addTime !== null ? date('Y-m-d', $addTime) : '',
                     'url' => route('admin.item', array('category_id' => $rowCatId)),
                 );

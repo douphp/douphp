@@ -47,17 +47,6 @@ class ModelController extends BaseController
     }
 
     /**
-     * {@inheritDoc}
-     */
-    protected function layoutVars()
-    {
-        return parent::layoutVars() + array(
-            'cur' => 'ai',
-            'submenu' => 'ai_model',
-        );
-    }
-
-    /**
      * @param Request $request
      * @return Response
      */

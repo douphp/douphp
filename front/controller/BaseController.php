@@ -17,6 +17,7 @@ namespace Dou\Front\Controller;
 use Dou\Core\Controller\BaseController as CoreBaseController;
 use Dou\Core\Web\Http\ApiResponse;
 use Dou\Core\Web\Http\Request;
+use Dou\Front\Service\Nav\NavigationBuilder;
 use Dou\Front\Service\User\UserCenterNavBuilder as FrontUserCenterNavBuilder;
 
 if (!defined('IN_DOUCO')) {
@@ -54,9 +55,57 @@ abstract class BaseController extends CoreBaseController
         return new \Dou\Core\Web\Http\ViewResponse(
             app(\Dou\Core\Web\Template\TemplateRendererInterface::class),
             $template,
-            $data + $this->layoutVars(),
+            $this->pageFactVars($data + $this->layoutVars()),
             (int) $statusCode
         );
+    }
+
+    /**
+     * 页面事实与导航派生变量的统一收口（chat.md §3.1 / §3.4 基座）。
+     *
+     * 在 action data + layoutVars 合并结果之上补齐三类键（全部"缺才补、有不动"，
+     * 保证存量手写值的控制器在清理批次前后行为均不受本方法影响）：
+     *
+     * 1. 三个导航列表键 fail-safe：渲染路径漏声明时用同源单例兜底构建，模板不报未定义；
+     * 2. 顶层 `cur`：由最近一次 `NavigationBuilder::middle()` 解析出的归属模块派生
+     *    （纯模块页 = 路由模块，归因页 = 归因模块）；本页未调用过 middle() 时不写键，
+     *    沿用 FrontResolver 的引擎级默认 assign；
+     * 3. `route_module` / `route_action`：当前页命中的稳定路由事实，供共用 inc 片段做
+     *    **内容分支**（区分宿主页面）。红线：**禁止用于菜单高亮**——高亮归 NavigationBuilder
+     *    计算的布尔，用这两个变量做高亮等于复活字符串比较链（批次 4 扫描 theme/ 导航类片段
+     *    消费这两个键即告警）。菜单归属域判断请用 `cur`，两者语义不同勿混用。
+     *
+     * @param array $merged action data + layoutVars 的合并结果
+     * @return array
+     */
+    private function pageFactVars(array $merged)
+    {
+        if (app()->has(NavigationBuilder::class)) {
+            $nav = app(NavigationBuilder::class);
+            if (!array_key_exists('nav_top_list', $merged)) {
+                $merged['nav_top_list'] = $nav->top();
+            }
+            if (!array_key_exists('nav_middle_list', $merged)) {
+                $merged['nav_middle_list'] = $nav->middle();
+            }
+            if (!array_key_exists('nav_bottom_list', $merged)) {
+                $merged['nav_bottom_list'] = $nav->bottom();
+            }
+        }
+        if (!array_key_exists('cur', $merged)) {
+            $contextModule = NavigationBuilder::contextModule();
+            if ($contextModule !== '') {
+                $merged['cur'] = $contextModule;
+            }
+        }
+        if (!array_key_exists('route_module', $merged)) {
+            $merged['route_module'] = (string) request()->routeModule();
+        }
+        if (!array_key_exists('route_action', $merged)) {
+            $merged['route_action'] = (string) request()->routeAction();
+        }
+
+        return $merged;
     }
 
     /**
@@ -102,8 +151,9 @@ abstract class BaseController extends CoreBaseController
      * 懒求值：仅当 action 真正调用 view() 渲染模板时才执行；返回 JSON / 重定向
      * 的 action 不会付出此处的代价。
      *
-     * 本方法及其重写都**不**直接调 `request` helper；如需 HTTP 元信息（如 `rec` / `cur`），
-     * 由 action 在 $data 中显式注入。
+     * 本方法及其重写都**不**直接调 `request` helper；HTTP 元信息（`rec`）由 action 在
+     * $data 中显式注入。顶层 `cur` 不在注入范围：属基类派生结果（见 {@see pageFactVars()}），
+     * 禁止手写 `'cur' =>`（devtools/front-nav-scan.php 门禁拦截）。
      *
      * @return array
      */

@@ -43,18 +43,6 @@ class AiController extends BaseController
     }
 
     /**
-     * {@inheritDoc}
-     */
-    protected function layoutVars()
-    {
-        return parent::layoutVars() + array(
-            'link_user_center' => $this->buildLinkUserCenter('ai'),
-            'cur' => 'ai',
-            'submenu' => 'ai',
-        );
-    }
-
-    /**
      * 应用列表（route=ai）
      *
      * @param Request $request

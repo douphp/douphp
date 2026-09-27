@@ -612,6 +612,7 @@ $_LANG['backup_no_file'] = "d% 不存在";
 $_LANG['backup_filename_not_valid'] = "备份文件名不合法";
 $_LANG['backup_restore_now'] = "正在恢复 d%";
 $_LANG['backup_restore_success'] = "恢复成功";
+$_LANG['backup_restore_partial'] = "（注意：有 d% 条语句执行失败，数据可能未完整恢复，详情见 storage/log 日志）";
 $_LANG['backup_sql_filename'] = '文件名';
 $_LANG['backup_sql_filesize'] = '大小';
 $_LANG['backup_sql_maketime'] = '备份日期';

@@ -15,6 +15,7 @@
 namespace Dou\Admin\Service\Backup;
 
 use Dou\Core\Facade\DB;
+use Dou\Core\Facade\Session;
 use Dou\Core\Facade\Zip;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Exception\DomainException;
@@ -57,6 +58,15 @@ class BackupService extends BaseService
     protected static $restoreDeniedExtensions = array('php', 'phtml', 'php3', 'php4', 'php5', 'php7', 'phps', 'phar', 'htaccess');
 
     /**
+     * 分卷安全余量上限（字节）。
+     *
+     * 实际预算 = min(分卷设定, upload_max_filesize, post_max_size) − 余量；
+     * 余量用于覆盖 dump 头注释与行边界误差，确保生成文件小于设定/限制值
+     * （很多服务器限制上传 2M，分卷文件超一点点就无法回传导入）。
+     */
+    const VOLUME_SAFETY_MARGIN = 16384;
+
+    /**
      */
     public function __construct()
     {
@@ -91,7 +101,11 @@ class BackupService extends BaseService
     }
 
     /**
-     * 恢复页：列出 storage/backup 下可用备份（按时间排序，合并分卷展示）。
+     * 恢复页：列出 storage/backup 下可用备份（按时间排序，分卷合并为一行）。
+     *
+     * 一套分卷只出一行：filename 取集合内序号最小的卷（删除 / 导入的真实入口），
+     * showname 去掉 `_序号`，vol_number 为卷数。这样即便首卷缺失（备份中断、手工
+     * 删过一套中的部分卷），其余分卷仍然可见、可删，不会变成列表里看不见也删不掉的孤儿文件。
      *
      * @return array 备份文件行数据列表
      */
@@ -104,21 +118,54 @@ class BackupService extends BaseService
         $backup_file_list = FileHelper::buildFileListByTime($backup_file_list);
 
         $file_list = array();
+        $set_index = array();
+        $set_min = array();
         foreach ((array) $backup_file_list as $row) {
-            if ($row['number'] <= 1 || !$row['number']) {
-                if ($row['number'] == 1) {
-                    $showname = preg_replace('/_([0-9])+/Ums', '', $row['showname']);
-                    $vol_file_list = $this->globVolumeFiles(FileHelper::filename($showname), $row['ext']);
-                    $row['showname'] = $showname;
-                    $row['vol_number'] = count($vol_file_list);
-                } else {
-                    $row['vol_number'] = 1;
+            // 分卷按「_序号.sql」整体形态判定：buildFileListByTime 的 number 只截到末位数字
+            // （X_10.sql 被读成 0），拿它判分卷会把 X_10.sql 当成一套独立备份
+            if ($row['ext'] === 'sql' && preg_match('/^(.*)_([0-9]+)\.sql$/', $row['filename'], $match)) {
+                $stem = $match[1];
+                $volno = (int) $match[2];
+                if (isset($set_index[$stem])) {
+                    $idx = $set_index[$stem];
+                    $file_list[$idx]['vol_number']++;
+                    if ($volno < $set_min[$stem]) {
+                        // 换代表行：展示口径（文件名 / 大小 / 时间）跟着序号最小的卷走，卷数累计保留
+                        $set_min[$stem] = $volno;
+                        $file_list[$idx] = $this->volumeHeadRow($row, $stem, $file_list[$idx]['vol_number']);
+                    }
+                    continue;
                 }
-                $file_list[] = $row;
+                $set_index[$stem] = count($file_list);
+                $set_min[$stem] = $volno;
+                $file_list[] = $this->volumeHeadRow($row, $stem, 1);
+                continue;
             }
+            $row['vol_number'] = 1;
+            $file_list[] = $row;
         }
 
         return $file_list;
+    }
+
+    /**
+     * 把一套分卷的代表文件行整理成列表行（列名去 `_序号`、卷数、可操作标记）。
+     *
+     * `number` 归 1：列表一行就是一套备份的头，旧编译产物里「非首卷不给操作列」的
+     * `number` 判定分支必须仍然成立，否则孤儿卷（如只剩 X_5.sql）会又看不见又删不掉。
+     *
+     * @param array $row buildFileListByTime 产出的单文件行
+     * @param string $stem 分卷主干名（不含扩展名）
+     * @param int $volNumber 已累计的卷数
+     * @return array
+     */
+    protected function volumeHeadRow(array $row, $stem, $volNumber)
+    {
+        $row['showname'] = $stem . '.sql';
+        $row['number'] = 1;
+        $row['vol_number'] = (int) $volNumber;
+
+        return $row;
     }
 
     /**
@@ -142,7 +189,9 @@ class BackupService extends BaseService
         }
 
         $volid = isset($req['volid']) ? $req['volid'] : 1;
-        $vol_size = !empty($req['vol_size']) ? $req['vol_size'] : 2048;
+        // 分卷大小（KB）：下限 64K，防止误输入 0/非数字导致空转分卷
+        $vol_size = isset($req['vol_size']) && intval($req['vol_size']) > 0 ? intval($req['vol_size']) : 2048;
+        $vol_size = max(64, $vol_size);
 
         if ($act === 'all') {
             $totalsize = 0;
@@ -198,10 +247,17 @@ class BackupService extends BaseService
         $tableid = isset($req['tableid']) ? $req['tableid'] - 1 : 0;
         $startfrom = isset($req['startfrom']) ? intval($req['startfrom']) : 0;
         $tablenumber = count((array) $tables);
+        // 单卷实际字节预算：min(设定值, 上传限制) 再预留安全余量
+        $budget = $this->volumeBudgetBytes($vol_size);
 
-        for ($i = $tableid; $i < $tablenumber && strlen($sqldump) < $vol_size * 1024; $i++) {
-            $sqldump .= $this->sqlDumptable($tables[$i], $vol_size, $startfrom, strlen($sqldump));
+        for ($i = $tableid; $i < $tablenumber && strlen($sqldump) < $budget; $i++) {
+            $before = strlen($sqldump);
+            $sqldump .= $this->sqlDumptable($tables[$i], $vol_size, $startfrom, $before);
             $startfrom = 0;
+            // 返回空串表示本卷剩余空间连新表表头都放不下，留给下一卷处理
+            if (strlen($sqldump) === $before) {
+                break;
+            }
         }
 
         if (trim($sqldump)) {
@@ -342,12 +398,20 @@ class BackupService extends BaseService
 
         if ($match) {
             if (file_exists($file_path)) {
-                DB::fnExecute(file_get_contents($file_path));
+                if ((int) $volid === 1) {
+                    // 分卷链起点：清空上一轮恢复遗留的失败累计
+                    Session::del('backup_restore_failed');
+                }
+                $failed = 0;
+                if (DB::fnExecute(file_get_contents($file_path)) === false) {
+                    $failed = (int) DB::getImportFailedCount();
+                    Session::increment('backup_restore_failed', $failed);
+                }
                 $volid++;
                 return array(
-                    'message' => $restore_now,
+                    'message' => $failed > 0 ? $restore_now . $this->importFailedNotice($failed) : $restore_now,
                     'back_url' => route('admin.backup.import', array('sql_filename' => $sql_filename, 'showname' => $showname, 'volid' => $volid, 'token' => (Arr::get($req, 'token', '')))),
-                    'timeout' => '1',
+                    'timeout' => $failed > 0 ? '5' : '1',
                     'confirm_url' => '',
                 );
             } else {
@@ -362,36 +426,58 @@ class BackupService extends BaseService
                         @unlink(STORAGE_PATH . 'backup/' . $name . '.sql');
                     }
                 }
+                $failed = (int) Session::get('backup_restore_failed', 0);
+                Session::del('backup_restore_failed');
                 audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::RESTORE, 1, (string) $showname);
                 return array(
-                    'message' => lang('backup_restore_success'),
+                    'message' => $failed > 0 ? lang('backup_restore_success') . $this->importFailedNotice($failed) : lang('backup_restore_success'),
                     'back_url' => route('admin.backup.restore'),
-                    'timeout' => '3',
+                    'timeout' => $failed > 0 ? '5' : '3',
                     'confirm_url' => '',
                 );
             }
         }
 
-        DB::fnExecute(file_get_contents($file_path));
+        $failed = 0;
+        if (DB::fnExecute(file_get_contents($file_path)) === false) {
+            $failed = (int) DB::getImportFailedCount();
+        }
         if (FileHelper::extension($showname) === 'zip') {
             @unlink(STORAGE_PATH . 'backup/' . FileHelper::filename($showname) . '.sql');
         }
         audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::RESTORE, 1, (string) $showname);
         return array(
-            'message' => lang('backup_restore_success'),
+            'message' => $failed > 0 ? lang('backup_restore_success') . $this->importFailedNotice($failed) : lang('backup_restore_success'),
             'back_url' => route('admin.backup.restore'),
-            'timeout' => '3',
+            'timeout' => $failed > 0 ? '5' : '3',
             'confirm_url' => '',
         );
     }
 
     /**
-     * 删除备份文件（含同前缀分卷）；未确认时由 Controller 调 `respondDeleteResult` 走 dou_msg.htm 二次确认。
+     * 导入后存在失败语句时的提示后缀。
+     *
+     * fnExecute 返回 false 表示即便临时放宽 sql_mode 仍有语句执行失败，
+     * 此时不能静默展示“正在恢复/恢复成功”，须追加失败条数提醒用户核查。
+     *
+     * @param int $failed 执行失败的语句数
+     * @return string
+     */
+    protected function importFailedNotice($failed)
+    {
+        return preg_replace('/d%/Ums', $failed, lang('backup_restore_partial'));
+    }
+
+    /**
+     * 删除备份文件（分卷一并删除）；未确认时由 Controller 调 `respondDeleteResult` 走 dou_msg.htm 二次确认。
+     *
+     * 分卷备份在列表里只占一行（行 filename 即首卷 `X_1.sql`），删除必须连同同名其余分卷
+     * 一起清掉，否则会留下列表里看不见、也就永远删不掉的孤儿分卷。
      *
      * @param array $req
      * @param array $post 含 confirm 时表示已确认删除
      * @return array message、back_url、timeout、confirm_url
-     * @throws DomainException 文件名不合法时抛出
+     * @throws DomainException 文件名不合法 / 备份文件不存在 / 无写权限时抛出
      */
     public function runDelete(array $req, array $post)
     {
@@ -399,38 +485,72 @@ class BackupService extends BaseService
             throw new DomainException(lang('backup_filename_not_valid'), route('admin.backup'));
         }
         $sql_filename = $req['sql_filename'];
+        $targets = $this->collectDeleteTargets($sql_filename);
+
+        if (!$targets) {
+            throw new DomainException(preg_replace('/d%/Ums', $sql_filename, lang('backup_no_file')), route('admin.backup.restore'));
+        }
 
         if (isset($post['confirm'])) {
-            if (file_exists(STORAGE_PATH . 'backup/' . $sql_filename)) {
-                @unlink(STORAGE_PATH . 'backup/' . $sql_filename);
-            }
-            preg_match('/(.*)_([0-9])+\.sql$/', $sql_filename, $match);
-            if ($match) {
-                $sqlfiles = $this->globVolumeFiles($match[1], 'sql');
-                $sql_filename .= ' ' . lang('backup_vol_include') . ' : ';
-                foreach ($sqlfiles as $sqlfile) {
-                    if (file_exists(STORAGE_PATH . 'backup/' . basename($sqlfile))) {
-                        @unlink(STORAGE_PATH . 'backup/' . basename($sqlfile));
-                    }
-                    $sql_filename .= basename($sqlfile) . ',';
+            $deleted = array();
+            foreach ($targets as $target) {
+                if (@unlink(STORAGE_PATH . 'backup/' . $target)) {
+                    $deleted[] = $target;
                 }
             }
-            audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::DELETE, 1, (string) $sql_filename, 'backup');
+            if (!$deleted) {
+                throw new DomainException(preg_replace('/d%/Ums', implode(', ', $targets), lang('backup_delete_fail')), route('admin.backup.restore'));
+            }
+            $summary = implode(', ', $deleted);
+            audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::DELETE, 1, (string) $summary, 'backup');
+
             return array(
-                'message' => preg_replace('/d%/Ums', $sql_filename, lang('backup_del_success')),
+                'message' => preg_replace('/d%/Ums', $summary, lang('backup_delete_success')),
                 'back_url' => route('admin.backup.restore'),
                 'timeout' => '3',
                 'confirm_url' => '',
             );
         }
 
-        $del_check = preg_replace('/d%/Ums', $sql_filename, lang('del_check'));
+        // 确认文案与结果提示同形：首卷名 + 「以及分卷 ： 其余卷」，让用户知道会一并删掉几个文件
+        $others = array_slice($targets, 1);
+        $label = $targets[0] . ($others ? ' ' . lang('backup_vol_include') . ' : ' . implode(', ', $others) : '');
+
         return array(
-            'message' => $del_check,
+            'message' => preg_replace('/d%/Ums', $label, lang('del_check')),
             'back_url' => route('admin.backup.restore'),
             'timeout' => '30',
             'confirm_url' => route('admin.backup.destroy', array(), array('query' => array('sql_filename' => $sql_filename))),
         );
+    }
+
+    /**
+     * 归集一次删除应落盘的文件名：点到的文件 + 它的其余分卷。
+     *
+     * 分卷名形如 `X_1.sql … X_N.sql`，主干取「去扩展名后再剥掉尾部 `_序号`」，因此点到的
+     * 无论是哪一卷都能把整套分卷收齐。仅对 sql 生效：zip 备份包在打包时已吞掉同名分卷，
+     * 删包不应连带删掉同名前缀的独立 sql 备份。
+     *
+     * @param string $sql_filename 相对 storage/backup 的文件名
+     * @return string[] 磁盘上确实存在的文件名，点到的文件排在首位
+     */
+    protected function collectDeleteTargets($sql_filename)
+    {
+        $targets = file_exists(STORAGE_PATH . 'backup/' . $sql_filename) ? array($sql_filename) : array();
+
+        if (FileHelper::extension($sql_filename) !== 'sql') {
+            return $targets;
+        }
+
+        $stem = preg_replace('/_[0-9]+$/', '', FileHelper::filename($sql_filename));
+        foreach ($this->globVolumeFiles($stem, 'sql') as $volume) {
+            $volume = basename((string) $volume);
+            if (!in_array($volume, $targets, true)) {
+                $targets[] = $volume;
+            }
+        }
+
+        return $targets;
     }
 
     /**
@@ -463,6 +583,10 @@ class BackupService extends BaseService
     /**
      * 单表 SQL 分卷导出片段（续传依赖 lastDumpStartrow）。
      *
+     * 预算控制：每追加一行前检查预算，放不下时该行留给下一卷；只有单行本身
+     * 超过整卷预算时才强制写入（否则会死循环），保证备份总能向前推进。
+     * 表头同样受预算约束：本卷放不下就整表留给下一卷。
+     *
      * @param mixed $table
      * @param mixed $vol_size
      * @param int $startfrom
@@ -477,14 +601,7 @@ class BackupService extends BaseService
             throw new DomainException(lang('illegal'), route('admin.backup'));
         }
 
-        $allow_max_size = intval(@ini_get('upload_max_filesize')); // 单位M
-        if ($allow_max_size > 0 && $vol_size > ($allow_max_size * 1024)) {
-            $vol_size = $allow_max_size * 1024; // 单位K
-        }
-
-        if ($vol_size > 0) {
-            $vol_size = $vol_size * 1024;
-        }
+        $budget = $this->volumeBudgetBytes($vol_size);
 
         if (!isset($tabledump)) {
             $tabledump = '';
@@ -498,29 +615,102 @@ class BackupService extends BaseService
             if (DB::version() > '4.1' && DB::charset()) {
                 $tabledump = preg_replace("/(DEFAULT)*\s*CHARSET=[a-zA-Z0-9]+/", "DEFAULT CHARSET=" . DB::charset(), $tabledump);
             }
+            // 本卷剩余空间连表头都放不下：整表留给下一卷，避免文件被表头推过预算
+            if ($currsize > 0 && $currsize + strlen($tabledump) > $budget) {
+                return '';
+            }
         }
         $tabledumped = 0;
         $numrows = $offset;
-        while ($currsize + strlen($tabledump) < $vol_size && $numrows == $offset) {
+        // !$tabledumped 兜底：预算再紧也至少尝试读一批数据，保证表有数据时能推进
+        while ($numrows == $offset && ($currsize + strlen($tabledump) < $budget || !$tabledumped)) {
             $tabledumped = 1;
             $rows = DB::query("SELECT * FROM $table LIMIT $startfrom, $offset");
             $numfields = DB::numFields($rows);
             $numrows = DB::numRows($rows);
             $fieldTypes = self::fetchFieldTypes($rows);
+            $written = 0;
             while ($row = DB::fetchArray($rows, MYSQLI_NUM)) {
                 $comma = "";
-                $tabledump .= "INSERT INTO $table VALUES(";
+                $rowdump = "INSERT INTO $table VALUES(";
                 for ($i = 0; $i < $numfields; $i++) {
-                    $tabledump .= $comma . self::formatDumpValue($row[$i], isset($fieldTypes[$i]) ? $fieldTypes[$i] : null);
+                    $rowdump .= $comma . self::formatDumpValue($row[$i], isset($fieldTypes[$i]) ? $fieldTypes[$i] : null);
                     $comma = ",";
                 }
-                $tabledump .= ");\n";
+                $rowdump .= ");\n";
+                // 逐行控制在预算内：该行放不下就留给下一卷（首行例外，避免死循环）
+                if ($written > 0 && $currsize + strlen($tabledump) + strlen($rowdump) > $budget) {
+                    break;
+                }
+                $tabledump .= $rowdump;
+                $written++;
             }
-            $startfrom += $offset;
+            $startfrom += $written;
+            if ($written < $numrows) {
+                break;
+            }
         }
         $this->lastDumpStartrow = $startfrom;
         $tabledump .= "\n";
         return $tabledump;
+    }
+
+    /**
+     * 计算单卷可写字节预算。
+     *
+     * 预算 = min(分卷设定, upload_max_filesize, post_max_size) − 安全余量（设定值的 1/64，
+     * 夹在 1K~16K）。生成文件后要能下载回传或在受限服务器导入，所以按上传限制收敛；
+     * 余量用于覆盖 dump 头注释与单行边界误差，保证实际文件小于设定/限制值。
+     *
+     * @param int $vol_size 分卷设定（KB）
+     * @return int 字节预算
+     */
+    protected function volumeBudgetBytes($vol_size)
+    {
+        $target = intval($vol_size) * 1024;
+        $limits = array(
+            self::parseIniSizeToBytes(@ini_get('upload_max_filesize')),
+            self::parseIniSizeToBytes(@ini_get('post_max_size')),
+        );
+        foreach ($limits as $limit) {
+            if ($limit > 0 && $target > $limit) {
+                $target = $limit;
+            }
+        }
+
+        $margin = max(1024, min(self::VOLUME_SAFETY_MARGIN, intval($target / 64)));
+
+        return max(1024, $target - $margin);
+    }
+
+    /**
+     * 解析 PHP ini 简写大小（如 2M/512K/1G/纯字节）为字节数。
+     *
+     * 直接 intval('512K') 会得到 512 被误当 512M、intval('2M') 与设定值相等时
+     * 又不触发收缩，导致上传限制保护失效；这里按单位换算并忽略 -1 等负值。
+     *
+     * @param string|null $value ini 原始值
+     * @return int 字节数；无法解析或表示“无限制”时返回 0
+     */
+    protected static function parseIniSizeToBytes($value)
+    {
+        $value = trim((string) $value);
+        if ($value === '' || !preg_match('/^(-?[0-9.]+)\s*([KMG]?)B?$/i', $value, $match)) {
+            return 0;
+        }
+
+        $unit = strtoupper($match[2]);
+        $multiplier = 1;
+        if ($unit === 'K') {
+            $multiplier = 1024;
+        } elseif ($unit === 'M') {
+            $multiplier = 1048576;
+        } elseif ($unit === 'G') {
+            $multiplier = 1073741824;
+        }
+        $bytes = (float) $match[1] * $multiplier;
+
+        return $bytes > 0 ? (int) $bytes : 0;
     }
 
     /**

@@ -14,6 +14,7 @@
 
 namespace Dou\Admin\Foundation\Routing;
 
+use Dou\Admin\Service\Menu\AdminNavResolver;
 use Dou\Core\Facade\View;
 use Dou\Core\Foundation\Container\Container;
 use Dou\Core\Foundation\Extension\Module;
@@ -91,10 +92,12 @@ class AdminResolver
         $method = MethodResolver::resolve($action, $fqcn);
 
         $request->setBaseUrl((string) ROOT_URL);
-        $request->setRoute($cur, $action, (string) $hit['sub']);
+        $request->setRoute($cur, $action, (string) $hit['sub'], $hit['entry']);
         $request->setRouteParams($hit['params']);
         $request->mergeRouteInputs($hit['params']);
         View::assign('cur', $cur);
+        // $nav 契约：按命中路由名中央解析（侧栏 / 二级菜单 / 面包屑数据源）
+        View::assign('nav', AdminNavResolver::resolve((string) $hit['entry']->name));
         self::assignFormTarget($action, $hit);
 
         $registry = new MiddlewareRegistry($container, self::$aliasMap);

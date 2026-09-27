@@ -44,16 +44,6 @@ class NavController extends BaseController
     }
 
     /**
-     * {@inheritDoc}
-     */
-    protected function layoutVars()
-    {
-        return parent::layoutVars() + array(
-            'cur' => 'nav',
-        );
-    }
-
-    /**
      * @param Request $request
      * @return Response
      */

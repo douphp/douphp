@@ -17,10 +17,12 @@ namespace Dou\Admin\Controller\Miniprogram;
 use Dou\Admin\Controller\BaseController;
 use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Admin\Request\Miniprogram\MiniprogramNavFormRequest;
+use Dou\Admin\Service\Menu\AdminNavResolver;
 use Dou\Admin\Service\Miniprogram\MiniprogramNavService;
 use Dou\Admin\Service\Miniprogram\MiniprogramService;
 use Dou\Core\Web\Http\Request;
 use Dou\Core\Web\Http\Response;
+use Dou\Core\Web\Routing\RouteEntry;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
@@ -43,16 +45,6 @@ class NavController extends BaseController
     }
 
     /**
-     * {@inheritDoc}
-     */
-    protected function layoutVars()
-    {
-        return parent::layoutVars() + array(
-            'cur' => 'miniprogram',
-        );
-    }
-
-    /**
      * @param Request $request
      * @return Response
      */
@@ -71,7 +63,7 @@ class NavController extends BaseController
             'type' => $type,
             'type_name' => lang('miniprogram_nav_' . $type),
             'nav_list' => $listData['nav_list'],
-            'sub_cur' => (SYSTEM_SIGN == 'api') ? 'miniprogram_nav' : '',
+            'nav' => $this->pageNav(),
         ]);
     }
 
@@ -98,7 +90,7 @@ class NavController extends BaseController
             'catalog_list' => $this->miniprogramNavService->buildNavCatalogDefaultList(),
             'btn_lang' => language()->buildLangButtons('nav', '', 'name, guide'),
             'nav_info' => array('icon' => ''),
-            'sub_cur' => (SYSTEM_SIGN == 'api') ? 'miniprogram_nav' : '',
+            'nav' => $this->pageNav(),
         ]);
     }
 
@@ -145,7 +137,7 @@ class NavController extends BaseController
             'type_name' => lang('miniprogram_nav_' . $type),
             'catalog_list' => $editData['catalog_list'],
             'nav_info' => $nav_info,
-            'sub_cur' => (SYSTEM_SIGN == 'api') ? 'miniprogram_nav' : '',
+            'nav' => $this->pageNav(),
         ]);
     }
 
@@ -177,5 +169,23 @@ class NavController extends BaseController
 
         $result = $this->miniprogramNavService->deleteNav($id, $request->post());
         return $this->respondDeleteResult($result);
+    }
+
+    /**
+     * 页面级导航契约：默认走中央解析；api 签名下复刻旧 sub_cur='miniprogram_nav' 的抑制。
+     *
+     * 旧行为：api 端导航页不渲染子菜单（miniprogram.htm 不加 has-subnav）且侧栏不高亮。
+     *
+     * @return array
+     */
+    private function pageNav()
+    {
+        $entry = request()->routeEntry();
+        $routeName = $entry instanceof RouteEntry ? (string) $entry->name : '';
+        $overrides = (defined('SYSTEM_SIGN') && SYSTEM_SIGN === 'api')
+            ? array('sub_menu' => null, 'side' => null)
+            : array();
+
+        return AdminNavResolver::resolve($routeName, $overrides);
     }
 }

@@ -430,6 +430,51 @@ class Str
     }
 
     /**
+     * 手机 / 电话号码脱敏展示
+     *
+     * 11 位手机号保留前 3 后 4（如 138****5678）；其他较长号码保留前 2 后 2；
+     * 过短号码仅保留首字符。分隔符等非数字字符按原样占位。
+     *
+     * @param string $value 原始号码
+     * @return string
+     */
+    public static function maskPhone($value)
+    {
+        $value = trim((string) $value);
+        if ($value === '') {
+            return '';
+        }
+        $len = mb_strlen($value, 'UTF-8');
+        if ($len >= 8) {
+            return static::mask($value, 3, $len - 7);
+        }
+        if ($len >= 5) {
+            return static::mask($value, 2, $len - 4);
+        }
+        return static::mask($value, 1, max(1, $len - 2));
+    }
+
+    /**
+     * 邮箱地址脱敏展示
+     *
+     * 保留 @ 前本地部分前 2 个字符（不足 2 个保留 1 个），其余以 *** 代替，
+     * 域名部分原样保留（如 ab***@example.com）。
+     *
+     * @param string $value 原始邮箱
+     * @return string
+     */
+    public static function maskEmail($value)
+    {
+        $value = trim((string) $value);
+        if ($value === '' || strpos($value, '@') === false) {
+            return $value;
+        }
+        list($user, $domain) = explode('@', $value, 2);
+        $keep = mb_strlen($user, 'UTF-8') > 2 ? 2 : 1;
+        return mb_substr($user, 0, $keep, 'UTF-8') . '***@' . $domain;
+    }
+
+    /**
      * 将字符串转换为标题形式（每个单词首字母大写）
      *
      * @param string $value

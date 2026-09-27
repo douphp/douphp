@@ -15,7 +15,7 @@
 namespace Dou\Admin\Controller;
 
 use Dou\Admin\Service\Ai\AiToolbarBuilder;
-use Dou\Admin\Service\User\UserCenterNavBuilder as AdminUserCenterNavBuilder;
+use Dou\Admin\Service\Menu\AdminNavResolver;
 use Dou\Core\Controller\BaseController as CoreBaseController;
 use Dou\Core\Facade\Session;
 use Dou\Core\Foundation\Configuration\Config;
@@ -30,7 +30,7 @@ if (!defined('IN_DOUCO')) {
 /**
  * 后台控制器基类
  *
- * 在 {@see \Dou\Core\Controller\BaseController} 之上提供后台版 view() 与 buildLinkUserCenter()。
+ * 在 {@see \Dou\Core\Controller\BaseController} 之上提供后台版 view()。
  * 后台控制器（`admin/controller/.../*Controller.php`）统一继承本类。
  *
  * 服务调用一律走 helper / 门面：`DB::` / `auth('admin')` / `language()` / `message()` / `route()` …
@@ -59,11 +59,33 @@ abstract class BaseController extends CoreBaseController
      */
     protected function view($template, array $data = array(), $statusCode = 200)
     {
+        $vars = $data + $this->layoutVars() + $this->navFallbackVars();
+
         return new \Dou\Core\Web\Http\ViewResponse(
             app(\Dou\Core\Web\Template\TemplateRendererInterface::class),
             $template,
-            $this->absolutizeActionUrls($this->injectAiToolbar($data + $this->layoutVars())),
+            $this->absolutizeActionUrls($this->injectAiToolbar($vars)),
             (int) $statusCode
+        );
+    }
+
+    /**
+     * 导航兜底变量：按命中路由名解析 `$nav`（侧栏 / 二级菜单 / 面包屑数据源）。
+     *
+     * 正常派发已由 AdminResolver 引擎级 assign；此处仅为兜底未派发场景保留。合并位置为最
+     * 右操作数，页面级覆盖（$data['nav']）优先。
+     *
+     * @return array
+     */
+    private function navFallbackVars()
+    {
+        $entry = request()->routeEntry();
+        if (!$entry instanceof \Dou\Core\Web\Routing\RouteEntry) {
+            return array();
+        }
+
+        return array(
+            'nav' => AdminNavResolver::resolve((string) $entry->name),
         );
     }
 
@@ -214,15 +236,17 @@ abstract class BaseController extends CoreBaseController
      * 支持两种写入形态：`with($key, $msg)`（string 升格）与
      * `with($key, $msg, $backUrl, $backText)`（array 直接落地）。
      *
-     * 业务 Controller 按需重写并叠加自己的键：
+     * 业务 Controller 按需重写并叠加自己的**非导航**键（如表单回显容器）：
      *
      *   protected function layoutVars()
      *   {
      *       return parent::layoutVars() + array(
-     *           'cur' => 'article',
-     *           'submenu' => 'article_category',
+     *           'rec' => 'default',
      *       );
      *   }
+     *
+     * 导航高亮态不在此声明：`$nav`（侧栏 / 二级菜单 / 面包屑数据源）由 AdminResolver
+     * 按命中路由名中央解析并引擎级注入，模板统一消费。
      *
      * 懒求值：仅当 action 真正调用 view() 渲染模板时才执行；返回 JSON / 重定向
      * 的 action 不会触发本方法，也就不会误把 flash 在中转响应里消费掉。
@@ -347,24 +371,5 @@ abstract class BaseController extends CoreBaseController
         }
 
         return redirect($backUrl)->with('success', $message);
-    }
-
-    /**
-     * 后台会员中心子导航 ViewModel；user 模块未装或 Builder 未注册时返回空结构。
-     *
-     * @param string $currentModule 当前路由模块短名（用于 cur 标记）
-     * @return array
-     */
-    protected function buildLinkUserCenter($currentModule = '')
-    {
-        if (user() === null) {
-            return array();
-        }
-
-        if (!app()->has(AdminUserCenterNavBuilder::class)) {
-            return array();
-        }
-
-        return app(AdminUserCenterNavBuilder::class)->build($currentModule);
     }
 }

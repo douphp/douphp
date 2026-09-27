@@ -59,16 +59,6 @@ class ProductController extends BaseController
     }
 
     /**
-     * {@inheritDoc}
-     */
-    protected function layoutVars()
-    {
-        return parent::layoutVars() + array(
-            'cur' => 'product',
-        );
-    }
-
-    /**
      * 商品列表
      *
      * @param Request $request

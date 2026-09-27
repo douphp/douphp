@@ -71,7 +71,9 @@ class AdminWorkspaceMiddleware implements MiddlewareInterface
         $engine->assign('global_admin', $admin);
         $engine->assign('workspace', $this->workspaceBuilder->build(
             (string) $request->routeModule(),
-            (string) $request->route('category_id', '')
+            (string) $request->route('category_id', ''),
+            // 单页编辑 id：仅 module=page 时被页面树消费（builder 内守卫）
+            (string) $request->route('id', '')
         ));
 
         $updateBadge = $this->badgeBuilder->build();

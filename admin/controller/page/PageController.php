@@ -53,16 +53,6 @@ class PageController extends BaseController
     }
 
     /**
-     * {@inheritDoc}
-     */
-    protected function layoutVars()
-    {
-        return parent::layoutVars() + array(
-            'cur' => 'page',
-        );
-    }
-
-    /**
      * 单页列表（route=page）
      *
      * @return Response

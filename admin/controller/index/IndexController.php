@@ -58,16 +58,6 @@ class IndexController extends BaseController
     }
 
     /**
-     * {@inheritDoc}
-     */
-    protected function layoutVars()
-    {
-        return parent::layoutVars() + array(
-            'cur' => 'index',
-        );
-    }
-
-    /**
      * @return Response
      */
     public function index()

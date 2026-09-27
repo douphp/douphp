@@ -45,17 +45,6 @@ class KeyController extends BaseController
     }
 
     /**
-     * {@inheritDoc}
-     */
-    protected function layoutVars()
-    {
-        return parent::layoutVars() + array(
-            'cur' => 'ai',
-            'submenu' => 'ai_model',
-        );
-    }
-
-    /**
      * 重置密钥失败计数（AJAX，模型编辑页密钥组操作列）。
      *
      * @param Request $request

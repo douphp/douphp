@@ -503,6 +503,10 @@ class Init
         $engine->assign('generator', 'DouPHP v1.9');
         $engine->assign('authorized', Config::get('app.licensed', false));
         $engine->assign('url', (new Fix())->buildLegacyUrlMap((string) request()->routeModule()));
+        // 页面事实变量引擎级兜底（chat.md §3.4）：正常派发路径由 BaseController::pageFactVars 覆盖为真实命中；
+        // 未派发路径（兜底页等）保持空串，模板消费不报错。
+        $engine->assign('route_module', '');
+        $engine->assign('route_action', '');
         // 全站 head 自定义代码默认值；详情页等控制器可再 assign 覆盖（如叠加 schema）
         $engine->assign('code_head', Config::get('site.code_head', ''));
         // common_header 购物车角标：未安装 order 模块或未登录为 0；与 order_cart 行数量汇总一致（角标用件数）

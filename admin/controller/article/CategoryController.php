@@ -47,17 +47,6 @@ class CategoryController extends BaseController
     }
 
     /**
-     * {@inheritDoc}
-     */
-    protected function layoutVars()
-    {
-        return parent::layoutVars() + array(
-            'cur' => 'article',
-            'submenu' => 'article_category',
-        );
-    }
-
-    /**
      * 分类列表
      *
      * @return Response

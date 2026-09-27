@@ -53,16 +53,6 @@ class MiniprogramController extends BaseController
     }
 
     /**
-     * {@inheritDoc}
-     */
-    protected function layoutVars()
-    {
-        return parent::layoutVars() + array(
-            'cur' => 'miniprogram',
-        );
-    }
-
-    /**
      * @return Response
      */
     public function index()

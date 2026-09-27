@@ -18,9 +18,9 @@
 <div id="dou"> {include file="inc/header.tpl"}
  {include file="inc/sidebar.tpl"}
  <div id="dou-content"> {include file="inc/toolbar.tpl"}
-  <div class="dou-main{if $sub_cur neq 'miniprogram_nav'} has-subnav{/if}">
-   <!-- {if $sub_cur neq 'miniprogram_nav'} -->
-   {include file="inc/miniprogram_sub_menu.tpl"}
+  <div class="dou-main{if $nav.sub_menu} has-subnav{/if}">
+   <!-- {if $nav.sub_menu} -->
+   {include file="inc/sub_menu.tpl"}
    <!-- {/if} -->
    <div id="miniprogram" class="dou-page">
      <!-- {if $rec eq 'default'} 我的小程序 开始 -->

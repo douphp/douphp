@@ -45,17 +45,6 @@ class GenerateBatchController extends BaseController
     }
 
     /**
-     * {@inheritDoc}
-     */
-    protected function layoutVars()
-    {
-        return parent::layoutVars() + array(
-            'cur' => 'ai',
-            'submenu' => 'ai',
-        );
-    }
-
-    /**
      * 批量生成 + 入库（route=ai/generate/batch POST）
      *
      * @param GenerateBatchFormRequest $formRequest

@@ -41,17 +41,6 @@ class AiLogController extends BaseController
     }
 
     /**
-     * {@inheritDoc}
-     */
-    protected function layoutVars()
-    {
-        return parent::layoutVars() + array(
-            'cur' => 'ai',
-            'submenu' => 'ai_log',
-        );
-    }
-
-    /**
      * @param Request $request
      * @return Response
      */

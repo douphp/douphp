@@ -49,16 +49,6 @@ class LoginController extends BaseController
     }
 
     /**
-     * {@inheritDoc}
-     */
-    protected function layoutVars()
-    {
-        return parent::layoutVars() + array(
-            'cur' => 'login',
-        );
-    }
-
-    /**
      * 登录页
      *
      * @return Response

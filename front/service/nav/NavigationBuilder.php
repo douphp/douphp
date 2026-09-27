@@ -36,6 +36,9 @@ class NavigationBuilder extends BaseService
     /** @var array|null 全表缓存（status=1） */
     private $rowsCache = null;
 
+    /** @var string 最近一次 middle() 解析出的当前归属模块（顶层 $cur 的唯一派生源；未解析为空串） */
+    private static $contextModule = '';
+
     /**
      */
     public function __construct()
@@ -55,15 +58,35 @@ class NavigationBuilder extends BaseService
     /**
      * 中部导航（主菜单），可携带当前页高亮上下文。
      *
+     * 约定兜底：$currentModule 缺省（空串）时自动读路由事实（Request::routeModule()），
+     * 控制器无需抄写模块名；内容归因（$currentId / $currentParentId）与跨菜单域归属
+     * （如文章分类页的 'article_category'）是只有控制器知道的事实，须显式传参。
+     * 解析出的模块名记为 {@see contextModule()}，供基类派生顶层 $cur。
+     *
      * @param int $parentId 起始父级 id
-     * @param string $currentModule 当前模块名
+     * @param string $currentModule 当前模块名（空串 = 读路由事实）
      * @param int|string $currentId 当前内容 / 分类 id
      * @param int|string $currentParentId 当前内容所属父级分类 id
      * @return array
      */
     public function middle($parentId = 0, $currentModule = '', $currentId = '', $currentParentId = '')
     {
+        if ($currentModule === '') {
+            $currentModule = request()->routeModule();
+        }
+        self::$contextModule = $currentModule;
+
         return $this->buildType('middle', $parentId, $currentModule, $currentId, $currentParentId);
+    }
+
+    /**
+     * 最近一次 middle() 解析的当前归属模块（顶层 $cur 派生源；从未解析过返回空串）。
+     *
+     * @return string
+     */
+    public static function contextModule()
+    {
+        return self::$contextModule;
     }
 
     /**
@@ -113,7 +136,7 @@ class NavigationBuilder extends BaseService
                 } else {
                     $guide = isset($value['guide']) ? (string) $value['guide'] : '';
                     $value['url'] = ROOT_URL . $guide;
-                    $value['cur'] = $guide !== '' ? strpos($_SERVER['REQUEST_URI'], $guide) : false;
+                    $value['cur'] = $guide !== '' ? self::staticGuideMatches($guide) : false;
                 }
             } else {
                 $value['slug'] = Url::getSlugPath($value['module'], $value['guide'], 'short');
@@ -142,6 +165,28 @@ class NavigationBuilder extends BaseService
         }
 
         return $nav;
+    }
+
+    /**
+     * 静态 guide 菜单项的精确路径比对。
+     *
+     * 替代旧实现 `strpos($_SERVER['REQUEST_URI'], $guide)` 子串匹配（前缀误亮：
+     * guide 为 'product' 时 '/product_list' 也会点亮）。现将当前请求路径去掉站点
+     * 根目录前缀后，与 guide 两侧归一化做全等比较。
+     *
+     * @param string $guide 菜单记录的 guide 相对路径（非空）
+     * @return bool
+     */
+    private static function staticGuideMatches($guide)
+    {
+        $uri = isset($_SERVER['REQUEST_URI']) ? (string) $_SERVER['REQUEST_URI'] : '';
+        $path = (string) parse_url($uri, PHP_URL_PATH);
+        $rootPath = (string) parse_url(ROOT_URL, PHP_URL_PATH);
+        if ($rootPath !== '' && $rootPath !== '/' && strpos($path, $rootPath) === 0) {
+            $path = substr($path, strlen($rootPath));
+        }
+
+        return trim($path, '/') !== '' && trim($path, '/') === trim($guide, '/');
     }
 
     /**

@@ -48,16 +48,6 @@ class ToolController extends BaseController
     }
 
     /**
-     * {@inheritDoc}
-     */
-    protected function layoutVars()
-    {
-        return parent::layoutVars() + array(
-            'cur' => 'tool',
-        );
-    }
-
-    /**
      * @return Response
      */
     public function directoryCheck()

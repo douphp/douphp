@@ -57,6 +57,9 @@ class Request
     /** @var string 当前路由子段（由 Router 写入） */
     protected $routeSub = '';
 
+    /** @var \Dou\Core\Web\Routing\RouteEntry|null 当前命中的路由条目（声明式匹配器写入；供导航态等派生消费） */
+    protected $routeEntry = null;
+
     /** @var string 已剥语言前缀的路由字符串（入口预处理写入 Request） */
     protected $routeString = '';
 
@@ -1266,13 +1269,15 @@ class Request
      * @param string $module
      * @param string $action
      * @param string $sub
+     * @param \Dou\Core\Web\Routing\RouteEntry|null $entry 命中条目（未命中时为 null）
      * @return void
      */
-    public function setRoute($module, $action, $sub = '')
+    public function setRoute($module, $action, $sub = '', $entry = null)
     {
         $this->routeModule = (string) $module;
         $this->routeAction = (string) $action;
         $this->routeSub = (string) $sub;
+        $this->routeEntry = $entry;
     }
 
     /**
@@ -1303,6 +1308,16 @@ class Request
     public function routeSub()
     {
         return $this->routeSub;
+    }
+
+    /**
+     * 当前命中的路由条目（未命中或非声明式路由时为 null）。
+     *
+     * @return \Dou\Core\Web\Routing\RouteEntry|null
+     */
+    public function routeEntry()
+    {
+        return $this->routeEntry;
     }
 
     /**

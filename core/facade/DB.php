@@ -34,6 +34,8 @@ if (!defined('IN_DOUCO')) {
  * 测试期用 {@see StaticFacade::swap()} / {@see StaticFacade::clearResolvedInstance()} 替换为 mock。
  *
  * @method static mixed query(string $sql)
+ * @method static bool fnExecute(string $sql)
+ * @method static int getImportFailedCount()
  * @method static Connection table(string $table)
  * @method static Connection field(string $field)
  * @method static Connection where(string $field, $op = null, $value = null)

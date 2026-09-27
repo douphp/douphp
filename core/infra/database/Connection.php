@@ -48,6 +48,8 @@ class Connection
     private $last_params = [];
     /** @var bool 调试模式开关 */
     private $debug_mode = false;
+    /** @var int 最近一次 fnExecute 导入中执行失败的语句数 */
+    private $import_failed_count = 0;
 
     // 链式查询属性
     /** @var string 当前操作的表名 */
@@ -633,29 +635,86 @@ class Connection
     /**
      * 执行fnExecute操作。
      *
+     * 导入备份还原 / 模块安装的 SQL。备份 SQL 常携带历史遗留数据（如旧版非严格模式
+     * 写入的 enum 空值、超长字符串），在当前连接级 STRICT_TRANS_TABLES（见 connect()）
+     * 下这类语句会整条失败且静默不落库，出现“恢复无报错但数据丢失”的现象。故导入期间
+     * 临时移除 STRICT_* 系列模式，与数据产生时的宽松环境保持一致（以截断警告换取完整
+     * 还原），结束后恢复原 sql_mode，不影响导入之外的业务写入校验。
+     *
      * @param mixed $sql 参数sql。
-     * @return bool 返回结果。
+     * @return bool 是否全部语句执行成功
      */
     public function fnExecute($sql)
     {
+        $saved_mode = $this->getOne("SELECT @@SESSION.sql_mode");
+        $restore_mode = false;
+        if (is_string($saved_mode) && $saved_mode !== '') {
+            $relaxed = array();
+            foreach (explode(',', $saved_mode) as $mode) {
+                $mode = trim($mode);
+                if ($mode !== '' && strpos($mode, 'STRICT_') !== 0) {
+                    $relaxed[] = $mode;
+                }
+            }
+            $relaxed = implode(',', $relaxed);
+            if ($relaxed !== $saved_mode) {
+                $restore_mode = true;
+                $this->query("SET SESSION sql_mode='" . $this->escapeString($relaxed) . "'");
+            }
+        }
+
         // 禁用外键约束
         $this->query("SET FOREIGN_KEY_CHECKS = 0");
 
+        $failed = 0;
+        $first_error = '';
         $sqls = $this->fnSplit($sql);
         if (is_array($sqls)) {
             foreach ((array) $sqls as $sqlItem) {
                 if (trim($sqlItem) != '') {
-                    $this->query($sqlItem);
+                    if ($this->query($sqlItem) === false) {
+                        $failed++;
+                        if ($first_error === '') {
+                            $first_error = mysqli_error($this->dou_link);
+                        }
+                    }
                 }
             }
         } else {
-            $this->query($sqls);
+            if ($this->query($sqls) === false) {
+                $failed = 1;
+                $first_error = mysqli_error($this->dou_link);
+            }
         }
 
         // 重新启用外键约束
         $this->query("SET FOREIGN_KEY_CHECKS = 1");
 
-        return true;
+        // 恢复连接原有的 sql_mode
+        if ($restore_mode) {
+            $this->query("SET SESSION sql_mode='" . $this->escapeString($saved_mode) . "'");
+        }
+
+        $this->import_failed_count = $failed;
+        if ($failed > 0) {
+            Log::error('SQL 导入存在执行失败的语句', array(
+                'channel' => 'system',
+                'failed' => $failed,
+                'first_error' => $first_error,
+            ));
+        }
+
+        return $failed === 0;
+    }
+
+    /**
+     * 获取最近一次 fnExecute 导入中执行失败的语句数。
+     *
+     * @return int
+     */
+    public function getImportFailedCount()
+    {
+        return $this->import_failed_count;
     }
 
     // 数据分离（处理SQL导入文件）

@@ -71,16 +71,6 @@ class CloudController extends BaseController
     }
 
     /**
-     * {@inheritDoc}
-     */
-    protected function layoutVars()
-    {
-        return parent::layoutVars() + array(
-            'cur' => 'cloud',
-        );
-    }
-
-    /**
      * @return Response
      */
     public function index()

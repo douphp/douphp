@@ -45,17 +45,6 @@ class GenerateFormController extends BaseController
     }
 
     /**
-     * {@inheritDoc}
-     */
-    protected function layoutVars()
-    {
-        return parent::layoutVars() + array(
-            'cur' => 'ai',
-            'submenu' => 'ai',
-        );
-    }
-
-    /**
      * 整表单生成（route=ai/generate/form POST）
      *
      * @param GenerateFormFormRequest $formRequest

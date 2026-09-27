@@ -137,7 +137,8 @@ class FileController extends BaseController
      */
     public function crop(Request $request)
     {
-        $number = preg_match("/^[a-z0-9.]+$/", $request->input('number')) ? $request->input('number') : '';
+        $numberRaw = (string) $request->input('number', '');
+        $number = preg_match("/^[a-z0-9.]+$/", $numberRaw) ? $numberRaw : '';
         if ($number === '') {
             return $this->json(array('error' => attachment()->formatFileWrong()));
         }
@@ -198,7 +199,8 @@ class FileController extends BaseController
      */
     public function destroy(Request $request)
     {
-        $number = preg_match("/^[a-z0-9.]+$/", $request->input('number')) ? $request->input('number') : '';
+        $numberRaw = (string) $request->input('number', '');
+        $number = preg_match("/^[a-z0-9.]+$/", $numberRaw) ? $numberRaw : '';
         $file_info = DB::table('file')->field('module, item_id, type')->where('number', $number)->find();
 
         if (empty($file_info) || !isset($file_info['module'])) {

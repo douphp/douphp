@@ -62,17 +62,6 @@ class TaskController extends BaseController
     }
 
     /**
-     * {@inheritDoc}
-     */
-    protected function layoutVars()
-    {
-        return parent::layoutVars() + array(
-            'cur' => 'ai',
-            'submenu' => 'ai_task',
-        );
-    }
-
-    /**
      * 任务列表页（route=ai/task/index）。
      *
      * @param Request $request

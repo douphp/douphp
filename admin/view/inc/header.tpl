@@ -7,7 +7,7 @@
   <ul class="header-site-name">{$site.site_name}</ul>
   <ul class="header-nav">
    <!-- {if !$site.close_douphp_plus && $workspace.menu_permission.module} -->
-   <li class="m-none"><a href="{url link='admin.module'}"{if $cur eq 'module'} class="cur"{/if}><i class="bi-grid-1x2"></i>{$lang.top_module}{if $unum.module}<span class="badge"><span>{$unum.module}</span></span>{/if}</a></li>
+   <li class="m-none"><a href="{url link='admin.module'}"{if $nav.side.module.is_active} class="cur"{/if}><i class="bi-grid-1x2"></i>{$lang.top_module}{if $unum.module}<span class="badge"><span>{$unum.module}</span></span>{/if}</a></li>
    <!-- {/if} -->
    <li class="m-none"><a href="{$site.root_url}" target="_blank"><i class="bi-laptop"></i>{$lang.top_go_site}</a></li>
    <li><a href="{url link='admin.index.clear_cache'}" class="js-post"><i class="bi-arrow-clockwise"></i>{$lang.clear_cache}</a></li>

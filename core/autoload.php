@@ -168,7 +168,7 @@ function douResolveEndpointBaseClassFile($entryBasePath, $layerName, $classBasen
  * 约定：
  * Dou\Vendor\{Package}\{Class} -> core/library/{strtolower(Package)}/{Class}.php（相对网站根，由 LIBRARY_PATH 拼接）
  * Dou\Vendor\{Package}\{SubNamespace}\{Class} ->
- * core/library/{strtolower(Package)}/{SubNamespace...}/{Class}.php（同上）
+ * core/library/{strtolower(Package)}/{strtolower(SubNamespace...)}/{Class}.php（同上）
  *
  * @param string $className
  * @return string
@@ -197,7 +197,8 @@ function douResolveVendorClassFile($className)
 
     $path = LIBRARY_PATH . strtolower($packageName) . '/';
     if (!empty($namespaceParts)) {
-        $path .= implode('/', $namespaceParts) . '/';
+        // 目录规范：目录全小写（类文件名除外），命名空间段映射到目录时统一转小写
+        $path .= implode('/', array_map('strtolower', $namespaceParts)) . '/';
     }
 
     return $path . $classBasename . '.php';
@@ -259,7 +260,8 @@ function douResolvePluginClassFile($className)
 
     $classPath = $classBasename . '.php';
     if (!empty($namespaceParts)) {
-        $classPath = implode('/', $namespaceParts) . '/' . $classPath;
+        // 目录规范：目录全小写（类文件名除外），命名空间段映射到目录时统一转小写
+        $classPath = implode('/', array_map('strtolower', $namespaceParts)) . '/' . $classPath;
     }
 
     $pluginRoot = ROOT_PATH . 'plugin/' . strtolower($pluginName) . '/';

@@ -44,16 +44,6 @@ class ShowController extends BaseController
     }
 
     /**
-     * {@inheritDoc}
-     */
-    protected function layoutVars()
-    {
-        return parent::layoutVars() + array(
-            'cur' => 'show',
-        );
-    }
-
-    /**
      * 列表 + 左侧新增表单（单页）。
      *
      * @return Response

@@ -46,17 +46,6 @@ class GenerateFieldController extends BaseController
     }
 
     /**
-     * {@inheritDoc}
-     */
-    protected function layoutVars()
-    {
-        return parent::layoutVars() + array(
-            'cur' => 'ai',
-            'submenu' => 'ai',
-        );
-    }
-
-    /**
      * 单字段生成（route=ai/generate/field POST）
      *
      * 文本应用返回 {content}；图像应用返回任务结果（task_id 等，前端按任务链路轮询/展示）。

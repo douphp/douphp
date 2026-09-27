@@ -46,16 +46,6 @@ class ArticleController extends BaseController
     }
 
     /**
-     * {@inheritDoc}
-     */
-    protected function layoutVars()
-    {
-        return parent::layoutVars() + array(
-            'cur' => 'article',
-        );
-    }
-
-    /**
      * 文章列表
      *
      * @param Request $request

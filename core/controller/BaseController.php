@@ -31,7 +31,7 @@ if (!defined('IN_DOUCO')) {
  * 必须通过参数显式接收 `Request $request`，由 action 把自己的 `$request` 传入。
  *
  * 端侧专属能力下沉到端侧 BaseController（admin / front / api 各自的 view() /
- * layoutVars() / buildLinkUserCenter() 等）。
+ * layoutVars() / 端侧导航构造等）。
  *
  * 子类按需注入特定依赖：
  * <pre>
