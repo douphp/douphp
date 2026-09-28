@@ -68,6 +68,8 @@ class InstallController
 
         $result = $this->service->runInstall($_POST);
         $_SESSION['username'] = isset($result['username']) ? $result['username'] : '';
+        // 暂存本次安装版本，供 finish 请求（独立 HTTP）上报安装记录时读取（finish 上下文无 DB）。
+        $_SESSION['douphp_version'] = isset($result['douphp_version']) ? $result['douphp_version'] : '';
         Helper::redirect('index.php?route=finish');
     }
 

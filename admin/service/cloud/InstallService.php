@@ -312,6 +312,13 @@ class InstallService extends BaseService
         }
         $logs[] = lang('cloud_install_ing') . $typeLabel . '…';
 
+        // 系统升级前捕获旧核心版本，供 runFinalize 上报 from_version。
+        // install() 内的 copyExtractedFiles / _update/action.php 会覆盖 site.douphp_version，
+        // 且 runFinalize 是后续独立请求（Config 已重载为新版本），故此处先行暂存到 Session。
+        if ($type === 'system' && $mode === 'update') {
+            Session::set('cloud_report_from_version', (string) Config::get('site.douphp_version', ''));
+        }
+
         $wrong = $this->install($type, $cloudId, $mode);
         if (is_array($wrong) && $wrong) {
             return array('ok' => false, 'error' => $this->joinMessages($wrong), 'logs' => $logs);
@@ -355,6 +362,29 @@ class InstallService extends BaseService
             $typeLabel = lang_has('cloud_system') ? (string) lang('cloud_system') : 'system';
         }
         audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::INSTALL, 1, $typeLabel . ':' . $cloudId);
+
+        // 埋点：云端安装/升级成功后上报记录（匿名基础遥测，落库 site / site_event）。
+        // 覆盖三条 URL：模块/主题/插件/小程序安装升级、系统升级。from_version 取自 runApply
+        // 阶段暂存的旧核心版本（仅系统升级）。SiteReportService 内部对开关与异常全兜底，
+        // 此处再包一层 try/catch，绝不阻断收尾流程。
+        try {
+            $fromVersion = '';
+            if ($type === 'system') {
+                $fromVersion = (string) Session::get('cloud_report_from_version', '');
+                Session::del('cloud_report_from_version');
+            }
+            $reporter = app(\Dou\Core\Service\Cloud\SiteReportService::class);
+            $eventType = $mode === 'install' ? 'install' : 'update';
+            if ($type === 'system') {
+                $reporter->reportSystem($eventType, $version, $fromVersion);
+            } elseif (in_array($type, array('module', 'theme', 'plugin', 'miniprogram'), true)) {
+                $reporter->reportExtend($type, $cloudId, $eventType, $version);
+            }
+        } catch (\Exception $e) {
+            // 上报失败静默忽略。
+        } catch (\Throwable $e) {
+            // PHP 7+ 的 \Error（如容器解析失败）同样静默忽略。
+        }
 
         $buttons = $this->buildSuccessButtons($mode, $type, $cloudId);
         $btnAction = isset($buttons['action']) ? (string) $buttons['action'] : '';

@@ -43,6 +43,10 @@ class CloudApi
     const PATH_ORDER_EXTEND_CLIENT = '/order/extend-client';
     const PATH_USER_CLIENT_CHECK = '/user/client-check';
     const PATH_REPORT_COPYRIGHT = '/report/copyright';
+    /**
+     * 站点安装/升级记录上报（POST）；云端落库到 site / site_event 两张表。
+     */
+    const PATH_REPORT_SITE = '/report/site';
     const PATH_THEME_MODULE_SUPPORT = '/theme/module-support';
     const PATH_DOWNLOAD_INSTALL_RESOLVE = '/download/install-resolve';
 

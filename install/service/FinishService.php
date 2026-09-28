@@ -57,5 +57,19 @@ class FinishService
         file_put_contents($moduleFile, $content);
 
         $this->lockService->lock();
+
+        // 埋点：站点首次安装完成后上报安装记录（匿名基础遥测，落库 site / site_event）。
+        // 安装器上下文无 app() 容器助手，直接 new；版本取自 install 阶段暂存的 $_SESSION
+        // （finish 为独立 HTTP 请求且未绑定 DB）。SiteReportService 内部对开关与异常全兜底，
+        // 此处再包一层 try/catch，绝不阻断安装收尾。
+        try {
+            $version = isset($_SESSION['douphp_version']) ? (string) $_SESSION['douphp_version'] : '';
+            $reporter = new \Dou\Core\Service\Cloud\SiteReportService();
+            $reporter->reportSystem('install', $version);
+        } catch (\Exception $e) {
+            // 上报失败静默忽略。
+        } catch (\Throwable $e) {
+            // PHP 7+ 的 \Error（如类加载失败）同样静默忽略。
+        }
     }
 }

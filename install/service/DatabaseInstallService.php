@@ -149,7 +149,7 @@ class DatabaseInstallService
      * 完整执行安装：写 config.php → 导 SQL → 初始化管理员/系统配置 → 可选清理测试数据。
      *
      * @param array $post 安装表单
-     * @return array array('username' => 设置成功后的管理员用户名)
+     * @return array array('username' => 设置成功后的管理员用户名, 'douphp_version' => 本次安装的核心版本)
      */
     public function runInstall(array $post)
     {
@@ -183,10 +183,10 @@ class DatabaseInstallService
 
         $build_date = time();
         $this->initAdmin($username, $password, $email, $build_date);
-        $this->initSiteConfig($dbhost, $dbname, $dbuser, $dbpass, $build_date);
+        $douphp_version = $this->initSiteConfig($dbhost, $dbname, $dbuser, $dbpass, $build_date);
         $this->maybeClearTestData($prefix, $test_data);
 
-        return array('username' => $username);
+        return array('username' => $username, 'douphp_version' => $douphp_version);
     }
 
     /**
@@ -213,7 +213,7 @@ class DatabaseInstallService
      * @param string $dbuser
      * @param string $dbpass
      * @param int $buildDate
-     * @return void
+     * @return string 本次安装的核心版本（dou_config.douphp_version）
      */
     private function initSiteConfig($dbhost, $dbname, $dbuser, $dbpass, $buildDate)
     {
@@ -235,6 +235,8 @@ class DatabaseInstallService
         foreach ($configUpdates as $name => $value) {
             DB::table('config')->where('name', $name)->update(array('value' => $value));
         }
+
+        return trim((string) $douphp_version);
     }
 
     /**

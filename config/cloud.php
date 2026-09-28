@@ -31,5 +31,8 @@ return [
         'api_base' => 'https://api.douphp.com',
         // 下载白名单：仅用于校验 install-resolve 返回的 download_url（scheme/host/port），不参与本地拼 URL。
         'download_base' => 'http://download.douphp.com',
+        // 站点安装/升级记录上报开关（匿名基础遥测）。默认开启；置 false 可关闭上报，
+        // 关闭后 SiteReportService 静默跳过，不影响任何安装/升级流程。
+        'report_site' => true,
     ],
 ];
