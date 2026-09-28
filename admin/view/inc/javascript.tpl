@@ -11,6 +11,7 @@
 <script type="text/javascript" src="js/pinyin.min.js"></script>
 <script type="text/javascript" src="js/alpine.min.js" defer></script>
 <script type="text/javascript" src="js/common.js"></script>
+<script type="text/javascript" src="js/update.badge.js"></script>
 <script type="text/javascript" src="js/dou.toast.js"></script>
 <script type="text/javascript" src="js/browser-md5-file.min.js"></script>
 <script>var cur = "{$nav.side_active_id}";</script>

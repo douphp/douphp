@@ -203,6 +203,8 @@
       }
       if (data.finished) {
         clearActiveSpinner();
+        // 升级完成即静默强刷角标：批量时当前页角标随之递减，落库后下一模块页 / 返回更新主页首屏即最新
+        if (window.DouUpdateBadge) { window.DouUpdateBadge.refresh(true); }
         if (data.result && data.result.next_install) {
           var url = buildNextUrl(data.result.next_install);
           if (url) {

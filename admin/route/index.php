@@ -18,6 +18,7 @@
  * 首页 route('admin.index') 与 API 端一致，pattern 为 index；开启伪静态出站 /admin/index，
  * 关闭时为 index.php?route=index。入站 ?route= 为空时仍由 BackendDeclaredMatcher 回落 index。
  * POST 子动作为 index/clear_cache、index/close_quick_start、index/delete_install。
+ * GET 子动作 index/update_number 为角标异步刷新 JSON 端点（供 JS 静默调用，不阻塞首页）。
  */
 
 use Dou\Admin\Controller\Index\IndexController;
@@ -32,5 +33,6 @@ Route::name('admin.')->group(function () {
 
     Route::group('index', IndexController::class)
         ->prefix('index')
+        ->get(['update_number'])
         ->post(['clear_cache', 'close_quick_start', 'delete_install']);
 });

@@ -400,12 +400,13 @@ class CloudService extends BaseService
      * @param string $localsite 已 urlencode(serialize(...)) 的站点扩展载荷
      * @param string $localsystem 已 urlencode(serialize(...)) 的系统环境载荷
      * @param bool $force 是否跳过节流强制刷新（如后台「更新主页」）
-     * @return void
+     * @return array|null 云端返回新计数时返回原始计数数组（update/patch/module/plugin/theme）；
+     *                    节流命中或云端不可用时返回 null，调用方应回退到已落库的 update_number
      */
     public function refreshUpdateNumber($localsite, $localsystem, $force = false)
     {
         if (!$force && $this->isUpdateNumberFresh()) {
-            return;
+            return null;
         }
 
         $data = CloudApi::getJson(CloudApi::PATH_CONNECT, array(
@@ -417,7 +418,7 @@ class CloudService extends BaseService
         $this->markUpdateNumberRefreshed();
 
         if (!is_array($data)) {
-            return;
+            return null;
         }
 
         $updateNumber = array(
@@ -431,6 +432,8 @@ class CloudService extends BaseService
         DB::table('config')
             ->where('name', 'update_number')
             ->update(array('value' => serialize($updateNumber)));
+
+        return $updateNumber;
     }
 
     /**

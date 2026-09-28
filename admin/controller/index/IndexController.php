@@ -19,8 +19,10 @@ use Dou\Admin\Facade\Cloud;
 use Dou\Admin\Model\Page\Page;
 use Dou\Admin\Service\Cloud\CloudService;
 use Dou\Admin\Service\Index\IndexService;
+use Dou\Admin\Service\Workspace\UpdateBadgeBuilder;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Service\Admin\AdminLogAction;
+use Dou\Core\Web\Http\ApiResponse;
 use Dou\Core\Web\Http\Request;
 use Dou\Core\Web\Http\Response;
 
@@ -68,13 +70,6 @@ class IndexController extends BaseController
         $cue_set_domain = $this->indexService->shouldCueSetDomainFromConfig()
             || ($root_url !== '' && $root_url !== rtrim(ROOT_URL, '/'));
 
-        if (!Config::get('site.close_update', false)) {
-            $this->cloudService->refreshUpdateNumber(
-                $this->cloud->localSitePayload(),
-                $this->cloud->localSystemPayload()
-            );
-        }
-
         return $this->view('index.htm', [
             'cue_set_domain' => $cue_set_domain,
             'rec' => 'default',
@@ -84,6 +79,39 @@ class IndexController extends BaseController
             'backup' => $this->indexService->buildBackupAssign(),
             'quick_start' => $this->indexService->buildQuickStartItems(),
         ]);
+    }
+
+    /**
+     * 更新角标异步刷新端点（JSON API，GET）。
+     *
+     * 供首页 / 安装页在 DOM ready 或 finalize 后由 JS 静默调用，避免同步等待云端
+     * `/connect`（默认超时 30s）阻塞页面渲染。`force=1` 跳过 10 分钟节流强制刷新，
+     * 用于模块（含批量）升级完成后即时同步角标。
+     *
+     * 关闭升级（`site.close_update`）时直接返回 closed，不发云端请求。
+     *
+     * @param Request $request
+     * @return \Dou\Core\Web\Http\JsonResponse
+     */
+    public function updateNumber(Request $request)
+    {
+        if (Config::get('site.close_update', false)) {
+            return ApiResponse::success(array('closed' => true, 'unum' => null));
+        }
+
+        $forceRaw = (string) $request->query('force', '');
+        $force = $forceRaw !== '' && $forceRaw !== '0';
+
+        $fresh = $this->cloudService->refreshUpdateNumber(
+            $this->cloud->localSitePayload(),
+            $this->cloud->localSystemPayload(),
+            $force
+        );
+
+        $badge = app(UpdateBadgeBuilder::class);
+        $unum = is_array($fresh) ? $badge->fromRaw($fresh) : $badge->build();
+
+        return ApiResponse::success(array('closed' => false, 'unum' => $unum));
     }
 
     /**

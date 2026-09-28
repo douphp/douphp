@@ -52,6 +52,31 @@ class UpdateBadgeBuilder extends BaseService
             $number = array();
         }
 
+        return $this->normalize($number);
+    }
+
+    /**
+     * 用刚拿到的云端原始计数直接归一化为 $unum 结构。
+     *
+     * 供异步端点在写入 config 的同一请求内即时返回最新角标——此时 Config 尚未重载，
+     * 不能走 build() 读落库值。
+     *
+     * @param array $number 云端 /connect 原始计数（update/patch/module/plugin/theme）
+     * @return array
+     */
+    public function fromRaw(array $number)
+    {
+        return $this->normalize($number);
+    }
+
+    /**
+     * 归一化计数：补齐默认键并计算 system 汇总值。
+     *
+     * @param array $number
+     * @return array
+     */
+    private function normalize(array $number)
+    {
         $number = array_merge(
             array(
                 'update' => 0,
