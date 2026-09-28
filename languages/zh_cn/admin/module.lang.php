@@ -17,7 +17,7 @@ $_LANG['module'] = '模块扩展';
 $_LANG['module_unzip_wrong'] = '压缩包解压失败';
 $_LANG['module_install_cloud'] = '在线安装模块'; // 在线安装模块
 $_LANG['module_install_local'] = '安装本地模块'; // 本地安装模块
-$_LANG['module_install_local_cue'] = '<strong>操作说明：</strong>首先将您要安装模块的压缩包放到 "storage/work/install" 目录下，然后请点击 <a href="index.php?route=module/install_local">载入待安装模块</a>，即可进行安装操作。';
+$_LANG['module_install_local_cue'] = '<strong>操作说明：</strong>首先将您要安装模块的压缩包放到 "storage/install/package" 目录下，然后请点击 <a href="index.php?route=module/install_local">载入待安装模块</a>，即可进行安装操作。';
 $_LANG['module_install_local_list'] = '待安装模块';
 $_LANG['module_install_local_btn'] = '安装';
 $_LANG['module_install_local_success'] = '成功安装离线模块';

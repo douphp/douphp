@@ -394,16 +394,28 @@ class CloudService extends BaseService
      *
      * 云端连接失败时不写库，保持上次成功值。
      *
+     * 非强制调用按 10 分钟节流（时间戳标记落 storage/cache/cloud/），避免后台每页都同步等待云端
+     * 导致页面卡顿；节流期内直接返回，角标沿用上次落库的 update_number。
+     *
      * @param string $localsite 已 urlencode(serialize(...)) 的站点扩展载荷
      * @param string $localsystem 已 urlencode(serialize(...)) 的系统环境载荷
+     * @param bool $force 是否跳过节流强制刷新（如后台「更新主页」）
      * @return void
      */
-    public function refreshUpdateNumber($localsite, $localsystem)
+    public function refreshUpdateNumber($localsite, $localsystem, $force = false)
     {
+        if (!$force && $this->isUpdateNumberFresh()) {
+            return;
+        }
+
         $data = CloudApi::getJson(CloudApi::PATH_CONNECT, array(
             'localsite' => (string) $localsite,
             'localsystem' => (string) $localsystem,
         ));
+
+        // 无论成功与否都记录本次尝试时间：云端异常时也保证 10 分钟内不再重复阻塞页面。
+        $this->markUpdateNumberRefreshed();
+
         if (!is_array($data)) {
             return;
         }
@@ -419,6 +431,46 @@ class CloudService extends BaseService
         DB::table('config')
             ->where('name', 'update_number')
             ->update(array('value' => serialize($updateNumber)));
+    }
+
+    /**
+     * 更新数量是否处于节流窗口内（距上次尝试不足 10 分钟）。
+     *
+     * @return bool
+     */
+    private function isUpdateNumberFresh()
+    {
+        $file = $this->updateNumberMarkerFile();
+        if (!is_file($file)) {
+            return false;
+        }
+
+        return (time() - (int) @filemtime($file)) < 600;
+    }
+
+    /**
+     * 记录本次更新数量刷新尝试时间（节流标记）。
+     *
+     * @return void
+     */
+    private function markUpdateNumberRefreshed()
+    {
+        $file = $this->updateNumberMarkerFile();
+        $dir = dirname($file);
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0777, true);
+        }
+        @file_put_contents($file, (string) time(), LOCK_EX);
+    }
+
+    /**
+     * 节流标记文件路径。
+     *
+     * @return string
+     */
+    private function updateNumberMarkerFile()
+    {
+        return STORAGE_PATH . 'cache/cloud/update_number_refresh.txt';
     }
 
     /**

@@ -69,7 +69,7 @@ class InstallService extends BaseService
     /**
      * @param CacheClearService $cacheClear
      * @param string $cacheDir 模块包下载/解压临时工作区（绝对路径或相对站点根）。
-     *                         缺省走 STORAGE_PATH . 'work/install/'；
+     *                         缺省走 STORAGE_PATH . 'install/package/'；
      *                         传相对路径则解析为 ROOT_PATH . $cacheDir . '/'，便于测试。
      */
     public function __construct(CacheClearService $cacheClear, $cacheDir = '')
@@ -77,7 +77,7 @@ class InstallService extends BaseService
         $this->cacheClear = $cacheClear;
         $cacheDir = (string) $cacheDir;
         if ($cacheDir === '') {
-            $this->cacheDir = STORAGE_PATH . 'work/install/';
+            $this->cacheDir = STORAGE_PATH . 'install/package/';
         } else {
             $this->cacheDir = ROOT_PATH . rtrim($cacheDir, '/') . '/';
         }
@@ -519,7 +519,7 @@ class InstallService extends BaseService
         $themeInitDir = $this->rootDir . 'theme/' . $cloudId . '/_init/';
         $themeInitFile = $themeInitDir . 'action.php';
         $themeInitImage = $themeInitDir . 'images/';
-        $installedDir = STORAGE_PATH . 'installed/';
+        $installedDir = STORAGE_PATH . 'install/records/';
 
         if (file_exists($updateDir)) {
             FileHelper::delDir($updateDir);
@@ -636,8 +636,8 @@ class InstallService extends BaseService
                 . '$installed_sql_list = ' . "'" . serialize($dropTableSqlList) . "'" . "\r\n"
                 . '?>';
 
-            if (!file_exists($installedDir)) {
-                mkdir($installedDir, 0777);
+            if (!is_dir($installedDir)) {
+                mkdir($installedDir, 0777, true);
             }
             file_put_contents($installedDir . $cloudId . '.installed.php', $installedKey);
         }
@@ -1063,7 +1063,7 @@ class InstallService extends BaseService
     public function clearModule($cloudId)
     {
         $prefix = DB::getPrefix();
-        $moduleInstalledFile = STORAGE_PATH . 'installed/' . $cloudId . '.installed.php';
+        $moduleInstalledFile = STORAGE_PATH . 'install/records/' . $cloudId . '.installed.php';
 
         if (file_exists($moduleInstalledFile)) {
             $installed_file_list = '';
@@ -1122,14 +1122,16 @@ class InstallService extends BaseService
         $line = str_replace('#', '', $line);
 
         // 旧式 .installed.php 清单可能仍写 `data/backup/` / `data/installed/` / `data/slide/`；
-        // 解析阶段映射为 `storage/backup/` / `storage/installed/` / `images/slide/`。
+        // 解析阶段映射为 `storage/backup/` / `storage/install/records/` / `images/slide/`；
+        // 2.0 中间态清单写的 `storage/installed/` 同样映射到 `storage/install/records/`。
         if ($line === 'data') {
             // 顶层 `data` 目录名映射为 `storage`（removeEmptyDirs 只清空目录，
             // storage/ 内仍有其他模块的运行时数据时不会被删除）。
             $line = 'storage';
         } else {
             $line = preg_replace('#^data/backup(/|$)#', 'storage/backup$1', $line);
-            $line = preg_replace('#^data/installed(/|$)#', 'storage/installed$1', $line);
+            $line = preg_replace('#^data/installed(/|$)#', 'storage/install/records$1', $line);
+            $line = preg_replace('#^storage/installed(/|$)#', 'storage/install/records$1', $line);
             $line = preg_replace('#^data/slide(/|$)#', 'images/slide$1', $line);
         }
 

@@ -62,21 +62,11 @@ class IndexController extends BaseController
      */
     public function index()
     {
-        $domain = $this->indexService->runDomainCacheMaintenance();
-        if (!empty($domain['redirect_url'])) {
-            return redirect($domain['redirect_url']);
-        }
-
         $this->indexService->syncEmptyConfigDomainToRootUrl();
 
         $root_url = Config::get('site.root_url', '') !== '' ? rtrim(Config::get('site.root_url', ''), '/') : '';
         $cue_set_domain = $this->indexService->shouldCueSetDomainFromConfig()
             || ($root_url !== '' && $root_url !== rtrim(ROOT_URL, '/'));
-
-        $cache_root_url_cue = '';
-        if (!empty($domain['had_domain_cache_file']) && lang_has('cache_root_url_cue')) {
-            $cache_root_url_cue = lang('cache_root_url_cue');
-        }
 
         if (!Config::get('site.close_update', false)) {
             $this->cloudService->refreshUpdateNumber(
@@ -87,7 +77,6 @@ class IndexController extends BaseController
 
         return $this->view('index.htm', [
             'cue_set_domain' => $cue_set_domain,
-            'cache_root_url_cue' => $cache_root_url_cue,
             'rec' => 'default',
             'sys_info' => $this->indexService->buildSysInfo(),
             'page_list' => Page::pageNolevel(),

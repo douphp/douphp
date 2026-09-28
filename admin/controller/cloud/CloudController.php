@@ -669,7 +669,7 @@ class CloudController extends BaseController
         $moduleUpdateHtml = '';
         $themeUpdateHtml = '';
         if (!Config::get('site.close_update', false)) {
-            $this->cloudService->refreshUpdateNumber($localsite, $localsystem);
+            $this->cloudService->refreshUpdateNumber($localsite, $localsystem, true);
             $systemUpdateHtml = $this->cloudService->fetchSystemUpdateHtml($localsystem);
             $moduleUpdateHtml = $this->cloudService->fetchModuleUpdateHtml($localsite);
             $themeUpdateHtml = $this->cloudService->fetchThemeUpdateHtml($localsite);

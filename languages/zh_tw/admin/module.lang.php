@@ -17,7 +17,7 @@ $_LANG['module'] = '模組擴充';
 $_LANG['module_unzip_wrong'] = '壓縮包解壓失敗';
 $_LANG['module_install_cloud'] = '線上安裝模組'; // 線上安裝模組
 $_LANG['module_install_local'] = '安裝本地模組'; // 本地安裝模組
-$_LANG['module_install_local_cue'] = '<strong>操作說明：</strong>首先將您要安裝模組的壓縮包放到 "storage/work/install" 目錄下，然後請點擊 <a href="index.php?route=module/install_local">載入待安裝模組</a>，即可進行安裝操作。';
+$_LANG['module_install_local_cue'] = '<strong>操作說明：</strong>首先將您要安裝模組的壓縮包放到 "storage/install/package" 目錄下，然後請點擊 <a href="index.php?route=module/install_local">載入待安裝模組</a>，即可進行安裝操作。';
 $_LANG['module_install_local_list'] = '待安裝模組';
 $_LANG['module_install_local_btn'] = '安裝';
 $_LANG['module_install_local_success'] = '成功安裝離線模組';

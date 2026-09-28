@@ -46,6 +46,9 @@ class WorkspaceBuilder extends BaseService
     /** @var AdminMenuService */
     private $menuService;
 
+    /** @var array 进程内构建结果缓存（同请求内 init 与 workspace 中间件各调一次 build，去重） */
+    private static $buildMemo = array();
+
     /**
      * @param ModuleSettingReader $moduleSettingReader 用于读取 config/module.php 中的 admin_theme_custom
      * @param AdminMenuService $menuService 框架基础菜单元数据
@@ -69,6 +72,11 @@ class WorkspaceBuilder extends BaseService
      */
     public function build($currentModule = '', $catId = '', $pageId = '')
     {
+        $memoKey = $currentModule . "\0" . $catId . "\0" . $pageId;
+        if (isset(self::$buildMemo[$memoKey])) {
+            return self::$buildMemo[$memoKey];
+        }
+
         $menuList = $this->buildModuleMenus();
 
         $workspace = array();
@@ -89,7 +97,7 @@ class WorkspaceBuilder extends BaseService
         $workspace['menu_permission'] = $this->buildBasicMenuPermission();
         $workspace['menu_icon_map'] = $this->buildMenuIconMapForView();
 
-        return $workspace;
+        return self::$buildMemo[$memoKey] = $workspace;
     }
 
     /**
@@ -167,30 +175,53 @@ class WorkspaceBuilder extends BaseService
     /**
      * 页面树形菜单。
      *
+     * page 表一次性取出并按 parent_id 分组，避免逐层递归重复查库（原实现每层一次全表查询、并对每个
+     * 节点再全表扫描判断是否有子级，整体为 N+1 + O(n²)）。
+     *
      * @param int $parentId
      * @param string $currentId 当前编辑的单页 id（空串=无高亮）
      * @return array
      */
     private function buildPageMenuTree($parentId = 0, $currentId = '')
     {
-        $menuPage = array();
         $data = DB::table('page')->field('id, slug, parent_id, name')->order('id ASC')->select();
-        foreach ((array) $data as $value) {
-            if ($value['parent_id'] == $parentId) {
-                $isActive = $currentId !== '' && (string) $value['id'] === (string) $currentId;
-                // is_active 为 $nav 契约字段；cur 为迁移期旧字段（模板切换后移除）
-                $value['cur'] = $isActive;
-                $value['is_active'] = $isActive;
-                $value['icon'] = MenuIconMap::resolve($parentId > 0 ? 'menu-page' : '_default');
 
-                foreach ($data as $child) {
-                    if ($child['parent_id'] == $value['id']) {
-                        $value['child'] = $this->buildPageMenuTree($value['id'], $currentId);
-                        break;
-                    }
-                }
-                $menuPage[] = $value;
+        $grouped = array();
+        foreach ((array) $data as $value) {
+            $grouped[(int) $value['parent_id']][] = $value;
+        }
+
+        return $this->buildPageMenuNodes($grouped, (int) $parentId, (string) $currentId);
+    }
+
+    /**
+     * 依据已按 parent_id 分组的行数据递归装配页面树节点。
+     *
+     * @param array $grouped parent_id => 行列表
+     * @param int $parentId
+     * @param string $currentId
+     * @return array
+     */
+    private function buildPageMenuNodes(array $grouped, $parentId, $currentId)
+    {
+        $menuPage = array();
+        if (empty($grouped[$parentId])) {
+            return $menuPage;
+        }
+
+        foreach ($grouped[$parentId] as $value) {
+            $isActive = $currentId !== '' && (string) $value['id'] === (string) $currentId;
+            // is_active 为 $nav 契约字段；cur 为迁移期旧字段（模板切换后移除）
+            $value['cur'] = $isActive;
+            $value['is_active'] = $isActive;
+            $value['icon'] = MenuIconMap::resolve($parentId > 0 ? 'menu-page' : '_default');
+
+            $children = $this->buildPageMenuNodes($grouped, (int) $value['id'], $currentId);
+            if (!empty($children)) {
+                $value['child'] = $children;
             }
+
+            $menuPage[] = $value;
         }
 
         return $menuPage;

@@ -64,13 +64,13 @@ class ModuleService extends BaseService
     }
 
     /**
-     * 本地安装页：storage/work/install 下待装 zip 列表。
+     * 本地安装页：storage/install/package 下待装 zip 列表。
      *
      * @return array token、install_list
      */
     public function buildModuleInstallLocalData()
     {
-        $cacheDir = STORAGE_PATH . 'work/install/';
+        $cacheDir = STORAGE_PATH . 'install/package/';
         $installList = array();
         $zipfileList = glob($cacheDir . '*.zip');
         if (is_array($zipfileList)) {
@@ -146,7 +146,7 @@ class ModuleService extends BaseService
             throw new DomainException(lang('module_uninstall_exist_data'), route('admin.module.uninstall'));
         }
 
-        $moduleInstalledFile = STORAGE_PATH . 'installed/' . $extendId . '.installed.php';
+        $moduleInstalledFile = STORAGE_PATH . 'install/records/' . $extendId . '.installed.php';
         if (!file_exists($moduleInstalledFile)) {
             throw new DomainException(lang('module_uninstall_install_file_wrong'), route('admin.module.uninstall'));
         }

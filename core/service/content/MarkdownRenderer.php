@@ -28,7 +28,8 @@ if (!defined('IN_DOUCO')) {
  *
  * 行为约定：
  * - 不向输出拼接 `<link href="...content.css">`；前台需要的 CSS 由模板/Init 一次性引入。
- * - admin 在 `vditor` 编辑器场景直接返回原文。
+ * - editor(ueditor) 站点正文即 HTML，任何场景都原样返回，不做 Markdown 解析。
+ * - vditor 站点：admin 编辑表单返回 Markdown 源码，前台才渲染为 HTML。
  */
 class MarkdownRenderer extends BaseService
 {
@@ -42,10 +43,21 @@ class MarkdownRenderer extends BaseService
     {
         $content = $content ? $content : '';
 
-        if (defined('IS_ADMIN') && Config::get('site.editor', '') == 'vditor') {
+        $isMarkdownEditor = Config::get('site.editor', '') == 'vditor';
+
+        // editor(ueditor) 站点存的就是 HTML：无论前后台都原样返回。
+        // 否则 HTML 里多个 `_`（如带下划线的图片文件名）等会被误判为 Markdown 语法，
+        // 经 Parsedown safe mode 转义后，编辑器/前台会把标签当纯文本代码显示。
+        if (!$isMarkdownEditor) {
             return $content;
         }
 
+        // vditor 站点后台编辑表单：回填 Markdown 源码，原样返回。
+        if (defined('IS_ADMIN')) {
+            return $content;
+        }
+
+        // vditor 站点前台：将 Markdown 渲染为 HTML。
         if (Util::containsMarkdownSyntax($content)) {
             $parsedown = new Parsedown();
             // safe mode：转义 Markdown 中的内联 HTML 并过滤 javascript: 等危险链接协议。

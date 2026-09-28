@@ -56,6 +56,11 @@ class RouteManifest
         self::$entries = null;
         self::$nameIndex = null;
         self::$ruleGroups = null;
+
+        $file = self::diskCacheFile();
+        if (is_file($file)) {
+            @unlink($file);
+        }
     }
 
     /**
@@ -132,6 +137,9 @@ class RouteManifest
     /**
      * 触发构建（内部用）。
      *
+     * 优先读落盘缓存（按源文件指纹校验），命中则免去每请求 include 全部路由声明文件的开销；
+     * 未命中或指纹不符时重建并回写。
+     *
      * @return void
      */
     private static function ensureBuilt()
@@ -141,7 +149,12 @@ class RouteManifest
         }
 
         $builder = new RouteManifestBuilder();
-        self::$entries = $builder->build();
+        $entries = self::readDiskCache($builder);
+        if ($entries === null) {
+            $entries = $builder->build();
+            self::writeDiskCache($builder->sourceFingerprint(), $entries);
+        }
+        self::$entries = $entries;
 
         self::$nameIndex = array();
         foreach (self::$entries as $idx => $entry) {
@@ -154,5 +167,76 @@ class RouteManifest
                 self::$nameIndex[$entry->name] = $idx;
             }
         }
+    }
+
+    /**
+     * 读取落盘缓存并重建条目；文件缺失 / 指纹不符 / 内容损坏时返回 null。
+     *
+     * @param RouteManifestBuilder $builder 用于取当前来源指纹
+     * @return RouteEntry[]|null
+     */
+    private static function readDiskCache(RouteManifestBuilder $builder)
+    {
+        $file = self::diskCacheFile();
+        if (!is_file($file)) {
+            return null;
+        }
+
+        $raw = @file_get_contents($file);
+        if (!is_string($raw) || $raw === '') {
+            return null;
+        }
+
+        $payload = @unserialize($raw);
+        if (!is_array($payload) || !isset($payload['fingerprint']) || !isset($payload['entries']) || !is_array($payload['entries'])) {
+            return null;
+        }
+        if ($payload['fingerprint'] !== $builder->sourceFingerprint()) {
+            return null;
+        }
+
+        $entries = array();
+        foreach ($payload['entries'] as $row) {
+            if (!is_array($row)) {
+                return null;
+            }
+            $entries[] = new RouteEntry($row);
+        }
+
+        return $entries;
+    }
+
+    /**
+     * 回写落盘缓存（指纹 + 条目全字段数组）。
+     *
+     * @param string $fingerprint
+     * @param RouteEntry[] $entries
+     * @return void
+     */
+    private static function writeDiskCache($fingerprint, array $entries)
+    {
+        $rows = array();
+        foreach ($entries as $entry) {
+            $rows[] = $entry->toArray();
+        }
+
+        $file = self::diskCacheFile();
+        $dir = dirname($file);
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0777, true);
+        }
+        @file_put_contents($file, serialize(array('fingerprint' => $fingerprint, 'entries' => $rows)), LOCK_EX);
+    }
+
+    /**
+     * 落盘缓存文件路径（storage/cache/route/）。
+     *
+     * @return string
+     */
+    private static function diskCacheFile()
+    {
+        $base = defined('STORAGE_PATH') ? STORAGE_PATH : (defined('ROOT_PATH') ? ROOT_PATH . 'storage/' : '');
+
+        return $base . 'cache' . DIRECTORY_SEPARATOR . 'route' . DIRECTORY_SEPARATOR . 'manifest.cache';
     }
 }

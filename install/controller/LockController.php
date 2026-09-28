@@ -21,7 +21,7 @@ if (!defined('IN_DOUCO')) {
 }
 
 /**
- * 安装已锁定：提示删除 storage/install.lock 后再重新安装。
+ * 安装已锁定：提示删除 storage/state/install.lock 后再重新安装。
  */
 class LockController
 {

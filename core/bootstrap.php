@@ -40,7 +40,10 @@ define('HTTP', (
 define('IS_HTTPS', HTTP === 'https://');
 
 // 未安装时跳转安装程序（须在载入 config/config.php 之前）
-if (!file_exists(STORAGE_PATH . 'install.lock')) {
+// 三级判定（新→旧）：storage/state/install.lock → storage/install.lock → data/install.lock
+if (!file_exists(STORAGE_PATH . 'state/install.lock')
+    && !file_exists(STORAGE_PATH . 'install.lock')
+    && !file_exists(ROOT_PATH . 'data/install.lock')) {
     $script = str_replace('\\', '/', isset($_SERVER['SCRIPT_NAME']) ? $_SERVER['SCRIPT_NAME'] : '');
     if ($script === '' && isset($_SERVER['PHP_SELF'])) {
         $script = str_replace('\\', '/', $_SERVER['PHP_SELF']);

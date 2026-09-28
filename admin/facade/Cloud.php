@@ -100,7 +100,7 @@ class Cloud
     /**
      * 卸载模块：按 installed 清单回滚已拷贝文件、DROP 表、重置 module.php / display / nav。
      *
-     * 读取 `storage/installed/{cloudId}.installed.php` 中的
+     * 读取 `storage/install/records/{cloudId}.installed.php` 中的
      * `$installed_file_list` / `$installed_sql_list` 回滚安装动作，
      * 末尾顺带 {@see changeMiniprogramConfigFile} 重写小程序 app.json。
      *

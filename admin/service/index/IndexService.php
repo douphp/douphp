@@ -60,43 +60,6 @@ class IndexService extends BaseService
     }
 
     /**
-     * 域名缓存文件维护（storage/cache/domain.php）
-     *
-     * @return array redirectUrl 非空时需跳转处理；hadDomainCacheFile 为真时模板显示 cache_root_url_cue
-     */
-    public function runDomainCacheMaintenance()
-    {
-        $result = array(
-            'redirect_url' => '',
-            'had_domain_cache_file' => false,
-        );
-        $domain_cache_file = STORAGE_PATH . 'cache/domain.php';
-        if (file_exists($domain_cache_file)) {
-            $result['had_domain_cache_file'] = true;
-            include_once $domain_cache_file;
-            if (isset($_DOMAIN) && $_DOMAIN != ROOT_URL) {
-                @unlink($domain_cache_file);
-                $result['redirect_url'] = route('admin.index');
-            }
-            return $result;
-        }
-
-        $this->cacheClear->clearCache(STORAGE_PATH . 'cache/template');
-
-        $domain_val = (Config::get('site.domain', '') !== '') ? Config::get('site.domain', '') : ROOT_URL;
-        $domain_text = '<?php' . "\r\n";
-        $domain_text .= '$_DOMAIN = \'' . str_replace("'", "\\'", $domain_val) . '\';' . "\r\n";
-        $domain_text .= '?>';
-        $cacheDir = dirname($domain_cache_file);
-        if (!is_dir($cacheDir)) {
-            @mkdir($cacheDir, 0777, true);
-        }
-        file_put_contents($domain_cache_file, $domain_text);
-
-        return $result;
-    }
-
-    /**
      * 站点网址未写入 config 时，用当前 ROOT_URL 更新 domain
      *
      * @return void
@@ -136,7 +99,7 @@ class IndexService extends BaseService
             $warning[] = lang('warning_upgrade_exists');
         }
         // 兜底清理后台目录改名引导脚本残留（正常流程执行后自删，此处只兜底未跟随跳转的情况）
-        foreach ((array) glob(STORAGE_PATH . 'cache/admin_dir_relocate_*.php') as $relocateScript) {
+        foreach ((array) glob(STORAGE_PATH . 'cache/tmp/admin_dir_relocate_*.php') as $relocateScript) {
             if (is_file($relocateScript)) {
                 @unlink($relocateScript);
             }
@@ -165,8 +128,13 @@ class IndexService extends BaseService
         if (!empty(Config::get('site.build_date', 0))) {
             $build_date = date('Y-m-d', (int) Config::get('site.build_date', 0));
         } else {
-            $install_lock = STORAGE_PATH . 'install.lock';
-            $build_date = file_exists($install_lock) ? date('Y-m-d', filemtime($install_lock)) : '';
+            // 安装锁三级回退（新→旧），取优先存在者的修改时间
+            foreach (array(STORAGE_PATH . 'state/install.lock', STORAGE_PATH . 'install.lock', ROOT_PATH . 'data/install.lock') as $install_lock) {
+                if (file_exists($install_lock)) {
+                    $build_date = date('Y-m-d', filemtime($install_lock));
+                    break;
+                }
+            }
         }
 
         $update = '';
@@ -226,7 +194,7 @@ class IndexService extends BaseService
      */
     private function checkCloudConnectStatus()
     {
-        $cacheFile = STORAGE_PATH . 'cache/cloud_connect_check.json';
+        $cacheFile = STORAGE_PATH . 'cache/cloud/connect_check.json';
         if (is_file($cacheFile) && (time() - (int) filemtime($cacheFile)) < 600) {
             $cached = @file_get_contents($cacheFile);
             if (in_array($cached, array('ok', 'fail', 'unset'), true)) {
@@ -246,6 +214,9 @@ class IndexService extends BaseService
             $status = (is_array($meta) && (int) $meta['errno'] === 0 && (int) $meta['http_code'] === 200) ? 'ok' : 'fail';
         }
 
+        if (!is_dir(dirname($cacheFile))) {
+            @mkdir(dirname($cacheFile), 0777, true);
+        }
         @file_put_contents($cacheFile, $status);
         return $status;
     }
@@ -346,21 +317,30 @@ class IndexService extends BaseService
      */
     public function clearQuickStartFlag()
     {
-        $path = STORAGE_PATH . 'quick.start.dou';
-        if (file_exists($path)) {
-            @unlink($path);
+        // 新旧两处候选全部清理
+        foreach (array(STORAGE_PATH . 'state/quick.start.dou', STORAGE_PATH . 'quick.start.dou') as $path) {
+            if (file_exists($path)) {
+                @unlink($path);
+            }
         }
     }
 
     /**
-     * 读取后台首页快捷入口 storage/quick.start.dou。
+     * 读取后台首页快捷入口 storage/state/quick.start.dou（兼容旧位 storage/quick.start.dou）。
      *
      * @return array
      */
     public function buildQuickStartItems()
     {
         $quick_start = array();
-        if (file_exists($file = STORAGE_PATH . 'quick.start.dou')) {
+        $file = '';
+        foreach (array(STORAGE_PATH . 'state/quick.start.dou', STORAGE_PATH . 'quick.start.dou') as $candidate) {
+            if (file_exists($candidate)) {
+                $file = $candidate;
+                break;
+            }
+        }
+        if ($file !== '') {
             $content = file($file);
             foreach ((array) $content as $line) {
                 $line = trim($line);

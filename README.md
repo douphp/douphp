@@ -45,10 +45,10 @@ PHP 需启用或安装以下扩展 / 配置：
 1. 下载源码并部署到网站根目录
 2. 访问网站首页，系统自动跳转到安装程序 `install/index.php`
 3. 按提示填写数据库信息、设置管理员账号，完成安装
-4. 安装完成后系统会在 `storage/install.lock` 写入安装锁，再次访问将不会进入安装程序
+4. 安装完成后系统会在 `storage/state/install.lock` 写入安装锁，再次访问将不会进入安装程序
 5. 后台默认入口为 `admin/`（可在 `config/admin_dir.php` 中自定义以隐藏后台地址）
 
-如需重新安装，删除 `storage/install.lock` 后重新访问安装程序即可。
+如需重新安装，删除 `storage/state/install.lock` 后重新访问安装程序即可。
 
 ## 目录结构
 
@@ -63,7 +63,7 @@ douphp/
 ├── theme/            前台主题模板（.dwt 模板 + 主题脚本）
 ├── miniprogram/      微信小程序源码（TypeScript + WeUI）
 ├── plugin/           插件（支付、第三方登录等，按子目录独立成包）
-├── storage/          运行时存储（cache / log / backup / tmp）
+├── storage/          运行时存储（cache 可删缓存 / state 运行状态 / install 安装域 / log / backup）
 ├── images/           站点静态图片资源
 ├── index.php         前台入口
 ├── admin/index.php   后台入口

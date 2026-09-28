@@ -23,7 +23,7 @@ if (!defined('IN_DOUCO')) {
 }
 
 /**
- * 完成页：写入 config/module.php、生成 install.lock，渲染成功页。
+ * 完成页：写入 config/module.php、生成 storage/state/install.lock，渲染成功页。
  *
  * 写入安装锁后，Router 的下次请求都会强制走 LockController；此处先把页面渲染
  * 完成再返回，避免用户被锁页拦截。

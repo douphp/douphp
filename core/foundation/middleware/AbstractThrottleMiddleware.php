@@ -120,7 +120,7 @@ abstract class AbstractThrottleMiddleware implements MiddlewareInterface, Parame
      */
     protected function store()
     {
-        $dir = Config::get('security.throttle.store', STORAGE_PATH . 'cache/throttle/');
+        $dir = Config::get('security.throttle.store', STORAGE_PATH . 'state/throttle/');
 
         return new ThrottleStore($dir);
     }

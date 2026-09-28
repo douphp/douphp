@@ -21,7 +21,7 @@ if (!defined('IN_DOUCO')) {
 }
 
 /**
- * 写入 config/module.php 与 storage/install.lock，完成安装收尾。
+ * 写入 config/module.php 与 storage/state/install.lock，完成安装收尾。
  *
  * 与旧版安装阶段保持最小集；云模块安装时再追加 link_* 等键。
  */

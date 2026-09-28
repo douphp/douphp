@@ -50,6 +50,10 @@ class Connection
     private $debug_mode = false;
     /** @var int 最近一次 fnExecute 导入中执行失败的语句数 */
     private $import_failed_count = 0;
+    /** @var array 表存在性探测缓存（表名 => bool），避免同请求内重复 SHOW TABLES */
+    private $tableExistCache = array();
+    /** @var array 表字段清单缓存（表名 => string[]），避免同请求内重复 SHOW COLUMNS */
+    private $tableColumnsCache = array();
 
     // 链式查询属性
     /** @var string 当前操作的表名 */
@@ -232,7 +236,23 @@ class Connection
             $this->debugLog('Query Error', mysqli_error($this->dou_link));
         }
 
+        // DDL 可能改变表结构，失效 schema 元数据缓存（安装 / 升级 / 导入 SQL 场景）
+        if ($query !== false && self::isSchemaChangingSql($this->sql)) {
+            $this->flushSchemaCache();
+        }
+
         return $query;
+    }
+
+    /**
+     * 判断是否为可能改变表结构的语句（CREATE / ALTER / DROP / RENAME / TRUNCATE）。
+     *
+     * @param string $sql
+     * @return bool
+     */
+    private static function isSchemaChangingSql($sql)
+    {
+        return (bool) preg_match('/^\s*(CREATE|ALTER|DROP|RENAME|TRUNCATE)\s/i', (string) $sql);
     }
 
     /**
@@ -264,12 +284,17 @@ class Connection
      */
     public function tableExist($table)
     {
-        $result = mysqli_query($this->dou_link, "SHOW TABLES LIKE '" . trim($this->tableName($table), '`') . "'");
+        $key = trim($this->tableName($table), '`');
+        if (array_key_exists($key, $this->tableExistCache)) {
+            return $this->tableExistCache[$key];
+        }
+
+        $result = mysqli_query($this->dou_link, "SHOW TABLES LIKE '" . $key . "'");
         $exists = $result && mysqli_num_rows($result) > 0;
         if ($result) {
             mysqli_free_result($result);
         }
-        return $exists;
+        return $this->tableExistCache[$key] = $exists;
     }
 
     /**
@@ -295,6 +320,9 @@ class Connection
     {
         $this->sql = $sql;
         $query = mysqli_multi_query($this->dou_link, $this->sql);
+        if ($query !== false && self::isSchemaChangingSql($this->sql)) {
+            $this->flushSchemaCache();
+        }
         return $query;
     }
 
@@ -517,19 +545,54 @@ class Connection
      */
     public function fieldExist($table, $field)
     {
-        $array = array();
-        $sql = "SHOW COLUMNS FROM " . $this->tableName($table);
-        $query = $this->query($sql);
-        if ($query !== false) {
-            while ($row = $this->fetchArray($query)) {
-                $array[] = $row['Field'];
-            }
-            mysqli_free_result($query);
-
-            if (in_array($field, $array)) {
-                return true;
-            }
+        $columns = $this->tableColumns($table);
+        if ($columns === null) {
+            return null;
         }
+
+        if (in_array($field, $columns)) {
+            return true;
+        }
+    }
+
+    /**
+     * 读取表字段清单（同请求内缓存，避免每次 fieldExist 都 SHOW COLUMNS）。
+     *
+     * 查询失败时返回 null 且不写缓存，与 {@see fieldExist} 原「失败即视为不存在」的语义一致。
+     *
+     * @param mixed $table 参数table。
+     * @return array|null 字段名列表；SHOW COLUMNS 失败时返回 null
+     */
+    private function tableColumns($table)
+    {
+        $key = trim($this->tableName($table), '`');
+        if (array_key_exists($key, $this->tableColumnsCache)) {
+            return $this->tableColumnsCache[$key];
+        }
+
+        $query = $this->query("SHOW COLUMNS FROM " . $this->tableName($table));
+        if ($query === false) {
+            return null;
+        }
+
+        $columns = array();
+        while ($row = $this->fetchArray($query)) {
+            $columns[] = $row['Field'];
+        }
+        mysqli_free_result($query);
+
+        return $this->tableColumnsCache[$key] = $columns;
+    }
+
+    /**
+     * 清空 schema 元数据缓存（DDL 执行后调用，避免同请求内表结构探测读到旧值）。
+     *
+     * @return void
+     */
+    private function flushSchemaCache()
+    {
+        $this->tableExistCache = array();
+        $this->tableColumnsCache = array();
     }
 
     /**

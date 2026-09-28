@@ -29,8 +29,8 @@ if (!defined('IN_DOUCO')) {
  * - 单段（如 `check`）→ 控制器 index 方法
  * - 双段（如 `install/post`）→ 控制器对应方法（snake_case → camelCase）
  *
- * 若 `storage/install.lock` 已存在，所有路由统一强制走 `lock`（对标 doubak 的 DB
- * 不可达时强制 `config`）。
+ * 若安装锁已存在（storage/state/install.lock，兼容旧位 storage/install.lock、
+ * data/install.lock），所有路由统一强制走 `lock`（对标 doubak 的 DB 不可达时强制 `config`）。
  */
 class Router
 {

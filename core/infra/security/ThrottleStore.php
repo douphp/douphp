@@ -33,7 +33,7 @@ class ThrottleStore
     private $dir;
 
     /**
-     * @param string $dir 存储目录（如 data/cache/throttle/）
+     * @param string $dir 存储目录（如 storage/state/throttle/）
      */
     public function __construct($dir)
     {

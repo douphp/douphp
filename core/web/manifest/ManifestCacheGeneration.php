@@ -84,6 +84,6 @@ class ManifestCacheGeneration
     {
         $base = defined('STORAGE_PATH') ? STORAGE_PATH : (defined('ROOT_PATH') ? ROOT_PATH . 'storage/' : '');
 
-        return $base . 'cache' . DIRECTORY_SEPARATOR . 'manifest_generation.txt';
+        return $base . 'cache' . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'generation.txt';
     }
 }

@@ -102,7 +102,7 @@ return array(
 
     // lock
     'lock'                       => '安装程序已经被锁定。',
-    'lock_content'               => '如果您确定要重新安装 DouPHP，请删除 storage 目录下的 install.lock 文件。',
+    'lock_content'               => '如果您确定要重新安装 DouPHP，请删除 storage/state 目录下的 install.lock 文件。',
 
     // 通用消息
     'dou_msg_success'            => '操作成功',

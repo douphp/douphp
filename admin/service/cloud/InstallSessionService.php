@@ -24,7 +24,7 @@ if (!defined('IN_DOUCO')) {
 /**
  * 云端在线安装会话存储。
  *
- * - 会话文件存放于 `storage/install/{id}.json`，以 `install_id` 为键；
+ * - 会话文件存放于 `storage/install/session/{id}.json`，以 `install_id` 为键；
  * - 单次安装链路记录：扩展类型、cloud_id、模式（install/update/patch/local）、版本、主题 id、
  *   批量队列、当前步骤、已完成步骤、日志条目、错误以及收尾按钮 HTML；
  * - 通过 `withLock()` 对单个会话文件加排他锁，保证浏览器并发请求（如重试）按序处理；
@@ -36,7 +36,7 @@ if (!defined('IN_DOUCO')) {
 class InstallSessionService extends BaseService
 {
     /** 会话目录相对站点根（带斜杠结尾） */
-    const SESSION_DIR = 'storage/install/';
+    const SESSION_DIR = 'storage/install/session/';
 
     /** 会话过期时间（秒）：30 分钟 */
     const TTL_SECONDS = 1800;

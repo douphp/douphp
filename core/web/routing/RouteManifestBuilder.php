@@ -16,6 +16,7 @@ namespace Dou\Core\Web\Routing;
 
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Support\Naming;
+use Dou\Core\Web\Manifest\ManifestCacheGeneration;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
@@ -249,58 +250,97 @@ class RouteManifestBuilder
     {
         $entries = array();
 
-        $ends = array(
-            'Front' => $this->endRoutePath('FRONT_PATH', 'front'),
-            'Admin' => $this->endRoutePath(null, 'admin'),
-            'Api' => $this->endRoutePath('API_PATH', 'api'),
-        );
+        foreach ($this->declaredSourceFiles() as $file) {
+            $collector = new RouteCollector($file);
+            Route::useCollector($collector);
+            try {
+                $loaded = $this->includeRouteFile($file);
+            } catch (\Exception $e) {
+                Route::useCollector(null);
+                throw $e;
+            }
+            Route::useCollector(null);
 
-        foreach ($ends as $ns => $dir) {
-            if ($dir === null || !is_dir($dir)) {
+            foreach ($collector->flush() as $fluentEntry) {
+                $entries[] = $fluentEntry;
+            }
+
+            if (!is_array($loaded)) {
                 continue;
             }
-            foreach ((array) glob($dir . '*.php') as $file) {
-                if (!is_file($file)) {
+            foreach ($loaded as $row) {
+                if ($row instanceof RouteEntry) {
+                    $entries[] = $row;
                     continue;
                 }
-                $collector = new RouteCollector($file);
-                Route::useCollector($collector);
-                try {
-                    $loaded = $this->includeRouteFile($file);
-                } catch (\Exception $e) {
-                    Route::useCollector(null);
-                    throw $e;
-                }
-                Route::useCollector(null);
-
-                foreach ($collector->flush() as $fluentEntry) {
-                    $entries[] = $fluentEntry;
-                }
-
-                if (!is_array($loaded)) {
+                if (!is_array($row)) {
                     continue;
                 }
-                foreach ($loaded as $row) {
-                    if ($row instanceof RouteEntry) {
-                        $entries[] = $row;
-                        continue;
-                    }
-                    if (!is_array($row)) {
-                        continue;
-                    }
-                    if (!isset($row['route_type']) || $row['route_type'] === '') {
-                        $row['route_type'] = 'declared';
-                    }
-                    if (!isset($row['source']) || $row['source'] === '') {
-                        $name = isset($row['name']) ? $row['name'] : '';
-                        $row['source'] = 'declared:' . str_replace('\\', '/', $file) . ':' . $name;
-                    }
-                    $entries[] = new RouteEntry($row);
+                if (!isset($row['route_type']) || $row['route_type'] === '') {
+                    $row['route_type'] = 'declared';
                 }
+                if (!isset($row['source']) || $row['source'] === '') {
+                    $name = isset($row['name']) ? $row['name'] : '';
+                    $row['source'] = 'declared:' . str_replace('\\', '/', $file) . ':' . $name;
+                }
+                $entries[] = new RouteEntry($row);
             }
         }
 
         return $entries;
+    }
+
+    /**
+     * 声明式路由文件绝对路径清单，顺序：front → admin → api（各端内保持 glob 顺序）。
+     *
+     * 与 {@see buildDeclared} 的加载顺序一致；供清单落盘缓存计算指纹与失效判断复用。
+     *
+     * @return string[] 归一化（'/' 分隔）的绝对路径
+     */
+    public function declaredSourceFiles()
+    {
+        $files = array();
+        $dirs = array(
+            $this->endRoutePath('FRONT_PATH', 'front'),
+            $this->endRoutePath(null, 'admin'),
+            $this->endRoutePath('API_PATH', 'api'),
+        );
+
+        foreach ($dirs as $dir) {
+            if ($dir === null || !is_dir($dir)) {
+                continue;
+            }
+            foreach ((array) glob($dir . '*.php') as $file) {
+                if (is_file($file)) {
+                    $files[] = str_replace('\\', '/', $file);
+                }
+            }
+        }
+
+        return $files;
+    }
+
+    /**
+     * 清单来源指纹：各路由文件与 route.php / module.php 的 mtime + size，加清缓存世代。
+     *
+     * 源文件或配置变更、管理员清空缓存（世代 +1）时指纹变化，落盘缓存随之失效。
+     *
+     * @return string
+     */
+    public function sourceFingerprint()
+    {
+        $parts = array();
+        foreach ($this->declaredSourceFiles() as $file) {
+            $parts[] = $file . ':' . (int) @filemtime($file) . ':' . (int) @filesize($file);
+        }
+        $configPath = defined('CONFIG_PATH') ? CONFIG_PATH : '';
+        foreach (array('route.php', 'module.php') as $name) {
+            $cfg = $configPath . $name;
+            $parts[] = $cfg . ':' . (is_file($cfg) ? (int) @filemtime($cfg) : 0);
+        }
+        $parts[] = 'gen:' . ManifestCacheGeneration::current();
+
+        return md5(implode('|', $parts));
     }
 
     /**

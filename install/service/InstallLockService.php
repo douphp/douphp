@@ -19,7 +19,7 @@ if (!defined('IN_DOUCO')) {
 }
 
 /**
- * 安装锁文件（storage/install.lock）读写。
+ * 安装锁文件（storage/state/install.lock）读写。
  *
  * Router 会在每次请求开始时检查 isLocked()，已锁定则强制走 LockController。
  * FinishService::finalize() 在安装成功后写入安装锁。
@@ -31,7 +31,7 @@ class InstallLockService
 
     public function __construct()
     {
-        $this->lockFile = ROOT_PATH . 'storage/install.lock';
+        $this->lockFile = ROOT_PATH . 'storage/state/install.lock';
     }
 
     /**
@@ -45,13 +45,15 @@ class InstallLockService
     }
 
     /**
-     * 是否已安装（锁文件存在即视为已安装）。
+     * 是否已安装（三级判定：storage/state → storage 根 → data，任一存在即视为已安装）。
      *
      * @return bool
      */
     public function isLocked()
     {
-        return file_exists($this->lockFile);
+        return file_exists($this->lockFile)
+            || file_exists(ROOT_PATH . 'storage/install.lock')
+            || file_exists(ROOT_PATH . 'data/install.lock');
     }
 
     /**

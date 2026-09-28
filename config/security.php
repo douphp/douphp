@@ -72,7 +72,7 @@ return [
         ],
 
         'throttle' => [
-            'store' => STORAGE_PATH . 'cache/throttle/',
+            'store' => STORAGE_PATH . 'state/throttle/',
             'default' => null,
         ],
 

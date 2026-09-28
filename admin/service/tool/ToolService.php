@@ -212,7 +212,7 @@ class ToolService extends BaseService
      *
      * Windows 下当前请求进程持有 admin/index.php 句柄，同请求内 rename 后台目录必然失败，
      * 因此真正的 rename 必须延后到独立请求执行。本方法只做校验，并把校验通过的目标目录
-     * 固化进一次性引导脚本（storage/cache/admin_dir_relocate_{token}.php），由浏览器 302
+     * 固化进一次性引导脚本（storage/cache/tmp/admin_dir_relocate_{token}.php），由浏览器 302
      * 跳转触发执行；引导脚本不在被改名目录内、执行时句柄已释放，Windows/Linux 均可成功。
      *
      * 目录名只接受「字母、数字、点、下划线、横杠」（新名不允许大写字母），并排除会与
@@ -255,13 +255,16 @@ class ToolService extends BaseService
         $this->removeStaleRelocateScripts();
 
         $token = Str::randomHex(16);
-        $scriptPath = STORAGE_PATH . 'cache/admin_dir_relocate_' . $token . '.php';
+        $scriptPath = STORAGE_PATH . 'cache/tmp/admin_dir_relocate_' . $token . '.php';
+        if (!is_dir(dirname($scriptPath))) {
+            @mkdir(dirname($scriptPath), 0777, true);
+        }
         if (@file_put_contents($scriptPath, self::buildRelocateScript($oldDir, $newDir, $token)) === false) {
             throw new DomainException(lang('tool_custom_admin_dir_write_fail'), $backUrl);
         }
 
         // token 需同时作为 query 参数回传（脚本据此校验执行权限）
-        return ROOT_URL . 'storage/cache/admin_dir_relocate_' . $token . '.php?token=' . $token;
+        return ROOT_URL . 'storage/cache/tmp/admin_dir_relocate_' . $token . '.php?token=' . $token;
     }
 
     /**
@@ -272,7 +275,7 @@ class ToolService extends BaseService
     public function removeStaleRelocateScripts()
     {
         $expired = time() - 3600;
-        foreach ((array) glob(STORAGE_PATH . 'cache/admin_dir_relocate_*.php') as $file) {
+        foreach ((array) glob(STORAGE_PATH . 'cache/tmp/admin_dir_relocate_*.php') as $file) {
             if (is_file($file) && (int) filemtime($file) < $expired) {
                 @unlink($file);
             }
@@ -311,8 +314,21 @@ if (time() - $BORN > 3600) {
     exit("Expired");
 }
 
-$root = dirname(dirname(__DIR__));
-$storage = dirname(__DIR__);
+$root = __DIR__;
+$levels = 0;
+// 站点根探测：自脚本所在目录逐级上溯，含 config/config.php 的目录即站点根（脚本位置深度无关）
+for ($i = 0; $i < 10; $i++) {
+    if (is_file($root . "/config/config.php")) {
+        break;
+    }
+    $up = dirname($root);
+    if ($up === $root) {
+        break;
+    }
+    $root = $up;
+    $levels++;
+}
+$storage = $root . "/storage";
 
 $ok = false;
 for ($i = 0; $i < 3 && !$ok; $i++) {
@@ -336,8 +352,12 @@ if ($ok) {
 
 @unlink(__FILE__);
 
-// SCRIPT_NAME 首次 dirname 剥去文件名，再到站点根共需三层
-$base = rtrim(str_replace("\\\\", "/", dirname(dirname(dirname($_SERVER["SCRIPT_NAME"])))), "/");
+// SCRIPT_NAME 先 dirname 剥去文件名，再按脚本目录相对站点根的层级 $levels 逐级剥出 URL 基址
+$urlPath = str_replace("\\\\", "/", $_SERVER["SCRIPT_NAME"]);
+for ($i = 0; $i <= $levels; $i++) {
+    $urlPath = dirname($urlPath);
+}
+$base = rtrim($urlPath, "/");
 $target = $base . "/" . ($ok ? $NEW : $OLD) . "/";
 header("Content-type: text/html; charset=utf-8");
 echo "<!doctype html><html><head><meta charset=\"utf-8\"><title>" . ($ok ? "修改成功" : "修改失败") . "</title>";
