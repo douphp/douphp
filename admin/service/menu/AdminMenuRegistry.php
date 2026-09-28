@@ -145,7 +145,9 @@ class AdminMenuRegistry
         );
 
         // 已安装模块的族声明文件（随模块包安装 / 卸载生命周期，未安装则文件不存在）
-        $navDir = rtrim(str_replace('\\', '/', ROOT_PATH), '/') . '/admin/nav/';
+        // 后台目录名取自 ADMIN_DIR（可被 storage/state/admin_dir.php 改写），须用 ADMIN_PATH 拼接，
+        // 不能硬编码 'admin'，否则改名后台（如 ..c）时 glob 落空、模块族（user/ai 等）全部丢失。
+        $navDir = ADMIN_PATH . 'nav/';
         foreach ((array) glob($navDir . '*.php') as $file) {
             $declared = include $file;
             if (is_array($declared) && isset($declared['title'], $declared['items'])) {
