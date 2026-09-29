@@ -59,7 +59,9 @@ class Client
      * @param string $url 请求地址
      * @param array|string $data 请求数据（GET 时作为 query）
      * @param array $headers 请求头
-     * @param array $options 可选项：timeout、connect_timeout、return_meta、verify_ssl、max_bytes、resolve
+     * @param array $options 可选项：timeout、connect_timeout、return_meta、verify_ssl、max_bytes、resolve、stream_to
+     *                       stream_to：将响应体直接流式写入该文件路径（用于大文件下载，
+     *                       避免整包读入内存字符串；return_meta 时 body 返回空串，并附带 size / content_length）
      * @return mixed
      */
     public static function request($method, $url, $data = array(), $headers = array(), $options = array())
@@ -69,6 +71,7 @@ class Client
         $connectTimeout = isset($options['connect_timeout']) ? (int) $options['connect_timeout'] : 10;
         $verifySsl = !isset($options['verify_ssl']) || $options['verify_ssl'] !== false;
         $maxBytes = isset($options['max_bytes']) ? max(0, (int) $options['max_bytes']) : 0;
+        $streamTo = isset($options['stream_to']) ? (string) $options['stream_to'] : '';
         if ($timeout < 1) {
             $timeout = 30;
         }
@@ -146,6 +149,7 @@ class Client
 
         $responseBody = '';
         $tooLarge = false;
+        $streamFp = null;
         if ($maxBytes > 0) {
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, false);
             curl_setopt($ch, CURLOPT_WRITEFUNCTION, function ($handle, $chunk) use (&$responseBody, &$tooLarge, $maxBytes) {
@@ -157,6 +161,29 @@ class Client
 
                 return strlen($chunk);
             });
+        } elseif ($streamTo !== '') {
+            // 流式落盘：不把响应体读进 PHP 内存，仅写入文件句柄，适合大体积安装包下载
+            $streamFp = @fopen($streamTo, 'wb');
+            if ($streamFp === false) {
+                curl_close($ch);
+                if ($returnMeta) {
+                    return array(
+                        'body' => '',
+                        'http_code' => 0,
+                        'errno' => -2,
+                        'error' => '无法打开下载临时文件: ' . $streamTo,
+                        'content_type' => '',
+                        'too_large' => false,
+                        'streamed' => false,
+                        'size' => 0,
+                        'content_length' => -1,
+                    );
+                }
+
+                return false;
+            }
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, false);
+            curl_setopt($ch, CURLOPT_FILE, $streamFp);
         }
 
         $response = curl_exec($ch);
@@ -164,6 +191,13 @@ class Client
         $errno = curl_errno($ch);
         $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $contentType = (string) curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+        $downloadSize = (int) curl_getinfo($ch, CURLINFO_SIZE_DOWNLOAD);
+        $contentLength = isset($options['stream_to']) ? (int) curl_getinfo($ch, CURLINFO_CONTENT_LENGTH_DOWNLOAD) : 0;
+        if ($streamFp !== null && is_resource($streamFp)) {
+            @fflush($streamFp);
+            @fclose($streamFp);
+            $streamFp = null;
+        }
         if ($maxBytes > 0) {
             $response = $tooLarge ? false : $responseBody;
         }
@@ -173,14 +207,21 @@ class Client
         }
 
         if ($returnMeta) {
-            return array(
-                'body' => $response === false ? '' : $response,
+            $meta = array(
+                'body' => ($streamTo !== '' || $response === false) ? '' : $response,
                 'http_code' => $httpCode,
                 'errno' => $errno,
                 'error' => $error,
                 'content_type' => $contentType,
                 'too_large' => $tooLarge,
             );
+            if ($streamTo !== '') {
+                $meta['streamed'] = $response !== false;
+                $meta['size'] = $downloadSize;
+                $meta['content_length'] = $contentLength;
+            }
+
+            return $meta;
         }
 
         return $response;

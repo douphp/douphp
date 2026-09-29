@@ -38,8 +38,8 @@ class InstallSessionService extends BaseService
     /** 会话目录相对站点根（带斜杠结尾） */
     const SESSION_DIR = 'storage/install/session/';
 
-    /** 会话过期时间（秒）：30 分钟 */
-    const TTL_SECONDS = 1800;
+    /** 会话过期时间（秒）：60 分钟（大体积系统升级包在共享主机上下载可能耗时较久，放宽以免中途判过期） */
+    const TTL_SECONDS = 3600;
 
     /** @var string 绝对路径，斜杠结尾 */
     private $baseDir;
@@ -233,10 +233,21 @@ class InstallSessionService extends BaseService
                 $encoded = '{}';
             }
 
-            ftruncate($fp, 0);
-            rewind($fp);
-            fwrite($fp, $encoded);
-            fflush($fp);
+            // 写回按「路径」落地，而非仅写回调开始时打开的旧文件描述符：
+            // 系统升级的 apply 步骤会把整包覆盖到站点根目录，期间 storage/ 结构可能被重写、
+            // 本会话文件甚至被并发清理；若只写旧 fd，文件一旦被 unlink 则写盘丢失，
+            // 下一个 finalize 请求再以路径读取即报「安装会话已过期或不存在」。
+            // 这里在仍持有独占锁的前提下按路径覆盖写（不加 LOCK_EX，避免同进程自等待死锁），
+            // 并在目录被删时重建目录，确保会话存续。
+            $this->ensureDir();
+            $written = @file_put_contents($file, $encoded);
+            if ($written === false) {
+                // 路径写失败时兜底回写旧 fd（正常场景 fd 与路径为同一 inode）
+                @ftruncate($fp, 0);
+                @rewind($fp);
+                @fwrite($fp, $encoded);
+                @fflush($fp);
+            }
             flock($fp, LOCK_UN);
             fclose($fp);
 
@@ -318,10 +329,22 @@ class InstallSessionService extends BaseService
                 continue;
             }
             $file = $this->baseDir . $name;
+            // 正在被某一步骤独占使用的会话不得清理：非阻塞尝试加锁，拿不到即视为活跃，跳过。
+            // 否则一个耗时较长的单步（如大包下载）尚未回写、mtime 偏旧时，会被并发请求误删。
+            $fp = @fopen($file, 'c');
+            if ($fp === false) {
+                continue;
+            }
+            if (!@flock($fp, LOCK_EX | LOCK_NB)) {
+                @fclose($fp);
+                continue;
+            }
             $mtime = @filemtime($file);
             if ($mtime !== false && $mtime < $threshold) {
                 @unlink($file);
             }
+            @flock($fp, LOCK_UN);
+            @fclose($fp);
         }
     }
 

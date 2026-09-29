@@ -61,6 +61,7 @@ $_LANG['cloud_down_upstream_unavailable'] = '下載服務暫時不可用或上�
 $_LANG['cloud_down_upstream_misconfigured'] = '雲端下載服務未正確設定上游地址，請聯絡管理員。';
 $_LANG['cloud_down_login_required'] = '目前雲帳號沒有該資源的下載權限。';
 $_LANG['cloud_down_invalid_package'] = '下載內容不是有效的安裝包（未獲得該資源權限或資源不存在），請確認後重試。';
+$_LANG['cloud_down_truncated'] = '安裝包下載不完整（傳輸中斷或已損壞），已自動重試仍未成功，請稍後重試或檢查網路/下載服務。';
 
 // 安裝
 $_LANG['cloud_install_ing'] = '正在安裝 ';

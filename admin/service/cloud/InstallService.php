@@ -1229,7 +1229,11 @@ class InstallService extends BaseService
      * 下载扩展包到本地缓存目录。
      *
      * 对下载地址统一使用 POST，body 携带云账号、站点信息及与云端一致的 `localsystem`（便于下载域解析版本等）。
-     * 须校验 HTTP 状态与非 zip 错误正文，失败时写入 {@see $lastDownloadFailureDetail} 供 {@see resolveDownloadFailureMessage} 使用。
+     *
+     * 大体积系统升级包（~10M）不再整包读入内存字符串（旧实现在此对 10M 二进制跑 trim + 全量正则，
+     * 既慢又易因内存拷贝受影响），而是通过 {@see Client} 的 `stream_to` 直接流式落盘；
+     * 随后仅读文件头做 ZIP 归档签名判定，并用 ZipArchive 完整性校验 + Content-Length 比对拦截
+     * “下载中途截断但开头仍为 PK”导致的后续「压缩包解压失败」；遇瞬时/截断失败自动重试。
      *
      * @param string $fileUrl
      * @param string $savePath
@@ -1251,6 +1255,38 @@ class InstallService extends BaseService
             'localsystem' => $this->updateState->localSystemPayload(),
         );
 
+        $mirrorErrors = array('upstream_not_found', 'upstream_unavailable', 'upstream_misconfigured');
+
+        // 先清理可能残留的旧包，避免上一次失败留下半截文件被误判为完整。
+        @unlink($saveFile);
+
+        $attempts = 3;
+        for ($attempt = 1; $attempt <= $attempts; $attempt++) {
+            $result = $this->attemptStreamDownload($fileUrl, $data, $saveFile, $mirrorErrors);
+            if ($result === true) {
+                return $saveFile;
+            }
+
+            $this->lastDownloadFailureDetail = $result;
+            @unlink($saveFile);
+
+            // 仅对可瞬时恢复的失败（网络错误/截断/空响应/一般性 5xx）重试；权限/不存在类错误直接返回。
+            if (!$this->isRetryableDownloadFailure($result) || $attempt >= $attempts) {
+                return false;
+            }
+            usleep(400000); // 0.4s 退避
+        }
+
+        return false;
+    }
+
+    /**
+     * 单次流式下载尝试。
+     *
+     * @return true|string 成功返回 true；失败返回失败原因码（供 {@see $lastDownloadFailureDetail}）
+     */
+    private function attemptStreamDownload($fileUrl, array $data, $saveFile, array $mirrorErrors)
+    {
         $meta = Client::request(
             'POST',
             $fileUrl,
@@ -1259,93 +1295,172 @@ class InstallService extends BaseService
             array(
                 'return_meta' => true,
                 'timeout' => 7200,
+                'connect_timeout' => 20,
+                'stream_to' => $saveFile,
             )
         );
 
         if (!is_array($meta)) {
-            $this->lastDownloadFailureDetail = 'curl_error';
-            return false;
+            return 'curl_error';
+        }
+
+        $errno = isset($meta['errno']) ? (int) $meta['errno'] : 0;
+        if ($errno !== 0) {
+            return 'curl_error';
         }
 
         $httpCode = isset($meta['http_code']) ? (int) $meta['http_code'] : 0;
-        $errno = isset($meta['errno']) ? (int) $meta['errno'] : 0;
-        $body = isset($meta['body']) && $meta['body'] !== false ? (string) $meta['body'] : '';
-        $trimBody = trim($body);
+        $size = isset($meta['size']) ? (int) $meta['size'] : 0;
+        $contentLength = isset($meta['content_length']) ? (int) $meta['content_length'] : -1;
 
-        if ($errno !== 0) {
-            $this->lastDownloadFailureDetail = 'curl_error';
-            return false;
+        // 空响应：可能是登录/授权哨兵或镜像错误的小文本，读回落盘头部判定。
+        if ($size <= 0 || !is_file($saveFile)) {
+            return $this->classifyErrorBody($saveFile, $mirrorErrors, 'empty_body');
         }
 
-        $mirrorErrors = array('upstream_not_found', 'upstream_unavailable', 'upstream_misconfigured');
-        if ($trimBody !== '' && in_array($trimBody, $mirrorErrors, true)) {
-            $this->lastDownloadFailureDetail = $trimBody;
-            return false;
-        }
-
+        // 非 2xx：读小 body 区分具体上游错误。
         if ($httpCode < 200 || $httpCode >= 300) {
             if ($httpCode === 404) {
-                $this->lastDownloadFailureDetail = 'upstream_not_found';
-            } elseif ($httpCode === 502) {
-                $this->lastDownloadFailureDetail = 'upstream_unavailable';
-            } elseif ($httpCode === 500 && $trimBody === 'upstream_misconfigured') {
-                $this->lastDownloadFailureDetail = 'upstream_misconfigured';
-            } else {
-                $this->lastDownloadFailureDetail = 'http_bad_status';
+                return 'upstream_not_found';
             }
-            return false;
+            if ($httpCode === 502) {
+                return 'upstream_unavailable';
+            }
+            if ($httpCode === 500) {
+                return $this->readHead($saveFile, 256) === 'upstream_misconfigured' ? 'upstream_misconfigured' : 'http_bad_status';
+            }
+            return 'http_bad_status';
         }
 
-        if ($trimBody === '') {
-            $this->lastDownloadFailureDetail = 'empty_body';
-            return false;
+        // 2xx：先按 ZIP 归档签名判定（仅读文件头，不再整包 trim / 正则）。
+        if (!$this->fileLooksLikeZip($saveFile)) {
+            return $this->classifyErrorBody($saveFile, $mirrorErrors, 'invalid_package');
         }
 
-        if (preg_match('/404 Not Found/', $body)) {
-            $this->lastDownloadFailureDetail = 'upstream_not_found';
-            return false;
+        // 完整性校验：Content-Length 已知时比对已下载字节数，识别中途截断。
+        if ($contentLength > 0 && $size !== $contentLength) {
+            return 'truncated_package';
         }
 
-        if (preg_match('/^(invalid_mode|invalid_id|invalid_params)\s*$/', $trimBody)) {
-            $this->lastDownloadFailureDetail = 'http_bad_status';
-            return false;
+        // 结构校验：能被归档库成功打开说明尾部中央目录完整（截断包在此失败，避免拖到解压步骤）。
+        if (!$this->zipArchiveIsReadable($saveFile)) {
+            return 'truncated_package';
         }
 
-        // 云在鉴权/授权未通过时会返回 2xx + 纯文本占位内容（如 login_required），
-        // 若仍按原样落盘，后续解压步骤会对一个非 ZIP 文件报出误导性的「压缩包解压失败」。
-        // 此处在下载阶段就识别常见哨兵与 ZIP 归档签名，直接给出可操作错误并拒绝写入。
-        if ($trimBody === 'login_required') {
-            $this->lastDownloadFailureDetail = 'login_required';
-            return false;
-        }
-        if (!$this->looksLikeZipArchive($body)) {
-            $this->lastDownloadFailureDetail = 'invalid_package';
-            return false;
-        }
-
-        if (!@file_put_contents($saveFile, $body)) {
-            $this->lastDownloadFailureDetail = 'write_failed';
-            @unlink($saveFile);
-            return false;
-        }
-
-        return $saveFile;
+        return true;
     }
 
     /**
-     * 判断下载内容是否为合法 ZIP 归档（校验本地文件头 / 空归档 / 跨卷签名）。
+     * 失败码是否值得重试（瞬时网络/截断/一般 5xx），权限与不存在类错误不重试。
      *
-     * @param string $binary 响应体原始字节
+     * @param string $code
      * @return bool
      */
-    private function looksLikeZipArchive($binary)
+    private function isRetryableDownloadFailure($code)
     {
-        if (strlen($binary) < 4) {
+        return in_array($code, array('curl_error', 'truncated_package', 'empty_body', 'http_bad_status'), true);
+    }
+
+    /**
+     * 读取文件头部字节（用于哨兵/签名判定，不将整个大文件载入内存）。
+     *
+     * @param string $file
+     * @param int $len
+     * @return string 已 trim 的头部内容
+     */
+    private function readHead($file, $len)
+    {
+        if (!is_file($file)) {
+            return '';
+        }
+        $fp = @fopen($file, 'rb');
+        if ($fp === false) {
+            return '';
+        }
+        $head = @fread($fp, max(1, (int) $len));
+        @fclose($fp);
+
+        return $head === false ? '' : trim($head);
+    }
+
+    /**
+     * 从落盘的（小）错误正文识别常见哨兵，返回对应失败码。
+     *
+     * @param string $saveFile
+     * @param array $mirrorErrors
+     * @param string $defaultCode 无法归类时的默认码
+     * @return string
+     */
+    private function classifyErrorBody($saveFile, array $mirrorErrors, $defaultCode)
+    {
+        $head = $this->readHead($saveFile, 512);
+        if ($head === '') {
+            return $defaultCode;
+        }
+        foreach ($mirrorErrors as $code) {
+            if ($head === $code) {
+                return $code;
+            }
+        }
+        if ($head === 'login_required') {
+            return 'login_required';
+        }
+        if (strpos($head, '404 Not Found') !== false) {
+            return 'upstream_not_found';
+        }
+        if (preg_match('/^(invalid_mode|invalid_id|invalid_params)$/', $head)) {
+            return 'http_bad_status';
+        }
+
+        return $defaultCode;
+    }
+
+    /**
+     * 判断落盘文件是否为合法 ZIP 归档（仅校验本地文件头 4 字节签名）。
+     *
+     * @param string $file
+     * @return bool
+     */
+    private function fileLooksLikeZip($file)
+    {
+        if (!is_file($file)) {
             return false;
         }
-        $signature = substr($binary, 0, 4);
+        $fp = @fopen($file, 'rb');
+        if ($fp === false) {
+            return false;
+        }
+        $signature = @fread($fp, 4);
+        @fclose($fp);
+        if ($signature === false || strlen($signature) < 4) {
+            return false;
+        }
 
         return $signature === "PK\x03\x04" || $signature === "PK\x05\x06" || $signature === "PK\x07\x08";
+    }
+
+    /**
+     * 用 ZipArchive 打开归档校验完整性（中央目录缺失/截断包会打开失败）。
+     *
+     * ZipArchive 扩展不可用时仅能依赖 Content-Length 比对，此处放行交由解压步骤处理。
+     *
+     * @param string $file
+     * @return bool
+     */
+    private function zipArchiveIsReadable($file)
+    {
+        if (!class_exists('ZipArchive')) {
+            return true;
+        }
+        $archive = new \ZipArchive();
+        $opened = @$archive->open($file);
+        if ($opened === true) {
+            $archive->close();
+
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -1362,6 +1477,7 @@ class InstallService extends BaseService
             'upstream_misconfigured' => 'cloud_down_upstream_misconfigured',
             'login_required' => 'cloud_down_login_required',
             'invalid_package' => 'cloud_down_invalid_package',
+            'truncated_package' => 'cloud_down_truncated',
         );
         if (isset($map[$detail]) && lang_has($map[$detail])) {
             return lang($map[$detail]);

@@ -61,6 +61,7 @@ $_LANG['cloud_down_upstream_unavailable'] = '下载服务暂时不可用或上�
 $_LANG['cloud_down_upstream_misconfigured'] = '云端下载服务未正确配置上游地址，请联系管理员。';
 $_LANG['cloud_down_login_required'] = '当前云账号没有该资源的下载权限。';
 $_LANG['cloud_down_invalid_package'] = '下载内容不是有效的安装包（未获得该资源权限或资源不存在），请确认后重试。';
+$_LANG['cloud_down_truncated'] = '安装包下载不完整（传输中断或已损坏），已自动重试仍未成功，请稍后重试或检查网络/下载服务。';
 
 // 安装
 $_LANG['cloud_install_ing'] = '正在安装 ';
