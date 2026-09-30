@@ -39,6 +39,9 @@ class BackupService extends BaseService
     /** @var int 最近一次 sql_dumptable 结束时的偏移（供备份续传 URL 使用） */
     protected $lastDumpStartrow = 0;
 
+    /** @var bool 最近一次 sqlDumptable 是否已把该表整表导完（供分卷续传判定下一卷起点） */
+    protected $lastTableComplete = false;
+
     /**
      * 备份包解压条目白名单。
      *
@@ -244,20 +247,45 @@ class BackupService extends BaseService
         }
 
         $sqldump = '';
-        $tableid = isset($req['tableid']) ? $req['tableid'] - 1 : 0;
+        // tableid 即「下一卷应从哪张表开始」的下标，直接取用不再 -1。
+        // 旧逻辑读取时做 -1，本意是续传被预算截断的表；但整库导完（$i==tablenumber）后
+        // 它会回退重导最后一张表——若该表为空（只有 DDL、startfrom 恒为 0），每卷都非空、
+        // 永远收敛不了，于是疯狂产出 ~1.4K 的空卷。改为按「上一张表是否整表导完」精确推进。
+        $tableid = isset($req['tableid']) ? intval($req['tableid']) : 0;
         $startfrom = isset($req['startfrom']) ? intval($req['startfrom']) : 0;
         $tablenumber = count((array) $tables);
         // 单卷实际字节预算：min(设定值, 上传限制) 再预留安全余量
         $budget = $this->volumeBudgetBytes($vol_size);
 
-        for ($i = $tableid; $i < $tablenumber && strlen($sqldump) < $budget; $i++) {
+        // 下一卷续传起点：默认「已全部导完」，for 正常跑完（$i 达到 $tablenumber）时保持此值，
+        // 下一轮 for 不执行、$sqldump 为空即收尾，不会再回退重导最后一张表
+        $nextTableid = $tablenumber;
+        $nextStartfrom = 0;
+        for ($i = $tableid; $i < $tablenumber; $i++) {
+            // 本卷预算已满：当前表整体留到下一卷从头导
+            if (strlen($sqldump) >= $budget) {
+                $nextTableid = $i;
+                $nextStartfrom = 0;
+                break;
+            }
             $before = strlen($sqldump);
             $sqldump .= $this->sqlDumptable($tables[$i], $vol_size, $startfrom, $before);
             $startfrom = 0;
-            // 返回空串表示本卷剩余空间连新表表头都放不下，留给下一卷处理
+            // 返回空串表示本卷剩余空间连新表表头都放不下，整表留给下一卷
             if (strlen($sqldump) === $before) {
+                $nextTableid = $i;
+                $nextStartfrom = 0;
                 break;
             }
+            if (!$this->lastTableComplete) {
+                // 本表被预算截断（未导完）：下一卷从本表 lastDumpStartrow 续传
+                $nextTableid = $i;
+                $nextStartfrom = $this->lastDumpStartrow;
+                break;
+            }
+            // 本表已整表导完：下一卷从下一张表开始
+            $nextTableid = $i + 1;
+            $nextStartfrom = 0;
         }
 
         if (trim($sqldump)) {
@@ -266,7 +294,6 @@ class BackupService extends BaseService
                 . "\n-- PHP VERSION : " . PHP_VERSION
                 . "\n-- DouPHP VERSION : " . Config::get('site.douphp_version', '') . "\n\n" . $sqldump;
 
-            $tableid = $i;
             $needsVolumeSuffix = ((int) $totalsize >= (int) $vol_size) || (int) $volid > 1;
             $sql_filename = $needsVolumeSuffix
                 ? $filename . '_' . $volid . '.sql'
@@ -285,7 +312,7 @@ class BackupService extends BaseService
             $token_val = csrf()->token();
             return array(
                 'message' => lang('backup_file_success'),
-                'back_url' => route('admin.backup.backup', array('act' => $act, 'asset' => $asset, 'vol_size' => $vol_size, 'totalsize' => $totalsize, 'filename' => $filename, 'token' => $token_val, 'tableid' => $tableid, 'volid' => $volid, 'startfrom' => intval($this->lastDumpStartrow), 'showname' => $showname, 'restore_filename' => $restore_filename, 'back' => $back)),
+                'back_url' => route('admin.backup.backup', array('act' => $act, 'asset' => $asset, 'vol_size' => $vol_size, 'totalsize' => $totalsize, 'filename' => $filename, 'token' => $token_val, 'tableid' => $nextTableid, 'volid' => $volid, 'startfrom' => $nextStartfrom, 'showname' => $showname, 'restore_filename' => $restore_filename, 'back' => $back)),
                 'timeout' => '1',
                 'confirm_url' => '',
             );
@@ -601,6 +628,9 @@ class BackupService extends BaseService
             throw new DomainException(lang('illegal'), route('admin.backup'));
         }
 
+        $this->lastDumpStartrow = 0;
+        $this->lastTableComplete = false;
+
         $budget = $this->volumeBudgetBytes($vol_size);
 
         if (!isset($tabledump)) {
@@ -622,6 +652,7 @@ class BackupService extends BaseService
         }
         $tabledumped = 0;
         $numrows = $offset;
+        $complete = false;
         // !$tabledumped 兜底：预算再紧也至少尝试读一批数据，保证表有数据时能推进
         while ($numrows == $offset && ($currsize + strlen($tabledump) < $budget || !$tabledumped)) {
             $tabledumped = 1;
@@ -649,8 +680,13 @@ class BackupService extends BaseService
             if ($written < $numrows) {
                 break;
             }
+            // 本批不足一批（含空表返回 0 行）说明已读到表尾，整表导完
+            if ($numrows < $offset) {
+                $complete = true;
+            }
         }
         $this->lastDumpStartrow = $startfrom;
+        $this->lastTableComplete = $complete;
         $tabledump .= "\n";
         return $tabledump;
     }

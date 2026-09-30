@@ -1018,7 +1018,14 @@ class InstallService extends BaseService
 
         $moduleFile = $this->rootDir . 'config/module.php';
         $payload = "<?php\nreturn " . Arr::export($output) . ";\n";
-        if (file_put_contents($moduleFile, $payload)) {
+        // LOCK_EX：多 worker（FastCGI）下避免并发读到写了一半的文件。
+        if (file_put_contents($moduleFile, $payload, LOCK_EX)) {
+            // config/module.php 由 bootstrap 每次请求 include 读取并派生 all_module；开启 OPcache 时
+            // 旧字节码会被缓存，导致安装/卸载写盘后立即跳转的列表页仍读到改写前的模块账本（需再次
+            // 刷新才消失）。写盘成功后主动失效该文件的 OPcache 条目，确保下一请求重新编译。
+            if (function_exists('opcache_invalidate')) {
+                @opcache_invalidate($moduleFile, true);
+            }
             return true;
         }
 

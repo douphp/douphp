@@ -37,7 +37,7 @@ class DouView implements TemplateRendererInterface, PrefilterContext
     const VERSION = '1.0';
 
     /** @var string 编译修订号（仅编译缓存失效判据，与产品版本无关） */
-    const COMPILE_REVISION = '9';
+    const COMPILE_REVISION = '11';
 
     /** @var string|array 模板根目录 */
     public $template_dir = 'templates';
