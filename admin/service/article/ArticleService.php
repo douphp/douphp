@@ -146,7 +146,7 @@ class ArticleService extends BaseService
             throw new DomainException(lang('illegal'), route('admin.article'));
         }
 
-        $content = isset($data['content']) ? xss()->content($data['content']) : '';
+        $content = isset($data['content']) ? $this->markdown->toStore($data['content']) : '';
         if (!empty($data['content_remote_image_local'])) {
             $content = attachment()->storeDraftContentImages('article', $content, 'admin', $adminId, $draftToken, 'content', '');
         }
@@ -226,7 +226,7 @@ class ArticleService extends BaseService
         $image = attachment()->store('article', $id, UploadedFile::fromGlobals('image'), 'main', AttachmentUploadOptions::create()->withUploader('admin', $adminId));
         $content = '';
         if (isset($data['content'])) {
-            $content = xss()->content($data['content']);
+            $content = $this->markdown->toStore($data['content']);
             if (!empty($data['content_remote_image_local'])) {
                 $content = attachment()->storeContentImages('article', $id, $content, 'content', '', AttachmentUploadOptions::create()->withUploader('admin', $adminId));
             }

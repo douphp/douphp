@@ -161,7 +161,7 @@ class PageService extends BaseService
 
         $content = '';
         if (isset($data['content'])) {
-            $content = xss() !== null ? xss()->content($data['content']) : $data['content'];
+            $content = $this->markdown->toStore($data['content']);
             if (!empty($data['content_remote_image_local'])) {
                 $content = attachment()->storeDraftContentImages('page', $content, 'admin', $adminId, $draftToken, 'content', '');
             }
@@ -221,7 +221,7 @@ class PageService extends BaseService
 
         $content = '';
         if (isset($data['content'])) {
-            $content = $data['content'];
+            $content = $this->markdown->toStore($data['content']);
             if (!empty($data['content_remote_image_local'])) {
                 $content = attachment()->storeContentImages('page', $id, $content, 'content', '', AttachmentUploadOptions::create()->withUploader('admin', $adminId));
             }

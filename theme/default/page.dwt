@@ -17,7 +17,6 @@
  <!-- {/if} -->
  <link href="css/common.css" rel="stylesheet" type="text/css" />
  <link href="css/style.css" rel="stylesheet" type="text/css" />
- <link href="css/content.css" rel="stylesheet" type="text/css" />
  {include file="inc/code_head.tpl"}
 </head>
 

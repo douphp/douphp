@@ -25,6 +25,11 @@ $(function() {
       // 初始化编辑器
       initEditor(editorId)
   });
+
+  // 提交前同步（兜底）：把各 vditor 实例的当前值（Markdown 源码）写回对应 textarea
+  $(document).on('submit', 'form', function() {
+      syncAllEditors();
+  });
   
   // 可选：按ESC键退出全屏
   $(document).keyup(function(e) {
@@ -44,8 +49,11 @@ $(function() {
 function initEditor(editorId) {
     var editorValue = $('#' + editorId + 'Textarea').val();
 
-    // 判断是否是 Markdown（与 PHP 保持一致的逻辑）
-    var isMarkdown = hasMarkdownSyntax(editorValue);
+    // 仅当存量内容是 HTML 时才需要转成 Markdown 回填。
+    // 不可用「是否含 Markdown 语法」反推是否 HTML：HTML→Markdown 转换后的纯文本正文
+    // （如 <p>a<br/><br/>b</p> → "a\n\nb"）不含 # / 列表等标记，会被误判为「非 Markdown」
+    // 而再次走 html2md；html2md 视入参为 HTML，会把换行折叠成空格、并转义 ** 等记号，破坏正文。
+    var isHtml = looksLikeHtml(editorValue);
     
     douEditor[editorId] = new Vditor(editorId, {
         toolbar: ["emoji", "headings", "bold", "italic", "strike", "link", "|", "list", "ordered-list", "check", "outdent", "indent", "|", "quote", "line", "code", "inline-code", "insert-before", "insert-after", "|", "table", "|", "undo", "redo", "|", "outline", "preview", "edit-mode", { name: "more", toolbar: ["both", "code-theme", "content-theme", "export", "devtools", "help"] }],
@@ -54,9 +62,11 @@ function initEditor(editorId) {
         cdn: (typeof admin_url !== 'undefined' ? admin_url : '') + 'editor/vditor', 
         value: editorValue,
         after: () => {
-            if (!isMarkdown) {
+            if (isHtml) {
                 const markdown = douEditor[editorId].html2md(editorValue);
                 douEditor[editorId].setValue(markdown);
+                // setValue 属编程式赋值，不会触发 input 回调，需手动同步到提交用的 textarea
+                $('#' + editorId + 'Textarea').val(markdown);
             }
         },
         input: (content) => {
@@ -67,76 +77,58 @@ function initEditor(editorId) {
             id: editorId // 设置缓存ID
         }
     });
+
+    // 所在表单提交前同步：此绑定早于 jquery.form 的 ajaxForm（多语言弹窗），
+    // 保证 ajaxForm 序列化表单数据时 textarea 已是 Markdown 源码
+    var $form = $('#' + editorId + 'Textarea').closest('form');
+    if ($form.length) {
+        $form.on('submit', function() {
+            syncEditorValue(editorId);
+        });
+    }
 }
 
 /**
  +----------------------------------------------------------
- * 快速检测 Markdown 语法
+ * 同步单个编辑器当前值（Markdown 源码）到提交用 textarea
+ * Vditor 的 setValue / insertValue 等编程式赋值不会触发 input 回调，
+ * 若只靠 input 同步，打开表单后未编辑直接提交会把 textarea 里的旧值（如存量 HTML）提交上去
  +----------------------------------------------------------
  */
-function hasMarkdownSyntax(content) {
-  // 空内容不算 Markdown
-  if (!content || content.trim() === "") {
+function syncEditorValue(editorId) {
+    if (douEditor[editorId] && typeof douEditor[editorId].getValue === 'function') {
+        $('#' + editorId + 'Textarea').val(douEditor[editorId].getValue());
+    }
+}
+
+/**
+ +----------------------------------------------------------
+ * 同步页面上全部编辑器（兜底，覆盖 textarea 初始化时不在表单内的场景）
+ +----------------------------------------------------------
+ */
+function syncAllEditors() {
+    for (var editorId in douEditor) {
+        if (douEditor.hasOwnProperty(editorId)) {
+            syncEditorValue(editorId);
+        }
+    }
+}
+
+/**
+ +----------------------------------------------------------
+ * 检测内容是否像 HTML 片段（与 PHP MarkdownRenderer::looksLikeHtml 规则一致）
+ * 命中 HTML 即视为 HTML 内容，交由 html2md 转 Markdown 回填
+ +----------------------------------------------------------
+ */
+function looksLikeHtml(content) {
+  if (!content) {
     return false;
   }
 
-  // 使用多行模式，使 ^ 匹配行首
-  const patterns = [
-    // 标题 (行首 1-6 个 # 后跟空格)
-    /^#{1,6}\s+/m,
+  // 先剔除代码块 / 行内代码，避免 Markdown 正文里的 HTML 示例被误判
+  var probe = content.replace(/```[\s\S]*?```|~~~[\s\S]*?~~~|`[^`]*`/g, '');
 
-    // 代码块 (行首三个反引号或三个波浪号)
-    /^```|^~~~/m,
-
-    // 引用块 (行首 > 后跟空格)
-    /^>\s+/m,
-
-    // 分隔线 (行首至少三个 * - _，可选空格)
-    /^(\*{3,}|-{3,}|_{3,})\s*$/m,
-
-    // 无序列表 (行首 * + - 后跟空格)
-    /^[\*\+\-]\s+/m,
-
-    // 有序列表 (行首数字加点加空格)
-    /^\d+\.\s+/m,
-
-    // 任务列表 (行首 - 后跟 [空格] 或 [x])
-    /^-\s*\[[ x]\]\s+/im,
-
-    // 表格 (行中包含 | 且至少有一个分隔行 --- )
-    // 简单检测：行中有 | 且下一行有 --- 或 :--- 等，但这里简化：检测包含 | 的行
-    /\|.*\|/,
-
-    // 链接 [text](url) (允许 url 中包含括号，非贪婪；允许 text 为空)
-    /\[[^\]]*\]\([^)]+\)/,
-
-    // 图片 ![alt](url)（允许 alt 为空：编辑器期上传的图返回 <img> 不带 alt，
-    // 经 vditor insertValue 转 markdown 时落成 ![](url)，必须能被识别为 markdown）
-    /!\[[^\]]*\]\([^)]+\)/,
-
-    // 粗体 (双星号或双下划线包围，中间无空白)
-    /\*\*[^*]+\*\*|__[^_]+__/,
-
-    // 斜体 (单星号或单下划线包围，注意区分粗体)
-    /(?<!\*)\*[^*]+\*(?!\*)|(?<!_)_[^_]+_(?!_)/,
-
-    // 删除线 (双波浪号包围)
-    /~~[^~]+~~/,
-
-    // 行内代码 (单个反引号包围)
-    /`[^`]+`/,
-
-    // 脚注 [^1]
-    /\[\^[^\]]+\]/,
-  ];
-
-  for (const pattern of patterns) {
-    if (pattern.test(content)) {
-      return true;
-    }
-  }
-
-  return false;
+  return /<\/?[a-z][a-z0-9]*(?:\s[^>]*)?>/i.test(probe);
 }
 
 /**

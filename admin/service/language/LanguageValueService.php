@@ -73,6 +73,10 @@ class LanguageValueService extends BaseService
         if (!$value) {
             throw new DomainException(lang('language_empty'));
         }
+        if ($type === 'content') {
+            $value = $this->markdown->toStore($value);
+        }
+
         if ($type === 'content' && !empty($data['content_remote_image_local'])) {
             $value = attachment()->storeContentImages($module, $itemId, $value, 'content', '', AttachmentUploadOptions::create()->withUploader('admin', (int) auth('admin')->id()));
         }

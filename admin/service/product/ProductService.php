@@ -184,7 +184,7 @@ class ProductService extends BaseService
             $data['level_price'] = $this->pricingService->levelPrice($data['level_price']);
         }
 
-        $content = isset($data['content']) ? xss()->content($data['content']) : '';
+        $content = isset($data['content']) ? $this->markdown->toStore($data['content']) : '';
         if (!empty($data['content_remote_image_local'])) {
             $content = attachment()->storeDraftContentImages('product', $content, 'admin', $adminId, $draftToken, 'content', '');
         }
@@ -280,7 +280,7 @@ class ProductService extends BaseService
             $data['level_price'] = $this->pricingService->levelPrice($data['level_price']);
         }
 
-        $content = isset($data['content']) ? xss()->content($data['content']) : '';
+        $content = isset($data['content']) ? $this->markdown->toStore($data['content']) : '';
         if (!empty($data['content_remote_image_local'])) {
             $content = attachment()->storeContentImages('product', $id, $content, 'content', '', AttachmentUploadOptions::create()->withUploader('admin', $adminId));
         }
