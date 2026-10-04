@@ -140,7 +140,7 @@ class NavService extends BaseService
         $rows = $this->collectNavRows();
         $this->buildNavTreeRowsFromRows($rows, $type, 0, 0, $currentNavId, $navList);
 
-        $select = '<select name="parent_id">';
+        $select = '<select class="select" name="parent_id">';
         $select .= '<option value="0">' . lang('empty') . '</option>';
         foreach ((array) $navList as $value) {
             $select .= '<option value="' . (int) $value['id'] . '" ';

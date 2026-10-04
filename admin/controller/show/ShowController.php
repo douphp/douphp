@@ -90,7 +90,7 @@ class ShowController extends BaseController
 
         $newId = $this->showService->insert($data, $type);
 
-        return redirect(route('admin.show.edit', array('id' => $newId)))
+        return redirect(route('admin.show'))
             ->with('success', lang('show_add_succes'), route('admin.show'), lang('back_to_list'));
     }
 
@@ -138,7 +138,7 @@ class ShowController extends BaseController
 
         $this->showService->update($data);
 
-        return redirect(route('admin.show.edit', array('id' => (int) $data['id'])))
+        return redirect(route('admin.show'))
             ->with('success', lang('show_edit_succes'), route('admin.show'), lang('back_to_list'));
     }
 

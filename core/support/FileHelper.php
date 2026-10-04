@@ -113,7 +113,12 @@ class FileHelper
                     } else {
                         $should_skip = $skip;
                         if ($skip && $skip_dir) {
-                            $should_skip = strpos($destination_dir . $file, $skip_dir) !== false;
+                            // 目标路径与 skip_dir 统一归一化为 / 分隔再比对：
+                            // Windows 下拼接出的路径含 \ 分隔符，多级 skip_dir（如 /theme/xxx/）直接 strpos 会匹配失败
+                            $should_skip = strpos(
+                                str_replace('\\', '/', $destination_dir . $file),
+                                str_replace('\\', '/', $skip_dir)
+                            ) !== false;
                         }
 
                         if ($should_skip) {

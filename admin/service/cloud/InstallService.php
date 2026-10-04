@@ -680,10 +680,14 @@ class InstallService extends BaseService
 
         if ($type === 'module') {
             if ($mode === 'update') {
-                if (Config::get('site.update_overwritten_theme', false)) {
+                $siteTheme = (string) Config::get('site.site_theme', '');
+                if (Config::get('site.update_overwritten_theme', false) || $siteTheme === '' || $siteTheme === 'default') {
+                    // 覆盖全部文件：「升级时覆盖模板」开启，或站点使用默认模板（默认模板不受开关保护，始终覆盖）
                     FileHelper::copyDir($itemDir, $this->rootDir);
                 } else {
-                    FileHelper::copyDir($itemDir, $this->rootDir, false, true, false, 'theme');
+                    // 关闭「升级时覆盖模板」仅保护非默认模板：跳过当前模板目录中已存在的文件，
+                    // 其余文件（含默认模板 theme/default）仍无条件覆盖
+                    FileHelper::copyDir($itemDir, $this->rootDir, false, true, false, '/theme/' . $siteTheme . '/');
                 }
             } else {
                 FileHelper::copyDir($itemDir, $this->rootDir, false, true);
