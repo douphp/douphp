@@ -164,6 +164,7 @@ class ProductService extends BaseService
                 'image' => $row['image'],
                 'image_other' => isset($imageOtherMap[$row['id']]) ? $imageOtherMap[$row['id']] : '',
                 'created_at' => $row['created_at'],
+                'keywords' => $row['keywords'],
                 'description' => $description,
                 'favorites' => $favorites,
                 'url' => $url,

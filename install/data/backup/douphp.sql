@@ -1,10 +1,10 @@
 -- DouPHP v2.x SQL Dump Program
 -- http://localhost/douphp/
 -- 
--- DATE : 2026-09-28 21:36:53
+-- DATE : 2026-10-04 22:34:53
 -- MYSQL SERVER VERSION : 5.7.44-log
--- PHP VERSION : 8.2.30
--- DouPHP VERSION : v2.0 Release 20261003
+-- PHP VERSION : 7.4.33
+-- DouPHP VERSION : v2.0 Release 20261004
 
 DROP TABLE IF EXISTS `dou_admin`;
 CREATE TABLE `dou_admin` (
@@ -22,10 +22,14 @@ CREATE TABLE `dou_admin` (
   `login_fail_count` tinyint(3) unsigned NOT NULL DEFAULT '0' COMMENT '登录失败次数',
   `login_locked_at` datetime DEFAULT NULL,
   `created_at` datetime DEFAULT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `idx_username` (`username`),
+  KEY `idx_email` (`email`),
+  KEY `idx_token` (`token`),
+  KEY `idx_reset_token` (`reset_token`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO dou_admin VALUES('1','admin','admin@admin.com','$2y$10$Y4O2U.q8Qs.bTIrQ4d2g7.vz20A.tV.27cDcwvgPjGI5yMBVx/qTO','15765e186796fe99693c17be4b1a99ffe30e94e1bb02e4e1db135cf8bf44d5db','2026-08-02 14:40:19','',NULL,'ALL','1790058778','127.0.0.1','0',NULL,'2013-08-29 17:20:32');
+INSERT INTO dou_admin VALUES('1','admin','admin@admin.com','$2y$10$Y4O2U.q8Qs.bTIrQ4d2g7.vz20A.tV.27cDcwvgPjGI5yMBVx/qTO','003a9c65bfaa6a802689a71a6e06fcd0e440d7de4c2d80f395871cf5ff13e699','2026-11-03 22:34:46','',NULL,'ALL','1791124486','127.0.0.1','0',NULL,'2013-08-29 17:20:32');
 
 DROP TABLE IF EXISTS `dou_admin_log`;
 CREATE TABLE `dou_admin_log` (
@@ -236,7 +240,8 @@ CREATE TABLE `dou_article` (
   `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_slug` (`slug`),
-  KEY `idx_operator` (`operator_type`,`operator_id`)
+  KEY `idx_operator` (`operator_type`,`operator_id`),
+  KEY `idx_category` (`category_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO dou_article VALUES('1','1','admin','0','如何将网站提交给各大搜索引擎','','','<p><span>将网站提交给各大搜索引擎是一个重要的步骤，以确保网站能够被搜索引擎发现并收录。以下是一些主流搜索引擎的提交流程：</span></p><p><span><br/> </span></p><p><span>1. **Google搜索引擎提交**：</span></p><p><span>&nbsp; &nbsp;- 访问Google Search Console（[Google Search Console](https://search.google.com/search-console/welcome?hl=zh-CN&amp;utm_source=wmx&amp;utm_medium=deprecation-pane&amp;utm_content=home)）。</span></p><p><span>&nbsp; &nbsp;- 注册并验证您的网站所有权。</span></p><p><span>&nbsp; &nbsp;- 添加站点地图：在Google Search Console中点击“站点地图”，输入您的站点地图URL（例如：`yourdomain.com/sitemap.xml`），并点击“提交”。</span></p><p><span>&nbsp; &nbsp;- 监控索引状态：定期检查Google Search Console中的索引状态，查看您的网站页面是否被Google收录。</span></p><p><span><br/> </span></p><p><span>2. **百度搜索引擎提交**：</span></p><p><span>&nbsp; &nbsp;- 访问百度站长工具（[百度站长工具](https://ziyuan.baidu.com/site/index)）。</span></p><p><span>&nbsp; &nbsp;- 如果还没有账户，则需要注册一个。</span></p><p><span>&nbsp; &nbsp;- 单击“添加网站”按钮，将您的网站添加到站长工具中。</span></p><p><span>&nbsp; &nbsp;- 选择“推送历史记录”选项卡，然后单击“手动推送”按钮，将您的网站链接提交给百度。</span></p><p><span><br/> </span></p><p><span>3. **Bing搜索引擎提交**：</span></p><p><span>&nbsp; &nbsp;- 访问Bing Webmaster Tools（[Bing Webmaster Tools](https://www.bing.com/webmasters/home)）。</span></p><p><span>&nbsp; &nbsp;- 如果还没有账户，则需要注册一个。</span></p><p><span>&nbsp; &nbsp;- 单击“添加网站”按钮，将您的网站添加到站长中心中。</span></p><p><span>&nbsp; &nbsp;- 选择“提交网址”选项卡，然后将您的网站链接提交给Bing。</span></p><p><span><br/> </span></p><p><span>4. **其他搜索引擎提交**：</span></p><p><span>&nbsp; &nbsp;- 搜狗：访问搜狗站长平台（[搜狗站长平台](http://zhanzhang.sogou.com/index.php/urlSubmit/index)）提交URL。</span></p><p><span>&nbsp; &nbsp;- 360：访问360站长平台（[360站长平台](http://zhanzhang.so.com/?m=PageInclude&amp;a=index)）提交URL。</span></p><p><span>&nbsp; &nbsp;- 雅虎中国：访问雅虎中国网站登录（[雅虎中国](http://sitemap.cn.yahoo.com/)）提交网站。</span></p><p><span><br/> </span></p><p><span>提交网站给搜索引擎后，并不代表能够立即从搜索引擎搜到该网站，需要等待一段时间让搜索引擎进行处理。此外，由于手机端网址和电脑端网址不一样（手机网址是m开头），提交网址收录时需要分开提交。提交网址收录不收费。如果你的网站面向国际用户，还需要考虑将网站提交给其他国家和地区的搜索引擎，例如Yandex等。</span></p><p><br/></p>','pcrsl28.file','','0','','','50','1','2024-06-26 23:39:00');
@@ -261,7 +266,9 @@ CREATE TABLE `dou_article_category` (
   `parent_id` smallint(5) NOT NULL DEFAULT '0' COMMENT '父级分类ID',
   `sync_to_nav` tinyint(1) unsigned NOT NULL DEFAULT '1' COMMENT '是否同步到导航',
   `sort` tinyint(4) unsigned NOT NULL DEFAULT '50' COMMENT '排序',
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `idx_slug` (`slug`),
+  KEY `idx_parent` (`parent_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO dou_article_category VALUES('1','company','公司动态','','公司动态','公司的最新新闻在此发布','0','1','10');
@@ -356,11 +363,11 @@ INSERT INTO dou_config VALUES('74','site_theme','default','hidden','','');
 INSERT INTO dou_config VALUES('75','miniprogram_code','default','hidden','','');
 INSERT INTO dou_config VALUES('76','build_date','1377768032','hidden','','');
 INSERT INTO dou_config VALUES('77','update_number','a:5:{s:6:\"update\";i:0;s:5:\"patch\";i:0;s:6:\"module\";i:0;s:6:\"plugin\";i:0;s:5:\"theme\";i:0;}','hidden','','');
-INSERT INTO dou_config VALUES('78','update_date','a:3:{s:6:\"system\";a:2:{s:6:\"update\";s:8:\"20261003\";s:5:\"patch\";s:8:\"20261003\";}s:6:\"module\";a:5:{s:7:\"article\";s:8:\"20261003\";s:7:\"product\";s:8:\"20261003\";s:4:\"data\";s:8:\"20261003\";s:2:\"ai\";s:8:\"20261003\";s:8:\"language\";s:8:\"20261003\";}s:5:\"theme\";a:0:{}}','hidden','','');
+INSERT INTO dou_config VALUES('78','update_date','a:3:{s:6:\"system\";a:2:{s:6:\"update\";s:8:\"20261004\";s:5:\"patch\";s:8:\"20261004\";}s:6:\"module\";a:5:{s:7:\"article\";s:8:\"20261004\";s:7:\"product\";s:8:\"20261004\";s:4:\"data\";s:8:\"20261004\";s:2:\"ai\";s:8:\"20261004\";s:8:\"language\";s:8:\"20261004\";}s:5:\"theme\";a:0:{}}','hidden','','');
 INSERT INTO dou_config VALUES('79','file_update_time','1653395208','hidden','','');
 INSERT INTO dou_config VALUES('80','cloud_account','','hidden','','');
 INSERT INTO dou_config VALUES('81','hash_code','166d0de32dafdef9ab26e10130dd115b','hidden','','');
-INSERT INTO dou_config VALUES('82','douphp_version','v2.0 Release 20261003','hidden','','');
+INSERT INTO dou_config VALUES('82','douphp_version','v2.0 Release 20261004','hidden','','');
 
 DROP TABLE IF EXISTS `dou_data`;
 CREATE TABLE `dou_data` (
@@ -377,7 +384,8 @@ CREATE TABLE `dou_data` (
   `is_class` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否分组',
   `is_locked` tinyint(1) unsigned NOT NULL DEFAULT '0' COMMENT '是否锁定',
   `sort` tinyint(1) unsigned NOT NULL DEFAULT '50' COMMENT '排序',
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `idx_theme_group_item` (`theme`,`data_group`,`data_item`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO dou_data VALUES('1','','default','index','','公司简介','about','p9ajemt.file','公司成立于2013年，注册地位于福建省，是一家专注于科技研发、智能制造、金融服务等的高新技术企业。公司以核心使命：\"创新驱动发展\"\"为客户创造价值\"为理念，致力于提供行业解决方案、研发前沿技术、打造优质产品。公司已取得丰硕的成果。目前，我们的业务网络 市场覆盖广泛，产品与服务已拓展至全国XX个省市/全球XX个国家和地区。在项目实施与产品应用上，成功打造了多个 标杆案例，充分验证了我们的实力与可靠性。同时，公司积极履行社会责任，创造了显著的经济效益与社会价值，年产值稳步增长，为地方经济发展和人才就业做出了积极贡献。','','0','0','50');
@@ -404,7 +412,8 @@ CREATE TABLE `dou_file` (
   `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `number` (`number`),
-  KEY `idx_uploader_status_expire` (`uploader_type`,`uploader_id`,`status`,`draft_expire_at`)
+  KEY `idx_uploader_status_expire` (`uploader_type`,`uploader_id`,`status`,`draft_expire_at`),
+  KEY `idx_draft_token` (`draft_token`)
 ) ENGINE=InnoDB AUTO_INCREMENT=55 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO dou_file VALUES('1','admin','0','9mqr53t.file','images/slide/20130514acunau.jpg','show','1','main','58487','0','','','local','',NULL,'owned','2022-04-05 17:03:34','2018-06-29 13:25:28');
@@ -492,7 +501,8 @@ CREATE TABLE `dou_language_value` (
   `value` longtext COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '翻译值',
   `type` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '字段类型',
   `created_at` datetime DEFAULT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_lang_value` (`language_pack`,`module`,`item_id`,`field`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
@@ -507,7 +517,8 @@ CREATE TABLE `dou_nav` (
   `type` varchar(60) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '导航位置:middle中部,bottom底部',
   `status` tinyint(1) unsigned NOT NULL DEFAULT '1' COMMENT '状态:1显示,0隐藏',
   `sort` tinyint(3) unsigned NOT NULL DEFAULT '50' COMMENT '排序',
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `idx_type_status` (`type`,`status`)
 ) ENGINE=InnoDB AUTO_INCREMENT=34 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO dou_nav VALUES('1','page','公司简介','','1','0','middle','1','10');
@@ -554,7 +565,9 @@ CREATE TABLE `dou_page` (
   `description` text COLLATE utf8mb4_unicode_ci COMMENT 'SEO描述',
   `editor_code` varchar(60) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '代码标识',
   `mode` varchar(60) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'editor' COMMENT '编辑模式',
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `idx_slug` (`slug`),
+  KEY `idx_parent` (`parent_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO dou_page VALUES('1','about','0','公司简介','<p><strong>一、公司概况</strong></p><p>公司成立于2013年，注册地位于福建省，是一家专注于科技研发、智能制造、金融服务等的高新技术企业。公司以核心使命：&quot;创新驱动发展&quot;&quot;为客户创造价值&quot;为理念，致力于提供行业解决方案、研发前沿技术、打造优质产品。<span style=\"text-wrap-mode: wrap;\">公司已取得丰硕的成果。目前，我们的业务网络 市场覆盖广泛，产品与服务已拓展至全国XX个省市/全球XX个国家和地区。在项目实施与产品应用上，成功打造了多个 标杆案例，充分验证了我们的实力与可靠性。同时，公司积极履行社会责任，创造了显著的经济效益与社会价值，年产值稳步增长，为地方经济发展和人才就业做出了积极贡献。</span></p><p><br/></p><p><strong>二、核心业务</strong></p><p>在核心业务方面，公司专注于核心业务范围。我们主要提供业务板块1、业务板块2以及业务板块3等关键产品与服务，全面覆盖行业需求，以满足市场多元化需求。</p><p><br/></p><p><strong>三、企业优势</strong></p><p>公司的核心竞争力源于其显著的企业优势。公司拥有扎实的技术实力，掌握行业前沿技术、拥有数十项核心专利与知识产权、建立了先进的研发中心或实验室。同时，我们积累了深厚的行业经验，在行业内精耕细作十余载、成功服务了涵盖多个领域的众多国内外知名客户，深刻理解市场动态与客户痛点。此外，高素质的专业团队 是我们的基石，由行业资深专家领衔、汇聚了一批经验丰富且富有创新精神的技术与管理人才，持续推动公司发展。公司还获得了业界的广泛认可，拥有ISO系列管理体系认证、多项国家级/省级荣誉称号或奖项等权威资质与荣誉。</p><p><br/></p><p><strong>四、未来展望</strong></p><p>未来，公司将持续聚焦行业核心技术开发，通过技术创新、战略合作，推动行业的升级发展，力争成为全球领先的XX服务商。</p><p><br/></p>','公司简介','公司成立于2013年，注册地位于福建省，是一家专注于科技研发、智能制造、金融服务等的高新技术企业。公司以核心使命：\"创新驱动发展\"\"为客户创造价值\"为理念，致力于提供行业解决方案、研发前沿技术、打造优质产品。公司已取得丰硕的成果。目前，我们的业务网络 市场覆盖广泛，产品与服务已拓展至全国XX个省市/全球XX个国家和地区。在项目实施与产品应用上，成功打造了多个 标杆案例，充分验证了我们的实力与可靠性。同时，公司积极履行社会责任，创造了显著的经济效益与社会价值，年产值稳步增长，为地方经济发展和人才就业做出了积','','editor');
@@ -575,7 +588,8 @@ CREATE TABLE `dou_parameter` (
   `lock` tinyint(1) unsigned NOT NULL DEFAULT '0' COMMENT '是否锁定',
   `sort` tinyint(1) unsigned NOT NULL DEFAULT '50' COMMENT '排序',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `name` (`name`)
+  UNIQUE KEY `name` (`name`),
+  KEY `idx_group` (`group`)
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO dou_parameter VALUES('1','miniprogram_appid','AppID/小程序ID','','微信公众平台：mp.weixin.qq.com，“开发->开发设置”里获取','miniprogram','0','50');
@@ -612,7 +626,9 @@ CREATE TABLE `dou_product` (
   `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_slug` (`slug`),
-  KEY `idx_operator` (`operator_type`,`operator_id`)
+  KEY `idx_operator` (`operator_type`,`operator_id`),
+  KEY `idx_category` (`category_id`),
+  KEY `idx_brand` (`brand_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=36 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO dou_product VALUES('1','5','admin','0','0','插座面板','','3680.00','','0.00',NULL,NULL,'100','','<p style=\"text-wrap-mode: wrap;\"><strong>一、产品概述</strong></p><p style=\"text-wrap-mode: wrap;\">我们很荣幸向您介绍我们公司的最新产品。这款产品是经过精心研发和设计的，旨在满足消费者的需求和提供高品质的体验。我们将详细介绍产品的特点、功能、优势和适用范围，希望能为您提供全面的了解。</p><p style=\"text-wrap-mode: wrap;\"><br/></p><p style=\"text-wrap-mode: wrap;\"><strong>二、产品特点</strong></p><p style=\"text-wrap-mode: wrap;\">1.创新设计:我们的产品注重创新，追求独特的外观设计和先进的技术应用，确保产品与众不同。</p><p style=\"text-wrap-mode: wrap;\">2.卓越性能:我们致力于提供卓越的产品性能。无论是在速度、稳定性还是使用寿命方面，我们都将为您带来无与伦比的体验。</p><p style=\"text-wrap-mode: wrap;\">3.高品质材料:我们使用优质材料来制造产品，确保产品的耐用性和可靠性。产品不仅具有良好的外观，还具备出色的性能。</p><p style=\"text-wrap-mode: wrap;\">4.人性化设计:我们充分考虑用户的需求和使用习惯，努力提供贴合用户体验的产品设计。操作简便功能齐全，轻松满足用户的使用需求。</p><p style=\"text-wrap-mode: wrap;\"><br/></p><p style=\"text-wrap-mode: wrap;\"><strong>三、产品功能</strong></p><p style=\"text-wrap-mode: wrap;\">我们的产品具备以下出色的功能:</p><p style=\"text-wrap-mode: wrap;\">1.xxx功能:通过使用最新的技术，我们的产品实现了xxx功能，为用户提供了便捷和高效的解决方案</p><p style=\"text-wrap-mode: wrap;\">2.xxx功能:我们的产品还拥有xxx功能，通过优化设计和卓越的性能，提供给用户精确、稳定的体验。</p><p style=\"text-wrap-mode: wrap;\">3.xxx功能:除了以上功能，我们还为产品添加了xxx功能，以满足不同用户的需求和期望。</p><p style=\"text-wrap-mode: wrap;\"><br/></p><p style=\"text-wrap-mode: wrap;\"><strong>四、产品优势</strong></p><p style=\"text-wrap-mode: wrap;\">1.高性价比:我们的产品在市场上具有极高的性价比。虽然价格合理，但不妥协于品质和性能</p><p style=\"text-wrap-mode: wrap;\">2.优质服务:我们承诺提供完善的售后服务，确保您在使用过程中的满意度。无论是在产品保修还是技术支持方面，我们始终与您同在。</p><p style=\"text-wrap-mode: wrap;\">3.可靠性:以用户体验为导向，我们的产品经过严格的品质检测，以确保产品的可靠性和稳定性,</p><p style=\"text-wrap-mode: wrap;\">4.品牌信誉:作为一家备受信赖的品牌，我们以诚实守信的原则经营，并努力满足客户的需求。多年来，我们获得了良好的口碑和客户的高度认可。</p><p style=\"text-wrap-mode: wrap;\"><br/></p><p style=\"text-wrap-mode: wrap;\"><strong>五、适用范围</strong></p><p style=\"text-wrap-mode: wrap;\">我们的产品适用于各种场景和人群，无论是个人用户还是企业客户。不论您是个人用户还是企业客户我们的产品将为您提供卓越的性能和可的服务，满足不同需求。</p><p style=\"text-wrap-mode: wrap;\"><br/></p><p style=\"text-wrap-mode: wrap;\"><strong>六、结语</strong></p><p style=\"text-wrap-mode: wrap;\">感谢您对我们产品的关注和信任。我们将继续努力，提供更好的产品和服务，并不断超越自我，为用户带来更多的惊喜和价值，如果您对产品有任何疑问或想要进一步了解，请随时与我们联系，我们将竭诚为您服务。</p><p style=\"text-wrap-mode: wrap;\">希望通过以上产品介绍，能够使您对我们的产品有更深入的了解，并对我们的产品产生浓厚的兴趣。期待与您的进一步合作!</p><p><br/></p>','tuw5cdr.file','','0','0','','','50','1','2013-06-26 19:01:52');
@@ -662,7 +678,9 @@ CREATE TABLE `dou_product_category` (
   `parent_id` smallint(5) NOT NULL DEFAULT '0' COMMENT '父分类ID',
   `sync_to_nav` tinyint(1) unsigned NOT NULL DEFAULT '1' COMMENT '同步至导航:1是,0否',
   `sort` tinyint(4) unsigned NOT NULL DEFAULT '50' COMMENT '排序',
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `idx_slug` (`slug`),
+  KEY `idx_parent` (`parent_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO dou_product_category VALUES('1','fenleiyi','主分类一','','产品分类一','产品分类一','0','1','10');
@@ -680,7 +698,8 @@ CREATE TABLE `dou_show` (
   `text` text COLLATE utf8mb4_unicode_ci COMMENT '说明文字',
   `type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '展示位置:pc/mobile/miniprogram',
   `sort` tinyint(1) unsigned NOT NULL DEFAULT '50' COMMENT '排序',
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `idx_type` (`type`)
 ) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO dou_show VALUES('1','广告图片01','https://www.douphp.com','9mqr53t.file','','pc','1');
