@@ -35,6 +35,15 @@
  *                     permissions_policy     - Permissions-Policy（空串关闭）
  *                     hsts                   - HTTP 严格传输安全，仅 HTTPS 且 enabled 时下发：
  *                                                enabled / max_age（秒）/ subdomains（含子域）
+ *   cors            - API 端跨域支持（api 入口经 Dou\Core\Web\Http\Cors 在路由解析前下发）：
+ *                     enabled         - 总开关（默认 false，零行为变化）；true 时按白名单放行
+ *                     allowed_origins - 允许的 Origin 白名单：精确 origin / '*.example.com' 子域 / '*'
+ *                                       （credentials=true 时 '*' 不生效，必须显式列 origin）
+ *                     allowed_methods - 预检回应的 Access-Control-Allow-Methods
+ *                     allowed_headers - 预检允许的请求头（与请求方列表取交集回显）
+ *                     expose_headers  - 客户端可读取的响应头（如 Retry-After）
+ *                     max_age         - 预检结果缓存秒数
+ *                     credentials     - 是否允许携带 Cookie（结算会话等；true 时禁用 '*'）
  *   throttle        - 定向限流（targeted）：
  *                     store   - 文件后端目录（ThrottleStore 落 <hash>.json）
  *                     default - 全局默认限流（null = 默认不限流，仅敏感端点在中间件 throttleFor 配额）
@@ -69,6 +78,17 @@ return [
                 'max_age' => 31536000,
                 'subdomains' => false,
             ],
+        ],
+
+        'cors' => [
+            'enabled' => false,
+            // 示例：['https://admin.example.com', 'http://localhost:5173', '*.example.com']
+            'allowed_origins' => [],
+            'allowed_methods' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+            'allowed_headers' => ['Content-Type', 'Authorization', 'X-HTTP-Method-Override', 'X-Requested-With'],
+            'expose_headers' => ['Retry-After'],
+            'max_age' => 86400,
+            'credentials' => false,
         ],
 
         'throttle' => [

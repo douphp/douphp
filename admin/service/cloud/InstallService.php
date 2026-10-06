@@ -648,6 +648,20 @@ class InstallService extends BaseService
             return;
         }
 
+        // 配置基准保护：升级包携带 _update/resources/config/ 基准文件时，包根 config/ 中与基准同名的
+        // 文件不参与覆盖拷贝——站点现行配置文件保持原样，交由 _update/action.php 的
+        // config_merge 引擎做「基准 x 现行」合并（保留用户值）。摘除仅作用于本次临时解压
+        // 目录（升级结束整体删除），包内 _update/resources/config/ 基准文件本身不受影响。
+        $baselineDir = rtrim($itemDir, '/\\') . '/_update/resources/config/';
+        if (is_dir($baselineDir)) {
+            foreach ((array) @glob($baselineDir . '*.php') as $baselineFile) {
+                $packageSameName = rtrim($itemDir, '/\\') . '/config/' . basename($baselineFile);
+                if (is_file($packageSameName)) {
+                    @unlink($packageSameName);
+                }
+            }
+        }
+
         if ($type === 'system' && $mode === 'update') {
             if (Config::get('site.site_theme', '') === 'default') {
                 FileHelper::copyDir($this->rootDir . 'theme/default', $this->rootDir . 'theme/default_old');

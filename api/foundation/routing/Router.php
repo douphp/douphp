@@ -17,6 +17,7 @@ namespace Dou\Api\Foundation\Routing;
 use Dou\Core\Foundation\Api\ApiCodes;
 use Dou\Core\Foundation\Container\Container;
 use Dou\Core\Web\Http\ApiResponse;
+use Dou\Core\Web\Http\Cors;
 use Dou\Core\Web\Http\Request;
 use Dou\Core\Web\Http\Response;
 use Dou\Core\Web\Routing\Dispatcher;
@@ -44,6 +45,14 @@ class Router
     {
         $container = Container::getInstance();
         $request = $container->make(Request::class);
+
+        // CORS（security.cors，默认关闭）：预检命中时短路返回 204；普通跨域请求在路由解析前
+        // 下发响应头，使后置的 404/405 JSON 与中间件提前 send() 的 401/429 同样携带跨域头。
+        $preflight = Cors::preflight($request);
+        if ($preflight !== null) {
+            return $preflight;
+        }
+        Cors::apply($request);
 
         $plan = ApiResolver::resolve($request, $container);
         if ($plan->isMethodNotAllowed()) {

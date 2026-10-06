@@ -84,8 +84,8 @@ class UserAuthPolicy
     /**
      * 构造候选键列表（精确 > 父段 > 模块根，保证「细命中优先于粗命中」）。
      *
-     * 当前仅 UserAuthPolicy 内部消费；不抽公开 RouteCandidateBuilder（YAGNI：
-     * 真出现第二个消费者再抽不迟）。
+     * public 供 devtools/api-auth-coverage-scan.php 复用（扫描 auth_modes 漏登记与死键），
+     * 保证扫描与运行时候选规则同源不漂移。
      *
      * @param string $module
      * @param string $action
@@ -93,7 +93,7 @@ class UserAuthPolicy
      * @param string $parent
      * @return array
      */
-    private static function buildCandidates($module, $action, $sub, $parent)
+    public static function buildCandidates($module, $action, $sub, $parent)
     {
         $candidates = array();
         if ($module !== '' && $sub !== '' && $action !== '') {
