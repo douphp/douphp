@@ -1,6 +1,6 @@
 <div id="dou-sidebar">
- <!-- {if $workspace.admin_theme_custom.menu} -->
- {include file="menu.custom.htm"}
+ <!-- {if $workspace.admin_theme_custom.sidebar} -->
+ {include file="sidebar.custom.htm"}
  <!-- {else} -->
  <ul class="top">
   <li data-id="home"><a href="{url link='admin.index'}"><i class="{$workspace.menu_icon_map.home}"></i><em>{$lang.menu_home}<!-- {if $unum.system} --><span class="badge"><span>{$unum.system}</span></span><!-- {/if} --></em></a></li>

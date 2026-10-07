@@ -297,7 +297,6 @@ class Init
         $moduleSettingReader = $container->make(ModuleSettingReader::class);
         $container->instance(ModuleSettingReader::class, $moduleSettingReader);
         $container->instance(WorkspaceBuilder::class, new WorkspaceBuilder(
-            $moduleSettingReader,
             $container->make(AdminMenuService::class)
         ));
         $container->instance(UpdateBadgeBuilder::class, new UpdateBadgeBuilder());

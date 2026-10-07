@@ -18,7 +18,6 @@ use Dou\Admin\Service\Menu\AdminMenuService;
 use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Service\BaseService;
-use Dou\Core\Service\System\ModuleSettingReader;
 use Dou\Core\Support\MenuIconMap;
 use Dou\Core\Support\Util;
 
@@ -40,9 +39,6 @@ if (!defined('IN_DOUCO')) {
  */
 class WorkspaceBuilder extends BaseService
 {
-    /** @var ModuleSettingReader */
-    private $moduleSettingReader;
-
     /** @var AdminMenuService */
     private $menuService;
 
@@ -50,12 +46,10 @@ class WorkspaceBuilder extends BaseService
     private static $buildMemo = array();
 
     /**
-     * @param ModuleSettingReader $moduleSettingReader 用于读取 config/module.php 中的 admin_theme_custom
      * @param AdminMenuService $menuService 框架基础菜单元数据
      */
-    public function __construct(ModuleSettingReader $moduleSettingReader, AdminMenuService $menuService)
+    public function __construct(AdminMenuService $menuService)
     {
-        $this->moduleSettingReader = $moduleSettingReader;
         $this->menuService = $menuService;
     }
 
@@ -87,8 +81,8 @@ class WorkspaceBuilder extends BaseService
         $workspace['admin_theme_custom'] = array_merge(
             array(
                 'header' => false,
-                'menu' => false,
-                'handle' => false,
+                'sidebar' => false,
+                'toolbar' => false,
                 'index' => false,
             ),
             $this->adminThemeFlags()
@@ -322,18 +316,15 @@ class WorkspaceBuilder extends BaseService
     }
 
     /**
-     * 后台主题自定义开关映射（data/system.php 中 admin_theme_custom）。
+     * 后台主题自定义开关映射（config/system.php 中 system.admin_theme_custom）。
      *
      * @return array
      */
     private function adminThemeFlags()
     {
         $adminThemeCustom = array();
-        $readSystem = $this->moduleSettingReader->read();
-        if (isset($readSystem['admin_theme_custom'])) {
-            foreach ((array) $readSystem['admin_theme_custom'] as $name) {
-                $adminThemeCustom[$name] = true;
-            }
+        foreach ((array) Config::get('system.admin_theme_custom', array()) as $name) {
+            $adminThemeCustom[$name] = true;
         }
 
         return $adminThemeCustom;

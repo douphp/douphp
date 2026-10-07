@@ -1,5 +1,5 @@
-<!-- {if $workspace.admin_theme_custom.handle} -->
-{include file="handle.custom.htm"}
+<!-- {if $workspace.admin_theme_custom.toolbar} -->
+{include file="toolbar.custom.htm"}
 <!-- {else} -->
 <div class="dou-toolbar">
  <ul>

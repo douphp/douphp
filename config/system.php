@@ -31,4 +31,8 @@ return [
 
     // 后台菜单 / 工作台 / 首页统计隐藏的系统级 single 模块
     'admin_hidden_single' => ['box', 'fragment', 'language'],
+
+    // 后台自定义模板开关：空数组=关闭；写入槽位名则启用对应 admin/view/<槽位>.custom.htm（需自行创建该文件）。
+    // 可选槽位：header / sidebar / toolbar / index（如 ['sidebar'] 用 sidebar.custom.htm 覆盖内置侧栏）
+    'admin_theme_custom' => [],
 ];
