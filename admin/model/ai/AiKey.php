@@ -15,9 +15,9 @@
 namespace Dou\Admin\Model\Ai;
 
 use Dou\Core\Facade\DB;
+use Dou\Core\Infra\Security\CredentialCipher;
 use Dou\Core\Orm\Builder;
 use Dou\Core\Orm\Model;
-use Dou\Core\Service\Ai\CredentialCipher;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');

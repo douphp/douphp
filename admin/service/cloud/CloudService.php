@@ -17,8 +17,8 @@ namespace Dou\Admin\Service\Cloud;
 use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Exception\DomainException;
+use Dou\Core\Infra\Security\CredentialCipher;
 use Dou\Core\Service\Admin\AdminLogAction;
-use Dou\Core\Service\Ai\CredentialCipher;
 use Dou\Core\Service\BaseService;
 use Dou\Core\Support\Check;
 use Dou\Core\Web\Http\CloudApi;
@@ -190,7 +190,7 @@ class CloudService extends BaseService
             throw new DomainException(lang('cloud_account_wrong'), route('admin.cloud.account', array(), array('query' => array('action' => 'set'))));
         }
 
-        // 校验通过后密文落库（与 AI 凭据同款加密器）；历史版本存 MD5 值，见 loadCloudAccount() 兼容读取
+        // 校验通过后密文落库（core 凭据加密器，与 AI 模块 API Key 同款）；历史版本存 MD5 值，见 loadCloudAccount() 兼容读取
         $cloudAccount = array(
             'user' => $cloudUser,
             'password' => (new CredentialCipher())->encrypt((string) $cloudPassword),

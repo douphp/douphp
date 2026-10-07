@@ -46,7 +46,7 @@ PHP 需启用或安装以下扩展 / 配置：
 2. 访问网站首页，系统自动跳转到安装程序 `install/index.php`
 3. 按提示填写数据库信息、设置管理员账号，完成安装
 4. 安装完成后系统会在 `storage/state/install.lock` 写入安装锁，再次访问将不会进入安装程序
-5. 后台默认入口为 `admin/`（可在 `config/admin_dir.php` 中自定义以隐藏后台地址）
+5. 后台默认入口为 `admin/`（可在 `storage/state/admin_dir.php` 中自定义以隐藏后台地址）
 
 如需重新安装，删除 `storage/state/install.lock` 后重新访问安装程序即可。
 

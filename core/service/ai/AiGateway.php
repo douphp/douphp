@@ -16,6 +16,7 @@ namespace Dou\Core\Service\Ai;
 
 use Dou\Core\Facade\DB;
 use Dou\Core\Infra\Log\Log;
+use Dou\Core\Infra\Security\CredentialCipher;
 use Dou\Core\Service\Ai\Driver\AsyncDriverInterface;
 use Dou\Core\Service\Ai\Driver\ImageGenerationInterface;
 use Dou\Core\Service\Ai\Factory\DriverFactory;

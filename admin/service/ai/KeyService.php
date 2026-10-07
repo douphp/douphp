@@ -16,8 +16,8 @@ namespace Dou\Admin\Service\Ai;
 
 use Dou\Admin\Model\Ai\AiKey;
 use Dou\Core\Foundation\Exception\DomainException;
+use Dou\Core\Infra\Security\CredentialCipher;
 use Dou\Core\Service\Admin\AdminLogAction;
-use Dou\Core\Service\Ai\CredentialCipher;
 use Dou\Core\Service\BaseService;
 
 if (!defined('IN_DOUCO')) {

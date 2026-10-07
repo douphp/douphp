@@ -9,10 +9,10 @@
  * 网站地址：http://www.douphp.com
  * ------------------------------------------------------------------------------------
  * Author: DouCo Co.,Ltd.
- * Release Date: 2026-09-09
+ * Release Date: 2026-10-07
  */
 
-namespace Dou\Core\Service\Ai;
+namespace Dou\Core\Infra\Security;
 
 use Dou\Core\Facade\DB;
 
@@ -21,7 +21,10 @@ if (!defined('IN_DOUCO')) {
 }
 
 /**
- * AI 凭据存储加密器。
+ * 站点凭据存储加密器（云账号口令与 AI 模块 API Key 共用）。
+ *
+ * 密文格式：`enc:v1:` + base64(iv | HMAC-SHA256 | AES-256-CBC 密文)；
+ * 密钥取 DOU_APP_KEY（缺省回退 DOU_SHELL），全站一套密钥、一种密文格式。
  */
 class CredentialCipher
 {
@@ -105,13 +108,13 @@ class CredentialCipher
             $plaintext = $this->decryptWithKey($plaintext, $this->legacyKey);
         }
         if (!function_exists('openssl_encrypt')) {
-            throw new \RuntimeException('OpenSSL extension is required for AI credential encryption');
+            throw new \RuntimeException('OpenSSL extension is required for credential encryption');
         }
 
         $iv = openssl_random_pseudo_bytes(16);
         $ciphertext = openssl_encrypt($plaintext, 'AES-256-CBC', $this->key, OPENSSL_RAW_DATA, $iv);
         if ($ciphertext === false) {
-            throw new \RuntimeException('Unable to encrypt AI credential');
+            throw new \RuntimeException('Unable to encrypt credential');
         }
         $mac = hash_hmac('sha256', $iv . $ciphertext, $this->key, true);
 
@@ -127,7 +130,7 @@ class CredentialCipher
     {
         $encrypted = $this->encrypt($plaintext);
         if (strlen($encrypted) > (int) $maxBytes) {
-            throw new \RuntimeException('Encrypted AI credential exceeds database column capacity');
+            throw new \RuntimeException('Encrypted credential exceeds database column capacity');
         }
 
         return $encrypted;
@@ -188,7 +191,7 @@ class CredentialCipher
             return $this->opensslDecrypt($parts, $this->legacyKey);
         }
 
-        throw new \RuntimeException('Invalid encrypted AI credential');
+        throw new \RuntimeException('Invalid encrypted credential');
     }
 
     /**
@@ -201,7 +204,7 @@ class CredentialCipher
             $secret = self::definedSecret('DOU_SHELL');
         }
         if ($secret === '') {
-            throw new \RuntimeException('Site app_key is required for AI credential encryption');
+            throw new \RuntimeException('Site app_key is required for credential encryption');
         }
 
         return $secret;
@@ -286,7 +289,7 @@ class CredentialCipher
     {
         $parts = $this->parsePayload($stored);
         if ($parts === null || !$this->macMatches($parts, $key)) {
-            throw new \RuntimeException('Invalid encrypted AI credential');
+            throw new \RuntimeException('Invalid encrypted credential');
         }
 
         return $this->opensslDecrypt($parts, $key);
@@ -335,7 +338,7 @@ class CredentialCipher
     {
         $plaintext = openssl_decrypt($parts['ciphertext'], 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $parts['iv']);
         if ($plaintext === false) {
-            throw new \RuntimeException('Unable to decrypt AI credential');
+            throw new \RuntimeException('Unable to decrypt credential');
         }
 
         return $plaintext;

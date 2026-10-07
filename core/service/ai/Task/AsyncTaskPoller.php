@@ -16,8 +16,8 @@ namespace Dou\Core\Service\Ai\Task;
 
 use Dou\Core\Facade\DB;
 use Dou\Core\Infra\Log\Log;
+use Dou\Core\Infra\Security\CredentialCipher;
 use Dou\Core\Service\Ai\AiGateway;
-use Dou\Core\Service\Ai\CredentialCipher;
 use Dou\Core\Service\Ai\Driver\AsyncDriverInterface;
 use Dou\Core\Service\Ai\Factory\DriverFactory;
 use Dou\Core\Service\BaseService;

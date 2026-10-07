@@ -15,7 +15,7 @@
 namespace Dou\Core\Service\Ai\Auth;
 
 use Dou\Core\Facade\DB;
-use Dou\Core\Service\Ai\CredentialCipher;
+use Dou\Core\Infra\Security\CredentialCipher;
 use Dou\Core\Service\BaseService;
 use Dou\Core\Web\Http\Client;
 

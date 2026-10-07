@@ -46,7 +46,7 @@ $(function () {
   });
 
   // navbar一定高度后置顶固定
-  if ($(".navbar").hasClass("scroll")) {
+  if ($("#header").hasClass("scroll")) {
     navbarFix();
     $(window).on("scroll", navbarFix);
   }
@@ -93,15 +93,19 @@ $(function () {
  +----------------------------------------------------------
  */
 function navbarFix() {
-  if (!$(".navbar").hasClass("scroll")) return;
+  if (!$("#header").hasClass("scroll")) return;
 
   var scrollTop = $(window).scrollTop();
-  var navbarHeight = $(".navbar").outerHeight();
+  var navbarHeight = $("#header").outerHeight();
 
   if (scrollTop > navbarHeight) {
-    $(".navbar.scroll").addClass("fix");
+    $("#header").addClass("fix");
+    $(".place").css("display", "block");
+    $(".treeBox").addClass("fix");
   } else {
-    $(".navbar.scroll").removeClass("fix");
+    $("#header").removeClass("fix");
+    $(".place").css("display", "none");
+    $(".treeBox").removeClass("fix");
   }
 }
 
