@@ -266,7 +266,9 @@ class AdminMenuRegistry
      * 条件求值：注册表声明式条件 → 当前环境布尔判定。
      *
      * 支持键：sign / sign_not（SYSTEM_SIGN 相等与不等）、feature（features.<x> 开启）、
-     * not_pure_mode（非纯模式）、not_close_douphp_plus / not_close_miniprogram（对应关闭开关为假）。
+     * not_pure_mode（非纯模式——与视图变量 $pure_mode 同语义：仅当授权通过且
+     * site.pure_mode 为非空真值时纯净模式才生效）、not_close_douphp_plus /
+     * not_close_miniprogram（对应关闭开关为假）。
      *
      * @param array $when 条件表
      * @return bool
@@ -283,7 +285,9 @@ class AdminMenuRegistry
             if ($key === 'feature' && !Config::get('features.' . $value, false)) {
                 return false;
             }
-            if ($key === 'not_pure_mode' && $value && Config::get('site.pure_mode', '') !== '') {
+            if ($key === 'not_pure_mode' && $value
+                && Config::get('app.licensed', false)
+                && !empty(Config::get('site.pure_mode', ''))) {
                 return false;
             }
             if ($key === 'not_close_douphp_plus' && $value && Config::get('site.close_douphp_plus', false)) {

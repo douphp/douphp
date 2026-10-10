@@ -684,8 +684,12 @@ trait InitTrait
             E_NOTICE, E_USER_NOTICE,
             E_WARNING, E_USER_WARNING,
             E_DEPRECATED, E_USER_DEPRECATED,
-            E_STRICT,
         );
+        // E_STRICT 常量自 PHP 8.4 起废弃（错误级别同步被移除），直接引用会触发弃用警告；
+        // 8.4+ 已不再产生该级别错误，故仅低版本纳入诊断白名单。
+        if (PHP_VERSION_ID < 80400) {
+            $diagnostic[] = E_STRICT;
+        }
         if (!in_array($errno, $diagnostic, true)) {
             return false;
         }

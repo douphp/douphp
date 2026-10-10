@@ -24,7 +24,6 @@ use Dou\Core\Foundation\Exception\SiteDebugExceptionRenderer;
 use Dou\Core\Service\Admin\AdminLogAction;
 use Dou\Core\Service\BaseService;
 use Dou\Core\Service\System\ModuleLanguageManifest;
-use Dou\Core\Service\System\ModuleRequirementChecker;
 use Dou\Core\Service\System\ModuleSettingReader;
 use Dou\Core\Support\Arr;
 use Dou\Core\Support\FileHelper;
@@ -160,14 +159,6 @@ class InstallService extends BaseService
             }
         }
 
-        // 环境快照（提示级）：模块包内的环境要求声明需解压后才能读取，硬校验位于 runUnzip
-        $env = ModuleRequirementChecker::currentEnvironment();
-        $logs[] = sprintf(
-            (string) lang('cloud_env_snapshot'),
-            $env['php'],
-            $env['mysql'] !== '' ? $env['mysql'] : (string) lang('cloud_env_mysql_unknown')
-        );
-
         return array('ok' => true, 'error' => '', 'logs' => $logs);
     }
 
@@ -291,16 +282,6 @@ class InstallService extends BaseService
         }
 
         if (Zip::extract($itemZip, $itemDir)) {
-            // 模块环境要求硬校验：包内 module_require.php 存在时，不满足则阻断安装并清理解压产物
-            $requireWrong = $this->checkModuleRequire($itemDir);
-            if ($requireWrong !== '') {
-                FileHelper::delDir($itemDir);
-                @unlink($itemZip);
-                $logs[] = $requireWrong;
-
-                return array('ok' => false, 'error' => $requireWrong, 'logs' => $logs);
-            }
-
             $this->synchronizeDirname($type, $itemDir, $mode);
             return array('ok' => true, 'error' => '', 'logs' => $logs);
         }
@@ -310,44 +291,6 @@ class InstallService extends BaseService
         $logs[] = lang('cloud_unzip_wrong');
 
         return array('ok' => false, 'error' => lang('cloud_unzip_wrong'), 'logs' => $logs);
-    }
-
-    /**
-     * 模块环境要求硬校验。
-     *
-     * 读取解压目录内 module_require.php（站点级 config/module_require_custom.php 可覆盖同键），
-     * 校验 php / mysql 版本门槛与 capabilities（本期 fail-closed：声明即不满足）；无声明直接通过。
-     *
-     * @param string $itemDir 解压后的安装包目录
-     * @return string 不满足时返回多行提示；通过时返回空串
-     */
-    private function checkModuleRequire($itemDir)
-    {
-        $require = ModuleRequirementChecker::loadRequire($itemDir);
-        if ($require === array()) {
-            return '';
-        }
-
-        $result = ModuleRequirementChecker::check($require);
-        if ($result['ok']) {
-            return '';
-        }
-
-        $lines = array((string) lang('cloud_module_require_fail'));
-        foreach ($result['items'] as $item) {
-            if ($item['pass']) {
-                continue;
-            }
-            if ($item['key'] === 'php' && $item['require'] !== '') {
-                $lines[] = sprintf((string) lang('cloud_module_require_php'), $item['require'], $item['current']);
-            } elseif ($item['key'] === 'mysql' && $item['require'] !== '') {
-                $lines[] = sprintf((string) lang('cloud_module_require_mysql'), $item['require'], $item['current']);
-            } elseif ($item['key'] === 'capabilities') {
-                $lines[] = sprintf((string) lang('cloud_module_require_capability'), $item['require']);
-            }
-        }
-
-        return implode("\n", $lines);
     }
 
     /**

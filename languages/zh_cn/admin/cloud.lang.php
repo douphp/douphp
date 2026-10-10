@@ -131,11 +131,3 @@ $_LANG['cloud_extend_miniprogram_badge'] = '适配小程序';
 $_LANG['cloud_extend_update_time_label'] = '更新时间：';
 $_LANG['cloud_extend_min_version_label'] = '最低版本要求：';
 $_LANG['cloud_extend_detail'] = '详细信息';
-
-// 模块环境要求门槛（双通道声明：包内 module_require.php + config/module_require_custom.php）
-$_LANG['cloud_env_snapshot'] = '当前环境：PHP %s / MySQL %s（模块环境要求将在解压后校验）';
-$_LANG['cloud_env_mysql_unknown'] = '未知';
-$_LANG['cloud_module_require_fail'] = '安装已中止：模块环境要求不满足，请升级环境或联系模块作者后重试';
-$_LANG['cloud_module_require_php'] = 'PHP 版本要求 %s，当前 %s';
-$_LANG['cloud_module_require_mysql'] = 'MySQL 版本要求 %s，当前 %s（MariaDB 按其真实版本比较，能力差异需用能力探测表达）';
-$_LANG['cloud_module_require_capability'] = '模块声明了当前版本无法校验的环境能力（%s），已阻止安装；请升级 DouPHP 或联系模块作者';
