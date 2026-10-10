@@ -18,6 +18,7 @@ use Dou\Core\Facade\Session;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Exception\SiteDebugExceptionRenderer;
 use Dou\Core\Infra\Log\Log;
+use Dou\Core\Support\DbConnectError;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
@@ -159,9 +160,22 @@ class Connection
             $dbport = 3306;
         }
 
-        // 尝试建立数据库连接
-        if (!$this->dou_link = @mysqli_connect($dbhost, $this->dbuser, $this->dbpass, null, $dbport)) {
-            $error_msg = 'Can not connect to mysql server: ' . mysqli_connect_error();
+        // 尝试建立数据库连接。
+        // try/catch 兜底：个别入口若未按惯例关闭 mysqli_report，PHP 8.1+ 下连接失败会抛
+        // mysqli_sql_exception 而非返回 false，这里统一并入同一错误处理。
+        try {
+            $this->dou_link = @mysqli_connect($dbhost, $this->dbuser, $this->dbpass, null, $dbport);
+            $connect_error = $this->dou_link ? '' : (string) mysqli_connect_error();
+        } catch (\mysqli_sql_exception $e) {
+            $this->dou_link = false;
+            $connect_error = $e->getMessage();
+        }
+        if (!$this->dou_link) {
+            $error_msg = 'Can not connect to mysql server: ' . $connect_error;
+            // 认证插件类错误（caching_sha2_password / native 插件被禁用或移除）补充环境层中文引导
+            if (DbConnectError::isAuthPluginError($connect_error)) {
+                $error_msg .= DbConnectError::guide($connect_error);
+            }
             if ($this->debug_mode) {
                 $this->debugLog('Connection Error', $error_msg);
             }
@@ -818,6 +832,19 @@ class Connection
             }
             $num++;
         }
+
+        // 导入侧字符集归一：MySQL 8.0+ 导出的建表语句可能携带 utf8mb4_0900_* 排序规则与
+        // utf8mb3 字符集名，低版本（5.7 等）不识别会直接导入失败。
+        // 仅处理 CREATE/ALTER 开头的 DDL 语句，避免误伤 INSERT 数据行中的同名文本。
+        foreach ($ret as $num => $statement) {
+            if (preg_match('/^(CREATE|ALTER)\b/i', $statement)) {
+                // 0900 系列含 utf8mb4_0900_ai_ci 与 8.0.30+ 的 utf8mb4_zh_0900_as_cs 等命名变体
+                $statement = preg_replace('/utf8mb4_[a-z0-9_]*0900[a-z0-9_]*/i', 'utf8mb4_unicode_ci', $statement);
+                $statement = str_replace('utf8mb3', 'utf8', $statement);
+                $ret[$num] = $statement;
+            }
+        }
+
         return ($ret);
     }
 

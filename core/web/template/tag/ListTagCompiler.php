@@ -26,7 +26,7 @@ if (!defined('IN_DOUCO')) {
  * module.single_module（须 moduleSchema listable）白名单分流 columnList / singleList，
  * 卸载模块 / features 关闭时返回空数组走 {listelse} 分支。
  * 循环层：item / key / name / offset（offset 取数后 array_slice）；
- * Portal props：catId（仅栏目型）/ limit（SQL LIMIT）/ sort / excerpt。
+ * Portal props：cat（仅栏目型）/ limit（SQL LIMIT）/ sort / excerpt。
  */
 class ListTagCompiler extends AbstractPortalLoopTagCompiler
 {

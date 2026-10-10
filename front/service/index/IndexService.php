@@ -90,9 +90,10 @@ class IndexService extends BaseService
         return array(
             'index' => $index,
             'show_list' => Show::showList(),
-            'recommend_product' => $productOn ? Product::published()->with('category')->forUser($userId)->applyDefaultOrder()->limit($homeProduct)->get() : array(),
-            'new_product' => $productOn ? Product::published()->with('category')->forUser($userId)->order('id DESC')->limit($homeProduct)->get() : array(),
-            'recommend_article' => $articleOn ? Article::published()->with('category')->applyDefaultOrder()->limit($homeArticle)->get() : array(),
+            // 列表必须转为数组：多语言只能在 Model::toArray() 中应用，直接传集合会绕过翻译
+            'recommend_product' => $productOn ? Product::published()->with('category')->forUser($userId)->applyDefaultOrder()->limit($homeProduct)->get()->toArray() : array(),
+            'new_product' => $productOn ? Product::published()->with('category')->forUser($userId)->order('id DESC')->limit($homeProduct)->get()->toArray() : array(),
+            'recommend_article' => $articleOn ? Article::published()->with('category')->applyDefaultOrder()->limit($homeArticle)->get()->toArray() : array(),
             'product_category' => $productOn ? ProductCategory::tree() : array(),
             'code_head' => $codeHead,
         );

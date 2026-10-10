@@ -23,6 +23,7 @@ use Dou\Core\Service\Admin\AdminLogAction;
 use Dou\Core\Service\BaseService;
 use Dou\Core\Support\Arr;
 use Dou\Core\Support\Check;
+use Dou\Core\Support\DbVersion;
 use Dou\Core\Support\FileHelper;
 
 if (!defined('IN_DOUCO')) {
@@ -242,7 +243,7 @@ class BackupService extends BaseService
             }
         }
 
-        if (DB::version() > '4.1' && DB::charset()) {
+        if (DbVersion::isAtLeast(DB::version(), '4.1') && DB::charset()) {
             DB::query("SET NAMES '" . DB::charset() . "';\n\n");
         }
 
@@ -642,9 +643,15 @@ class BackupService extends BaseService
             $createtable = DB::query("SHOW CREATE TABLE $table");
             $create = DB::fetchArray($createtable, MYSQLI_NUM);
             $tabledump .= $create[1] . ";\n\n";
-            if (DB::version() > '4.1' && DB::charset()) {
+            if (DbVersion::isAtLeast(DB::version(), '4.1') && DB::charset()) {
                 $tabledump = preg_replace("/(DEFAULT)*\s*CHARSET=[a-zA-Z0-9]+/", "DEFAULT CHARSET=" . DB::charset(), $tabledump);
             }
+            // 导出侧字符集归一（表级+列级）：utf8mb4_0900_* 与 utf8mb3 是 MySQL 8.0+ 服务器
+            // SHOW CREATE TABLE 的输出格式，低版本（5.7 等）导入会失败；统一归一为全版本可导形式。
+            // 此处仅作用于建表 DDL（数据行尚未拼接），可直接全文替换；
+            // 0900 系列含 utf8mb4_0900_ai_ci 与 8.0.30+ 的 utf8mb4_zh_0900_as_cs 等命名变体。
+            $tabledump = preg_replace('/utf8mb4_[a-z0-9_]*0900[a-z0-9_]*/i', 'utf8mb4_unicode_ci', $tabledump);
+            $tabledump = str_replace('utf8mb3', 'utf8', $tabledump);
             // 本卷剩余空间连表头都放不下：整表留给下一卷，避免文件被表头推过预算
             if ($currsize > 0 && $currsize + strlen($tabledump) > $budget) {
                 return '';

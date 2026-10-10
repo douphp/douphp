@@ -2309,23 +2309,32 @@ window.douTab = {
   }
 
   function bindLangFormSubmit($modal, $trigger) {
+    var $form = $modal.find(".dou-modal-lang-form");
+    if (!$form.length) {
+      return;
+    }
+
+    // 表单生成后立即初始化 ajaxForm：点击提交按钮与回车触发的浏览器原生提交
+    // 均会被 jquery.form 的 submit 拦截转为 ajax 请求，避免整页跳转到 action 地址
+    $form.ajaxForm({
+      type: "POST",
+      data: {},
+      dataType: "json",
+      success: function (resp) {
+        if (resp && resp.id) {
+          $("#" + resp.id).addClass("cur");
+        }
+        close();
+      },
+      error: function (xhr) {
+        var resp = xhr.responseJSON;
+        alert(resp && resp.message ? resp.message : "操作失败");
+      },
+      clearForm: true,
+    });
+
     $modal.find(".dou-modal-lang-submit").off("click.douModal").on("click.douModal", function () {
-      $modal.find(".dou-modal-lang-form").ajaxForm({
-        type: "POST",
-        data: {},
-        dataType: "json",
-        success: function (resp) {
-          if (resp && resp.id) {
-            $("#" + resp.id).addClass("cur");
-          }
-          close();
-        },
-        error: function (xhr) {
-          var resp = xhr.responseJSON;
-          alert(resp && resp.message ? resp.message : "操作失败");
-        },
-        clearForm: true,
-      }).submit();
+      $form.submit();
     });
   }
 
@@ -2368,7 +2377,7 @@ window.douTab = {
   });
 
   $(document).on("keydown", function (event) {
-    if (activeModal && activeModal.find(".dou-modal-lang-form").length && event.key === "Enter") {
+    if (activeModal && activeModal.find(".dou-modal-lang-form").length && (event.key === "Enter" || event.keyCode === 13)) {
       if (!$(event.target).is("textarea")) {
         event.preventDefault();
         activeModal.find(".dou-modal-lang-submit").trigger("click");

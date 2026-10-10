@@ -23,12 +23,12 @@ if (!defined('IN_DOUCO')) {
 /**
  * {@see \Dou\Core\Web\Template\Ast\NodeType::CATEGORY} 标签编译器：
  * {category module=... item=... key=... name=... offset=...}（纯分类树）/
- * {category module=... with="items" perCat=... item=...}（分类树 + 每类内容，内容行在节点 list 字段）
+ * {category module=... with="items" each=... item=...}（分类树 + 每类内容，list = 该分类及全部子孙分类内容，id DESC 截 each 条）
  * + {categoryelse}。
  *
  * 数据源为 {@see \Dou\Core\Facade\Portal::categoryFor()}：仅栏目型模块（module.column_module），
  * with="items" 走 categoryTreeWithItems，否则 categoryTree。with 仅接受字面量 "items"。
- * 循环层：item / key / name / offset；Portal props：perCat / children / cur / excerpt。
+ * 循环层：item / key / name / offset；Portal props：each / children / cur / excerpt。
  */
 class CategoryTagCompiler extends AbstractPortalLoopTagCompiler
 {

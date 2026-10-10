@@ -341,9 +341,10 @@ class Portal
     }
 
     /**
-     * 分类树 + 每个分类旗下的内容列表；未命中分类 Model 返回空数组。
+     * 分类树 + 每个分类（含全部子孙分类）的内容列表；未命中分类 Model 返回空数组。
      *
-     * 会员视图固定 userId = 0。
+     * 各节点 list 为该分类及全部子孙分类内容的合并（对齐 {list} cat= 子树语义），
+     * 合并后按 id DESC 截取每类 $itemNumber 条。会员视图固定 userId = 0。
      *
      * @param string $module
      * @param int $itemNumber 每分类内容条数（0 = 不附内容）
@@ -367,7 +368,7 @@ class Portal
      * 模板 {list} 标签统一入口：按模块白名单自动分流 columnList / singleList。
      *
      * 分流规则：
-     * - module ∈ module.column_module → columnList（支持 catId 过滤）；
+     * - module ∈ module.column_module → columnList（支持 cat 过滤）；
      * - module ∈ module.single_module 且 Model moduleSchema()['listable'] 为真 → singleList；
      * - 其余（业务单模块如 order / user、未知模块）→ 空数组，不抛错。
      *
@@ -375,7 +376,7 @@ class Portal
      * 同请求内按 module + props 缓存，同页重复块不重复查询。
      *
      * @param string $module
-     * @param array $props catId / limit / sort / excerpt
+     * @param array $props cat / limit / sort / excerpt
      * @return array
      */
     public static function listFor($module, array $props = array())
@@ -396,7 +397,7 @@ class Portal
 
         $rows = array();
         if (in_array($module, (array) Config::get('module.column_module', array()), true)) {
-            $catId = isset($props['catId']) ? $props['catId'] : 'ALL';
+            $catId = isset($props['cat']) ? $props['cat'] : 'ALL';
             $rows = self::columnList($module, $catId, $limit, $sort, array(), $excerpt);
         } elseif (in_array($module, (array) Config::get('module.single_module', array()), true)
             && self::isListableSingle($module)) {
@@ -412,7 +413,7 @@ class Portal
      * 模板 {category} 标签统一入口：仅栏目型模块，按 with 分流 categoryTree / categoryTreeWithItems。
      *
      * @param string $module
-     * @param array $props with('items') / perCat / children / cur / excerpt
+     * @param array $props with('items') / each / children / cur / excerpt
      * @return array
      */
     public static function categoryFor($module, array $props = array())
@@ -431,10 +432,10 @@ class Portal
         }
 
         if (isset($props['with']) && $props['with'] === 'items') {
-            $perCat = isset($props['perCat']) ? (int) $props['perCat'] : 5;
+            $itemNumber = isset($props['each']) ? (int) $props['each'] : 5;
             $children = !empty($props['children']);
             $excerpt = isset($props['excerpt']) ? (int) $props['excerpt'] : 200;
-            $tree = self::categoryTreeWithItems($module, $perCat, $children, $excerpt);
+            $tree = self::categoryTreeWithItems($module, $itemNumber, $children, $excerpt);
         } else {
             $cur = isset($props['cur']) ? $props['cur'] : 0;
             $tree = self::categoryTree($module, $cur);

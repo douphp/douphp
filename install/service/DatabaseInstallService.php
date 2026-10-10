@@ -18,6 +18,8 @@ use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Container\Container;
 use Dou\Core\Infra\Database\Connection;
 use Dou\Core\Support\Check;
+use Dou\Core\Support\DbConnectError;
+use Dou\Core\Support\DbVersion;
 use Dou\Core\Support\FileHelper;
 
 if (!defined('IN_DOUCO')) {
@@ -123,7 +125,21 @@ class DatabaseInstallService
 
             $link = @mysqli_connect($hostonly, $dbuser, $dbpass, null, $port);
             if (!$link) {
-                return $this->lang['cue_connect'] . ': ' . mysqli_connect_error();
+                $connect_error = (string) mysqli_connect_error();
+                $cue = $this->lang['cue_connect'] . ': ' . $connect_error;
+                if (DbConnectError::isAuthPluginError($connect_error)) {
+                    $cue .= DbConnectError::guide($connect_error);
+                }
+                return $cue;
+            }
+
+            // 服务器版本探测（经 DbVersion 归一，兼容 MariaDB 前缀与未来 CalVer 版本号）：
+            // MySQL 低于 5.7 明确报最低版本要求，避免导入阶段连环 SQL 失败；MariaDB 提示兼容后继续。
+            $serverVersion = (string) mysqli_get_server_info($link);
+            if (DbVersion::serverFamily($serverVersion) === 'mysql'
+                && !DbVersion::isAtLeast($serverVersion, '5.7')) {
+                @mysqli_close($link);
+                return sprintf($this->lang['cue_mysql_too_old'], $serverVersion, '5.7');
             }
 
             @mysqli_set_charset($link, 'utf8mb4');
@@ -141,7 +157,11 @@ class DatabaseInstallService
             @mysqli_close($link);
             return '';
         } catch (\Exception $e) {
-            return $this->lang['cue_connect'] . ': ' . $e->getMessage();
+            $cue = $this->lang['cue_connect'] . ': ' . $e->getMessage();
+            if (DbConnectError::isAuthPluginError($e->getMessage())) {
+                $cue .= DbConnectError::guide($e->getMessage());
+            }
+            return $cue;
         }
     }
 

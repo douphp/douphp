@@ -28,7 +28,7 @@ DouPHP 采用「三端入口 + 共享核心 + 模块化」架构，内置会员�
 ## 环境要求
 
 - PHP 5.6 – 8.x（建议 PHP 8.x）
-- MySQL
+- MySQL 5.7 – 9.x（MariaDB 10.x 亦可运行，按其真实版本比较）
 - Apache / Nginx（启用 URL 重写）
 
 PHP 需启用或安装以下扩展 / 配置：
@@ -39,6 +39,13 @@ PHP 需启用或安装以下扩展 / 配置：
 - 伪静态：`mod_rewrite`（Apache）/ `try_files` 规则（Nginx）
 
 建议使用平台：Linux + Apache / Nginx + PHP 8.x + MySQL 5.7
+
+### 版本兼容说明
+
+- 同一套代码在上述全区间均可安装运行；模块可通过包内 `module_require.php` 声明更高的 PHP / MySQL 版本要求，安装时自动校验并阻断不满足的组合（站点级可用 `config/module_require_custom.php` 覆盖声明）
+- MySQL 8.0+ 默认认证插件 `caching_sha2_password` 要求 PHP ≥ 7.4：使用 PHP 5.6 ~ 7.3 时，请将数据库账号认证方式设置为 `mysql_native_password`（MySQL 8.4 需先在 my.cnf 开启 `mysql_native_password=ON`）；MySQL 9.x 已移除该插件，只能升级 PHP ≥ 7.4
+- 备份跨版本互通：MySQL 8.0+ 导出的备份会自动将 `utf8mb4_0900_*` 排序规则与 `utf8mb3` 字符集归一为全版本可导形式
+- 部署前可用 `php devtools/mysql-compat-check.php` 对当前环境做只读兼容自检
 
 ## 快速安装
 

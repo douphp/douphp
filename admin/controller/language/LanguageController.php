@@ -151,6 +151,9 @@ class LanguageController extends BaseController
                 array('href' => route('admin.language'), 'text' => lang('language'), 'style' => ''),
             ),
             'rec' => 'system',
+            // system 页不属于 resource 的 create/edit 动作，AdminResolver 不会自动装配表单目标，需在此显式指定
+            'form_action' => route('admin.language.update', array('id' => $languageId)),
+            'form_method' => 'PUT',
             'cfg' => $cfg,
             'parameter_list' => $parameterList,
             'lang_list' => language()->buildLangList($languagePack),

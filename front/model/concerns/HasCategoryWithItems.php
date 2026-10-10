@@ -28,6 +28,8 @@ if (!defined('IN_DOUCO')) {
  * module 由分类表名推导（article_category -> article）；内容行走对应内容 Model 的
  * published / with('category') / forUser / filterByCategory 单产线，由 accessor + $appends
  * 在水合阶段产出 Presenter 字段。
+ * 节点 list 为该分类及其全部子孙分类内容的合并（对齐 {list} 标签 cat= 的子树语义），
+ * id DESC 截取每类 $itemNumber 条。
  *
  * 进程内 static cache key 包含 locale()->pack()，避免多语言切换脏读。
  * 内容 Model 未命中或缺 scopeFilterByCategory 时静默降级为「纯分类树 + list=[]」。
@@ -43,6 +45,7 @@ trait HasCategoryWithItems
 
     /**
      * 分类树 + 每分类前 $itemNumber 条内容（带 list / child）。
+     * 节点 list 含该分类及其全部子孙分类内容（对齐 {list} cat= 子树语义），按 id DESC 合并截取。
      *
      * @param int $itemNumber 每分类内容条数（0 表示不附内容）
      * @param int|null $parentId 起始父级 id（null 等价 0）
@@ -68,10 +71,23 @@ trait HasCategoryWithItems
         $catIdsNeedItems = self::withItemsCollectCatIds($categories, $parentId, $itemNumber);
 
         $groupedItems = ($itemNumber > 0 && !empty($catIdsNeedItems))
-            ? self::withItemsContentRows($module, $catIdsNeedItems, $itemNumber, $userId)
+            ? self::withItemsContentRows($module, $catIdsNeedItems, $userId)
             : array();
 
-        return self::withItemsBuildTree($categories, $module, $parentId, $itemNumber, $child, $groupedItems);
+        // 子树合并：list = 自身 + 全部子孙分类内容（id DESC 截 $itemNumber 条），对齐 {list} cat= 子树语义
+        $subtreeItems = array();
+        if ($itemNumber > 0 && !empty($groupedItems)) {
+            $childrenMap = array();
+            foreach ((array) $categories as $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+                $childrenMap[(int) $row['parent_id']][] = (int) $row['id'];
+            }
+            $subtreeItems = self::withItemsSubtreeItems($childrenMap, $groupedItems, $parentId, $itemNumber);
+        }
+
+        return self::withItemsBuildTree($categories, $module, $parentId, $itemNumber, $child, $subtreeItems);
     }
 
     /**
@@ -113,20 +129,20 @@ trait HasCategoryWithItems
     }
 
     /**
-     * 走内容 Model 单产线取分类下内容；按 category_id 分组 + array_slice 限 $itemNumber。
+     * 走内容 Model 单产线取分类下内容；仅按 category_id 精确分组，不截取。
      *
+     * 截取（id DESC 截 $itemNumber 条）下沉到子树合并步骤，故结果与 each 无关可跨调用复用；
      * 未命中 Model 或缺 scopeFilterByCategory 时返回空数组（list 字段统一为 []）。
      *
      * @param string $module
      * @param array<int, int> $catIds
-     * @param int $itemNumber
      * @param int $userId
      * @return array<int, array<int, array<string, mixed>>>
      */
-    private static function withItemsContentRows($module, array $catIds, $itemNumber, $userId)
+    private static function withItemsContentRows($module, array $catIds, $userId)
     {
         static $cache = array();
-        $cacheKey = $module . '|' . $userId . '|' . $itemNumber . '|' . md5(implode(',', $catIds)) . '|' . locale()->pack();
+        $cacheKey = $module . '|' . $userId . '|' . md5(implode(',', $catIds)) . '|' . locale()->pack();
         if (isset($cache[$cacheKey])) {
             return $cache[$cacheKey];
         }
@@ -159,15 +175,64 @@ trait HasCategoryWithItems
             }
             $grouped[(int) $row['category_id']][] = $row;
         }
-        foreach ($grouped as $cid => $list) {
-            if (count($list) > $itemNumber) {
-                $grouped[$cid] = array_slice($list, 0, $itemNumber);
-            }
-        }
 
         $cache[$cacheKey] = $grouped;
 
         return $grouped;
+    }
+
+    /**
+     * 构建「category_id => 该分类及全部子孙内容（id DESC 截 $itemNumber 条）」映射。
+     * 正确性：top-N(并集) 等于各部分 top-N 的并集再取 top-N，逐级先截断再上卷不丢祖先结果。
+     *
+     * @param array<int, array<int, int>> $childrenMap parent_id => [子分类 id]
+     * @param array<int, array<int, array<string, mixed>>> $groupedItems category_id => 该分类内容行（id DESC）
+     * @param int $parentId 起始父级（仅处理其全部子孙，不含自身）
+     * @param int $itemNumber
+     * @return array<int, array<int, array<string, mixed>>>
+     */
+    private static function withItemsSubtreeItems(array $childrenMap, array $groupedItems, $parentId, $itemNumber)
+    {
+        $acc = array();
+        if ($itemNumber <= 0 || !isset($childrenMap[$parentId])) {
+            return $acc;
+        }
+        foreach ($childrenMap[$parentId] as $catId) {
+            self::withItemsSubtreeMerge($catId, $childrenMap, $groupedItems, $itemNumber, $acc);
+        }
+
+        return $acc;
+    }
+
+    /**
+     * 自下而上把 $catId 自身内容与全部子孙内容合并，id DESC 截 $itemNumber 条后写入 $acc 并返回。
+     *
+     * @param int $catId
+     * @param array<int, array<int, int>> $childrenMap
+     * @param array<int, array<int, array<string, mixed>>> $groupedItems
+     * @param int $itemNumber
+     * @param array<int, array<int, array<string, mixed>>> $acc 输出：category_id => 子树合并结果
+     * @return array 该分类子树合并结果
+     */
+    private static function withItemsSubtreeMerge($catId, array $childrenMap, array $groupedItems, $itemNumber, array &$acc)
+    {
+        $list = isset($groupedItems[$catId]) ? $groupedItems[$catId] : array();
+        if (isset($childrenMap[$catId])) {
+            foreach ($childrenMap[$catId] as $childId) {
+                $list = array_merge($list, self::withItemsSubtreeMerge($childId, $childrenMap, $groupedItems, $itemNumber, $acc));
+            }
+        }
+        if (!empty($list)) {
+            usort($list, function ($a, $b) {
+                return (int) $b['id'] - (int) $a['id'];
+            });
+            if (count($list) > $itemNumber) {
+                $list = array_slice($list, 0, $itemNumber);
+            }
+        }
+        $acc[$catId] = $list;
+
+        return $list;
     }
 
     /**
@@ -178,10 +243,10 @@ trait HasCategoryWithItems
      * @param int $parentId
      * @param int $itemNumber
      * @param bool $child
-     * @param array $groupedItems category_id => 已 slice 的内容行
+     * @param array $subtreeItems category_id => 该分类及全部子孙内容的合并行（id DESC 已截取）
      * @return array
      */
-    private static function withItemsBuildTree(array $categories, $module, $parentId, $itemNumber, $child, array $groupedItems)
+    private static function withItemsBuildTree(array $categories, $module, $parentId, $itemNumber, $child, array $subtreeItems)
     {
         $tree = array();
         foreach ($categories as $row) {
@@ -201,14 +266,14 @@ trait HasCategoryWithItems
                 'url' => route($module . '.category', array('category_id' => $catId)),
             );
 
-            if ($itemNumber > 0 && isset($groupedItems[$catId])) {
-                $item['list'] = $groupedItems[$catId];
+            if ($itemNumber > 0 && isset($subtreeItems[$catId])) {
+                $item['list'] = $subtreeItems[$catId];
             } else {
                 $item['list'] = array();
             }
 
             if ($child) {
-                $item['child'] = self::withItemsBuildTree($categories, $module, $catId, $itemNumber, $child, $groupedItems);
+                $item['child'] = self::withItemsBuildTree($categories, $module, $catId, $itemNumber, $child, $subtreeItems);
             } else {
                 $item['child'] = '';
             }

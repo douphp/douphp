@@ -84,6 +84,7 @@ return array(
 
     // cue
     'cue_connect'                => '数据库连接失败! 请检查连接参数。',
+    'cue_mysql_too_old'          => 'MySQL 服务器版本 %s 低于系统最低要求 %s，请升级数据库后重试（MariaDB 10.x 亦可使用）。',
     'cue_no_this_dbname'         => '数据库不存在! 且无法自动创建。',
     'cue_create_db_failed'       => '数据库不存在且自动创建失败',
     'cue_username_empty'         => '请输入管理员名称',
