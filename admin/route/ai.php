@@ -40,26 +40,30 @@ Route::name('admin.')->compositeModule()->group(function () {
         ->get(['get_fields'])
         ->post(['action']);
 
-    Route::resource('ai_generate', GenerateBatchController::class)
+    Route::resource('ai', GenerateBatchController::class)
         ->prefix('ai/generate/batch')
-        ->sub('batch')
+        ->sub('generate_batch')
+        ->name('ai.generate.batch')
         ->only(['store']);
 
-    Route::resource('ai_generate', GenerateFormController::class)
+    Route::resource('ai', GenerateFormController::class)
         ->prefix('ai/generate/form')
-        ->sub('form')
+        ->sub('generate_form')
+        ->name('ai.generate.form')
         ->only(['store']);
 
-    Route::resource('ai_generate', GenerateFieldController::class)
+    Route::resource('ai', GenerateFieldController::class)
         ->prefix('ai/generate/field')
-        ->sub('field')
+        ->sub('generate_field')
+        ->name('ai.generate.field')
         ->only(['store'])
         ->get(['products'])
         ->post(['preview']);
 
-    Route::resource('ai_generate', GenerateTranslateController::class)
+    Route::resource('ai', GenerateTranslateController::class)
         ->prefix('ai/generate/translate')
-        ->sub('translate')
+        ->sub('generate_translate')
+        ->name('ai.generate.translate')
         ->only(['store']);
 
     Route::group('ai', KeyController::class)

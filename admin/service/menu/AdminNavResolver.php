@@ -16,6 +16,7 @@ namespace Dou\Admin\Service\Menu;
 
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Support\Util;
+use Dou\Core\Web\Routing\RouteManifest;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
@@ -25,13 +26,18 @@ if (!defined('IN_DOUCO')) {
  * 后台活跃态解析器：以命中路由名为唯一事实源，集中计算子菜单与侧栏的布尔状态。
  *
  * 输出契约（{@see self::resolve()} 返回的 $nav）：
- *   - route_name      string 当前命中的路由名
- *   - sub_menu        null | array('key','title','icon','items')；
- *                     items 项为 array('key','name','url','is_active')，url 已绝对化
- *   - side            array(id => array('is_active','is_all_active','is_category_active))；
- *                     含全部侧栏节点（未命中者恒 false），is_all_active / is_category_active
- *                     仅栏目模块节点有意义（对应侧栏「全部 / 分类」二级项）
- *   - side_active_id  string 当前激活的侧栏节点 id，无则 ''
+ *   - route_name        string 当前命中的路由名
+ *   - submenu           null | array('key','title','icon','items')；
+ *                       items 项为 array('key','name','url','is_active')，url 已绝对化
+ *   - sidebar           array(id => array('is_active','is_all_active','is_category_active))；
+ *                       含全部侧栏节点（未命中者恒 false），is_all_active / is_category_active
+ *                       仅栏目模块节点有意义（对应侧栏「全部 / 分类」二级项）
+ *   - sidebar_active_id string 当前激活的侧栏节点 id，无则 ''
+ *
+ * 声明书写空间：侧栏节点与子菜单族声明里出现的字符串一律是「路由别名」（路由名去掉
+ *   admin. 前缀，如 book.rule_slot），下述 pattern 形态由 {@see self::expandAliases()} 在
+ *   解析时生成，声明文本不再手写 admin. 前缀与 .* 通配；仅已发布模块包的旧声明（元素
+ *   已以 admin. 开头）走兼容通道原样保留。
  *
  * 匹配语义（pattern 语法见 {@see AdminMenuRegistry}）：
  *   - 段边界通配：`admin.user.*` 命中 admin.user 及任意层下级（`.` 为段边界，
@@ -46,7 +52,9 @@ if (!defined('IN_DOUCO')) {
  *   2. 激活项在渲染族「自身命中项」内重新裁决（跨族 renders 接管时同样适用，
  *      如会员族的分销入口命中时渲染分销族并激活分销族自身项）；
  *   3. 侧栏在「注册表静态节点 + config 派生模块节点」间全局 max specificity 唯一激活；
- *   4. 页面级 override（sub_menu / sub_item / side）以 array_key_exists 区分
+ *      无任何节点命中时回落到本次渲染的子菜单族名（族名即节点 id）——即「同一子菜单组内
+ *      的页面高亮同一大节点」，不再依赖跨域归属声明；
+ *   4. 页面级 override（submenu / subitem / sidebar）以 array_key_exists 区分
  *      「不覆盖」与「显式 null」，强制指定渲染族 / 激活项 / 侧栏节点。
  *
  * 本类为无状态纯函数实现：结果仅取决于入参，可在框架接线点（默认解析）与控制器
@@ -58,17 +66,20 @@ class AdminNavResolver
      * 解析路由名得到 $nav 契约。
      *
      * @param string $routeName 当前路由名（如 admin.user.contact.edit），空字符串=未派发
-     * @param array  $overrides 页面级覆盖：sub_menu|null、sub_item|null、side|null
+     * @param array  $overrides 页面级覆盖：submenu|null、subitem|null、sidebar|null
      * @return array
      */
     public static function resolve($routeName, array $overrides = array())
     {
         $routeName = (string) $routeName;
 
+        $allFamilies = AdminMenuRegistry::submenus();
+        $familyKeys = array_keys($allFamilies);
+
         $families = array();
         $candidates = array();
-        foreach (AdminMenuRegistry::subMenus() as $familyKey => $family) {
-            $items = self::expandItems($familyKey, $family);
+        foreach ($allFamilies as $familyKey => $family) {
+            $items = self::familyItems($familyKey, $family, $familyKeys);
             $families[$familyKey] = array(
                 'title' => $family['title'],
                 'icon' => $family['icon'],
@@ -115,43 +126,43 @@ class AdminNavResolver
             }
         }
 
-        if (array_key_exists('sub_menu', $overrides)) {
-            $subMenuKey = $overrides['sub_menu'];
+        if (array_key_exists('submenu', $overrides)) {
+            $subMenuKey = $overrides['submenu'];
             $activeItemKey = null;
         }
-        if (array_key_exists('sub_item', $overrides)) {
-            $activeItemKey = $overrides['sub_item'];
+        if (array_key_exists('subitem', $overrides)) {
+            $activeItemKey = $overrides['subitem'];
         }
 
-        $side = self::resolveSide($routeName, $overrides);
+        $sidebar = self::resolveSidebar($routeName, $overrides, $subMenuKey);
 
         return array(
             'route_name' => $routeName,
-            'sub_menu' => ($subMenuKey !== null && isset($families[$subMenuKey]))
+            'submenu' => ($subMenuKey !== null && isset($families[$subMenuKey]))
                 ? self::buildSubMenu($families[$subMenuKey], $subMenuKey, $activeItemKey)
                 : null,
-            'side' => $side['state'],
-            'side_active_id' => $side['active_id'],
+            'sidebar' => $sidebar['state'],
+            'sidebar_active_id' => $sidebar['active_id'],
         );
     }
 
     /**
      * 未派发（无路由事实）时的空契约，供入口兜底 assign。
      *
-     * sub_menu 为 null；side 仍返回全量节点状态表（恒 false），保证模板固定点链
-     * `$nav.side.<id>.is_active`（如 dou_msg 提示页内嵌侧栏）不出现未定义键。
+     * submenu 为 null；sidebar 仍返回全量节点状态表（恒 false），保证模板固定点链
+     * `$nav.sidebar.<id>.is_active`（如 dou_msg 提示页内嵌侧栏）不出现未定义键。
      *
      * @return array
      */
     public static function emptyNav()
     {
-        $side = self::resolveSide('', array());
+        $sidebar = self::resolveSidebar('', array());
 
         return array(
             'route_name' => '',
-            'sub_menu' => null,
-            'side' => $side['state'],
-            'side_active_id' => '',
+            'submenu' => null,
+            'sidebar' => $sidebar['state'],
+            'sidebar_active_id' => '',
         );
     }
 
@@ -224,76 +235,146 @@ class AdminNavResolver
     }
 
     /**
-     * 展开族的项列表：user_center 占位项按配置 + 语言包动态展开；
-     * 普通项补齐 renders（缺省=所在族）与 when / exclude / params / match 缺省值。
+     * 归一族的项列表：别名串 / 数组声明统一展开为完整 item，并折叠族级挂载表。
      *
-     * @param string $familyKey
-     * @param array  $family
+     * 公开供侧栏覆盖扫描门禁复用（devtools/admin-nav-coverage-scan.php），保证
+     * 门禁与运行时走同一套推导规则。
+     *
+     * 族级 'also' 挂载表（键 = 无独立入口子域的路由别名，值 = 归属项的路由别名）把该
+     * 子域的匹配模式追加进目标项且不生成菜单行，用于「规则时段挂在规则项下」这类钻取
+     * 型子域，免得在 items 里多写一行或重复抄写目标项自身的模式。
+     *
+     * 目标项按别名定位（别名项允许覆盖 key，只比 key 会在覆盖时静默失效）；无别名的
+     * 全字段项退回按 key 比对。
+     *
+     * @param string     $familyKey
+     * @param array      $family
+     * @param array|null $familyKeys 全部族名（缺省从注册表取，用于 renders 跳族推导）
      * @return array
      */
-    private static function expandItems($familyKey, array $family)
+    public static function familyItems($familyKey, array $family, $familyKeys = null)
     {
+        if ($familyKeys === null) {
+            $familyKeys = array_keys(AdminMenuRegistry::submenus());
+        }
+
         $items = array();
+        $itemAliases = array();
         foreach ((array) $family['items'] as $item) {
-            if (isset($item['source']) && $item['source'] === 'user_center') {
-                foreach (self::userCenterItems($familyKey) as $entry) {
-                    $items[] = $entry;
+            $normalized = self::normalizeItem($item, $familyKey, $familyKeys);
+            if ($normalized !== null) {
+                $items[] = $normalized;
+                $itemAliases[] = rtrim(is_string($item) ? $item : (isset($item['alias']) ? (string) $item['alias'] : ''), '.*');
+            }
+        }
+
+        foreach ((array) (isset($family['also']) ? $family['also'] : array()) as $subAlias => $ownerAlias) {
+            $patterns = self::expandAliases(array($subAlias));
+            if (empty($patterns)) {
+                continue;
+            }
+            $ownerAlias = rtrim((string) $ownerAlias, '.*');
+            $ownerKey = str_replace('.', '_', $ownerAlias);
+            foreach ($items as $index => $item) {
+                if ($itemAliases[$index] === $ownerAlias
+                    || ($itemAliases[$index] === '' && $item['key'] === $ownerKey)) {
+                    $items[$index]['match'][] = $patterns[0];
+                    break;
                 }
-                continue;
             }
-            if (!isset($item['key'])) {
-                continue;
-            }
-            $item['match'] = isset($item['match']) ? (array) $item['match'] : array();
-            $item['exclude'] = isset($item['exclude']) ? (array) $item['exclude'] : array();
-            $item['when'] = isset($item['when']) ? (array) $item['when'] : array();
-            $item['params'] = isset($item['params']) ? (array) $item['params'] : array();
-            $item['renders'] = isset($item['renders']) ? $item['renders'] : $familyKey;
-            $items[] = $item;
         }
 
         return $items;
     }
 
     /**
-     * 展开会员中心相关模块项（module.link_user_center ∩ 语言包 xxx_manager）。
+     * 归一单条 item 声明，三种写法：
+     *   - 别名串（首选）：'user' / 'user.contact'，其余字段全部按约定推导；
+     *   - 带 'alias' 的数组：先按别名推导，再用同层显式键覆盖 key / name / link / params /
+     *     when / exclude / renders（不接受 match，跨域归属改由族级 'also' 挂载表表达）；
+     *   - 全字段数组（无 alias）：不推导，仅补 name / when / params / renders 缺省，
+     *     match / exclude 的元素同样按别名展开。
      *
-     * 过滤与命名规则：仅保留存在语言包的模块项，名称回退链 xxx_manager → xxx；renders 按
-     * {@see AdminMenuRegistry::userCenterFamilies()} 映射（缺省=占位项所在族）。
+     * 约定推导（A = 别名，B = A 的点转下划线）：key = B；link = admin.A；match = admin.A.*；
+     * name = B.'_manager' 语言键存在则取之、否则取 B；renders = A 首段为其它已存在族名时
+     * 指向该族（跳族接管），否则为本族。exclude 的元素按路由别名书写并展开为段边界通配。
      *
-     * @param string $familyKey 占位项所在族（renders 缺省回退）
-     * @return array
+     * 兼容通道：模块包旧声明若仍写 match，其元素展开后追加到推导值之后（不替换），
+     * 保证旧文件被覆盖回写时不会丢高亮；新声明一律不再写该键（空数组因此不再具备
+     * 「抑制推导」的能力，旧包若靠它做纯链接行需改写为无 alias 的全字段数组）。
+     *
+     * 可见性：link 非空且该路由名未在路由清单注册（模块未安装即无路由声明文件）时返回
+     * null 丢弃该项——会员中心等跳模块入口据此随装卸自动增减，无需改写声明文件；
+     * link 与 match 均为空的无效声明同样丢弃。
+     *
+     * @param mixed  $item
+     * @param string $familyKey
+     * @param array  $familyKeys
+     * @return array|null
      */
-    private static function userCenterItems($familyKey)
+    private static function normalizeItem($item, $familyKey, array $familyKeys)
     {
-        $familyMap = AdminMenuRegistry::userCenterFamilies();
-        $items = array();
-        foreach ((array) Config::get('module.link_user_center') as $value) {
-            $value = (string) $value;
-            $managerKey = $value . '_manager';
-            if (!lang_has($managerKey) || !lang($managerKey)) {
-                continue;
-            }
-            $name = lang($managerKey);
-            if (!$name && lang_has($value)) {
-                $name = lang($value);
-            }
-            if (!$name) {
-                $name = $value;
-            }
-            $items[] = array(
-                'key' => 'uc_' . $value,
-                'label' => $name,
-                'link' => 'admin.' . $value,
-                'params' => array(),
-                'match' => array('admin.' . $value . '.*'),
-                'exclude' => array(),
-                'when' => array(),
-                'renders' => isset($familyMap[$value]) ? $familyMap[$value] : $familyKey,
-            );
+        if (is_string($item)) {
+            $item = array('alias' => $item);
+        }
+        if (!is_array($item)) {
+            return null;
         }
 
-        return $items;
+        if (isset($item['alias'])) {
+            $alias = (string) $item['alias'];
+            unset($item['alias']);
+        } else {
+            $alias = '';
+        }
+
+        if ($alias !== '') {
+            $base = str_replace('.', '_', $alias);
+            $prefix = strpos($alias, '.') !== false ? substr($alias, 0, strpos($alias, '.')) : $alias;
+            $patterns = array('admin.' . $alias . '.*');
+            if (isset($item['match'])) {
+                $patterns = array_merge($patterns, self::expandAliases($item['match']));
+                unset($item['match']);
+            }
+            $derived = array(
+                'key'     => $base,
+                'name'    => lang_has($base . '_manager') ? $base . '_manager' : $base,
+                'link'    => 'admin.' . $alias,
+                'match'   => $patterns,
+                'renders' => ($prefix !== $familyKey && in_array($prefix, $familyKeys, true)) ? $prefix : $familyKey,
+            );
+            if (isset($item['exclude'])) {
+                $derived['exclude'] = self::expandAliases($item['exclude']);
+                unset($item['exclude']);
+            }
+            $item = array_merge($derived, $item);
+        }
+
+        if (!isset($item['key'])) {
+            return null;
+        }
+        if (!isset($item['name'])) {
+            $item['name'] = $item['key'];
+        }
+        // 两种形式的 match / exclude 均在此收口头尾：别名形式已在上面展开过，元素都是
+        // admin. 开头的模式串，展开器对它们原样透传，故此处重复施加是幂等的
+        $item['match'] = isset($item['match']) ? self::expandAliases($item['match']) : array();
+        $item['exclude'] = isset($item['exclude']) ? self::expandAliases($item['exclude']) : array();
+        $item['when'] = isset($item['when']) ? (array) $item['when'] : array();
+        $item['params'] = isset($item['params']) ? (array) $item['params'] : array();
+        $item['renders'] = isset($item['renders']) ? $item['renders'] : $familyKey;
+
+        // 既无指向又无匹配模式的声明为无效项（如旧版 source=user_center 占位声明被
+        // 模块包覆盖写回时的形态），不参与匹配与渲染，避免多出一行不可点的死菜单
+        if (empty($item['link']) && empty($item['match'])) {
+            return null;
+        }
+
+        if (!empty($item['link']) && RouteManifest::getEntryByName($item['link']) === null) {
+            return null;
+        }
+
+        return $item;
     }
 
     /**
@@ -311,7 +392,7 @@ class AdminNavResolver
             if (!AdminMenuRegistry::passWhen($item['when'])) {
                 continue;
             }
-            $name = isset($item['label']) ? $item['label'] : lang($item['name']);
+            $name = lang($item['name']);
             $url = '';
             if (!empty($item['link'])) {
                 $url = Util::absolutizeEntryUrl(route($item['link'], $item['params']));
@@ -333,29 +414,99 @@ class AdminNavResolver
     }
 
     /**
-     * 计算侧栏全部节点的布尔状态。
+     * 别名 → 匹配模式展开：'book.rule_slot' 变为 'admin.book.rule_slot.*'（段边界通配，
+     * 兼容基名本身）。声明文本只写别名，运行时模式串由本方法生成。
      *
-     * 节点集合 = 注册表静态节点（{@see AdminMenuRegistry::sideNodes()}）
-     * + config 派生模块节点（{@see self::moduleSideNodes()}），全局 max specificity
-     * 唯一激活；页面级 override('side') 清空后强制指定节点。
+     * 公开供注册表节点归一与覆盖扫描门禁复用；元素若已以 admin. 开头则视为完整模式串
+     * 原样保留（已发布模块包旧声明的兼容通道）。别名误带通配尾巴（'ai.key.*'）时先剥掉
+     * 再补，避免生成 admin.ai.key.*.* 这类永不命中的死模式，故本方法可重复施加。
      *
-     * @param string $routeName
-     * @param array  $overrides
-     * @return array ['state' => array, 'active_id' => string]
+     * @param mixed $aliases 路由别名或别名数组
+     * @return array
      */
-    private static function resolveSide($routeName, array $overrides)
+    public static function expandAliases($aliases)
+    {
+        $patterns = array();
+        foreach ((array) $aliases as $alias) {
+            $alias = (string) $alias;
+            if ($alias === '') {
+                continue;
+            }
+            if (strpos($alias, 'admin.') === 0) {
+                $patterns[] = $alias;
+                continue;
+            }
+            $patterns[] = 'admin.' . rtrim($alias, '.*') . '.*';
+        }
+
+        return $patterns;
+    }
+
+    /**
+     * 侧栏节点全集（已归一）：注册表静态节点 + config 派生模块节点，id 冲突时静态优先。
+     *
+     * 公开供覆盖扫描门禁复用，保证门禁与运行时看到同一份节点视图。
+     *
+     * @return array<string, array>
+     */
+    public static function sidebarNodes()
     {
         $nodes = array();
-        foreach (AdminMenuRegistry::sideNodes() as $sectionNodes) {
+        foreach (AdminMenuRegistry::sidebarNodes() as $sectionNodes) {
             foreach ($sectionNodes as $id => $node) {
-                $nodes[$id] = $node;
+                $nodes[$id] = self::normalizeNode($node);
             }
         }
-        foreach (self::moduleSideNodes() as $id => $node) {
+        foreach (self::moduleSidebarNodes() as $id => $node) {
             if (!isset($nodes[$id])) {
                 $nodes[$id] = $node;
             }
         }
+
+        return $nodes;
+    }
+
+    /**
+     * 归一单个侧栏节点：匹配域 = link 推导的主域（节点指向的路由域即其主匹配域，声明里
+     * 不必重复书写）+ 显式 'match' 里的附加兼管域（写别名）；exclude / category_match
+     * 的元素同样按别名展开。
+     *
+     * @param array $node
+     * @return array
+     */
+    private static function normalizeNode(array $node)
+    {
+        $patterns = array();
+        if (!empty($node['link'])) {
+            $link = (string) $node['link'];
+            $patterns = self::expandAliases(array(strpos($link, 'admin.') === 0 ? substr($link, 6) : $link));
+        }
+        if (!empty($node['match'])) {
+            $patterns = array_merge($patterns, self::expandAliases($node['match']));
+        }
+        $node['match'] = $patterns;
+
+        $node['exclude'] = isset($node['exclude']) ? self::expandAliases($node['exclude']) : array();
+        $node['category_match'] = isset($node['category_match']) ? self::expandAliases($node['category_match']) : array();
+
+        return $node;
+    }
+
+    /**
+     * 计算侧栏全部节点的布尔状态。
+     *
+     * 节点集合 = {@see self::sidebarNodes()}（注册表静态节点已归一 + config 派生模块节点），
+     * 全局 max specificity 唯一激活；无节点命中时回落到本次渲染的子菜单族名（族名即节点 id）；
+     * 页面级 override('sidebar') 优先级最高，清空后强制指定节点。
+     *
+     * @param string      $routeName
+     * @param array       $overrides
+     * @param string|null $familyKey 本次渲染的子菜单族名（无族命中传 null，不参与回落）
+     * @return array ['state' => array, 'active_id' => string]
+     */
+    private static function resolveSidebar($routeName, array $overrides, $familyKey = null)
+    {
+        $nodes = self::sidebarNodes();
 
         $winnerId = null;
         $bestSpec = null;
@@ -365,8 +516,8 @@ class AdminNavResolver
             }
             $spec = self::matchSpecificity(
                 $routeName,
-                isset($node['match']) ? (array) $node['match'] : array(),
-                isset($node['exclude']) ? (array) $node['exclude'] : array()
+                (array) (isset($node['match']) ? $node['match'] : array()),
+                (array) (isset($node['exclude']) ? $node['exclude'] : array())
             );
             if ($spec !== null && ($bestSpec === null || $spec > $bestSpec)) {
                 $bestSpec = $spec;
@@ -374,8 +525,13 @@ class AdminNavResolver
             }
         }
 
-        if (array_key_exists('side', $overrides)) {
-            $forced = $overrides['side'];
+        // 无任何节点命中时回落到渲染族名：族名即节点 id（同一子菜单组内页面高亮同一大节点）
+        if ($winnerId === null && $familyKey !== null && isset($nodes[$familyKey])) {
+            $winnerId = $familyKey;
+        }
+
+        if (array_key_exists('sidebar', $overrides)) {
+            $forced = $overrides['sidebar'];
             $winnerId = ($forced !== null && isset($nodes[$forced])) ? $forced : null;
         }
 
@@ -401,25 +557,16 @@ class AdminNavResolver
      * config 派生的侧栏模块节点（column_module + single_module − no_show_menu）。
      *
      * 节点 id 即模块短名，匹配 `admin.<模块>.*`；栏目节点附 category_match
-     * （二级「分类」项高亮）。复合模块按下述规则附加模式：
-     *   - product ← attribute 域（属性归商品，同时计入分类）；
-     *   - ai ← ai_generate 域；chat ← chat_knowledge 域；weixin ← weixin_media 域；
-     *   - user ← 会员中心各模块域（vip/point/money/withdraw/share/favorites）；
-     *   - work ← book.work 域。
+     * （二级「分类」项高亮）。跨域归属不在此声明：无独立节点的模块（如钱包、积分等
+     * 会员中心入口）由其所属子菜单族的族名回落统一高亮（{@see self::resolveSidebar()}）。
+     *
+     * 公开供侧栏覆盖扫描门禁复用（devtools/admin-nav-coverage-scan.php）。
      *
      * @return array
      */
-    private static function moduleSideNodes()
+    public static function moduleSidebarNodes()
     {
         $noShow = (array) Config::get('module.no_show_menu');
-        $extraMatch = array(
-            'product' => array('admin.attribute.*'),
-            'ai' => array('admin.ai_generate.*'),
-            'chat' => array('admin.chat_knowledge.*'),
-            'user' => array('admin.vip.*', 'admin.point.*', 'admin.money.*', 'admin.withdraw.*', 'admin.share.*', 'admin.favorites.*'),
-            'work' => array('admin.book.work.*'),
-            'weixin' => array('admin.weixin_media.*'),
-        );
 
         $nodes = array();
         foreach ((array) Config::get('module.column_module') as $module) {
@@ -427,26 +574,17 @@ class AdminNavResolver
             if ($module === '' || in_array($module, $noShow, true)) {
                 continue;
             }
-            $match = array('admin.' . $module . '.*');
-            if (isset($extraMatch[$module])) {
-                $match = array_merge($match, $extraMatch[$module]);
-            }
-            $categoryMatch = array('admin.' . $module . '.category.*');
-            if ($module === 'product') {
-                $categoryMatch[] = 'admin.attribute.*';
-            }
-            $nodes[$module] = array('match' => $match, 'category_match' => $categoryMatch);
+            $nodes[$module] = array(
+                'match' => array('admin.' . $module . '.*'),
+                'category_match' => array('admin.' . $module . '.category.*'),
+            );
         }
         foreach ((array) Config::get('module.single_module') as $module) {
             $module = (string) $module;
             if ($module === '' || in_array($module, $noShow, true) || isset($nodes[$module])) {
                 continue;
             }
-            $match = array('admin.' . $module . '.*');
-            if (isset($extraMatch[$module])) {
-                $match = array_merge($match, $extraMatch[$module]);
-            }
-            $nodes[$module] = array('match' => $match);
+            $nodes[$module] = array('match' => array('admin.' . $module . '.*'));
         }
 
         return $nodes;

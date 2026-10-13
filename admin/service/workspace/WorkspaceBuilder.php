@@ -33,9 +33,9 @@ if (!defined('IN_DOUCO')) {
  *
  * 活跃态协议（与 $nav 契约配合）：
  *   - 栏目 / 单页节点（menu_column / menu_single）：不携带活跃态，侧栏按模块短名索引
- *     中央解析结果 $nav.side[<模块名>]，保证控制器层 override 生效；
+ *     中央解析结果 $nav.sidebar[<模块名>]，保证控制器层 override 生效；
  *   - 商品分类行（menu_item）与页面树（menu_simple）：记录驱动动态节点，路由阶段无法解析，
- *     由本类在枚举的同一次遍历中就地计算 is_active（$nav.side 不含这些逐行 id）。
+ *     由本类在枚举的同一次遍历中就地计算 is_active（$nav.sidebar 不含这些逐行 id）。
  */
 class WorkspaceBuilder extends BaseService
 {

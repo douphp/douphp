@@ -48,6 +48,7 @@ class ApiResolver
         'trust_proxy' => 'Dou\\Core\\Foundation\\Middleware\\TrustProxyMiddleware',
         'throttle' => 'Dou\\Api\\Middleware\\ThrottleMiddleware',
         'user_auth' => 'Dou\\Api\\Middleware\\UserAuthMiddleware',
+        'open_auth' => 'Dou\\Core\\Foundation\\Middleware\\OpenAuthMiddleware',
     );
 
     /**

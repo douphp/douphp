@@ -14,6 +14,7 @@
 
 namespace Dou\Admin\Service\Authorization;
 
+use Dou\Admin\Service\Menu\AdminMenuService;
 use Dou\Core\Service\BaseService;
 
 if (!defined('IN_DOUCO')) {
@@ -28,45 +29,40 @@ if (!defined('IN_DOUCO')) {
  */
 class AdminGate extends BaseService
 {
+    /** @var AdminMenuService */
+    private $menuService;
+
     /**
-     * 子资源 module → 父 module 的鉴权别名表。
-     *
-     * 子资源仅做资源建模拆分，鉴权透明继承父模块（{@see ManagerService::adminActionList()}
-     * 派生的 action_list 池子只含父模块名）。新增子资源时须同步登记，否则 defined 类型
-     * 管理员勾选了父模块也会被 403 拦在子资源外。
-     *
-     * @var array<string,string>
+     * @param AdminMenuService $menuService 可授项清单来源（判定标识是否为独立可授权项）
      */
-    private static $subModuleAliases = array(
-        'chat_knowledge_category' => 'chat_knowledge',
-        'ai_generate_batch' => 'ai',
-        'ai_generate_form' => 'ai',
-        'ai_generate_field' => 'ai',
-        'ai_generate_translate' => 'ai',
-        'ai_key' => 'ai',
-        'ai_log' => 'ai',
-        'ai_model' => 'ai',
-        'ai_task' => 'ai',
-        'weixin_media_article' => 'weixin_media',
-    );
+    public function __construct(AdminMenuService $menuService)
+    {
+        $this->menuService = $menuService;
+    }
 
     /**
      * 判断指定管理员是否可访问指定后台模块。
      *
-     * 超级管理员（type 非 defined）放行；defined 类型按 action_list 白名单判定（子资源
-     * module 名经 {@see self::$subModuleAliases} 归一到父模块再查）；manager 模块的
-     * 「编辑 / 更新自身资料」单独放行。
+     * 超级管理员（type 非 defined）放行；defined 类型按 action_list 白名单判定，规则三段式：
+     *   1. 精确命中白名单 → 放行；
+     *   2. 当前标识本身是独立可授项（{@see AdminMenuService::grantableNames()}）但未勾选 → 拒绝，
+     *      不继承父模块（保证栏目模块 `m_category` 与 `m` 分开授权的语义）；
+     *   3. 当前标识被某个组合权限键隐式覆盖（{@see AdminMenuService::implicitGrants()}）且该键
+     *      已勾选 → 放行（如勾选 `site_home` 连带放行 `show` / `data`）；
+     *   4. 非可授项子资源 → 回退声明给出的父模块（$parentModule）校验。
+     * manager 模块的「编辑 / 更新自身资料」单独放行。
      *
-     * 目标管理员 ID 由调用方（PermissionMiddleware）从 Request 取好显式传入；
+     * 目标管理员 ID 与父模块由调用方（PermissionMiddleware）从 Request 取好显式传入；
      * 本类内部不读 Request。
      *
      * @param array $admin 管理员上下文（含 type / action_list / admin_id）
-     * @param string $cur 当前路由 module
+     * @param string $cur 当前路由 module（如 book_blacklist / product_category）
      * @param string $action 当前路由 action
      * @param int $targetId 当前请求 URL 中携带的目标管理员 ID（manager 自编辑判定使用），无则传 0
+     * @param string $parentModule 声明给出的父模块（子资源继承用），无则传空串
      * @return bool
      */
-    public function canAccess(array $admin, $cur, $action, $targetId = 0)
+    public function canAccess(array $admin, $cur, $action, $targetId = 0, $parentModule = '')
     {
         if (!isset($admin['type']) || $admin['type'] !== 'defined') {
             return true;
@@ -80,14 +76,39 @@ class AdminGate extends BaseService
             return true;
         }
 
-        if (isset(self::$subModuleAliases[$cur])) {
-            $cur = self::$subModuleAliases[$cur];
-        }
-
         $actionList = isset($admin['action_list']) && $admin['action_list'] !== ''
             ? explode(',', $admin['action_list'])
             : array();
-        return in_array($cur, $actionList);
+
+        if (in_array($cur, $actionList)) {
+            return true;
+        }
+
+        if ($this->isGrantable($cur)) {
+            return false;
+        }
+
+        $implicit = $this->menuService->implicitGrants();
+        if (isset($implicit[$cur]) && in_array($implicit[$cur], $actionList)) {
+            return true;
+        }
+
+        if ($parentModule !== '' && $parentModule !== $cur && in_array($parentModule, $actionList)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * 判定某标识是否为权限池中的独立可授项（分类 / 内容分开授权的语义载体）。
+     *
+     * @param string $name
+     * @return bool
+     */
+    private function isGrantable($name)
+    {
+        return in_array((string) $name, $this->menuService->grantableNames(), true);
     }
 
     /**

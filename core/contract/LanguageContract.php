@@ -63,6 +63,18 @@ interface LanguageContract
     public function langValue($value, $module, $itemId, $field);
 
     /**
+     * 清理指定模块/记录的关联多语言值：先删语言图片附件，再删 language_value 行。
+     *
+     * 删除副作用可能在三端任一上下文触发（模型层共用清理），故纳入通用契约；
+     * features.language 关闭时实现应静默返回。
+     *
+     * @param string $module
+     * @param string|int $itemId
+     * @return void
+     */
+    public function deleteLang($module = '', $itemId = '');
+
+    /**
      * 将逗号分隔的取值列表格式化为 [value, format(语言串), cur] 三元组数组。
      *
      * @param string $prefix 语言键前缀

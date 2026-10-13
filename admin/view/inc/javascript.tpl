@@ -14,7 +14,7 @@
 <script type="text/javascript" src="js/update.badge.js"></script>
 <script type="text/javascript" src="js/dou.toast.js"></script>
 <script type="text/javascript" src="js/browser-md5-file.min.js"></script>
-<script>var cur = "{$nav.side_active_id}";</script>
+<script>var cur = "{$nav.sidebar_active_id}";</script>
 <!-- {if $ai_config} -->
 <script type="application/json" id="ai-config">{$ai_config nofilter}</script>
 <script type="text/javascript" src="js/ai.assist.js"></script>

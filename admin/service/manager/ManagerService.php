@@ -542,59 +542,23 @@ class ManagerService extends BaseService
     /**
      * 管理员权限勾选列表（供新增/编辑管理员页使用）
      *
+     * 可授项集合由 {@see AdminMenuService::grantableNames()} 统一推导（单一事实源），
+     * 本方法只负责附加中文名与当前勾选态。
+     *
      * @param string $admin_id
      * @return array
      */
     public function adminActionList($admin_id = '')
     {
         $user_action_list = array();
-        $action_list = array();
 
         if ($admin_id) {
             $user_action_list = DB::table('admin')->where('id', $admin_id)->value('action_list');
             $user_action_list = explode(',', $user_action_list);
         }
 
-        foreach ((array) Config::get('module.column_module') as $value) {
-            if (!in_array($value, (array) Config::get('module.no_show_menu'))) {
-                $action_list[] = array(
-                    'value' => $value . '_category',
-                    'name' => lang($value . '_category'),
-                    'cur' => in_array($value . '_category', $user_action_list),
-                );
-                $action_list[] = array(
-                    'value' => $value,
-                    'name' => lang($value),
-                    'cur' => in_array($value, $user_action_list),
-                );
-            }
-        }
-
-        foreach ((array) Config::get('module.single_module') as $value) {
-            if (!in_array($value, (array) Config::get('module.no_show_menu')) && !in_array($value, (array) Config::get('system.admin_hidden_single', array()), true)) {
-                $action_list[] = array(
-                    'value' => $value,
-                    'name' => lang($value),
-                    'cur' => in_array($value, $user_action_list),
-                );
-            }
-        }
-
-        $basic_menu = $this->menuService->basicMenu();
-        if (!Config::get('site.close_douphp_plus', false)) {
-            $basic_menu[] = 'module';
-        }
-        if (!Config::get('site.close_miniprogram', false)) {
-            $basic_menu[] = 'miniprogram';
-        }
-        if (!Config::get('site.close_douphp_plus', false)) {
-            $basic_menu[] = 'module';
-        }
-        if (!Config::get('site.pure_mode', false)) {
-            $basic_menu[] = 'theme';
-        }
-
-        foreach ($basic_menu as $value) {
+        $action_list = array();
+        foreach ($this->menuService->grantableNames() as $value) {
             $action_list[] = array(
                 'value' => $value,
                 'name' => lang($value),

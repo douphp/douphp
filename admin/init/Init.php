@@ -310,7 +310,7 @@ class Init
         $engine->assign('js', '');
         $engine->assign('paid_use', false);
         $engine->assign('ur_here', '');
-        // $nav 契约（route_name / sub_menu / side）：正常派发由 AdminResolver 覆盖写入，此处仅兜底未派发场景
+        // $nav 契约（route_name / submenu / sidebar）：正常派发由 AdminResolver 覆盖写入，此处仅兜底未派发场景
         $engine->assign('nav', AdminNavResolver::emptyNav());
         $engine->assign('cue_open_ssl', false);
         $engine->assign('data_list', array());

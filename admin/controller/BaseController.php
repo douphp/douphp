@@ -38,7 +38,7 @@ if (!defined('IN_DOUCO')) {
  * `View::` 门面或容器解析 {@see \Dou\Core\Web\Template\DouView} 取；商业授权状态通过 `Config::get('app.licensed', false)` 取。
  *
  * 后台 `language()` 由容器解析到 {@see \Dou\Admin\Contract\AdminLanguageContract}
- * 的具体实现（real 实现含 `buildLangButtons` / `buildLangList` / `deleteLang`；
+ * 的具体实现（通用能力继承自 core 语言服务，另含 `buildLangButtons` / `buildLangList`；
  * features.language 关闭或模块卸载时回退到 {@see \Dou\Core\Service\Noop\NullLanguageService}
  * 的 no-op 实现），调用面始终非空。
  */

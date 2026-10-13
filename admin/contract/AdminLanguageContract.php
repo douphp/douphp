@@ -29,15 +29,6 @@ if (!defined('IN_DOUCO')) {
 interface AdminLanguageContract extends LanguageContract
 {
     /**
-     * 清理多语言值及相关语言文件（按 module + item_id 维度）。
-     *
-     * @param string $module
-     * @param string|int $itemId
-     * @return void
-     */
-    public function deleteLang($module = '', $itemId = '');
-
-    /**
      * 后台多语言按钮渲染数据：按字段 + 语言包枚举生成 a 标签列表。
      *
      * @param string $module

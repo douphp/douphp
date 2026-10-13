@@ -338,3 +338,9 @@ $_LANG['ai_model_task_mismatch'] = '所选模型不支持当前应用用途，�
 $_LANG['ai_generate_input_too_large'] = '提交的表单上下文或图片素材过多';
 $_LANG['ai_generate_duplicate_batch'] = '相同的批量生成请求正在处理或刚刚完成，请稍后再试';
 $_LANG['ai_nested_input_invalid'] = '密钥或模型参数格式不正确';
+
+// 知识库向量（embedding）（与核心层 ai.lang.php 同步）
+$_LANG['ai_embedding_model_missing'] = '未配置向量模型（Embedding），请在知识库设置中选择支持向量生成的模型';
+$_LANG['ai_embedding_unsupported'] = '该模型驱动不支持向量生成，请改用 OpenAI 兼容模式注册 Embedding 模型';
+$_LANG['ai_embedding_texts_empty'] = '向量生成文本不能为空';
+$_LANG['ai_embedding_response_invalid'] = '向量接口未返回有效向量数据';

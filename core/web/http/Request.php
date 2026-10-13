@@ -48,6 +48,9 @@ class Request
     /** @var array */
     protected $server;
 
+    /** @var string|null 原始请求体缓存（null 表示尚未捕获） */
+    protected $rawBody = null;
+
     /** @var string 当前路由模块短名（由 Router 写入） */
     protected $routeModule = '';
 
@@ -129,8 +132,8 @@ class Request
         if ($contentType === '' || stripos($contentType, 'application/json') === false) {
             return;
         }
-        $raw = file_get_contents('php://input');
-        if ($raw === false || $raw === '') {
+        $raw = $this->rawBody();
+        if ($raw === '') {
             return;
         }
         $decoded = json_decode($raw, true);
@@ -142,6 +145,37 @@ class Request
                 $this->post[$key] = $value;
             }
         }
+    }
+
+    /**
+     * 原始请求体（未解析改写的原始字节）。
+     *
+     * 开放平台签名按 SHA256(RAW_BODY) 校验，必须使用 JSON 解析前的原始字节；
+     * 首次调用时从 php://input 读取并缓存（PHP 5.6+ 该流可重复读取；multipart/form-data
+     * 下不可用，按空串处理）。CLI 烟测可经 {@see setRawBody()} 注入。
+     *
+     * @return string
+     */
+    public function rawBody()
+    {
+        if ($this->rawBody !== null) {
+            return $this->rawBody;
+        }
+        $raw = file_get_contents('php://input');
+        $this->rawBody = ($raw === false) ? '' : $raw;
+        return $this->rawBody;
+    }
+
+    /**
+     * 注入原始请求体（CLI 烟测等无真实 HTTP 流的场景）。
+     *
+     * @param string $raw
+     * @return $this
+     */
+    public function setRawBody($raw)
+    {
+        $this->rawBody = (string) $raw;
+        return $this;
     }
 
     /**

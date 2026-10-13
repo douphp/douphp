@@ -37,19 +37,21 @@ class MarkdownRenderer extends BaseService
      * 将 Markdown 文本渲染为 HTML；HTML 内容原样返回。
      *
      * 判定规则：
-     * - 后台 vditor 编辑表单：返回原文（供编辑器回填，HTML→Markdown 由前端 html2md 完成）。
+     * - 后台 vditor 编辑表单：返回原文（供编辑器回填，HTML→Markdown 由前端 html2md 完成）；
+     *   $force=true 时跳过该例外（知识库索引等非表单场景须统一拿到 HTML）。
      * - 其余场景：命中 HTML 标签即视为 HTML 原样返回；
      *   否则视为 Markdown，经 Parsedown 转 HTML。
      *
      * @param string|null $content 原始内容
+     * @param bool $force true 时忽略「后台 vditor 回填例外」
      * @return string
      */
-    public function toHtml($content = '')
+    public function toHtml($content = '', $force = false)
     {
         $content = $content ? $content : '';
 
         // 后台 Vditor 编辑表单：回填 Markdown 源码（存量 HTML 交给 init.js 的 html2md 转换）
-        if (defined('IS_ADMIN') && Config::get('site.editor', '') == 'vditor') {
+        if (!$force && defined('IS_ADMIN') && Config::get('site.editor', '') == 'vditor') {
             return $content;
         }
 

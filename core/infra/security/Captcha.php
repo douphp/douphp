@@ -127,13 +127,17 @@ class Captcha
             imagestring($cell, $fontSize, 2, 2, $ch, $tc);
 
             $rotated = imagerotate($cell, $angle, $cellBg);
-            imagedestroy($cell);
+            if (PHP_VERSION_ID < 80000) {
+                imagedestroy($cell);
+            }
             $rw = imagesx($rotated);
             $rh = imagesy($rotated);
             $dstX = $cx - (int) (($rw - $charW) / 2);
             $dstY = (int) (($captcha_height - $rh) / 2);
             $this->blendChar($im, $rotated, $dstX, $dstY, 220);
-            imagedestroy($rotated);
+            if (PHP_VERSION_ID < 80000) {
+                imagedestroy($rotated);
+            }
         }
 
         for ($i = 0; $i < 5; $i++) {

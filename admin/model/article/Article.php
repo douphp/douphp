@@ -76,6 +76,7 @@ class Article extends Model
         'keywords',
         'description',
         'sort',
+        'status',
         'created_at',
         'image',
     );

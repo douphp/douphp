@@ -114,6 +114,7 @@ class MenuIconMap
         'area' => 'bi-pin-map',
         'fragment' => 'bi-three-dots',
         'excel' => 'bi-file-earmark-excel',
+        'open' => 'bi-box-arrow-up-right',
     );
 
     /**

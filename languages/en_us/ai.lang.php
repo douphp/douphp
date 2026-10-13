@@ -42,3 +42,9 @@ $_LANG['ai_task_query_failed'] = 'Task query failed: %s';
 $_LANG['ai_task_submit_failed_detail'] = 'Task submission failed: %s';
 $_LANG['ai_task_failed'] = 'Task failed';
 $_LANG['ai_error_code'] = 'Error code %s';
+
+// Knowledge base embedding
+$_LANG['ai_embedding_model_missing'] = 'Embedding model is not configured, please select a model that supports embedding generation in the knowledge base settings';
+$_LANG['ai_embedding_unsupported'] = 'This driver does not support embedding generation, please register an embedding model via the OpenAI-compatible mode';
+$_LANG['ai_embedding_texts_empty'] = 'Embedding texts cannot be empty';
+$_LANG['ai_embedding_response_invalid'] = 'The embedding API did not return valid vector data';

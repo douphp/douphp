@@ -18,6 +18,7 @@ use Dou\Core\Facade\DB;
 use Dou\Core\Infra\Log\Log;
 use Dou\Core\Infra\Security\CredentialCipher;
 use Dou\Core\Service\Ai\Driver\AsyncDriverInterface;
+use Dou\Core\Service\Ai\Driver\EmbeddingInterface;
 use Dou\Core\Service\Ai\Driver\ImageGenerationInterface;
 use Dou\Core\Service\Ai\Factory\DriverFactory;
 use Dou\Core\Service\Ai\Task\AsyncTaskPoller;
@@ -695,6 +696,89 @@ class AiGateway extends BaseService
     }
 
     /**
+     * 批量文本向量（embedding）：供知识库同步与检索实时查询调用。
+     *
+     * 与对话/图像共用供应商密钥池与失败治理（touch / 成功重置 / 失败自增）；
+     * 但模型必须显式指定：$modelId 为 0 或空时直接拒绝，绝不回落默认对话模型
+     * （对话模型通常无 /embeddings 端点，回落会产生无意义失败并误伤密钥冷却）。
+     *
+     * @param array $texts 文本数组（调用方按 embed_batch_size 控制单批条数）
+     * @param mixed $modelId embedding 模型 ID（必填）
+     * @return array {success, mode, vectors, dim, duration, config, error}
+     */
+    public function embed(array $texts, $modelId)
+    {
+        $texts = array_values($texts);
+        if (!$texts) {
+            return $this->embedFailure(lang('ai_embedding_texts_empty'), null);
+        }
+
+        $modelId = (int) $modelId;
+        if ($modelId <= 0) {
+            Log::error('AI embedding model missing', array(
+                'channel' => 'ai',
+            ));
+
+            return $this->embedFailure(lang('ai_embedding_model_missing'), null);
+        }
+
+        $config = $this->resolveConfig($modelId);
+        if (!$config) {
+            Log::error('AI config unavailable', array(
+                'channel' => 'ai',
+                'model_id' => $modelId,
+            ));
+
+            return $this->embedFailure(lang('ai_no_model_config'), null);
+        }
+
+        $driver = DriverFactory::make($config);
+        if (!($driver instanceof EmbeddingInterface)) {
+            return $this->embedFailure(lang('ai_embedding_unsupported'), $config);
+        }
+
+        $startTime = microtime(true);
+        $embedResult = $driver->embedTexts($config, $texts);
+        $duration = (int) ((microtime(true) - $startTime) * 1000);
+
+        $keyId = isset($config['key_id']) ? (int) $config['key_id'] : 0;
+        if ($keyId > 0) {
+            $this->touchKey($keyId);
+        }
+
+        if (empty($embedResult['success'])) {
+            $error = isset($embedResult['error']) && $embedResult['error'] !== ''
+                ? (string) $embedResult['error']
+                : lang('ai_embedding_response_invalid');
+
+            if ($keyId > 0) {
+                $this->bumpFailureCount($keyId);
+            }
+            Log::error('AI embedding failure', array(
+                'channel' => 'ai',
+                'model_id' => $config['model_id'],
+                'error' => $error,
+            ));
+
+            return $this->embedFailure($error, $config, $duration);
+        }
+
+        if ($keyId > 0) {
+            $this->resetFailureCount($keyId);
+        }
+
+        return array(
+            'success' => true,
+            'mode' => 'sync',
+            'vectors' => isset($embedResult['vectors']) && is_array($embedResult['vectors']) ? array_values($embedResult['vectors']) : array(),
+            'dim' => isset($embedResult['dim']) ? (int) $embedResult['dim'] : 0,
+            'duration' => $duration,
+            'config' => $config,
+            'error' => '',
+        );
+    }
+
+    /**
      * 提交异步任务（图像/视频生成等分钟级任务）。
      *
      * 立即返回内部 task_id 供前端轮询，不阻塞 PHP 进程；
@@ -845,5 +929,22 @@ class AiGateway extends BaseService
             'config' => $config,
             'error' => $error,
         );
+    }
+
+    /**
+     * embedding 失败结果（failure() 之上补 vectors/dim 字段，保持统一形状）。
+     *
+     * @param string $error
+     * @param array|null $config
+     * @param int $duration
+     * @return array
+     */
+    private function embedFailure($error, $config, $duration = 0)
+    {
+        $result = $this->failure($error, $config, $duration);
+        $result['vectors'] = array();
+        $result['dim'] = 0;
+
+        return $result;
     }
 }

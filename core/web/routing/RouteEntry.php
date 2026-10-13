@@ -55,6 +55,14 @@ class RouteEntry
     /** @var string|null 风格派生展开后的具体模块名；meta 模板条目为 null */
     public $module;
 
+    /**
+     * @var string|null 父模块名（声明首参的干净值）。
+     *
+     * 仅在 composite 拼接前保留的原始模块名，用于后台权限的「子资源透明继承父模块」判定；
+     * 无 sub 时与 {@see $module} 相等。落盘缓存序列化以承载该关系。
+     */
+    public $parent_module;
+
     /** @var string|null 控制器 FQCN，构建期解析 */
     public $controller;
 
@@ -105,6 +113,7 @@ class RouteEntry
         $this->target = isset($fields['target']) ? $fields['target'] : null;
         $this->module_fixed = isset($fields['module_fixed']) ? $fields['module_fixed'] : null;
         $this->module = isset($fields['module']) ? $fields['module'] : null;
+        $this->parent_module = isset($fields['parent_module']) ? $fields['parent_module'] : null;
         $this->controller = isset($fields['controller']) ? $fields['controller'] : null;
         $this->action = isset($fields['action']) ? $fields['action'] : null;
         $this->sub = isset($fields['sub']) ? $fields['sub'] : null;
@@ -181,6 +190,7 @@ class RouteEntry
             'target' => $this->target,
             'module_fixed' => $this->module_fixed,
             'module' => $this->module,
+            'parent_module' => $this->parent_module,
             'controller' => $this->controller,
             'action' => $this->action,
             'sub' => $this->sub,

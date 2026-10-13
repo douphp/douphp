@@ -229,7 +229,7 @@ if (!function_exists('locale')) {
 
 if (!function_exists('language')) {
     /**
-     * 语言服务实例（含 langBox / dataLangFormat 等通用方法；后台再扩展 deleteLang / buildLangButtons / buildLangList）。
+     * 语言服务实例（含 langBox / deleteLang 等通用方法；后台再扩展 buildLangButtons / buildLangList）。
      *
      * 与译串入口 lang('key') 区分：language() 取契约实例，lang($key) 仅查 LangBag 译串表。
      *

@@ -1,10 +1,10 @@
 -- DouPHP v2.x SQL Dump Program
 -- http://localhost/douphp/
 -- 
--- DATE : 2026-10-04 22:34:53
+-- DATE : 2026-10-13 13:48:55
 -- MYSQL SERVER VERSION : 5.7.44-log
--- PHP VERSION : 7.4.33
--- DouPHP VERSION : v2.0 Release 20261010
+-- PHP VERSION : 8.5.8
+-- DouPHP VERSION : v2.0 Release 20261013
 
 DROP TABLE IF EXISTS `dou_admin`;
 CREATE TABLE `dou_admin` (
@@ -27,9 +27,7 @@ CREATE TABLE `dou_admin` (
   KEY `idx_email` (`email`),
   KEY `idx_token` (`token`),
   KEY `idx_reset_token` (`reset_token`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-INSERT INTO dou_admin VALUES('1','admin','admin@admin.com','$2y$10$Y4O2U.q8Qs.bTIrQ4d2g7.vz20A.tV.27cDcwvgPjGI5yMBVx/qTO','003a9c65bfaa6a802689a71a6e06fcd0e440d7de4c2d80f395871cf5ff13e699','2026-11-03 22:34:46','',NULL,'ALL','1791124486','127.0.0.1','0',NULL,'2013-08-29 17:20:32');
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 DROP TABLE IF EXISTS `dou_admin_log`;
 CREATE TABLE `dou_admin_log` (
@@ -47,12 +45,15 @@ CREATE TABLE `dou_admin_log` (
   KEY `module` (`module`),
   KEY `ip` (`ip`),
   KEY `created_at` (`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO dou_admin_log VALUES('1','1','[RESTORE]','backup','127.0.0.1','2026-10-10 20:48:22','1','douphp.sql');
+INSERT INTO dou_admin_log VALUES('2','1','[BACKUP]','backup','127.0.0.1','2026-10-13 11:48:03','1','douphp.sql');
 
 DROP TABLE IF EXISTS `dou_ai`;
 CREATE TABLE `dou_ai` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '应用名称',
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '应用名称',
   `placement` enum('assist','fill','batch','translate') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'assist' COMMENT '后台应用形态',
   `task_type` enum('assist','polish','rewrite','image','banner','translate','fill','batch') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'assist' COMMENT '任务形态（config/ai_prompts.php system 提示词匹配键）',
   `module` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '挂载的内容创作模块（含 _category 变体）',
@@ -128,7 +129,7 @@ DROP TABLE IF EXISTS `dou_ai_model`;
 CREATE TABLE `dou_ai_model` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '自增ID',
   `provider_id` int(11) NOT NULL DEFAULT '0' COMMENT '供应商ID',
-  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '模型名称',
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '模型名称',
   `model_code` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '模型代码',
   `context_length` int(11) DEFAULT NULL COMMENT '上下文长度',
   `max_tokens` int(11) DEFAULT NULL COMMENT '最大输出tokens',
@@ -170,7 +171,7 @@ INSERT INTO dou_ai_model VALUES('27','2','qwen-image-3-pro','qwen-image-3.0-pro'
 DROP TABLE IF EXISTS `dou_ai_provider`;
 CREATE TABLE `dou_ai_provider` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '自增ID',
-  `name` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '供应商名称',
+  `name` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '供应商名称',
   `code` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '供应商代码',
   `base_url` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'API基础地址',
   `sort` smallint(5) unsigned NOT NULL DEFAULT '50' COMMENT '排序',
@@ -224,9 +225,9 @@ DROP TABLE IF EXISTS `dou_article`;
 CREATE TABLE `dou_article` (
   `id` mediumint(8) unsigned NOT NULL AUTO_INCREMENT COMMENT '自增ID',
   `category_id` smallint(5) NOT NULL DEFAULT '0' COMMENT '分类ID',
-  `operator_type` enum('admin','work') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'admin' COMMENT '创建者类型',
+  `operator_type` enum('admin','work','open') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'admin' COMMENT '创建者类型',
   `operator_id` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '创建者ID',
-  `title` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '标题',
+  `title` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '标题',
   `slug` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'URL标识',
   `defined` text COLLATE utf8mb4_unicode_ci COMMENT '自定义字段(序列化数组)',
   `content` longtext COLLATE utf8mb4_unicode_ci COMMENT '正文内容',
@@ -259,7 +260,7 @@ DROP TABLE IF EXISTS `dou_article_category`;
 CREATE TABLE `dou_article_category` (
   `id` smallint(5) NOT NULL AUTO_INCREMENT COMMENT '分类ID',
   `slug` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'URL标识',
-  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '分类名称',
+  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '分类名称',
   `icon` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '分类图标',
   `keywords` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'SEO关键词',
   `description` text COLLATE utf8mb4_unicode_ci COMMENT 'SEO描述',
@@ -277,7 +278,7 @@ INSERT INTO dou_article_category VALUES('2','industry','行业新闻','','行业
 DROP TABLE IF EXISTS `dou_config`;
 CREATE TABLE `dou_config` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT '自增ID',
-  `name` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '配置名',
+  `name` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '配置名',
   `value` text COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '配置值',
   `type` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '表单控件类型',
   `box` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '可选项配置',
@@ -363,11 +364,11 @@ INSERT INTO dou_config VALUES('74','site_theme','default','hidden','','');
 INSERT INTO dou_config VALUES('75','miniprogram_code','default','hidden','','');
 INSERT INTO dou_config VALUES('76','build_date','1377768032','hidden','','');
 INSERT INTO dou_config VALUES('77','update_number','a:5:{s:6:\"update\";i:0;s:5:\"patch\";i:0;s:6:\"module\";i:0;s:6:\"plugin\";i:0;s:5:\"theme\";i:0;}','hidden','','');
-INSERT INTO dou_config VALUES('78','update_date','a:3:{s:6:\"system\";a:2:{s:6:\"update\";s:8:\"20261010\";s:5:\"patch\";s:8:\"20261010\";}s:6:\"module\";a:5:{s:7:\"article\";s:8:\"20261010\";s:7:\"product\";s:8:\"20261010\";s:4:\"data\";s:8:\"20261010\";s:2:\"ai\";s:8:\"20261010\";s:8:\"language\";s:8:\"20261010\";}s:5:\"theme\";a:0:{}}','hidden','','');
+INSERT INTO dou_config VALUES('78','update_date','a:3:{s:6:\"system\";a:2:{s:6:\"update\";s:8:\"20261013\";s:5:\"patch\";s:8:\"20261013\";}s:6:\"module\";a:5:{s:7:\"article\";s:8:\"20261013\";s:7:\"product\";s:8:\"20261013\";s:4:\"data\";s:8:\"20261013\";s:2:\"ai\";s:8:\"20261013\";s:8:\"language\";s:8:\"20261013\";}s:5:\"theme\";a:0:{}}','hidden','','');
 INSERT INTO dou_config VALUES('79','file_update_time','1653395208','hidden','','');
 INSERT INTO dou_config VALUES('80','cloud_account','','hidden','','');
 INSERT INTO dou_config VALUES('81','hash_code','166d0de32dafdef9ab26e10130dd115b','hidden','','');
-INSERT INTO dou_config VALUES('82','douphp_version','v2.0 Release 20261010','hidden','','');
+INSERT INTO dou_config VALUES('82','douphp_version','v2.0 Release 20261013','hidden','','');
 
 DROP TABLE IF EXISTS `dou_data`;
 CREATE TABLE `dou_data` (
@@ -376,7 +377,7 @@ CREATE TABLE `dou_data` (
   `theme` varchar(60) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'default' COMMENT '所属主题',
   `data_group` varchar(60) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'common' COMMENT '数据分组',
   `data_item` varchar(60) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '关联项标识',
-  `name` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '名称',
+  `name` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '名称',
   `code` varchar(60) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '编码',
   `image` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '图片',
   `text` text COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '文本内容',
@@ -474,7 +475,7 @@ INSERT INTO dou_file VALUES('54','admin','0','jwbdr85.file','images/article/10_1
 DROP TABLE IF EXISTS `dou_language`;
 CREATE TABLE `dou_language` (
   `id` smallint(5) NOT NULL AUTO_INCREMENT COMMENT '语言ID',
-  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '语言名称',
+  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '语言名称',
   `language_pack` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '语言包标识',
   `site_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '站点名称',
   `site_title` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '站点标题',
@@ -510,7 +511,7 @@ DROP TABLE IF EXISTS `dou_nav`;
 CREATE TABLE `dou_nav` (
   `id` mediumint(8) NOT NULL AUTO_INCREMENT COMMENT '自增ID',
   `module` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '所属模块',
-  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '导航名称',
+  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '导航名称',
   `icon` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '图标',
   `guide` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '关联目标(分类/页面ID)',
   `parent_id` smallint(5) NOT NULL DEFAULT '0' COMMENT '父级ID',
@@ -559,7 +560,7 @@ CREATE TABLE `dou_page` (
   `id` mediumint(8) unsigned NOT NULL AUTO_INCREMENT COMMENT '自增ID',
   `slug` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'URL标识',
   `parent_id` smallint(5) NOT NULL DEFAULT '0' COMMENT '父级ID',
-  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '页面名称',
+  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '页面名称',
   `content` longtext COLLATE utf8mb4_unicode_ci COMMENT '页面内容',
   `keywords` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'SEO关键词',
   `description` text COLLATE utf8mb4_unicode_ci COMMENT 'SEO描述',
@@ -580,7 +581,7 @@ INSERT INTO dou_page VALUES('6','market','0','营销网络','营销网络','营�
 DROP TABLE IF EXISTS `dou_parameter`;
 CREATE TABLE `dou_parameter` (
   `id` mediumint(8) unsigned NOT NULL AUTO_INCREMENT COMMENT '自增ID',
-  `name` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '参数键名',
+  `name` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '参数键名',
   `lang` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '参数显示名',
   `value` text COLLATE utf8mb4_unicode_ci COMMENT '参数值',
   `cue` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '提示说明',
@@ -605,7 +606,7 @@ CREATE TABLE `dou_product` (
   `operator_type` enum('admin','work') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'admin' COMMENT '创建者类型',
   `operator_id` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '创建者ID',
   `brand_id` mediumint(8) unsigned NOT NULL DEFAULT '0' COMMENT '品牌ID',
-  `title` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '商品标题',
+  `title` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '商品标题',
   `slug` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'URL标识',
   `price` decimal(10,2) unsigned NOT NULL DEFAULT '0.00' COMMENT '价格',
   `level_price` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '会员等级价(序列化数组)',
@@ -671,7 +672,7 @@ DROP TABLE IF EXISTS `dou_product_category`;
 CREATE TABLE `dou_product_category` (
   `id` smallint(5) NOT NULL AUTO_INCREMENT COMMENT '分类ID',
   `slug` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'URL标识',
-  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '分类名称',
+  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '分类名称',
   `icon` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '分类图标',
   `keywords` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'SEO关键词',
   `description` text COLLATE utf8mb4_unicode_ci COMMENT 'SEO描述',
@@ -692,7 +693,7 @@ INSERT INTO dou_product_category VALUES('5','yizier','子分类二','','子分�
 DROP TABLE IF EXISTS `dou_show`;
 CREATE TABLE `dou_show` (
   `id` smallint(5) unsigned NOT NULL AUTO_INCREMENT COMMENT '自增ID',
-  `name` varchar(60) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '幻灯片名称',
+  `name` varchar(60) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '幻灯片名称',
   `link` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '跳转链接',
   `image` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '图片',
   `text` text COLLATE utf8mb4_unicode_ci COMMENT '说明文字',

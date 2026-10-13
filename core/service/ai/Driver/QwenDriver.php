@@ -23,8 +23,9 @@ if (!defined('IN_DOUCO')) {
  *
  * 请求体 `{model, input: {messages}, parameters: {...}}`，请求头追加
  * `X-DashScope-SSE`，响应提取走 `output.choices[...]` 路径。
+ * 向量生成走 DashScope 原生 /services/embeddings/text-embedding/text-embedding（阿里云首选通道）。
  */
-class QwenDriver extends AbstractDriver
+class QwenDriver extends AbstractDriver implements EmbeddingInterface
 {
     /**
      * {@inheritDoc}
@@ -104,5 +105,49 @@ class QwenDriver extends AbstractDriver
                 ? (int) $usage['total_tokens']
                 : ($promptTokens + $completionTokens),
         );
+    }
+
+    /**
+     * 批量向量生成：POST {base_url}/services/embeddings/text-embedding/text-embedding。
+     *
+     * DashScope 原生协议：input.texts 传文本数组，text_type=document（入库口径）；
+     * 响应 output.embeddings[].embedding 按 text_index 重排（供应商不保证返回顺序）；
+     * 原生接口单次最多 10 条，调用方按 embed_batch_size 分批（默认值与之一致）。
+     */
+    public function embedTexts(array $config, array $texts)
+    {
+        $texts = array_values($texts);
+        if (!$texts) {
+            return array('success' => false, 'vectors' => array(), 'dim' => 0, 'error' => lang('ai_embedding_texts_empty'));
+        }
+
+        $body = array(
+            'model' => $config['model_code'],
+            'input' => array('texts' => $texts),
+            'parameters' => array('text_type' => 'document'),
+        );
+        $url = rtrim($config['base_url'], '/') . '/services/embeddings/text-embedding/text-embedding';
+
+        $response = $this->requestEmbeddingResponse($url, $body);
+        if (!$response['ok']) {
+            return array('success' => false, 'vectors' => array(), 'dim' => 0, 'error' => $response['error']);
+        }
+        $decoded = $response['decoded'];
+
+        $ordered = array();
+        if (isset($decoded['output']['embeddings']) && is_array($decoded['output']['embeddings'])) {
+            $fallbackIndex = 0;
+            foreach ($decoded['output']['embeddings'] as $item) {
+                if (!is_array($item) || empty($item['embedding']) || !is_array($item['embedding'])) {
+                    continue;
+                }
+                $index = isset($item['text_index']) ? (int) $item['text_index'] : $fallbackIndex;
+                $ordered[$index] = array_values($item['embedding']);
+                $fallbackIndex++;
+            }
+        }
+        ksort($ordered);
+
+        return $this->buildEmbeddingResult($ordered, count($texts));
     }
 }

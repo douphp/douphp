@@ -147,6 +147,7 @@ class RouteEntryBuilder
             'pattern' => $this->pattern,
             'params' => $this->params,
             'module' => $this->resolveEmittedModule($this->collector, $this->module, $this->sub),
+            'parent_module' => $this->module,
             'controller' => $this->controller,
             'action' => $this->action,
             'sub' => $this->sub,

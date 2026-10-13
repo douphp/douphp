@@ -61,8 +61,10 @@ class PermissionMiddleware implements MiddlewareInterface
 
         $action = $request->routeAction() !== '' ? (string) $request->routeAction() : 'index';
         $targetId = $request->integer('id', 0);
+        $entry = $request->routeEntry();
+        $parentModule = $entry !== null ? (string) $entry->parent_module : '';
 
-        if (!$this->gate->canAccess($admin, $cur, $action, $targetId)) {
+        if (!$this->gate->canAccess($admin, $cur, $action, $targetId, $parentModule)) {
             throw new HttpResponseException(redirect(ROOT_URL . ADMIN_DIR));
         }
 

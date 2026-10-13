@@ -183,7 +183,7 @@ class NavController extends BaseController
         $entry = request()->routeEntry();
         $routeName = $entry instanceof RouteEntry ? (string) $entry->name : '';
         $overrides = (defined('SYSTEM_SIGN') && SYSTEM_SIGN === 'api')
-            ? array('sub_menu' => null, 'side' => null)
+            ? array('submenu' => null, 'sidebar' => null)
             : array();
 
         return AdminNavResolver::resolve($routeName, $overrides);

@@ -16,6 +16,7 @@ namespace Dou\Core\Service\Attachment;
 
 use Dou\Core\Filesystem\Disk;
 use Dou\Core\Infra\Image\ImageManager;
+use Dou\Core\Infra\Security\UrlGuard;
 use Dou\Core\Support\Str;
 
 if (!defined('IN_DOUCO')) {
@@ -171,85 +172,7 @@ class RemoteImageDownloader
      */
     private static function isPublicUrl($url)
     {
-        $parts = parse_url($url);
-        if (!is_array($parts) || !isset($parts['host']) || $parts['host'] === '') {
-            return false;
-        }
-
-        $scheme = isset($parts['scheme']) ? strtolower($parts['scheme']) : '';
-        if ($scheme !== 'http' && $scheme !== 'https') {
-            return false;
-        }
-
-        if (isset($parts['port']) && !in_array((int) $parts['port'], array(80, 443), true)) {
-            return false;
-        }
-
-        $host = trim($parts['host'], '[]');
-        $addresses = self::resolveHost($host);
-        if (empty($addresses)) {
-            return false;
-        }
-
-        foreach ($addresses as $ip) {
-            if (!self::isPublicIp($ip)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * 解析主机名到 IP 列表；主机名本身即 IP 时直接返回。
-     *
-     * @param string $host
-     * @return array
-     */
-    private static function resolveHost($host)
-    {
-        if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
-            return array($host);
-        }
-
-        $addresses = array();
-        $v4 = gethostbynamel($host);
-        if (is_array($v4)) {
-            $addresses = $v4;
-        }
-        if (defined('DNS_AAAA')) {
-            $records = @dns_get_record($host, DNS_AAAA);
-            if (is_array($records)) {
-                foreach ($records as $record) {
-                    if (isset($record['ipv6']) && $record['ipv6'] !== '') {
-                        $addresses[] = $record['ipv6'];
-                    }
-                }
-            }
-        }
-
-        return $addresses;
-    }
-
-    /**
-     * 判断 IP 是否为公网地址（排除私有段、环回、链路本地与保留段）。
-     *
-     * @param string $ip
-     * @return bool
-     */
-    private static function isPublicIp($ip)
-    {
-        if (filter_var($ip, FILTER_VALIDATE_IP) === false) {
-            return false;
-        }
-
-        // FILTER_FLAG_NO_PRIV_RANGE/NO_RES_RANGE 覆盖 10/8、172.16/12、192.168/16、127/8、
-        // 169.254/16、::1、fc00::/7 等；返回 false 即命中私有或保留段。
-        return filter_var(
-            $ip,
-            FILTER_VALIDATE_IP,
-            FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
-        ) !== false;
+        return UrlGuard::isPublicUrl($url);
     }
 
     /**

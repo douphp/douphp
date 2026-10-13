@@ -40,7 +40,7 @@
   // 当次生成的成品尺寸（极端比例生成后打开手动裁剪）
   var imageAssistCropTarget = null;
   var lastAssistResult = null;
-  // 最近一次图片生成提交参数（路由固定 admin.ai_generate.field.store），供结果弹窗「重新生成」复用
+  // 最近一次图片生成提交参数（路由固定 admin.ai.generate.field.store），供结果弹窗「重新生成」复用
   var lastImageGenRequest = null;
   // 辅助生成弹窗上下文（字段 + 应用），供「显示系统提示词」预览拉取最终提示词
   var assistDialogContext = null;
@@ -246,7 +246,7 @@
 
     setGenerating(ctx.$modal, true, null, $btn);
     $.ajax({
-      url: route("admin.ai_generate.translate.store"),
+      url: route("admin.ai.generate.translate.store"),
       type: "POST",
       data: {
         app_id: app.id,
@@ -352,7 +352,7 @@
       promptRow(),
     ], function ($modal, done) {
       var count = parseInt($modal.find(".dou-modal-count").val(), 10) || min;
-      post("admin.ai_generate.batch.store", {
+      post("admin.ai.generate.batch.store", {
         app_id: appId,
         count: count,
         prompt: $modal.find(".dou-modal-prompt").val(),
@@ -376,7 +376,7 @@
     imageAssistField = "";
 
     openDialog($btn.attr("data-ai-name"), [promptRow()], function ($modal, done) {
-      post("admin.ai_generate.form.store", {
+      post("admin.ai.generate.form.store", {
         app_id: appId,
         prompt: $modal.find(".dou-modal-prompt").val(),
       }, function (data) {
@@ -415,7 +415,7 @@
       text: app.name || "AI",
       className: "btn dou-modal-submit",
       onClick: function ($modal, done, fail, $trigger) {
-        post("admin.ai_generate.field.store", {
+        post("admin.ai.generate.field.store", {
           app_id: app.id,
           field: field,
           prompt: $modal.find(".dou-modal-prompt").val(),
@@ -518,7 +518,7 @@
         }
 
         lastImageGenRequest = { data: data };
-        post("admin.ai_generate.field.store", data, function () {
+        post("admin.ai.generate.field.store", data, function () {
           done();
         }, $modal, $trigger);
       },
@@ -660,7 +660,7 @@
   }
 
   /**
-   * POST admin.ai_generate.field.preview 取当次最终完整提示词
+   * POST admin.ai.generate.field.preview 取当次最终完整提示词
    * （内置 system + 站点信息/表单快照 + 应用配置提示词 + 用户当次输入）。
    */
   function fetchSystemPrompt() {
@@ -672,7 +672,7 @@
     }
 
     $.ajax({
-      url: route("admin.ai_generate.field.preview"),
+      url: route("admin.ai.generate.field.preview"),
       type: "POST",
       data: systemPromptPayload($modal, ctx),
       dataType: "json",
@@ -957,7 +957,7 @@
     $picker.data("aiSearchToken", token);
     $grid.html('<div class="ai-material-loading">' + escapeHtml(lang("ai_generating", "加载中...")) + "</div>");
     $.ajax({
-      url: route("admin.ai_generate.field.products"),
+      url: route("admin.ai.generate.field.products"),
       type: "GET",
       data: { keyword: keyword },
       dataType: "json",
@@ -1554,7 +1554,7 @@
       });
       $modal.addClass("ai-regen-modal");
     }
-    post("admin.ai_generate.field.store", lastImageGenRequest.data, function () {
+    post("admin.ai.generate.field.store", lastImageGenRequest.data, function () {
       // 任务链路成功时由 showAsyncResult 关闭本加载窗并弹结果
     }, $modal);
   }

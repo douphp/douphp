@@ -28,41 +28,11 @@ if (!defined('IN_DOUCO')) {
  * 后台通用语言能力服务（由容器解析 AdminLanguageContract 后供 language() 取用）。
  *
  * 在 core 通用语言能力基础上补充后台专用能力：
- * - deleteLang
  * - buildLangButtons
+ * - buildLangList
  */
 class LanguageAdminService extends CoreLanguageService implements AdminLanguageContract
 {
-    /**
-     * 清理多语言值及相关语言文件（按 module + item_id 维度）。
-     *
-     * @param string $module
-     * @param string|int $itemId
-     * @return void
-     */
-    public function deleteLang($module = '', $itemId = '')
-    {
-        if (!Config::get('features.language', false)) {
-            return;
-        }
-
-        $langFiles = DB::table('language_value')
-            ->field('value')
-            ->where('module', $module)
-            ->where('item_id', $itemId)
-            ->where('field', 'IN', array('image', 'show_img'))
-            ->select();
-
-        foreach ((array) $langFiles as $row) {
-            attachment()->delete($row['value']);
-        }
-
-        DB::table('language_value')
-            ->where('module', $module)
-            ->where('item_id', $itemId)
-            ->delete();
-    }
-
     /**
      * 后台多语言按钮渲染数据：按字段 + 语言包枚举生成 a 标签列表。
      *

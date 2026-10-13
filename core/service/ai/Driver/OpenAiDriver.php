@@ -26,8 +26,9 @@ if (!defined('IN_DOUCO')) {
  *
  * 请求体 `{model, messages, ...}`，Bearer 认证，`choices[].message.content` 提取。
  * 图像生成走 `/images/generations` 同步端点（豆包 Speedream / 智谱 CogView / OpenAI 兼容）。
+ * 向量生成走 `/embeddings`（百炼兼容端点 / 火山方舟 / DeepSeek / OpenRouter 等）。
  */
-class OpenAiDriver extends AbstractDriver implements ImageGenerationInterface
+class OpenAiDriver extends AbstractDriver implements ImageGenerationInterface, EmbeddingInterface
 {
     /**
      * {@inheritDoc}
@@ -178,5 +179,47 @@ class OpenAiDriver extends AbstractDriver implements ImageGenerationInterface
         }
 
         return array('success' => true, 'urls' => $urls, 'error' => '');
+    }
+
+    /**
+     * 批量向量生成：POST {base_url}/embeddings（OpenAI embeddings 协议）。
+     *
+     * 响应 data[].embedding 必须按返回项 index 重排：供应商不保证返回顺序，
+     * 错位即为「文本与向量不匹配」的静默灾难。
+     */
+    public function embedTexts(array $config, array $texts)
+    {
+        $texts = array_values($texts);
+        if (!$texts) {
+            return array('success' => false, 'vectors' => array(), 'dim' => 0, 'error' => lang('ai_embedding_texts_empty'));
+        }
+
+        $body = array(
+            'model' => $config['model_code'],
+            'input' => $texts,
+        );
+        $url = rtrim($config['base_url'], '/') . '/embeddings';
+
+        $response = $this->requestEmbeddingResponse($url, $body);
+        if (!$response['ok']) {
+            return array('success' => false, 'vectors' => array(), 'dim' => 0, 'error' => $response['error']);
+        }
+        $decoded = $response['decoded'];
+
+        $ordered = array();
+        if (isset($decoded['data']) && is_array($decoded['data'])) {
+            $fallbackIndex = 0;
+            foreach ($decoded['data'] as $item) {
+                if (!is_array($item) || empty($item['embedding']) || !is_array($item['embedding'])) {
+                    continue;
+                }
+                $index = isset($item['index']) ? (int) $item['index'] : $fallbackIndex;
+                $ordered[$index] = array_values($item['embedding']);
+                $fallbackIndex++;
+            }
+        }
+        ksort($ordered);
+
+        return $this->buildEmbeddingResult($ordered, count($texts));
     }
 }

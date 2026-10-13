@@ -305,6 +305,7 @@ class RouteGroupBuilder
                     'pattern' => $pattern,
                     'params' => array(),
                     'module' => $emittedModule,
+                    'parent_module' => $this->module,
                     'controller' => $this->controller,
                     'action' => $action,
                     'sub' => $this->sub,

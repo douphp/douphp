@@ -42,3 +42,9 @@ $_LANG['ai_task_query_failed'] = '任務查詢失敗: %s';
 $_LANG['ai_task_submit_failed_detail'] = '任務提交失敗: %s';
 $_LANG['ai_task_failed'] = '任務失敗';
 $_LANG['ai_error_code'] = '錯誤碼 %s';
+
+// 知識庫向量（embedding）
+$_LANG['ai_embedding_model_missing'] = '未設定向量模型（Embedding），請在知識庫設定中選擇支援向量生成的模型';
+$_LANG['ai_embedding_unsupported'] = '該模型驅動不支援向量生成，請改用 OpenAI 相容模式註冊 Embedding 模型';
+$_LANG['ai_embedding_texts_empty'] = '向量生成文字不能為空';
+$_LANG['ai_embedding_response_invalid'] = '向量介面未返回有效向量資料';

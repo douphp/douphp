@@ -398,6 +398,7 @@ class RouteResourceBuilder
             'params' => $params,
             'methods' => $methods,
             'module' => $this->resolveEmittedModule($this->collector, $this->module, $this->sub),
+            'parent_module' => $this->module,
             'controller' => $this->controller,
             'action' => $action,
             'sub' => $this->sub,

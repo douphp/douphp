@@ -71,26 +71,26 @@ class DataController extends BaseController
 
         $overrides = array();
         if ($dataGroup === 'miniprogram') {
-            $overrides['sub_menu'] = 'miniprogram';
-            $overrides['sub_item'] = 'data';
+            $overrides['submenu'] = 'miniprogram';
+            $overrides['subitem'] = 'data';
         } elseif ($dataGroup === 'banner') {
-            $overrides['sub_item'] = 'data_banner';
+            $overrides['subitem'] = 'data_banner';
         } elseif ($dataGroup === 'index') {
-            $overrides['sub_item'] = 'site_home';
+            $overrides['subitem'] = 'site_home';
         } elseif (in_array($cur, array('site_home', 'show', 'fragment', 'box'), true)) {
-            $overrides['sub_item'] = $cur;
+            $overrides['subitem'] = $cur;
         } elseif ($cur === 'data' && in_array($dataGroup, array('common', 'all'), true)) {
-            $overrides['sub_item'] = 'data';
+            $overrides['subitem'] = 'data';
         } else {
             // 业务模块数据组（cur 为模块名）或空组：渲染站点首页族但无激活项
-            $overrides['sub_item'] = null;
+            $overrides['subitem'] = null;
         }
 
-        $sideMap = array(
+        $sidebarMap = array(
             'data' => 'site_home', 'site_home' => 'site_home', 'show' => 'site_home',
             'box' => 'site_home', 'fragment' => 'site_home', 'miniprogram' => 'miniprogram',
         );
-        $overrides['side'] = isset($sideMap[$cur]) ? $sideMap[$cur] : $cur;
+        $overrides['sidebar'] = isset($sidebarMap[$cur]) ? $sidebarMap[$cur] : $cur;
 
         $entry = request()->routeEntry();
         $routeName = $entry instanceof RouteEntry ? (string) $entry->name : '';

@@ -24,7 +24,7 @@ if (!defined('IN_DOUCO')) {
 }
 
 /**
- * 三端通用语言服务：多语言字段读取与字典格式化。
+ * 三端通用语言服务：多语言字段读取、字典格式化与记录删除清理。
  *
  * 由容器解析 {@see LanguageContract} 后供 language() 取用；后台端使用其子类
  * {@see \Dou\Admin\Service\Language\LanguageAdminService} 扩展后台专属能力。
@@ -186,6 +186,39 @@ class LanguageService extends BaseService implements LanguageContract
             : '';
 
         return $cached !== '' ? $cached : $value;
+    }
+
+    /**
+     * 清理指定模块/记录的关联多语言值：先删语言图片附件，再删 language_value 行。
+     *
+     * 删除副作用常由三端共用的模型层触发（如模型销毁时按 module + item_id 清理），
+     * 故实现落在通用服务而非后台子类；features.language 关闭时静默返回。
+     *
+     * @param string $module
+     * @param string|int $item_id
+     * @return void
+     */
+    public function deleteLang($module = '', $item_id = '')
+    {
+        if (!Config::get('features.language', false)) {
+            return;
+        }
+
+        $langFiles = DB::table('language_value')
+            ->field('value')
+            ->where('module', $module)
+            ->where('item_id', $item_id)
+            ->where('field', 'IN', array('image', 'show_img'))
+            ->select();
+
+        foreach ((array) $langFiles as $row) {
+            attachment()->delete($row['value']);
+        }
+
+        DB::table('language_value')
+            ->where('module', $module)
+            ->where('item_id', $item_id)
+            ->delete();
     }
 
     /**
