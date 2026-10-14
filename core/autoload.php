@@ -129,6 +129,40 @@ function douLoadClassFile($classFile)
 }
 
 /**
+ * 注册升级程序类自动加载（Dou\Upgrade\* -> {baseDir}/*）
+ *
+ * 双端共享实现，保证升级类文件在两端加载能力严格对称：
+ *   - legacy 端（upgrade/index.php）：douRegisterUpgradeAutoloader(UPGRADE_PATH)
+ *   - cloud 端（_update/action.php）：douRegisterUpgradeAutoloader(U_PATH)
+ * 映射规则：命名空间段映射目录统一小写、类名保原样
+ * （如 Dou\Upgrade\Lib\ConfigMerge -> {baseDir}lib/ConfigMerge.php）。
+ * 同一目录重复调用自动去重；文件不存在时静默放行（交后续加载器/显式 require）。
+ *
+ * @param string $baseDir 升级程序根目录（绝对路径，可带或不带尾斜杠）
+ * @return void
+ */
+function douRegisterUpgradeAutoloader($baseDir)
+{
+    static $registeredDirs = array();
+    $baseDir = rtrim((string) $baseDir, '/\\') . '/';
+    if ($baseDir === '/' || isset($registeredDirs[$baseDir])) {
+        return;
+    }
+    $registeredDirs[$baseDir] = true;
+    spl_autoload_register(function ($className) use ($baseDir) {
+        if (strncmp($className, 'Dou\\Upgrade\\', 12) !== 0) {
+            return;
+        }
+        $namespaceSuffix = substr($className, 12);
+        $parts = explode('\\', $namespaceSuffix);
+        $classBasename = array_pop($parts);
+        $dirParts = array_map('strtolower', $parts);
+        $relative = ($dirParts ? implode('/', $dirParts) . '/' : '') . $classBasename . '.php';
+        douLoadClassFile($baseDir . $relative);
+    });
+}
+
+/**
  * 解析三端 Controller/Model/Service 规范路径
  *
  * @param string $entryBasePath

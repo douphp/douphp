@@ -102,6 +102,7 @@ class CloudController extends BaseController
 
         $mode = $this->resolveMode($request->query('mode', ''));
         $version = $request->digits('version', '', 'query');
+        $backUrl = $this->sanitizeAdminBackUrl($request->query('back_url', ''));
 
         $cloudId = '';
         $batch = array();
@@ -154,6 +155,7 @@ class CloudController extends BaseController
             'batch' => $batch,
             'download_url' => $downloadUrl,
             'auth_status' => $authStatus,
+            'back_url' => $backUrl,
         ));
 
         $viewData = $this->cloudService->buildHandleViewData($type, $cloudId, $mode, $version, $themeId);
@@ -301,6 +303,7 @@ class CloudController extends BaseController
                 'theme_id' => isset($state['theme_id']) ? (string) $state['theme_id'] : '',
                 'download_url' => isset($state['download_url']) ? (string) $state['download_url'] : '',
                 'auth_status' => isset($state['auth_status']) ? (string) $state['auth_status'] : 'ok',
+                'back_url' => isset($state['back_url']) ? (string) $state['back_url'] : '',
             );
 
             $outcome = $this->runStep($service, $step, $params, $state);
@@ -333,6 +336,7 @@ class CloudController extends BaseController
                         'theme_id' => isset($state['theme_id']) ? (string) $state['theme_id'] : '',
                         'download_url' => isset($state['download_url']) ? (string) $state['download_url'] : '',
                         'auth_status' => isset($state['auth_status']) ? (string) $state['auth_status'] : 'ok',
+                        'back_url' => isset($state['back_url']) ? (string) $state['back_url'] : '',
                     );
                     $skippedId = $params['cloud_id'];
                     $outcome = $service->runPreflight($params);
@@ -519,6 +523,52 @@ class CloudController extends BaseController
             return $mode;
         }
         return 'install';
+    }
+
+    /**
+     * 校验自定义返回地址：仅允许本站后台 URL，防止开放重定向。
+     *
+     * 规则：
+     * - 拒绝含危险协议（javascript: / data: / vbscript: / file:）的输入；
+     * - 相对路径（不含 host）且以 index.php 或 / 开头 → 接受；
+     * - 绝对 URL 且 host 与 ADMIN_URL 的 host 一致 → 接受；
+     * - 其它一律返回空串（调用方按未设置处理）。
+     *
+     * @param string $url
+     * @return string 合法时返回原值（已 trim），否则返回空串
+     */
+    private function sanitizeAdminBackUrl($url)
+    {
+        $url = trim((string) $url);
+        if ($url === '') {
+            return '';
+        }
+
+        // 拒绝危险协议（含协议相对 // 与任何 scheme）
+        if (preg_match('/^(javascript|data|vbscript|file):/i', $url)) {
+            return '';
+        }
+
+        $parsed = parse_url($url);
+        if ($parsed === false) {
+            return '';
+        }
+
+        // 无 host：视为相对路径，仅接受 index.php 或 / 开头
+        if (empty($parsed['host'])) {
+            if (strpos($url, 'index.php') === 0 || strpos($url, '/') === 0) {
+                return $url;
+            }
+            return '';
+        }
+
+        // 有 host：必须与 ADMIN_URL 同 host
+        $adminHost = parse_url(ADMIN_URL, PHP_URL_HOST);
+        if ($adminHost !== null && strcasecmp($parsed['host'], (string) $adminHost) === 0) {
+            return $url;
+        }
+
+        return '';
     }
 
     /**

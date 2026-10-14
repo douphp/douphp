@@ -352,6 +352,7 @@ class InstallService extends BaseService
         $themeId = isset($params['theme_id']) ? (string) $params['theme_id'] : '';
         $batch = isset($session['batch']) && is_array($session['batch']) ? $session['batch'] : array();
         $version = isset($params['version']) ? (string) $params['version'] : '';
+        $backUrl = isset($params['back_url']) ? (string) $params['back_url'] : '';
 
         $logs = array();
         $text = $mode === 'update' ? lang('cloud_update_0') : lang('cloud_install_0');
@@ -386,7 +387,7 @@ class InstallService extends BaseService
             // PHP 7+ 的 \Error（如容器解析失败）同样静默忽略。
         }
 
-        $buttons = $this->buildSuccessButtons($mode, $type, $cloudId);
+        $buttons = $this->buildSuccessButtons($mode, $type, $cloudId, $backUrl);
         $btnAction = isset($buttons['action']) ? (string) $buttons['action'] : '';
         $btnBack = isset($buttons['back']) ? (string) $buttons['back'] : '';
 
@@ -637,8 +638,7 @@ class InstallService extends BaseService
     {
         if ($type === 'theme') {
             FileHelper::copyDir($itemDir, $this->rootDir . 'theme/' . $cloudId);
-            FileHelper::copyDir($this->rootDir . 'images/fragment', $this->rootDir . 'images/fragment_old');
-            FileHelper::copyDir($this->rootDir . 'images/box', $this->rootDir . 'images/box_old');
+            FileHelper::copyDir($this->rootDir . 'images/data', $this->rootDir . 'images/data_old');
             return;
         }
 
@@ -650,7 +650,7 @@ class InstallService extends BaseService
 
         // 配置基准保护：升级包携带 _update/resources/config/ 基准文件时，包根 config/ 中与基准同名的
         // 文件不参与覆盖拷贝——站点现行配置文件保持原样，交由 _update/action.php 的
-        // config_merge 引擎做「基准 x 现行」合并（保留用户值）。摘除仅作用于本次临时解压
+        // 配置合并引擎（Dou\Upgrade\Lib\ConfigMerge）做「基准 x 现行」合并（保留用户值）。摘除仅作用于本次临时解压
         // 目录（升级结束整体删除），包内 _update/resources/config/ 基准文件本身不受影响。
         $baselineDir = rtrim($itemDir, '/\\') . '/_update/resources/config/';
         if (is_dir($baselineDir)) {
@@ -1945,9 +1945,11 @@ class InstallService extends BaseService
      * @param string $mode
      * @param string $type
      * @param string $cloudId
+     * @param string $backUrl 自定义返回地址（调用方需预先校验为本站后台 URL）；非空时覆盖默认返回按钮 href，
+     *                        用于预置模块安装后跳回模块真实页面等场景。按钮文案仍按 type 取对应 lang 键。
      * @return array { action: string, back: string }
      */
-    public function buildSuccessButtons($mode, $type, $cloudId)
+    public function buildSuccessButtons($mode, $type, $cloudId, $backUrl = '')
     {
         $btnAction = '';
         $btnBack = '';
@@ -1982,6 +1984,33 @@ class InstallService extends BaseService
             $btnBack = '<a href="' . Util::absolutizeEntryUrl(route('admin.cloud.update')) . '" class="btn-secondary">' . lang('cloud_update_home') . '</a>';
         }
 
+        // 自定义返回地址：仅覆盖 href，保留按 type 选出的按钮文案；update/patch 模式不覆盖（其返回目标固定为更新页）。
+        if ($backUrl !== '' && $mode !== 'update' && $mode !== 'patch') {
+            $btnBack = '<a href="' . htmlspecialchars((string) $backUrl, ENT_QUOTES, DOU_CHARSET) . '" class="btn-secondary">' . $this->backButtonLabel($type) . '</a>';
+        }
+
         return array('action' => $btnAction, 'back' => $btnBack);
+    }
+
+    /**
+     * 返回按钮文案：按 type 取对应 lang 键，与 {@see buildSuccessButtons} 默认分支保持一致。
+     *
+     * @param string $type
+     * @return string
+     */
+    private function backButtonLabel($type)
+    {
+        switch ($type) {
+            case 'miniprogram':
+                return lang('cloud_miniprogram_home');
+            case 'plugin':
+                return lang('cloud_plugin_home');
+            case 'theme':
+                return lang('cloud_theme_home');
+            case 'module':
+                return lang('cloud_module_home');
+            default:
+                return lang('cloud_admin_home');
+        }
     }
 }

@@ -50,6 +50,7 @@ class AdminMenuService extends BaseService
             'module',
             'cloud',
             'language',
+            'preinstall',
         );
     }
 

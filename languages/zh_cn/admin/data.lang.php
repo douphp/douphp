@@ -17,21 +17,17 @@ $_LANG['data'] = '内容片段';
 $_LANG['data_list'] = '片段列表';
 $_LANG['data_create'] = '添加内容片段';
 $_LANG['data_edit'] = '编辑片段';
-$_LANG['data_copy'] = '复制上一个项目的内容片段';
 $_LANG['data_lock'] = '锁定';
 $_LANG['data_unlock'] = '解除锁定';
 $_LANG['data_all'] = '显示所有片段';
 $_LANG['data_all_hidden'] = '隐藏已分组片段';
 $_LANG['data_info'] = '片段信息';
-$_LANG['data_transform'] = '数据迁移';
 $_LANG['data_sync_from_template'] = '同步模板数据';
 $_LANG['data_sync_result'] = '同步完成：扫描 {scanned} 项，新增 {inserted} 项，跳过已存在 {skipped} 项';
 
 // 字段
 $_LANG['data_theme'] = '关联模板';
 $_LANG['data_parent_code'] = '分组';
-$_LANG['data_module'] = '所属模块';
-$_LANG['data_item_id'] = '所属项目';
 $_LANG['data_name'] = '片段名称';
 $_LANG['data_code'] = '唯一标记';
 $_LANG['data_image'] = '图片内容';
@@ -53,7 +49,6 @@ $_LANG['data_code_cue'] = '唯一标记不能为空且只能使用小写字母�
 $_LANG['data_image_cue'] = '前台调用标签：<em class="copytext">{$data.唯一标记.image}</em>';
 $_LANG['data_text_cue'] = '前台调用标签：<em class="copytext">{$data.唯一标记.text}</em>';
 $_LANG['data_link_cue'] = '前台调用标签：<em class="copytext">{$data.唯一标记.link}</em>';
-$_LANG['data_transform_cue'] = '将“内容碎片、内容盒子”，两个模块的数据迁移到“内容片段”模块，后续“内容碎片、内容盒子”两个模块将陆续停用！';
 
 // 提示信息
 $_LANG['data_add_succes'] = '添加内容片段成功';
@@ -61,4 +56,3 @@ $_LANG['data_edit_succes'] = '编辑内容片段成功';
 $_LANG['data_delete'] = '删除内容片段';
 $_LANG['data_code_wrong'] = '唯一标记不能为空且只能使用小写字母、数字、下划线';
 $_LANG['data_code_existed'] = '唯一标记已经存在，请重新输入';
-$_LANG['data_transform_succes'] = '已将“内容碎片、内容盒子”，两个模块的数据成功迁移到“内容片段”模块！';

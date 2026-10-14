@@ -55,8 +55,8 @@ class DataController extends BaseController
      * 覆盖映射（与旧 data.htm 选族及 site_home / miniprogram 子菜单的字符串比较逐条对齐）：
      *   - miniprogram 组 → 小程序族 + data 项；
      *   - banner 组 → 站点首页族 + data_banner 项；index 组 → 站点首页族 + site_home 项；
-     *   - site_home / show / fragment / box 组 → 站点首页族 + 同名项；
-     *   - common / all 组 → 站点首页族 + data 项（与中央解析缺省一致）；
+     *   - site_home / show 组 → 站点首页族 + 同名项；
+     *   - common / all / box 组 → 站点首页族 + data 项（与中央解析缺省一致）；
      *   - 其余（业务模块数据组或空组）→ 站点首页族但无激活项。
      * 侧栏节点：聚合数据组归「站点首页」，小程序数据组归「小程序」，
      * 模块数据组（cur=模块名）归模块自身节点。
@@ -77,9 +77,9 @@ class DataController extends BaseController
             $overrides['subitem'] = 'data_banner';
         } elseif ($dataGroup === 'index') {
             $overrides['subitem'] = 'site_home';
-        } elseif (in_array($cur, array('site_home', 'show', 'fragment', 'box'), true)) {
+        } elseif (in_array($cur, array('site_home', 'show'), true)) {
             $overrides['subitem'] = $cur;
-        } elseif ($cur === 'data' && in_array($dataGroup, array('common', 'all'), true)) {
+        } elseif ($cur === 'data' && in_array($dataGroup, array('common', 'all', 'box'), true)) {
             $overrides['subitem'] = 'data';
         } else {
             // 业务模块数据组（cur 为模块名）或空组：渲染站点首页族但无激活项
@@ -88,7 +88,7 @@ class DataController extends BaseController
 
         $sidebarMap = array(
             'data' => 'site_home', 'site_home' => 'site_home', 'show' => 'site_home',
-            'box' => 'site_home', 'fragment' => 'site_home', 'miniprogram' => 'miniprogram',
+            'miniprogram' => 'miniprogram',
         );
         $overrides['sidebar'] = isset($sidebarMap[$cur]) ? $sidebarMap[$cur] : $cur;
 
@@ -232,23 +232,6 @@ class DataController extends BaseController
      * @param Request $request
      * @return Response
      */
-    public function copy(Request $request)
-    {
-        $rules = array(
-            'module' => 'required|alpha',
-            'id' => 'required|integer',
-        );
-        $request->validate($rules);
-
-        $module = trim((string) $request->input('module', ''));
-        $itemId = $request->integer('id', 0);
-        return redirect($this->dataService->copy($module, $itemId));
-    }
-
-    /**
-     * @param Request $request
-     * @return Response
-     */
     public function lock(Request $request)
     {
         $rules = array(
@@ -258,15 +241,6 @@ class DataController extends BaseController
 
         $id = $request->integer('id', 0);
         return redirect($this->dataService->lock($id));
-    }
-
-    /**
-     * @return Response
-     */
-    public function transform()
-    {
-        $result = $this->dataService->transform();
-        return redirect($result['back_url'])->with('success', $result['message']);
     }
 
     /**

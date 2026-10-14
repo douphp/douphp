@@ -42,9 +42,6 @@ class Data extends Model
         'link',
         'is_class',
         'sort',
-        'module',
-        'item_id',
-        'class',
         'is_locked',
     );
 
@@ -228,33 +225,6 @@ class Data extends Model
     }
 
     /**
-     * @param string $module
-     * @return string
-     */
-    public static function findLastItemIdByModule($module)
-    {
-        $itemId = DB::table(static::tableName())
-            ->where('module', (string) $module)
-            ->order('id DESC')
-            ->value('item_id');
-
-        return $itemId ? (string) $itemId : '';
-    }
-
-    /**
-     * @param string $module
-     * @param string|int $itemId
-     * @return array
-     */
-    public static function findByModuleAndItemId($module, $itemId)
-    {
-        return static::where('module', (string) $module)
-            ->where('item_id', $itemId)
-            ->order('id ASC')
-            ->get();
-    }
-
-    /**
      * @param int $id
      * @return int
      */
@@ -265,14 +235,5 @@ class Data extends Model
         static::where('id', (int) $id)->update(array('is_locked' => $isLocked));
 
         return $isLocked;
-    }
-
-    /**
-     * @return void
-     */
-    public static function clearBannerParentAndClass()
-    {
-        static::where('data_group', 'banner')
-            ->update(array('parent_code' => '', 'is_class' => 0));
     }
 }

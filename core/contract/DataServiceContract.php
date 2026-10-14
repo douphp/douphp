@@ -21,9 +21,8 @@ if (!defined('IN_DOUCO')) {
 /**
  * 三端共用的碎片化数据访问契约（业务读取 data 表的统一入口）。
  *
- * 真实现 {@see \Dou\Core\Service\Data\DataService} 跟随 features.data 开关 + 类磁盘存在性；
- * 当 features.data 关闭或 DataService 缺席时，由 {@see \Dou\Core\Service\Noop\NullDataService}
- * 兜底，保证 data() 始终非空、业务调用面（`data()->get('hero', 'image')` 等）无需判空。
+ * data 已是系统核心模块（不可卸载），实现固定为 {@see \Dou\Core\Service\Data\DataService}，
+ * data() 始终非空、业务调用面（`data()->get('hero', 'image')` 等）无需判空。
  *
  * 两个公开动词的语义分工：
  * - `get()`：访问"已加载到内存"的整张主题数据。首次调用触发一次 DB 查询并缓存到实例上，

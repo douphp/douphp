@@ -18,7 +18,6 @@ use Dou\Admin\Model\Data\Data;
 use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Exception\DomainException;
-use Dou\Core\Foundation\Extension\Module;
 use Dou\Core\Service\Admin\AdminLogAction;
 use Dou\Core\Service\Attachment\AttachmentUploadOptions;
 use Dou\Core\Service\BaseService;
@@ -34,7 +33,7 @@ if (!defined('IN_DOUCO')) {
  *
  * 职责：
  * - 分组列表、增删改、图片与 code 维护、主题下图片目录。
- * - 历史 fragment/box 数据导入（transform）、复制到其它内容项（copy）、锁定编辑。
+ * - 锁定编辑。
  */
 class DataService extends BaseService
 {
@@ -51,7 +50,7 @@ class DataService extends BaseService
     /**
      * 按数据分组推导侧边栏高亮标识 cur。
      *
-     * 全局分组（index/common/banner）及虚拟分组 all 归属「站点首页」聚合菜单，
+     * 全局分组（index/common/banner/box）及虚拟分组 all 归属「站点首页」聚合菜单，
      * 返回 'data'；小程序分组（miniprogram）归属小程序模块菜单，返回 'miniprogram'；
      * 模块归属分组（page/article/...）返回分组名本身，以便侧边栏高亮对应模块菜单
      * 而非 site_home。
@@ -66,7 +65,7 @@ class DataService extends BaseService
             return 'miniprogram';
         }
 
-        if ($dataGroup === '' || $dataGroup === 'all' || in_array($dataGroup, $this->noInPageList(), true)) {
+        if ($dataGroup === '' || $dataGroup === 'all' || $dataGroup === 'box' || in_array($dataGroup, $this->noInPageList(), true)) {
             return 'data';
         }
 
@@ -385,31 +384,6 @@ class DataService extends BaseService
     }
 
     /**
-     * 将某 module 下最近一套 data 行复制到新的 item_id（名称/分类保留，图文清空）。
-     *
-     * @param string     $module 业务模块名
-     * @param string|int $itemId 目标内容主键
-     * @return string 跳到该模块编辑页
-     */
-    public function copy($module, $itemId)
-    {
-        $lastItemId = Data::findLastItemIdByModule($module);
-        $rows = Data::findByModuleAndItemId($module, $lastItemId);
-        foreach ((array) $rows as $row) {
-            Data::insertData(array(
-                'module' => $row['module'],
-                'item_id' => $itemId,
-                'name' => $row['name'],
-                'class' => $row['class'],
-                'text' => '',
-                'image' => '',
-                'link' => '',
-            ));
-        }
-        return route('admin.' . $module . '.edit', array('id' => $itemId));
-    }
-
-    /**
      * 切换单条 data 的 is_locked（锁定后台编辑）。
      *
      * @param string|int $id
@@ -419,100 +393,6 @@ class DataService extends BaseService
     {
         Data::toggleLockById((int) $id);
         return route('admin.data.edit', array('id' => (int) $id));
-    }
-
-    /**
-     * 将 fragment、box 表数据导入 data 表，更新图片路径与 file 表归属，并清空源表。
-     *
-     * @return array message、back_url
-     */
-    public function transform()
-    {
-        $dataThemeDir = 'images/data/' . Config::get('site.site_theme', '') . '/';
-        $fragment = Module::make('fragment');
-        if ($fragment) {
-            foreach ((array) $fragment->buildFragmentList() as $row) {
-                $isClass = $row['child'] ? 1 : 0;
-                $dataGroup = strpos($row['mark'], 'banner') !== false ? 'banner' : 'common';
-                Data::insertData(array(
-                    'parent_code' => '',
-                    'theme' => Config::get('site.site_theme', ''),
-                    'data_group' => $dataGroup,
-                    'name' => $row['name'],
-                    'code' => $row['mark'],
-                    'text' => $row['text'],
-                    'image' => $row['image'],
-                    'link' => $row['link'],
-                    'is_class' => $isClass,
-                    'sort' => $row['sort'],
-                ));
-                attachment()->moveStoredFileToDirectory($row['image'], $dataThemeDir);
-                if ($row['image']) {
-                    $itemId = DB::insertId();
-                    DB::table('file')->where('number', $row['image'])->data(array('module' => 'data', 'item_id' => $itemId))->update();
-                }
-                foreach ((array) $row['child'] as $value) {
-                    Data::insertData(array(
-                        'parent_code' => $row['mark'],
-                        'theme' => Config::get('site.site_theme', ''),
-                        'data_group' => $dataGroup,
-                        'name' => $value['name'],
-                        'code' => $value['mark'],
-                        'text' => $value['text'],
-                        'image' => $value['image'],
-                        'link' => $value['link'],
-                        'sort' => $value['sort'],
-                    ));
-                    attachment()->moveStoredFileToDirectory($value['image'], $dataThemeDir);
-                    if ($value['image']) {
-                        $itemId = DB::insertId();
-                        DB::table('file')->where('number', $value['image'])->data(array('module' => 'data', 'item_id' => $itemId))->update();
-                    }
-                }
-            }
-        }
-
-        // box 为可选模块（云模块安装后才有 Dou\Admin\Model\Box\Box），
-        // 未安装时不引用该类以避免类不存在致命错误；TRUNCATE 也随之跳过。
-        $boxClass = 'Dou\\Admin\\Model\\Box\\Box';
-        if (class_exists($boxClass)) {
-            $classList = $boxClass::box('class');
-            foreach ((array) $classList as $row) {
-                Data::insertData(array(
-                    'parent_code' => '',
-                    'theme' => Config::get('site.site_theme', ''),
-                    'name' => $row['class'],
-                    'code' => $row['class_slug'],
-                    'is_class' => 1,
-                ));
-                $boxList = $boxClass::boxList($row['class_slug']);
-                foreach ((array) $boxList as $value) {
-                    $code = $this->createCode();
-                    Data::insertData(array(
-                        'parent_code' => $row['class_slug'],
-                        'theme' => Config::get('site.site_theme', ''),
-                        'name' => $value['name'],
-                        'code' => $code,
-                        'text' => $value['text'],
-                        'image' => $value['file'],
-                        'link' => $value['link'],
-                        'sort' => $value['sort'],
-                    ));
-                    attachment()->moveStoredFileToDirectory($value['file'], $dataThemeDir);
-                    if ($value['file']) {
-                        $itemId = DB::insertId();
-                        DB::table('file')->where('number', $value['file'])->data(array('module' => 'data', 'item_id' => $itemId))->update();
-                    }
-                }
-            }
-            DB::query('TRUNCATE ' . DB::tableName('box'));
-        }
-        Data::clearBannerParentAndClass();
-        DB::query('TRUNCATE ' . DB::tableName('fragment'));
-        return array(
-            'message' => lang('data_transform_succes'),
-            'back_url' => route('admin.data'),
-        );
     }
 
     /**

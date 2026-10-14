@@ -326,7 +326,7 @@ if (!function_exists('user')) {
 
 if (!function_exists('data')) {
     /**
-     * 碎片化数据访问契约（data 模块卸载 / features.data 关闭时由 NullDataService 兜底，永不为 null）。
+     * 碎片化数据访问契约（data 已为核心模块，实现固定为真实现，永不为 null）。
      *
      * 业务侧两类调用：
      * - `data()->get()` / `data()->get('hero')` / `data()->get('hero', 'image')`

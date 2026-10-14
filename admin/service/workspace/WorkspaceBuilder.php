@@ -15,6 +15,7 @@
 namespace Dou\Admin\Service\Workspace;
 
 use Dou\Admin\Service\Menu\AdminMenuService;
+use Dou\Admin\Service\Preinstall\PreinstallService;
 use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Service\BaseService;
@@ -35,22 +36,29 @@ if (!defined('IN_DOUCO')) {
  *   - 栏目 / 单页节点（menu_column / menu_single）：不携带活跃态，侧栏按模块短名索引
  *     中央解析结果 $nav.sidebar[<模块名>]，保证控制器层 override 生效；
  *   - 商品分类行（menu_item）与页面树（menu_simple）：记录驱动动态节点，路由阶段无法解析，
- *     由本类在枚举的同一次遍历中就地计算 is_active（$nav.sidebar 不含这些逐行 id）。
+ *     由本类在枚举的同一次遍历中就地计算 is_active（$nav.sidebar 不含这些逐行 id）；
+ *   - 预置模块行（menu_preinstall）：同路由名不同 slug 的路由参数无法被 $nav.sidebar 区分，
+ *     同样由本类按当前 slug 就地计算 is_active。
  */
 class WorkspaceBuilder extends BaseService
 {
     /** @var AdminMenuService */
     private $menuService;
 
+    /** @var PreinstallService */
+    private $preinstallService;
+
     /** @var array 进程内构建结果缓存（同请求内 init 与 workspace 中间件各调一次 build，去重） */
     private static $buildMemo = array();
 
     /**
      * @param AdminMenuService $menuService 框架基础菜单元数据
+     * @param PreinstallService $preinstallService 预置模块标识读取
      */
-    public function __construct(AdminMenuService $menuService)
+    public function __construct(AdminMenuService $menuService, PreinstallService $preinstallService)
     {
         $this->menuService = $menuService;
+        $this->preinstallService = $preinstallService;
     }
 
     /**
@@ -62,11 +70,12 @@ class WorkspaceBuilder extends BaseService
      * @param string $currentModule 当前路由 module（dispatch 之前可传空串）
      * @param string $catId 当前 URL 选中的商品分类 category_id（查询参数，由调用方从 Request 取好传入，用于侧栏高亮）
      * @param string $pageId 当前 URL 选中的单页 id（路由参数，仅 module=page 时消费，用于页面树高亮）
+     * @param string $preinstallSlug 当前 URL 选中的预置模块 slug（路由参数，仅 preinstall 详情页消费，用于预置项高亮）
      * @return array
      */
-    public function build($currentModule = '', $catId = '', $pageId = '')
+    public function build($currentModule = '', $catId = '', $pageId = '', $preinstallSlug = '')
     {
-        $memoKey = $currentModule . "\0" . $catId . "\0" . $pageId;
+        $memoKey = $currentModule . "\0" . $catId . "\0" . $pageId . "\0" . $preinstallSlug;
         if (isset(self::$buildMemo[$memoKey])) {
             return self::$buildMemo[$memoKey];
         }
@@ -89,6 +98,8 @@ class WorkspaceBuilder extends BaseService
         );
         $workspace['menu_item'] = $this->buildItemCategoryMenu((string) $currentModule, (string) $catId);
         $workspace['menu_permission'] = $this->buildBasicMenuPermission();
+        // 预置项高亮仅认预置详情路由（plugin 等模块也有 slug 参数，不参与高亮）
+        $workspace['menu_preinstall'] = $this->buildPreinstallMenu($currentModule === 'preinstall' ? (string) $preinstallSlug : '');
         $workspace['menu_icon_map'] = $this->buildMenuIconMapForView();
 
         return self::$buildMemo[$memoKey] = $workspace;
@@ -293,6 +304,37 @@ class WorkspaceBuilder extends BaseService
         }
 
         return $menuPermission;
+    }
+
+    /**
+     * 预置模块侧栏菜单（menu_preinstall）。
+     *
+     * 数据源：storage/install/preinstall/ 标识文件 ∖ 已安装模块（config/module.php 口径），
+     * 每模块一条（与已安装单页模块一对一）；is_active 由 PreinstallService 按当前 slug
+     * 就地计算（同路由名不同 slug 参数，$nav.sidebar 无法区分）。
+     *
+     * 权限：defined 子管理员需 action_list 勾选 'preinstall'，未勾选返回空数组
+     * （路由侧由 AdminGate 同步拦截）。
+     *
+     * @param string $activeSlug 当前详情页 slug（空串=无高亮）
+     * @return array
+     */
+    private function buildPreinstallMenu($activeSlug)
+    {
+        $admin = auth('admin')->user();
+        if (!is_array($admin)) {
+            $admin = array();
+        }
+
+        $adminType = isset($admin['type']) ? $admin['type'] : '';
+        if ($adminType == 'defined') {
+            $actionList = isset($admin['action_list']) ? explode(',', $admin['action_list']) : array();
+            if (!in_array('preinstall', $actionList)) {
+                return array();
+            }
+        }
+
+        return $this->preinstallService->promotions($activeSlug);
     }
 
     /**

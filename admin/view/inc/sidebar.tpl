@@ -63,6 +63,13 @@
    <!-- {/foreach} -->
   </ul>
   <!-- {/if} -->
+  <!-- {if $workspace.menu_preinstall} 预置模块（标识文件驱动，未安装时一对一展示） -->
+  <ul>
+   <!-- {foreach from=$workspace.menu_preinstall item=menu} -->
+   <li{if $menu.is_active} class="cur"{/if} data-id="{$menu.name}"><a href="{$menu.url}"><i class="{$menu.icon}"></i><em>{$menu.lang}</em></a></li>
+   <!-- {/foreach} -->
+  </ul>
+  <!-- {/if} -->
   <!-- {if $workspace.menu_single} -->
   <ul>
    <!-- {foreach from=$workspace.menu_single item=menu} -->
@@ -74,7 +81,7 @@
   <!-- {/if} -->
   <ul class="bot">
    <!-- {if $workspace.menu_permission.site_home} -->
-   <li{if $nav.sidebar.site_home.is_active} class="cur"{/if} data-id="site_home"><a href="{url link='admin.site_home'}"><i class="{$workspace.menu_icon_map.show}"></i><em><!-- {if $features.data || $features.box || $features.fragment || $features.area} -->{$lang.site_home_other}<!-- {else} -->{$lang.show}<!-- {/if} --></em></a></li>
+   <li{if $nav.sidebar.site_home.is_active} class="cur"{/if} data-id="site_home"><a href="{url link='admin.site_home'}"><i class="{$workspace.menu_icon_map.show}"></i><em>{$lang.site_home_other}</em></a></li>
    <!-- {/if} -->
    <!-- {if $workspace.menu_permission.backup} -->
    <li{if $nav.sidebar.backup.is_active} class="cur"{/if} data-id="backup"><a href="{url link='admin.backup'}"><i class="{$workspace.menu_icon_map.backup}"></i><em>{$lang.backup}</em></a></li>

@@ -19,6 +19,7 @@ use Dou\Core\Bootstrap\SystemBootstrap;
 use Dou\Core\Contract\LanguageContract;
 use Dou\Core\Contract\PluginServiceContract;
 use Dou\Core\Facade\DB;
+use Dou\Core\Facade\Portal;
 use Dou\Core\Foundation\Auth\GuestGuard;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Container\Container;
@@ -41,8 +42,6 @@ use Dou\Core\Web\Template\Prefilter\FrontPrefilter;
 use Dou\Core\Web\Template\TemplateRendererInterface;
 use Dou\Front\Controller\Asset\LangController;
 use Dou\Front\Http\FrontMessageResponder;
-use Dou\Front\Model\Box\Box;
-use Dou\Front\Model\Fragment\Fragment;
 use Dou\Front\Model\Link\Link;
 use Dou\Front\Model\Page\Page;
 use Dou\Front\Service\Nav\NavigationBuilder;
@@ -350,19 +349,14 @@ class Init
         if ($hasViewEngine) {
             $engine = app(DouView::class);
 
-            if (Config::get('features.data', false)) {
-                $dataResult = data()->get();
-                $engine->assign('data', $dataResult);
-                if (!Config::get('features.fragment', false)) {
-                    $engine->assign('fragment', $dataResult);
-                }
-            } elseif (Config::get('features.fragment', false)) {
-                $engine->assign('fragment', Fragment::fragment());
-            }
+            // data 已是系统核心模块：整张 dict 无条件注入 $data；
+            // 同步以旧变量名 fragment 注入（补 mark 键），兼容存量主题 {$fragment.xxx} 标签。
+            $dataResult = data()->get();
+            $engine->assign('data', $dataResult);
+            $engine->assign('fragment', self::withLegacyFragmentMark($dataResult));
 
-            if (Config::get('features.box', false)) {
-                $engine->assign('box_list', Box::box());
-            }
+            // 兼容存量主题 {$box_list.xxx} 标签：由 data 中 box 分组数据组装旧 box 结构。
+            $engine->assign('box_list', self::legacyBoxList());
         }
 
         // 会员模块（核心实现类由云模块安装，未安装时跳过；通过 Module::make 解析以触发容器构造注入）
@@ -446,6 +440,86 @@ class Init
         }
     }
 
+    /**
+     * 兼容旧 fragment 模板标签：为 data dict 逐行补 mark 键。
+     *
+     * 旧 fragment 行以 mark 作为数据标识（{$fragment.mark.xxx}），新版 data 行以
+     * code 标识；本方法按数组键（即 code）为顶层行与 child 子行补上 mark 别名，
+     * 已带 mark 的行不覆盖。
+     *
+     * @param array $data data()->get() 整张 dict
+     * @return array
+     */
+    private static function withLegacyFragmentMark(array $data)
+    {
+        foreach ($data as $code => &$row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            if (!array_key_exists('mark', $row)) {
+                $row['mark'] = (string) $code;
+            }
+            if (!empty($row['child']) && is_array($row['child'])) {
+                foreach ($row['child'] as $childCode => &$child) {
+                    if (is_array($child) && !array_key_exists('mark', $child)) {
+                        $child['mark'] = (string) $childCode;
+                    }
+                }
+                unset($child);
+            }
+        }
+        unset($row);
+
+        return $data;
+    }
+
+    /**
+     * 兼容旧 box 模板标签：组装 $box_list 全量集合（数字 + slug 双 key）。
+     *
+     * box 模块已退役：数据升级时并入 data 表。本方法取 box 分组父行（无该
+     * 分组数据时回退全主题 is_class=1 分组行，覆盖仅经旧 transform 手工导入的
+     * 站点）作为 slug 列表，逐 slug 经 Portal::boxList() 按旧输出契约组装。
+     *
+     * @return array
+     */
+    private static function legacyBoxList()
+    {
+        $theme = (string) Config::get('site.site_theme', '');
+
+        $parents = DB::table('data')
+            ->where('theme', $theme)
+            ->where('data_group', 'box')
+            ->where('is_class', 1)
+            ->order('sort ASC, id ASC')
+            ->select();
+        if (!is_array($parents) || empty($parents)) {
+            $parents = DB::table('data')
+                ->where('theme', $theme)
+                ->where('is_class', 1)
+                ->order('sort ASC, id ASC')
+                ->select();
+        }
+        if (!is_array($parents)) {
+            $parents = array();
+        }
+
+        $list = array();
+        foreach ($parents as $parent) {
+            if (!is_array($parent)) {
+                continue;
+            }
+            $slug = isset($parent['code']) ? (string) $parent['code'] : '';
+            if ($slug === '') {
+                continue;
+            }
+            $rows = Portal::boxList($slug);
+            $list[] = $rows;
+            $list[$slug] = $rows;
+        }
+
+        return $list;
+    }
+
     // -----------------------------------------------------------------------
     // 视图引擎专属初始化（仅前台 boot）
     // -----------------------------------------------------------------------
@@ -513,7 +587,13 @@ class Init
         $engine->assign('js_lang_script_url', route('lang_js', array(), array('query' => array('v' => JsLangExporter::manifestUrlVersion('front', $frontLangPack)))));
         $engine->assign('about', Page::about());
         $engine->assign('param', ViewVars::param(Config::get('param', array())));
-        $engine->assign('features', ViewVars::features(Config::get('features', array())));
+        // 存量主题兼容：data 已并入系统核心模块（恒为真），box / fragment 数据已迁移至 data
+        // 并以 $box_list / $fragment 变量代偿，三个功能开关恒为真，保证旧主题 {if $features.xxx} 门控继续放行。
+        $features = ViewVars::features(Config::get('features', array()));
+        $features['data'] = true;
+        $features['box'] = true;
+        $features['fragment'] = true;
+        $engine->assign('features', $features);
         $engine->assign('link_list', class_exists(Link::class) ? Link::linkList() : array());
         $engine->assign('lang_menu', $langMenu);
         $engine->assign('generator', 'DouPHP v1.9');
@@ -542,6 +622,7 @@ class Init
         // 头部模板用 $index.cur 标记首页；非首页未由控制器赋值时避免 Undefined array key
         $engine->assign('index', array('cur' => false));
 
+        // 兼容存量主题 {$fragment.about.image} 标签：data 字典未含 about 时补空骨架，避免模板严格模式报错
         $fragment = array();
         $assignedFragment = $engine->getAssigned('fragment');
         if (is_array($assignedFragment)) {

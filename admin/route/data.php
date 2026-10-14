@@ -15,7 +15,7 @@
 /**
  * data 后台声明式路由
  *
- * 声明 ?route=data[/<action>] 形态：数据表管理 CRUD + 复制 copy / 锁定 lock / 转换 transform。
+ * 声明 ?route=data[/<action>] 形态：数据表管理 CRUD + 锁定 lock。
  */
 
 use Dou\Admin\Controller\Data\DataController;
@@ -26,4 +26,4 @@ if (!defined('IN_DOUCO')) {
 }
 
 Route::resource('data', DataController::class)->name('admin.')
-    ->post(['copy', 'lock', 'transform']);
+    ->post(['lock']);

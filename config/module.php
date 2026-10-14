@@ -5,8 +5,6 @@ return array (
         'article',
     ),
     'single_module' => array (
-        'data',
-        'ai',
         'language',
     ),
     'link_user_center' => array (
@@ -18,10 +16,8 @@ return array (
         'article',
     ),
     'no_show_menu' => array (
-        'data',
     ),
     'no_show_nav' => array (
-        'data',
     ),
     'link_order_item' => array (
     ),

@@ -19,7 +19,6 @@ use Dou\Admin\Model\Page\Page;
 use Dou\Admin\Request\Page\PageFormRequest;
 use Dou\Admin\Service\Page\PageService;
 use Dou\Core\Foundation\Api\ApiCodes;
-use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Service\Admin\AdminLogAction;
 use Dou\Core\Web\Http\ApiResponse;
@@ -143,13 +142,11 @@ class PageController extends BaseController
         $dataList = data()->query('page', $page['slug']);
 
         $pageActions = array();
-        if (Config::get('features.data', false)) {
-            $pageActions[] = array(
-                'href' => route('admin.data.create', array('group' => 'page', 'item' => $page['slug'])),
-                'text' => lang('data_create'),
-                'style' => 'add',
-            );
-        }
+        $pageActions[] = array(
+            'href' => route('admin.data.create', array('group' => 'page', 'item' => $page['slug'])),
+            'text' => lang('data_create'),
+            'style' => 'add',
+        );
         $pageActions[] = array('href' => route('admin.page'), 'text' => lang('page_list'), 'style' => '');
 
         return $this->view('page.htm', [

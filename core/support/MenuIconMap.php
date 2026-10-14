@@ -92,7 +92,6 @@ class MenuIconMap
         'consultation' => 'bi-keyboard',
         'professional' => 'bi-plus-square',
         'course' => 'bi-mortarboard',
-        'box' => 'bi-box',
         'gallery' => 'bi-images',
         'onepic' => 'bi-file-image',
         'sn' => 'bi-123',
@@ -112,7 +111,6 @@ class MenuIconMap
         'point' => 'bi-dice-1',
         'withdraw' => 'bi-cash',
         'area' => 'bi-pin-map',
-        'fragment' => 'bi-three-dots',
         'excel' => 'bi-file-earmark-excel',
         'open' => 'bi-box-arrow-up-right',
     );

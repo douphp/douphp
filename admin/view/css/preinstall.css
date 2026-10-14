@@ -1,0 +1,240 @@
+/* 预置模块
+----------------------------------------------- */
+
+/*- Hero -*/
+#preinstall .preinstall-hero {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  background: #f7f9fc;
+  border: 1px solid #eaeef3;
+  padding: 28px 32px;
+  margin-bottom: 28px;
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+}
+#preinstall .preinstall-hero::before {
+  content: '';
+  position: absolute;
+  right: -80px;
+  top: -80px;
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(circle, rgba(25, 180, 234, 0.06) 0%, rgba(25, 180, 234, 0) 70%);
+  pointer-events: none;
+}
+#preinstall .preinstall-hero-icon {
+  flex-shrink: 0;
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #eef4ff 0%, #e6f5fd 100%);
+  border: 1px solid #dbe7f5;
+  border-radius: 14px;
+  position: relative;
+  z-index: 1;
+}
+#preinstall .preinstall-hero-icon i {
+  font-size: 36px;
+  color: #4a6fd0;
+  line-height: 1;
+}
+#preinstall .preinstall-hero-text {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+#preinstall .preinstall-hero-text h1 {
+  font-size: 22px;
+  font-weight: bold;
+  color: #222;
+  margin-bottom: 10px;
+  line-height: 1.3;
+}
+#preinstall .preinstall-intro {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.8;
+}
+#preinstall .preinstall-hero-action {
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+#preinstall .preinstall-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 22px;
+  background: #fff;
+  color: #333;
+  border: 1px solid #dfe3e8;
+  font-size: 14px;
+  font-weight: bold;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+#preinstall .preinstall-btn-primary:hover {
+  background: #19b4ea;
+  color: #fff;
+  border-color: #19b4ea;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(25, 180, 234, 0.25);
+  text-decoration: none;
+}
+#preinstall .preinstall-btn-primary i {
+  font-size: 15px;
+  transition: transform 0.2s ease;
+}
+#preinstall .preinstall-btn-primary:hover i {
+  transform: translateX(3px);
+}
+
+/*- Section title -*/
+#preinstall .preinstall-section-title {
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  font-weight: bold;
+  color: #222;
+  margin-bottom: 18px;
+}
+#preinstall .preinstall-section-title::before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 16px;
+  background: #19b4ea;
+  margin-right: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/*- Features -*/
+#preinstall .preinstall-features ul {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+#preinstall .preinstall-features li {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #fff;
+  border: 1px solid #eaeef3;
+  padding: 20px 20px 22px 20px;
+  box-sizing: border-box;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  min-height: 160px;
+}
+#preinstall .preinstall-features li:hover {
+  border-color: #b9e4f5;
+  box-shadow: 0 6px 18px rgba(25, 180, 234, 0.08);
+  transform: translateY(-2px);
+}
+#preinstall .preinstall-feature-num {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eaf6fd;
+  color: #19b4ea;
+  font-size: 13px;
+  font-weight: bold;
+  border-radius: 50%;
+  line-height: 1;
+}
+#preinstall .preinstall-feature-body h3 {
+  font-size: 15px;
+  font-weight: bold;
+  color: #222;
+  margin-bottom: 6px;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#preinstall .preinstall-feature-body p {
+  font-size: 13px;
+  color: #888;
+  line-height: 1.7;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/*- Cue -*/
+#preinstall .preinstall-cue {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 28px;
+  padding: 14px 18px;
+  background: #f7f9fc;
+  border: 1px solid #eaeef3;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #888;
+  line-height: 1.6;
+}
+#preinstall .preinstall-cue i {
+  color: #19b4ea;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+/*- Responsive -*/
+@media (max-width: 1200px) {
+  #preinstall .preinstall-features ul {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 900px) {
+  #preinstall .preinstall-features ul {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 768px) {
+  #preinstall .preinstall-hero {
+    flex-wrap: wrap;
+    padding: 22px 20px;
+    gap: 16px;
+  }
+  #preinstall .preinstall-hero-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+  }
+  #preinstall .preinstall-hero-icon i {
+    font-size: 28px;
+  }
+  #preinstall .preinstall-hero-text {
+    flex: 1 1 calc(100% - 80px);
+  }
+  #preinstall .preinstall-hero-text h1 {
+    font-size: 19px;
+  }
+  #preinstall .preinstall-hero-action {
+    width: 100%;
+  }
+  #preinstall .preinstall-btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
+  #preinstall .preinstall-features ul {
+    grid-template-columns: 1fr;
+  }
+  #preinstall .preinstall-features li {
+    min-height: auto;
+  }
+}

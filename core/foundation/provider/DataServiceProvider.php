@@ -14,9 +14,7 @@
 
 namespace Dou\Core\Foundation\Provider;
 
-use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Container\Container;
-use Dou\Core\Service\Noop\NullDataService;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
@@ -25,8 +23,7 @@ if (!defined('IN_DOUCO')) {
 /**
  * 碎片化数据访问能力 Provider：将 DataServiceContract 绑定到对应实现。
  *
- * 判断：features.data 开启且真实现类仍在磁盘（data 模块未卸载）。
- * 不满足即返回 {@see NullDataService}，保证 data() 始终可解析。
+ * data 已是系统核心模块（不可卸载），无条件绑定真实现 {@see \Dou\Core\Service\Data\DataService}。
  */
 class DataServiceProvider
 {
@@ -40,23 +37,7 @@ class DataServiceProvider
     {
         $container->factory('Dou\\Core\\Contract\\DataServiceContract', function ($c) {
             unset($c);
-            if (self::dataModuleReady()) {
-                return new \Dou\Core\Service\Data\DataService();
-            }
-            return new NullDataService();
+            return new \Dou\Core\Service\Data\DataService();
         });
-    }
-
-    /**
-     * data 真实现是否就绪：features.data 开启且实现类仍在磁盘。
-     *
-     * @return bool
-     */
-    private static function dataModuleReady()
-    {
-        if (!Config::get('features.data', false)) {
-            return false;
-        }
-        return class_exists('Dou\\Core\\Service\\Data\\DataService');
     }
 }

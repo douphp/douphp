@@ -19,10 +19,8 @@
  <div id="dou"> {include file="inc/header.tpl"}
   {include file="inc/sidebar.tpl"}
   <div id="dou-content"> {include file="inc/toolbar.tpl"}
-   <div class="dou-main{if $features.data || $features.box || $features.fragment} has-subnav{/if}">
-    <!-- {if $features.data || $features.box || $features.fragment} -->
+   <div class="dou-main has-subnav">
     {include file="inc/submenu.tpl"}
-    <!-- {/if} -->
     <div id="site-home" class="dou-page">
      {include file="inc/page_header.tpl"}
      <div class="slide-box">
@@ -32,9 +30,7 @@
        <!-- {/foreach} -->
       </ul>
      </div>
-     <!-- {if $features.data} -->
      {include file="inc/data_inner.tpl"}
-     <!-- {/if} -->
     </div>
 
    </div>

@@ -21,6 +21,7 @@ use Dou\Admin\Service\Cache\CacheClearService;
 use Dou\Admin\Service\Menu\AdminMenuService;
 use Dou\Admin\Service\Menu\AdminNavResolver;
 use Dou\Admin\Service\Nav\NavCategorySyncService;
+use Dou\Admin\Service\Preinstall\PreinstallService;
 use Dou\Admin\Service\Theme\ThemeSettingsReader;
 use Dou\Admin\Service\Workspace\UpdateBadgeBuilder;
 use Dou\Admin\Service\Workspace\WorkspaceBuilder;
@@ -297,7 +298,8 @@ class Init
         $moduleSettingReader = $container->make(ModuleSettingReader::class);
         $container->instance(ModuleSettingReader::class, $moduleSettingReader);
         $container->instance(WorkspaceBuilder::class, new WorkspaceBuilder(
-            $container->make(AdminMenuService::class)
+            $container->make(AdminMenuService::class),
+            $container->make(PreinstallService::class)
         ));
         $container->instance(UpdateBadgeBuilder::class, new UpdateBadgeBuilder());
         $settingForView = $module;
@@ -338,7 +340,9 @@ class Init
         $engine->assign('workspace', $container->make(WorkspaceBuilder::class)->build(
             (string) $workspaceRequest->routeModule(),
             (string) $workspaceRequest->route('category_id', ''),
-            (string) $workspaceRequest->route('id', '')
+            (string) $workspaceRequest->route('id', ''),
+            // 预置模块详情 slug：仅 module=preinstall 时被侧栏预置项消费（builder 内守卫）
+            (string) $workspaceRequest->route('slug', '')
         ));
         $updateBadge = $container->make(UpdateBadgeBuilder::class)->build();
         if ($updateBadge !== null) {

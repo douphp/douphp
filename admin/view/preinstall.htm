@@ -1,0 +1,68 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="copyright" content="DouCo Co.,Ltd." />
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="csrf-token" content="{$csrf_token}">
+<title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+<link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+<link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+<link href="css/common.css" rel="stylesheet" type="text/css">
+<link href="css/preinstall.css" rel="stylesheet" type="text/css">
+{include file="inc/javascript.tpl"}
+</head>
+<body>
+<div id="dou">
+ {include file="inc/header.tpl"}
+ {include file="inc/sidebar.tpl"}
+ <div id="dou-content">
+  {include file="inc/toolbar.tpl"}
+  <div class="dou-main">
+   <div id="preinstall" class="dou-page">
+   {include file="inc/page_header.tpl"}
+   <div class="preinstall-hero">
+    <div class="preinstall-hero-icon">
+     <i class="{$preinstall.icon}"></i>
+    </div>
+    <div class="preinstall-hero-text">
+     <h1>{$preinstall.lang}</h1>
+     <!-- {if $preinstall.intro} -->
+     <p class="preinstall-intro">{$preinstall.intro}</p>
+     <!-- {/if} -->
+    </div>
+    <!-- {if !$site.close_douphp_plus && $workspace.menu_permission.module} -->
+    <div class="preinstall-hero-action">
+     <a href="{$preinstall.install_url}" class="preinstall-btn-primary">{$lang.preinstall_install}<i class="bi bi-arrow-right"></i></a>
+    </div>
+    <!-- {/if} -->
+   </div>
+   <!-- {if $preinstall.features} -->
+   <div class="preinstall-features">
+    <h2 class="preinstall-section-title">{$lang.preinstall_feature_title}</h2>
+    <ul>
+     <!-- {foreach from=$preinstall.features item=feature name=feature} -->
+     <li>
+      <div class="preinstall-feature-num">{$feature@iteration}</div>
+      <div class="preinstall-feature-body">
+       <h3>{$feature.title}</h3>
+       <!-- {if $feature.desc} -->
+       <p>{$feature.desc}</p>
+       <!-- {/if} -->
+      </div>
+     </li>
+     <!-- {/foreach} -->
+    </ul>
+   </div>
+   <!-- {/if} -->
+   <div class="preinstall-cue">
+    <i class="bi bi-info-circle"></i>
+    <span>{$lang.preinstall_cue}</span>
+   </div>
+   </div>
+  </div>
+ </div>
+ {include file="inc/footer.tpl"}
+</div>
+</body>
+</html>

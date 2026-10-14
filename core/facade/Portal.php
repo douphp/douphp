@@ -18,7 +18,6 @@ use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Module\ModuleModelResolver;
 use Dou\Core\Support\CategoryIds;
 use Dou\Core\Support\Str;
-use Dou\Front\Model\Box\Box;
 use Dou\Front\Model\Link\Link;
 use Dou\Front\Model\Page\Page;
 use Dou\Front\Model\Show\Show;
@@ -155,18 +154,85 @@ class Portal
     }
 
     /**
-     * 指定 class_slug 下的 box 列表。
+     * 指定 class_slug 下的 box 列表（兼容存量主题 inc 脚本的 Portal::boxList() 调用）。
+     *
+     * box 模块已退役：数据升级时并入 data 表，本方法按旧输出契约从 data 组装，
+     * 消费方零改动。父行取 code=slug 且 is_class=1 的行，子行按同 theme /
+     * data_group / data_item + parent_code 匹配。
      *
      * @param string $classSlug
      * @return array
      */
     public static function boxList($classSlug = '')
     {
-        return Box::boxList($classSlug);
+        $classSlug = (string) $classSlug;
+        if ($classSlug === '') {
+            return array();
+        }
+
+        $theme = (string) Config::get('site.site_theme', '');
+
+        $parents = DB::table('data')
+            ->where('theme', $theme)
+            ->where('code', $classSlug)
+            ->where('is_class', 1)
+            ->order('sort ASC, id ASC')
+            ->limit(1)
+            ->select();
+        if (!is_array($parents) || empty($parents)) {
+            return array();
+        }
+        $parent = reset($parents);
+        if (!is_array($parent)) {
+            return array();
+        }
+
+        $parent = language()->langBox($parent, 'data', 'name');
+        $className = isset($parent['name']) ? $parent['name'] : '';
+
+        $rows = DB::table('data')
+            ->where('theme', $theme)
+            ->where('data_group', isset($parent['data_group']) ? $parent['data_group'] : '')
+            ->where('data_item', isset($parent['data_item']) ? $parent['data_item'] : '')
+            ->where('parent_code', $classSlug)
+            ->order('sort ASC, id ASC')
+            ->select();
+
+        if (!is_array($rows)) {
+            $rows = array();
+        }
+
+        $boxList = array();
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $row = language()->langBox($row, 'data', 'name, text, link');
+
+            $text = isset($row['text']) ? (string) $row['text'] : '';
+            $textArray = $text === ''
+                ? array()
+                : explode("\n", str_replace(array("\r\n", "\r"), "\n", $text));
+
+            $imageRaw = isset($row['image']) ? $row['image'] : '';
+            $boxList[] = array(
+                'id' => isset($row['id']) ? (int) $row['id'] : 0,
+                'class' => $className,
+                'name' => isset($row['name']) ? $row['name'] : '',
+                'text' => $text,
+                'text_array' => $textArray,
+                'link' => isset($row['link']) ? $row['link'] : '',
+                'file' => $imageRaw,
+                'image' => $imageRaw !== '' ? attachment()->url($imageRaw) : '',
+                'sort' => isset($row['sort']) ? (int) $row['sort'] : 50,
+            );
+        }
+
+        return $boxList;
     }
 
     /**
-     * 主题 data 字典访问；features.data 关闭时由 NullDataService 返回 $default、不抛错。
+     * 主题 data 字典访问（data 已为系统核心模块）。
      *
      * - Portal::data()                          整张 dict（按 code 索引）
      * - Portal::data('hero')                    单行 array|null

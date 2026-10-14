@@ -125,7 +125,7 @@ class AdminMenuRegistry
                     array('alias' => 'miniprogram.show', 'when' => array('sign_not' => 'miniprogram')),
                     array(
                         'key' => 'data', 'name' => 'miniprogram_data', 'link' => 'admin.data', 'params' => array('group' => 'miniprogram'),
-                        'when' => array('sign_not' => 'miniprogram', 'feature' => 'data'),
+                        'when' => array('sign_not' => 'miniprogram'),
                     ),
                     'miniprogram.system',
                     'miniprogram.release',
@@ -141,15 +141,12 @@ class AdminMenuRegistry
                 'items' => array(
                     'site_home',
                     'show',
-                    array('alias' => 'data', 'when' => array('feature' => 'data')),
+                    'data',
                     // 横幅数据组与上一项同指 admin.data，靠 params 区分；无独立路由域，
                     // 故不写别名（不参与匹配，仅供跳转与页面级 subitem 覆盖）
                     array(
                         'key' => 'data_banner', 'link' => 'admin.data', 'params' => array('group' => 'banner'),
-                        'when' => array('feature' => 'data'),
                     ),
-                    array('alias' => 'fragment', 'when' => array('feature' => 'fragment')),
-                    array('alias' => 'box', 'when' => array('feature' => 'box')),
                 ),
             ),
         );
@@ -222,12 +219,12 @@ class AdminMenuRegistry
                 ),
             ),
             'bot' => array(
-                // 本站首页 / 展示 / 数据 / 盒子 / 片段五个域共用一个节点：主域由 link 推导，
-                // 其余四个写在此处（路由别名）
+                // 本站首页 / 展示 / 数据三个域共用一个节点：主域由 link 推导，
+                // 其余两个写在此处（路由别名）
                 'site_home' => array(
                     'id' => 'site_home', 'name' => 'site_home_other', 'icon' => 'show',
                     'link' => 'admin.site_home',
-                    'match' => array('show', 'data', 'box', 'fragment'),
+                    'match' => array('show', 'data'),
                     'permission' => 'site_home',
                 ),
                 'backup' => array(

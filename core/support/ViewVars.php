@@ -74,7 +74,7 @@ class ViewVars
     public static function features(array $features)
     {
         $keys = array(
-            'language', 'item', 'link', 'data', 'box', 'fragment', 'sort', 'slug',
+            'language', 'item', 'link', 'data', 'sort', 'slug',
             'user', 'point', 'money', 'vip', 'attribute', 'brand', 'book',
             'favorites', 'comment', 'order', 'distribution', 'aftersale', 'work',
             'area', 'product', 'article', 'plugin', 'coupon', 'miniprogram', 'sms',

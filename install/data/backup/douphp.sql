@@ -1,10 +1,10 @@
 -- DouPHP v2.x SQL Dump Program
 -- http://localhost/douphp/
 -- 
--- DATE : 2026-10-13 13:48:55
+-- DATE : 2026-10-14 17:10:18
 -- MYSQL SERVER VERSION : 5.7.44-log
--- PHP VERSION : 8.5.8
--- DouPHP VERSION : v2.0 Release 20261013
+-- PHP VERSION : 8.2.30
+-- DouPHP VERSION : v2.0 Release 20261014
 
 DROP TABLE IF EXISTS `dou_admin`;
 CREATE TABLE `dou_admin` (
@@ -29,7 +29,7 @@ CREATE TABLE `dou_admin` (
   KEY `idx_reset_token` (`reset_token`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO dou_admin VALUES('1','admin','admin@admin.com','$2y$10$Y4O2U.q8Qs.bTIrQ4d2g7.vz20A.tV.27cDcwvgPjGI5yMBVx/qTO','003a9c65bfaa6a802689a71a6e06fcd0e440d7de4c2d80f395871cf5ff13e699','2026-11-03 22:34:46','',NULL,'ALL','1791124486','127.0.0.1','0',NULL,'2013-08-29 17:20:32');
+INSERT INTO dou_admin VALUES('1','admin','admin@admin.com','$2y$10$Y4O2U.q8Qs.bTIrQ4d2g7.vz20A.tV.27cDcwvgPjGI5yMBVx/qTO','bbf04edcd4aaeff3cc5786b7bb9b97fcd9307d08e6917370e1877ff900ef8b3b','2026-11-13 10:55:36','',NULL,'ALL','1791946536','127.0.0.1','0',NULL,'2013-08-29 17:20:32');
 
 DROP TABLE IF EXISTS `dou_admin_log`;
 CREATE TABLE `dou_admin_log` (
@@ -48,177 +48,6 @@ CREATE TABLE `dou_admin_log` (
   KEY `ip` (`ip`),
   KEY `created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-DROP TABLE IF EXISTS `dou_ai`;
-CREATE TABLE `dou_ai` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '应用名称',
-  `placement` enum('assist','fill','batch','translate') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'assist' COMMENT '后台应用形态',
-  `task_type` enum('assist','polish','rewrite','image','banner','translate','fill','batch') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'assist' COMMENT '任务形态（config/ai_prompts.php system 提示词匹配键）',
-  `module` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '挂载的内容创作模块（含 _category 变体）',
-  `field` text COLLATE utf8mb4_unicode_ci COMMENT '字段约束（JSON数组）',
-  `description` text COLLATE utf8mb4_unicode_ci COMMENT '应用描述',
-  `model_id` int(11) NOT NULL DEFAULT '0' COMMENT '关联模型ID（0=系统默认模型）',
-  `default_prompt` text COLLATE utf8mb4_unicode_ci COMMENT '预设提示词',
-  `config` text COLLATE utf8mb4_unicode_ci COMMENT '应用配置(JSON格式)',
-  `sort` smallint(5) unsigned NOT NULL DEFAULT '50' COMMENT '排序',
-  `status` tinyint(1) NOT NULL DEFAULT '1' COMMENT '状态:0禁用,1启用',
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `module_placement` (`module`,`placement`,`status`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='后台AI创作应用表';
-
-INSERT INTO dou_ai VALUES('1','商品批量生成','batch','batch','product','[\"title\",\"content\",\"keywords\",\"description\"]','','23','','{}','50','1','2026-06-11 14:25:38','2026-08-30 14:52:25');
-INSERT INTO dou_ai VALUES('2','商品整页生成','fill','fill','product','[\"title\",\"content\",\"keywords\",\"description\"]','','23','你是电商商品文案专家','{}','50','1','2026-06-11 15:03:12','2026-08-30 14:52:25');
-INSERT INTO dou_ai VALUES('3','字段润色','assist','polish','','','','23','','{}','50','1','2026-06-11 15:03:12','2026-08-30 14:52:25');
-INSERT INTO dou_ai VALUES('4','商品翻译','translate','translate','','','','23','','{}','50','1','2026-08-18 11:31:50','2026-08-30 14:52:25');
-INSERT INTO dou_ai VALUES('5','自动生成','assist','rewrite','','','','23','','{}','50','1','2026-08-21 16:17:43','2026-08-30 14:52:25');
-INSERT INTO dou_ai VALUES('6','文生图','assist','image','','','','24','','{}','50','1','2026-08-28 23:03:59','2026-08-30 14:52:25');
-INSERT INTO dou_ai VALUES('8','Banner 生成','assist','banner','','','','24','','{\"canvas_size\":\"1920x400\",\"content_width\":1280,\"content_align\":\"left\"}','50','1','2026-08-30 16:43:25','2026-09-03 19:52:20');
-
-DROP TABLE IF EXISTS `dou_ai_key`;
-CREATE TABLE `dou_ai_key` (
-  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '自增ID',
-  `provider_id` int(11) NOT NULL DEFAULT '0' COMMENT '供应商ID',
-  `api_key` mediumtext COLLATE utf8mb4_unicode_ci NOT NULL,
-  `alias` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '密钥别名',
-  `expires_at` datetime DEFAULT NULL COMMENT '过期时间',
-  `last_used_at` datetime DEFAULT NULL COMMENT '最后使用时间',
-  `failure_count` int(11) NOT NULL DEFAULT '0' COMMENT '连续失败次数',
-  `config` mediumtext COLLATE utf8mb4_unicode_ci,
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  PRIMARY KEY (`id`),
-  KEY `idx_provider_enabled` (`provider_id`),
-  KEY `idx_last_used` (`last_used_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='API密钥表';
-
-
-DROP TABLE IF EXISTS `dou_ai_log`;
-CREATE TABLE `dou_ai_log` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `admin_id` int(11) NOT NULL DEFAULT '0' COMMENT '管理员ID',
-  `app_id` int(11) DEFAULT NULL COMMENT '应用ID',
-  `model_id` int(11) NOT NULL DEFAULT '0' COMMENT '模型ID',
-  `provider_id` int(11) NOT NULL DEFAULT '0' COMMENT '供应商ID',
-  `key_id` int(11) DEFAULT NULL COMMENT '密钥ID',
-  `request_id` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '请求ID',
-  `prompt_tokens` int(11) NOT NULL DEFAULT '0' COMMENT '输入tokens',
-  `completion_tokens` int(11) NOT NULL DEFAULT '0' COMMENT '输出tokens',
-  `total_tokens` int(11) NOT NULL DEFAULT '0' COMMENT '总tokens',
-  `duration` int(11) DEFAULT NULL COMMENT '请求耗时(毫秒)',
-  `status_code` int(11) DEFAULT NULL COMMENT 'HTTP状态码',
-  `has_error` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否错误',
-  `error_message` text COLLATE utf8mb4_unicode_ci COMMENT '错误信息',
-  `prompt_content` text COLLATE utf8mb4_unicode_ci COMMENT '最终完整提示词',
-  `response_content` longtext COLLATE utf8mb4_unicode_ci COMMENT 'AI最终返回内容（JSON或文本）',
-  `endpoint` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'API端点',
-  `ip` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '管理员IP',
-  `metadata` text COLLATE utf8mb4_unicode_ci COMMENT '元数据(JSON格式)',
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `admin_id` (`admin_id`),
-  KEY `app_id` (`app_id`),
-  KEY `created_at` (`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='后台AI使用日志表';
-
-
-DROP TABLE IF EXISTS `dou_ai_model`;
-CREATE TABLE `dou_ai_model` (
-  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '自增ID',
-  `provider_id` int(11) NOT NULL DEFAULT '0' COMMENT '供应商ID',
-  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '模型名称',
-  `model_code` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '模型代码',
-  `context_length` int(11) DEFAULT NULL COMMENT '上下文长度',
-  `max_tokens` int(11) DEFAULT NULL COMMENT '最大输出tokens',
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_model_code` (`model_code`),
-  KEY `idx_provider` (`provider_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=28 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI模型配置表';
-
-INSERT INTO dou_ai_model VALUES('1','1','DeepSeek V4 Pro','deepseek-v4-pro','1000000','384000','2026-08-27 20:00:00','2026-08-27 20:00:00');
-INSERT INTO dou_ai_model VALUES('2','1','DeepSeek V4 Flash','deepseek-v4-flash','1000000','384000','2026-08-27 20:00:00','2026-08-27 20:00:00');
-INSERT INTO dou_ai_model VALUES('3','3','Qwen3.8 Max','qwen3.8-max','1000000','131072','2026-08-27 20:00:00','2026-08-27 20:00:00');
-INSERT INTO dou_ai_model VALUES('4','3','Qwen3.7 Plus','qwen3.7-plus','1000000','32768','2026-08-27 20:00:00','2026-08-27 20:00:00');
-INSERT INTO dou_ai_model VALUES('5','3','Qwen3.6 Flash','qwen3.6-flash','1000000','16384','2026-08-27 20:00:00','2026-08-27 20:00:00');
-INSERT INTO dou_ai_model VALUES('6','4','GLM-5.3','glm-5.3','1048576','131072','2026-08-27 20:00:00','2026-08-27 20:00:00');
-INSERT INTO dou_ai_model VALUES('7','4','GLM-5.1','glm-5.1','204800','131072','2026-08-27 20:00:00','2026-08-27 20:00:00');
-INSERT INTO dou_ai_model VALUES('8','5','Kimi K3','kimi-k3','1048576','98304','2026-08-27 20:00:00','2026-08-27 20:00:00');
-INSERT INTO dou_ai_model VALUES('9','5','Kimi K2.6','kimi-k2.6','262144','98304','2026-08-27 20:00:00','2026-08-27 20:00:00');
-INSERT INTO dou_ai_model VALUES('10','6','Doubao Seed 2.1 Pro','doubao-seed-2.1-pro','262144','262144','2026-08-27 20:00:00','2026-08-27 20:00:00');
-INSERT INTO dou_ai_model VALUES('11','6','Doubao Seed 2.1 Turbo','doubao-seed-2.1-turbo','262144','131072','2026-08-27 20:00:00','2026-08-27 20:00:00');
-INSERT INTO dou_ai_model VALUES('12','7','MiMo V2.5 Pro','mimo-v2.5-pro','1000000','131072','2026-08-27 20:00:00','2026-08-27 20:00:00');
-INSERT INTO dou_ai_model VALUES('13','7','MiMo V2.5','mimo-v2.5','1000000','32768','2026-08-27 20:00:00','2026-08-27 20:00:00');
-INSERT INTO dou_ai_model VALUES('14','8','GPT-5.6 Sol','gpt-5.6-sol','1000000','128000','2026-08-27 20:00:00','2026-08-27 20:00:00');
-INSERT INTO dou_ai_model VALUES('15','8','GPT-5.6 Terra','gpt-5.6-terra','1000000','128000','2026-08-27 20:00:00','2026-08-27 20:00:00');
-INSERT INTO dou_ai_model VALUES('16','8','GPT-5.6 Luna','gpt-5.6-luna','1000000','128000','2026-08-27 20:00:00','2026-08-27 20:00:00');
-INSERT INTO dou_ai_model VALUES('17','9','Claude Fable 5','claude-fable-5','200000','64000','2026-08-27 20:00:00','2026-08-27 20:00:00');
-INSERT INTO dou_ai_model VALUES('18','9','Claude Sonnet 5','claude-sonnet-5','200000','64000','2026-08-27 20:00:00','2026-08-27 20:00:00');
-INSERT INTO dou_ai_model VALUES('19','10','Gemini 3.6 Pro','gemini-3.6-pro','2000000','65536','2026-08-27 20:00:00','2026-08-27 20:00:00');
-INSERT INTO dou_ai_model VALUES('20','10','Gemini 3.7 Flash','gemini-3.7-flash','1000000','65536','2026-08-27 20:00:00','2026-08-27 20:00:00');
-INSERT INTO dou_ai_model VALUES('21','11','Grok 4.6','grok-4.6','500000','131072','2026-08-27 20:00:00','2026-08-27 20:00:00');
-INSERT INTO dou_ai_model VALUES('22','11','Grok 4.3','grok-4.3','1000000','131072','2026-08-27 20:00:00','2026-08-27 20:00:00');
-INSERT INTO dou_ai_model VALUES('23','1','DeepSeek V4 Flash Vision Exp','deepseek-v4-flash-vision-exp','1000000','384000','2026-08-28 18:04:41','2026-08-28 18:08:04');
-INSERT INTO dou_ai_model VALUES('24','2','Qwen-Image-2','qwen-image-2.0','0','0','2026-08-28 23:02:02','2026-09-02 16:41:00');
-INSERT INTO dou_ai_model VALUES('25','3','Qwen3.5 Flash','qwen3.5-flash','1000000','65536','2026-09-02 16:41:00','2026-09-02 16:41:00');
-INSERT INTO dou_ai_model VALUES('26','2','Qwen-Image-3','qwen-image-3.0','0','0','2026-09-02 16:41:00','2026-09-02 16:41:00');
-INSERT INTO dou_ai_model VALUES('27','2','qwen-image-3-pro','qwen-image-3.0-pro','0','0','2026-09-03 12:35:50','2026-09-03 12:35:50');
-
-DROP TABLE IF EXISTS `dou_ai_provider`;
-CREATE TABLE `dou_ai_provider` (
-  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '自增ID',
-  `name` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '供应商名称',
-  `code` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '供应商代码',
-  `base_url` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'API基础地址',
-  `sort` smallint(5) unsigned NOT NULL DEFAULT '50' COMMENT '排序',
-  `status` tinyint(1) NOT NULL DEFAULT '1' COMMENT '状态:0禁用,1启用',
-  `config` text COLLATE utf8mb4_unicode_ci COMMENT '供应商特殊配置(JSON格式)',
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_code` (`code`)
-) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI供应商配置表';
-
-INSERT INTO dou_ai_provider VALUES('1','DeepSeek','deepseek','https://api.deepseek.com/v1','1','1','','2026-08-27 19:00:00','2026-08-28 18:10:06');
-INSERT INTO dou_ai_provider VALUES('2','阿里云百炼（图像）','bailian','https://dashscope.aliyuncs.com/api/v1','2','1','','2026-08-28 23:02:02','2026-09-02 17:33:00');
-INSERT INTO dou_ai_provider VALUES('3','阿里云百炼（文本）','aliyun','https://dashscope.aliyuncs.com/compatible-mode/v1','3','0','','2026-08-27 19:00:00','2026-09-10 09:24:08');
-INSERT INTO dou_ai_provider VALUES('4','智谱AI','zhipu','https://open.bigmodel.cn/api/paas/v4','4','0','','2026-08-27 19:00:00','2026-09-10 09:24:07');
-INSERT INTO dou_ai_provider VALUES('5','月之暗面Kimi','moonshot','https://api.moonshot.cn/v1','5','0','','2026-08-27 19:00:00','2026-09-10 09:24:06');
-INSERT INTO dou_ai_provider VALUES('6','字节豆包','doubao','https://ark.cn-beijing.volces.com/api/v3','6','0','','2026-08-27 19:00:00','2026-09-10 09:24:05');
-INSERT INTO dou_ai_provider VALUES('7','小米MiMo','xiaomi','https://api.xiaomimimo.com/v1','7','0','','2026-08-27 19:00:00','2026-08-28 10:20:43');
-INSERT INTO dou_ai_provider VALUES('8','OpenAI','openai','https://api.openai.com/v1','8','0','','2026-08-27 19:00:00','2026-08-27 22:35:08');
-INSERT INTO dou_ai_provider VALUES('9','Anthropic','anthropic','https://api.anthropic.com','9','0','','2026-08-27 19:00:00','2026-08-27 22:35:15');
-INSERT INTO dou_ai_provider VALUES('10','Google Gemini','google','https://generativelanguage.googleapis.com/v1beta/openai','10','0','','2026-08-27 19:00:00','2026-08-28 10:43:31');
-INSERT INTO dou_ai_provider VALUES('11','xAI','xai','https://api.x.ai/v1','11','0','','2026-08-27 19:00:00','2026-08-28 10:51:03');
-
-DROP TABLE IF EXISTS `dou_ai_task`;
-CREATE TABLE `dou_ai_task` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `provider_id` int(11) NOT NULL DEFAULT '0' COMMENT '供应商ID',
-  `model_id` int(11) NOT NULL DEFAULT '0' COMMENT '模型ID',
-  `key_id` int(11) NOT NULL DEFAULT '0' COMMENT '密钥ID',
-  `app_id` int(11) DEFAULT NULL COMMENT '应用ID',
-  `admin_id` int(11) NOT NULL DEFAULT '0' COMMENT '后台管理员ID',
-  `task_type` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'image|video|audio',
-  `provider_task_id` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '上游 task_id',
-  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending' COMMENT 'pending|running|succeeded|failed|timeout',
-  `request_payload` longtext COLLATE utf8mb4_unicode_ci COMMENT '提交时的请求体 JSON',
-  `result` longtext COLLATE utf8mb4_unicode_ci COMMENT '结果 JSON（含 URL 与上游有效期）',
-  `error` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '错误信息',
-  `expires_at` datetime DEFAULT NULL COMMENT '结果过期时间',
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `last_polled_at` datetime DEFAULT NULL COMMENT '最近轮询时间',
-  PRIMARY KEY (`id`),
-  KEY `idx_status_created` (`status`,`created_at`),
-  KEY `idx_provider_task` (`provider_id`,`provider_task_id`),
-  KEY `idx_user_created` (`created_at`),
-  KEY `idx_admin_created` (`admin_id`,`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI 异步任务表';
-
 
 DROP TABLE IF EXISTS `dou_article`;
 CREATE TABLE `dou_article` (
@@ -242,7 +71,7 @@ CREATE TABLE `dou_article` (
   KEY `idx_slug` (`slug`),
   KEY `idx_operator` (`operator_type`,`operator_id`),
   KEY `idx_category` (`category_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO dou_article VALUES('1','1','admin','0','如何将网站提交给各大搜索引擎','','','<p><span>将网站提交给各大搜索引擎是一个重要的步骤，以确保网站能够被搜索引擎发现并收录。以下是一些主流搜索引擎的提交流程：</span></p><p><span><br/> </span></p><p><span>1. **Google搜索引擎提交**：</span></p><p><span>&nbsp; &nbsp;- 访问Google Search Console（[Google Search Console](https://search.google.com/search-console/welcome?hl=zh-CN&amp;utm_source=wmx&amp;utm_medium=deprecation-pane&amp;utm_content=home)）。</span></p><p><span>&nbsp; &nbsp;- 注册并验证您的网站所有权。</span></p><p><span>&nbsp; &nbsp;- 添加站点地图：在Google Search Console中点击“站点地图”，输入您的站点地图URL（例如：`yourdomain.com/sitemap.xml`），并点击“提交”。</span></p><p><span>&nbsp; &nbsp;- 监控索引状态：定期检查Google Search Console中的索引状态，查看您的网站页面是否被Google收录。</span></p><p><span><br/> </span></p><p><span>2. **百度搜索引擎提交**：</span></p><p><span>&nbsp; &nbsp;- 访问百度站长工具（[百度站长工具](https://ziyuan.baidu.com/site/index)）。</span></p><p><span>&nbsp; &nbsp;- 如果还没有账户，则需要注册一个。</span></p><p><span>&nbsp; &nbsp;- 单击“添加网站”按钮，将您的网站添加到站长工具中。</span></p><p><span>&nbsp; &nbsp;- 选择“推送历史记录”选项卡，然后单击“手动推送”按钮，将您的网站链接提交给百度。</span></p><p><span><br/> </span></p><p><span>3. **Bing搜索引擎提交**：</span></p><p><span>&nbsp; &nbsp;- 访问Bing Webmaster Tools（[Bing Webmaster Tools](https://www.bing.com/webmasters/home)）。</span></p><p><span>&nbsp; &nbsp;- 如果还没有账户，则需要注册一个。</span></p><p><span>&nbsp; &nbsp;- 单击“添加网站”按钮，将您的网站添加到站长中心中。</span></p><p><span>&nbsp; &nbsp;- 选择“提交网址”选项卡，然后将您的网站链接提交给Bing。</span></p><p><span><br/> </span></p><p><span>4. **其他搜索引擎提交**：</span></p><p><span>&nbsp; &nbsp;- 搜狗：访问搜狗站长平台（[搜狗站长平台](http://zhanzhang.sogou.com/index.php/urlSubmit/index)）提交URL。</span></p><p><span>&nbsp; &nbsp;- 360：访问360站长平台（[360站长平台](http://zhanzhang.so.com/?m=PageInclude&amp;a=index)）提交URL。</span></p><p><span>&nbsp; &nbsp;- 雅虎中国：访问雅虎中国网站登录（[雅虎中国](http://sitemap.cn.yahoo.com/)）提交网站。</span></p><p><span><br/> </span></p><p><span>提交网站给搜索引擎后，并不代表能够立即从搜索引擎搜到该网站，需要等待一段时间让搜索引擎进行处理。此外，由于手机端网址和电脑端网址不一样（手机网址是m开头），提交网址收录时需要分开提交。提交网址收录不收费。如果你的网站面向国际用户，还需要考虑将网站提交给其他国家和地区的搜索引擎，例如Yandex等。</span></p><p><br/></p>','pcrsl28.file','','0','','','50','1','2024-06-26 23:39:00');
 INSERT INTO dou_article VALUES('2','1','admin','0','为什么企业做搭建小程序官网','','','<p style=\"text-wrap-mode: wrap;\">随着互联网的发展，4G网络覆盖面积越来越广，人们的上网工具由电脑逐步变成手机，流量由pc转向移动，网页版官网逐渐退出人们的视野，小程序官网受到广大企业的青睐。</p><p style=\"text-wrap-mode: wrap;\">小程序微官网能做什么？</p><p style=\"text-wrap-mode: wrap;\"><br/>1.树立品牌形象<br/>小程序微官网通过全方位展现企业运营情况、团队风采、业务内容、产品列表、新闻资讯等信息，帮助客户深入了解企业，增强用户对企业的信任。<br/><br/>2.提升企业知名度<br/>小程序微官网基于社交平台进行传播，方便用户相互分享，传播速度快，范围广，短时间内就可以进行大范围的传播，还可以结合公众号一起运营，增加更多的曝光量。<br/><br/>3.建立密切联系<br/>通过不断持续地更新公司最新动态，促进老客户对企业的了解，同时还可以针对客户特性策划一系列活动，挖掘更多潜在客户。<br/><br/>小程序微官网有什么优势？</p><p style=\"text-wrap-mode: wrap;\">1.营销更精准<br/>以前企业只能通过微信进行品牌宣传，并不能直接转化促进交易，在有了微官网以后，企业可以通过微信对粉丝进行划分，针对不同的粉丝推送不同的信息，达到精准营销的目的。<br/><br/>2.宣传更及时<br/>所有的信息都有时效性，企业在进行新品宣传的时候尤其需要注意这一点，在开始进行新品宣传的时候，最好一次性到位，用户都喜欢最新的产品，在第一时间看到新品信息和第二天才看到新品信息后的行动完全不一样，在第一时间看到新品信息的时候，购买欲会更强烈。<br/><br/>如果做微官网的话，可以通过微信各个入口进行新品宣传，实时将新品信息送达给客户，让客户第一时间看到新品信息。<br/><br/>3.制作更低价<br/>小程序微官网基于微信做官网，开发成本不高，相较于自己建站，做APP，成本低很多，是中小企业的最佳选择，而且微信已经拥有数十亿用户，64个小程序入口，自带流量，免去商家对于流量抓取，流量引导等多个方面的问题。<br/><br/>小程序微官网将微信内的现有资源进行整合，通过连接线上与线下，将人与商品、服务联系起来，将企业推送给更多的用户，提升了企业的曝光与商业效率。</p><p><br/></p>','9vffckc.file','','1','','','50','1','2024-06-26 23:43:00');
@@ -254,6 +83,7 @@ INSERT INTO dou_article VALUES('7','2','admin','0','网站推广怎么做？全�
 INSERT INTO dou_article VALUES('8','2','admin','0','公司产品图片设计指南','','','<p><span>设计公司产品图片需要从品牌调性、用户需求和视觉表现三个维度综合考量。好的产品图片不仅是展示工具，更是无声的销售员。以下是系统化的设计方法论：</span></p><p><span><br/></span></p><p></p><p><span><strong>前期策划阶段</strong></span></p><p><span>首先要建立产品视觉档案，收集竞品图片进行SWOT分析，明确差异化方向。同时梳理产品核心卖点，将其转化为视觉语言。比如防水功能可以用水滴动态溅落的效果表现，高科技感适合用蓝色光效和线条装饰。</span></p><p><span><br/></span></p><p></p><p><span><strong>拍摄执行环节</strong></span></p><p><span>布光方案决定图片质感。金属类产品适合硬光突出棱角，化妆品则需要柔光箱营造细腻感。多角度拍摄矩阵要包含：全局45度视角、俯视图、特写镜头（重点部位）、场景图（实际使用状态）和解剖图（内部结构展示）。建议使用转盘拍摄360度展示素材。</span></p><p><span><br/></span></p><p></p><p><span><strong>后期处理技术</strong></span></p><p><span>专业修图要处理五个关键层：基础层（颜色校准）、瑕疵层（去除划痕）、结构层（强化边缘）、光影层（重塑高光阴影）和特效层（添加环境反射）。高级技巧包括：</span></p><p><span>- 亚克力材质：增加20%内部折射效果</span></p><p><span>- 织物纹理：叠加真实布纹素材</span></p><p><span>- 金属反光：用HDRI环境贴图</span></p><p><span><br/></span></p><p></p><p><span><strong>视觉信息架构</strong></span></p><p><span>采用金字塔式信息排布：底部是产品主体（占画面60%空间），中层放置核心卖点图标（不超过3个），顶部安排品牌标识。重要参数用无衬线字体在负空间呈现，文字与图片比例严格控制在1:9。</span></p><p><span><br/></span></p><p></p><p><span><strong>场景化设计</strong></span></p><p><span>构建三种典型场景：</span></p><p><span>1. 实验室场景：白大褂人员操作设备，突出专业性</span></p><p><span>2. 家庭场景：温馨环境中的家电使用，增强代入感</span></p><p><span>3. 概念场景：悬浮产品配合粒子特效，塑造未来感</span></p><p><span><br/></span></p><p></p><p><span><strong>动态化呈现</strong></span></p><p><span>新一代产品图应该包含：</span></p><p><span>- 微交互：鼠标悬停显示剖面结构</span></p><p><span>- 3D视图：支持网页端自由旋转查看</span></p><p><span>- 状态对比：滑动条展示使用前后差异</span></p><p><span><br/></span></p><p></p><p><span><strong>技术规范</strong></span></p><p><span>Web端采用WebP格式（比JPEG小30%），印刷物料输出TIFF格式。色彩管理使用Adobe RGB，移动端适配sRGB。切记保留PSD源文件的分层结构，方便不同平台二次编辑。</span></p><p><span><br/></span></p><p></p><p><span><strong>效果验证</strong></span></p><p><span>通过眼动仪测试视觉焦点分布，用热力图优化元素排布。电商图片要监控CTR数据，A/B测试表明：带场景的图片比白底图转化率高27%，但退货率也增加15%，需要平衡选择。</span></p><p></p><p><span>优秀案例参考苹果的产品页面：极简留白中，通过精细的材质渲染和精准的光影控制，让产品自己说话。每个像素都经过精确计算，甚至连反光角度都考虑用户视觉习惯。</span></p><p><br/></p>','h66rjpb.file','','1','','设计公司产品图片需要从品牌调性、用户需求和视觉表现三个维度综合考量。好的产品图片不仅是展示工具，更是无声的销售员。以下是系统化的设计方法论，Web端采用WebP格式（比JPEG小30%），印刷物料输出TIFF格式。色彩管理使用Adobe RGB，移动端适配sRGB。切记保留PSD源文件的分层结构，方便不同平台二次编辑','50','1','2024-06-26 23:53:00');
 INSERT INTO dou_article VALUES('9','2','admin','0','AI时代来临,意味着什么','','','<p><span>AI时代来临，意味着人类社会迎来了一个由智能技术驱动的全新时代，这个时代的核心特征是智能化、自动化与数据化的深度融合，它将深刻改变我们的生活方式、工作模式以及思考问题的方式。</span></p><p><span><br/></span></p><p><span>在生活层面，AI技术的广泛应用将极大地提升生活的便捷性。例如，智能家居系统能够学习用户的日常习惯，自动调整室内温度、光照和音乐，为居住者创造舒适的居住环境。智能助理如小度音箱、天猫精灵等，可以执行语音指令，帮助用户查询信息、管理日程，甚至控制家中的智能设备。此外，自动驾驶技术的发展将改变人们的出行方式，减少交通事故，提升行车安全。</span></p><p><span><br/></span></p><p><span>在工作领域，AI的崛起将重塑劳动力市场和职业结构。许多重复性、低技能的工作将被自动化取代，如简单的数据录入、客服咨询等。同时，AI也将催生一批新的职业，如数据科学家、AI伦理顾问等。在制造业，智能机器人将提高生产效率，降低人工成本；在医疗领域，AI辅助诊断系统能够帮助医生更准确地分析病情，制定治疗方案。</span></p><p><span><br/></span></p><p><span>在思维方式上，AI时代将推动人类从传统的线性思维向更加复杂、多维度的思维转变。由于AI能够处理海量的数据，发现其中的模式和关联，人们将更多地依赖数据驱动的决策方式。此外，随着AI技术的不断进步，人类将需要不断学习和适应新技术，以保持竞争力和创造力。这种持续学习的态度将成为AI时代的重要思维方式。</span></p><p><span><br/></span></p><p><span>综上所述，AI时代的来临意味着人类社会的全面智能化，它将从生活、工作和思维等多个方面带来深刻的变革。这些变革既带来了前所未有的机遇，也伴随着挑战和不确定性。因此，我们需要以开放的心态迎接AI时代，积极适应和利用新技术，共同创造一个更加美好的未来。</span></p><p><br/></p>','xlmxlw3.file','','18','','AI时代来临，意味着人类社会迎来了一个由智能技术驱动的全新时代，这个时代的核心特征是智能化、自动化与数据化的深度融合，它将深刻改变我们的生活方式、工作模式以及思考问题的方式。','50','1','2024-06-26 23:54:00');
 INSERT INTO dou_article VALUES('10','1','admin','0','什么是独立站？如何给外贸独立站引流推广？','','','<p><span>什么是独立站？独立站是指企业自主创建、拥有完全控制权的网站，通常用于展示企业形象、产品和服务，并与客户进行互动和交易。与平台电商（如亚马逊、eBay）不同，独立站不受平台规则限制，可以自由设计网站风格、制定营销策略，并积累自己的客户数据。</span></p><p><span><br/></span></p><p></p><p></p><p><span><strong>为什么要搭建外贸独立站？</strong></span></p><p></p><p><span>搭建外贸独立站的核心优势在于自主可控，可以帮助企业摆脱对第三方平台的依赖，建立自己的品牌阵地，并积累可持续发展的宝贵资产。具体来说，搭建外贸独立站有以下优势：</span></p><p><span><br/></span></p><p></p><p><span><strong>品牌塑造:</strong></span></p><p></p><p><span>打造品牌形象: 独立站可以根据企业自身的品牌定位和目标受众，自由设计网站风格、展示品牌故事和价值观，建立独一无二的品牌形象，提升品牌辨识度和影响力。</span></p><p><span>积累品牌资产: 独立站的所有权归企业所有，所有数据和内容都可控，可以长期积累品牌价值，形成品牌资产，为企业未来发展奠定基础。</span></p><p><span><br/></span></p><p><span><strong>数据积累:</strong></span></p><p></p><p><span>掌握客户数据: 独立站可以收集访客数据，包括访问来源、浏览轨迹、购买记录等，帮助企业深入了解客户需求和行为习惯，为精准营销提供数据支持。</span></p><p><span>数据安全可控: 与平台电商不同，独立站的数据完全由企业掌控，无需担心数据泄露或被平台利用，保障企业数据安全。</span></p><p><span><br/></span></p><p><span><strong>利润提升:</strong></span></p><p></p><p><span>降低运营成本: 独立站可以避免平台佣金、广告费用等高昂的运营成本，直接与客户交易，提升利润空间。</span></p><p><span>灵活定价策略: 企业可以根据市场情况和自身成本，自由制定产品价格和促销策略，最大化利润。</span></p><p><span><br/></span></p><p><span><strong>营销自由:</strong></span></p><p></p><p><span>自主营销策略: 独立站不受平台规则限制，企业可以自由选择营销方式、设计营销活动，并根据实际情况灵活调整，实现最佳营销效果。</span></p><p><span>全渠道营销整合: 独立站可以作为企业线上营销的中心枢纽，整合SEO、SEM、社交媒体、邮件营销等多种渠道，形成营销矩阵，提升品牌曝光度和转化率。</span></p><p><span><br/></span></p><p><span><strong>长期发展:</strong></span></p><p></p><p><span>可持续发展模式: 独立站是企业长期发展的资产，可以不断优化升级，适应市场变化，为企业带来持续的流量和收益。</span></p><p><span>拓展全球市场: 独立站可以帮助企业突破地域限制，面向全球市场推广产品和服务，开拓更广阔的市场空间。</span></p><p><br/></p>','jwbdr85.file','','133','','什么是独立站？独立站是指企业自主创建、拥有完全控制权的网站，通常用于展示企业形象、产品和服务，并与客户进行互动和交易。与平台电商（如亚马逊、eBay）不同，独立站不受平台规则限制，可以自由设计网站风格、制定营销策略，并积累自己的客户数据。','50','1','2024-06-26 23:54:00');
+INSERT INTO dou_article VALUES('11','0','admin','1','ccccccc','',NULL,'\r\n','','','0','','','50','1','2026-10-13 14:27:00');
 
 DROP TABLE IF EXISTS `dou_article_category`;
 CREATE TABLE `dou_article_category` (
@@ -363,11 +193,11 @@ INSERT INTO dou_config VALUES('74','site_theme','default','hidden','','');
 INSERT INTO dou_config VALUES('75','miniprogram_code','default','hidden','','');
 INSERT INTO dou_config VALUES('76','build_date','1377768032','hidden','','');
 INSERT INTO dou_config VALUES('77','update_number','a:5:{s:6:\"update\";i:0;s:5:\"patch\";i:0;s:6:\"module\";i:0;s:6:\"plugin\";i:0;s:5:\"theme\";i:0;}','hidden','','');
-INSERT INTO dou_config VALUES('78','update_date','a:3:{s:6:\"system\";a:2:{s:6:\"update\";s:8:\"20261013\";s:5:\"patch\";s:8:\"20261013\";}s:6:\"module\";a:5:{s:7:\"article\";s:8:\"20261013\";s:7:\"product\";s:8:\"20261013\";s:4:\"data\";s:8:\"20261013\";s:2:\"ai\";s:8:\"20261013\";s:8:\"language\";s:8:\"20261013\";}s:5:\"theme\";a:0:{}}','hidden','','');
+INSERT INTO dou_config VALUES('78','update_date','a:3:{s:6:\"system\";a:2:{s:6:\"update\";s:8:\"20261014\";s:5:\"patch\";s:8:\"20261014\";}s:6:\"module\";a:4:{s:7:\"article\";s:8:\"20261014\";s:7:\"product\";s:8:\"20261014\";s:4:\"data\";s:8:\"20261014\";s:8:\"language\";s:8:\"20261014\";}s:5:\"theme\";a:0:{}}','hidden','','');
 INSERT INTO dou_config VALUES('79','file_update_time','1653395208','hidden','','');
 INSERT INTO dou_config VALUES('80','cloud_account','','hidden','','');
 INSERT INTO dou_config VALUES('81','hash_code','166d0de32dafdef9ab26e10130dd115b','hidden','','');
-INSERT INTO dou_config VALUES('82','douphp_version','v2.0 Release 20261013','hidden','','');
+INSERT INTO dou_config VALUES('82','douphp_version','v2.0 Release 20261014','hidden','','');
 
 DROP TABLE IF EXISTS `dou_data`;
 CREATE TABLE `dou_data` (
