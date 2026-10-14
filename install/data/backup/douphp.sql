@@ -27,7 +27,9 @@ CREATE TABLE `dou_admin` (
   KEY `idx_email` (`email`),
   KEY `idx_token` (`token`),
   KEY `idx_reset_token` (`reset_token`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO dou_admin VALUES('1','admin','admin@admin.com','$2y$10$Y4O2U.q8Qs.bTIrQ4d2g7.vz20A.tV.27cDcwvgPjGI5yMBVx/qTO','003a9c65bfaa6a802689a71a6e06fcd0e440d7de4c2d80f395871cf5ff13e699','2026-11-03 22:34:46','',NULL,'ALL','1791124486','127.0.0.1','0',NULL,'2013-08-29 17:20:32');
 
 DROP TABLE IF EXISTS `dou_admin_log`;
 CREATE TABLE `dou_admin_log` (
@@ -45,10 +47,7 @@ CREATE TABLE `dou_admin_log` (
   KEY `module` (`module`),
   KEY `ip` (`ip`),
   KEY `created_at` (`created_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-INSERT INTO dou_admin_log VALUES('1','1','[RESTORE]','backup','127.0.0.1','2026-10-10 20:48:22','1','douphp.sql');
-INSERT INTO dou_admin_log VALUES('2','1','[BACKUP]','backup','127.0.0.1','2026-10-13 11:48:03','1','douphp.sql');
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 DROP TABLE IF EXISTS `dou_ai`;
 CREATE TABLE `dou_ai` (
