@@ -23,6 +23,8 @@ if (!defined('IN_DOUCO')) {
  *
  * 需要会员视图（如 Product 的 sale_price / favorites）的子类追加 $userId 参数并覆写本方法、
  * 在链中插入 forUser($userId)；参考 Product::related()。
+ *
+ * 返回前必须经 toArray()：多语言只能在 Model::toArray() 中应用，直接传集合会绕过翻译。
  */
 trait HasRelatedQuery
 {
@@ -31,7 +33,7 @@ trait HasRelatedQuery
      *
      * @param int|string $catId 分类 ID（精确单分类经 filterByCategory 子树展开）
      * @param int $number limit
-     * @return \Dou\Core\Orm\Collection
+     * @return array
      */
     public static function related($catId, $number = 4)
     {
@@ -40,6 +42,7 @@ trait HasRelatedQuery
             ->filterByCategory($catId)
             ->order('RAND()')
             ->limit((int) $number)
-            ->get();
+            ->get()
+            ->toArray();
     }
 }

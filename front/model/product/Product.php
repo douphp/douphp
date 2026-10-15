@@ -229,10 +229,12 @@ class Product extends Model
      * 同分类随机相关推荐：覆写 HasRelatedQuery 默认实现，注入 forUser 提供
      * 会员视图字段（sale_price / favorites）；与列表页 forUser 语义一致。
      *
+     * 必须转为数组返回：多语言只能在 Model::toArray() 中应用，直接传集合会绕过翻译。
+     *
      * @param int|string $catId
      * @param int $number
      * @param int $userId 当前会员 ID（0 = 未登录）
-     * @return \Dou\Core\Orm\Collection
+     * @return array
      */
     public static function related($catId, $number = 4, $userId = 0)
     {
@@ -242,7 +244,8 @@ class Product extends Model
             ->filterByCategory($catId)
             ->order('RAND()')
             ->limit((int) $number)
-            ->get();
+            ->get()
+            ->toArray();
     }
 
     /**
