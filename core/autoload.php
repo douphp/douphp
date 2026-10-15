@@ -138,28 +138,35 @@ function douLoadClassFile($classFile)
  * （如 Dou\Upgrade\Lib\ConfigMerge -> {baseDir}lib/ConfigMerge.php）。
  * 同一目录重复调用自动去重；文件不存在时静默放行（交后续加载器/显式 require）。
  *
+ * 守卫式定义：升级包兼容函数集携带同语义兜底实现（_update/lib/legacy_functions.php）——
+ * cloud 升级是「先整包覆盖、后同一请求内 include action.php」流程，当前 PHP 进程可能仍持有
+ * 升级前版本的 core/autoload.php（如 v2.0 Release 20261006 无本函数），磁盘覆盖不会更新进程内
+ * 已加载的函数表，由包内兜底先行注册；此后本文件被加载时守卫跳过，任何顺序下都不重复定义。
+ *
  * @param string $baseDir 升级程序根目录（绝对路径，可带或不带尾斜杠）
  * @return void
  */
-function douRegisterUpgradeAutoloader($baseDir)
-{
-    static $registeredDirs = array();
-    $baseDir = rtrim((string) $baseDir, '/\\') . '/';
-    if ($baseDir === '/' || isset($registeredDirs[$baseDir])) {
-        return;
-    }
-    $registeredDirs[$baseDir] = true;
-    spl_autoload_register(function ($className) use ($baseDir) {
-        if (strncmp($className, 'Dou\\Upgrade\\', 12) !== 0) {
+if (!function_exists('douRegisterUpgradeAutoloader')) {
+    function douRegisterUpgradeAutoloader($baseDir)
+    {
+        static $registeredDirs = array();
+        $baseDir = rtrim((string) $baseDir, '/\\') . '/';
+        if ($baseDir === '/' || isset($registeredDirs[$baseDir])) {
             return;
         }
-        $namespaceSuffix = substr($className, 12);
-        $parts = explode('\\', $namespaceSuffix);
-        $classBasename = array_pop($parts);
-        $dirParts = array_map('strtolower', $parts);
-        $relative = ($dirParts ? implode('/', $dirParts) . '/' : '') . $classBasename . '.php';
-        douLoadClassFile($baseDir . $relative);
-    });
+        $registeredDirs[$baseDir] = true;
+        spl_autoload_register(function ($className) use ($baseDir) {
+            if (strncmp($className, 'Dou\\Upgrade\\', 12) !== 0) {
+                return;
+            }
+            $namespaceSuffix = substr($className, 12);
+            $parts = explode('\\', $namespaceSuffix);
+            $classBasename = array_pop($parts);
+            $dirParts = array_map('strtolower', $parts);
+            $relative = ($dirParts ? implode('/', $dirParts) . '/' : '') . $classBasename . '.php';
+            douLoadClassFile($baseDir . $relative);
+        });
+    }
 }
 
 /**
