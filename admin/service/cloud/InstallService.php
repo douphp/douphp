@@ -1355,7 +1355,13 @@ class InstallService extends BaseService
         }
 
         $moduleFile = $this->rootDir . 'config/module.php';
-        $payload = "<?php\nreturn " . Arr::export($output) . ";\n";
+        // 头部版权注释与安装包内 config/module.php 保持一致：写盘时一并拼接，避免安装/卸载重写后头部被冲掉。
+        $payload = "<?php\n\n/**\n * DouPHP®\n * ------------------------------------------------------------------------------------\n"
+            . " * Copyright (c) 2013-2026 漳州豆壳网络科技有限公司 (DouCo® Co.,Ltd.)\n"
+            . " *\n * 本软件基于 MIT 协议开源发布，完整协议文本见项目根目录 LICENSE 文件。\n"
+            . " * 网站地址：http://www.douphp.com\n * ------------------------------------------------------------------------------------\n"
+            . " * Author: DouCo Co.,Ltd.\n * Release Date: 2026-09-08\n */\n\n"
+            . "return " . Arr::export($output) . ";\n";
         // LOCK_EX：多 worker（FastCGI）下避免并发读到写了一半的文件。
         if (file_put_contents($moduleFile, $payload, LOCK_EX)) {
             // config/module.php 由 bootstrap 每次请求 include 读取并派生 all_module；开启 OPcache 时
