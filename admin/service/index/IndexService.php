@@ -100,8 +100,8 @@ class IndexService extends BaseService
         }
         // 还原流程（含模块失败自动回滚）中断时，站点会停留在维护模式：横幅提示并给出恢复入口
         try {
-            if (class_exists('Dou\\Core\\Service\\Upgrade\\MaintenanceModeService')
-                && (new \Dou\Core\Service\Upgrade\MaintenanceModeService(ROOT_PATH))->isActive()) {
+            if (class_exists('Dou\\Admin\\Service\\Backup\\MaintenanceModeService')
+                && (new \Dou\Admin\Service\Backup\MaintenanceModeService(ROOT_PATH))->isActive()) {
                 $warning[] = lang('warning_restore_maintenance');
             }
         } catch (\Exception $e) {

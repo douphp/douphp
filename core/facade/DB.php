@@ -96,6 +96,7 @@ if (!defined('IN_DOUCO')) {
  * @method static Connection fetchSql(bool $fetch = true)
  * @method static string lastSql()
  * @method static string rawSql()
+ * @method static string getLastError()
  * @method static void setDebug(bool $enable = true)
  * @method static array toSqlBindings()
  */

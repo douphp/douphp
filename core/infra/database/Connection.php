@@ -51,6 +51,8 @@ class Connection
     private $debug_mode = false;
     /** @var int 最近一次 fnExecute 导入中执行失败的语句数 */
     private $import_failed_count = 0;
+    /** @var string 最近一次 query() 失败时的 mysqli 原始错误文本（成功时清空） */
+    private $last_error = '';
     /** @var array 表存在性探测缓存（表名 => bool），避免同请求内重复 SHOW TABLES */
     private $tableExistCache = array();
     /** @var array 表字段清单缓存（表名 => string[]），避免同请求内重复 SHOW COLUMNS */
@@ -246,8 +248,12 @@ class Connection
 
         $query = mysqli_query($this->dou_link, $this->sql);
 
+        // 留存失败语句的原始错误文本：升级 / 结构同步等场景需把库端错误（如
+        // "Specified key was too long"）原样上报，供用户与日志定位。
+        $this->last_error = ($query === false) ? mysqli_error($this->dou_link) : '';
+
         if (!$query && $this->debug_mode) {
-            $this->debugLog('Query Error', mysqli_error($this->dou_link));
+            $this->debugLog('Query Error', $this->last_error);
         }
 
         // DDL 可能改变表结构，失效 schema 元数据缓存（安装 / 升级 / 导入 SQL 场景）
@@ -792,6 +798,18 @@ class Connection
     public function getImportFailedCount()
     {
         return $this->import_failed_count;
+    }
+
+    /**
+     * 获取最近一次 query() 失败时的 mysqli 原始错误文本（成功时为空串）。
+     * 供升级 / 结构同步等需要把库端错误（如 1071 Specified key was too long）
+     * 原样呈现给用户或写入日志的场景使用。
+     *
+     * @return string
+     */
+    public function getLastError()
+    {
+        return $this->last_error;
     }
 
     // 数据分离（处理SQL导入文件）

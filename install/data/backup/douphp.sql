@@ -1,9 +1,9 @@
 -- DouPHP v2.x SQL Dump Program
 -- http://localhost/douphp/
 -- 
--- DATE : 2026-10-14 17:10:18
+-- DATE : 2026-10-16 22:41:28
 -- MYSQL SERVER VERSION : 5.7.44-log
--- PHP VERSION : 8.2.30
+-- PHP VERSION : 7.4.33
 -- DouPHP VERSION : v2.0 Release 20261016
 
 DROP TABLE IF EXISTS `dou_admin`;
@@ -25,8 +25,8 @@ CREATE TABLE `dou_admin` (
   PRIMARY KEY (`id`),
   KEY `idx_username` (`username`),
   KEY `idx_email` (`email`),
-  KEY `idx_token` (`token`),
-  KEY `idx_reset_token` (`reset_token`)
+  KEY `idx_reset_token` (`reset_token`),
+  KEY `idx_token` (`token`(191))
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO dou_admin VALUES('1','admin','admin@admin.com','$2y$10$Y4O2U.q8Qs.bTIrQ4d2g7.vz20A.tV.27cDcwvgPjGI5yMBVx/qTO','bbf04edcd4aaeff3cc5786b7bb9b97fcd9307d08e6917370e1877ff900ef8b3b','2026-11-13 10:55:36','',NULL,'ALL','1791946536','127.0.0.1','0',NULL,'2013-08-29 17:20:32');
@@ -43,10 +43,10 @@ CREATE TABLE `dou_admin_log` (
   `details` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '详情',
   PRIMARY KEY (`id`),
   KEY `admin_id` (`admin_id`),
-  KEY `action` (`action`),
   KEY `module` (`module`),
   KEY `ip` (`ip`),
-  KEY `created_at` (`created_at`)
+  KEY `created_at` (`created_at`),
+  KEY `action` (`action`(191))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 DROP TABLE IF EXISTS `dou_article`;
@@ -193,11 +193,11 @@ INSERT INTO dou_config VALUES('74','site_theme','default','hidden','','');
 INSERT INTO dou_config VALUES('75','miniprogram_code','default','hidden','','');
 INSERT INTO dou_config VALUES('76','build_date','1377768032','hidden','','');
 INSERT INTO dou_config VALUES('77','update_number','a:5:{s:6:\"update\";i:0;s:5:\"patch\";i:0;s:6:\"module\";i:0;s:6:\"plugin\";i:0;s:5:\"theme\";i:0;}','hidden','','');
-INSERT INTO dou_config VALUES('78','update_date','a:3:{s:6:\"system\";a:2:{s:6:\"update\";s:8:\"20261016\";s:5:\"patch\";s:8:\"20261016\";}s:6:\"module\";a:3:{s:7:\"article\";s:8:\"20261016\";s:7:\"product\";s:8:\"20261016\";s:8:\"language\";s:8:\"20261016\";}s:5:\"theme\";a:0:{}}','hidden','','');
+INSERT INTO dou_config VALUES('78','update_date','a:3:{s:6:\"system\";a:2:{s:6:\"update\";s:8:\"20261016\";s:5:\"patch\";s:8:\"20261016\";}s:6:\"module\";a:4:{s:7:\"article\";s:8:\"20261016\";s:7:\"product\";s:8:\"20261016\";s:4:\"data\";s:8:\"20261016\";s:8:\"language\";s:8:\"20261016\";}s:5:\"theme\";a:0:{}}','hidden','','');
 INSERT INTO dou_config VALUES('79','file_update_time','1653395208','hidden','','');
 INSERT INTO dou_config VALUES('80','cloud_account','','hidden','','');
 INSERT INTO dou_config VALUES('81','hash_code','166d0de32dafdef9ab26e10130dd115b','hidden','','');
-INSERT INTO dou_config VALUES('82','douphp_version','','hidden','','');
+INSERT INTO dou_config VALUES('82','douphp_version','v2.0 Release 20261016','hidden','','');
 
 DROP TABLE IF EXISTS `dou_data`;
 CREATE TABLE `dou_data` (
@@ -332,7 +332,7 @@ CREATE TABLE `dou_language_value` (
   `type` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '字段类型',
   `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uniq_lang_value` (`language_pack`,`module`,`item_id`,`field`)
+  UNIQUE KEY `uniq_lang_value` (`language_pack`,`module`,`item_id`,`field`(140))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 

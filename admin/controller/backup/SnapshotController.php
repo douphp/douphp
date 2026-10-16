@@ -15,15 +15,15 @@
 namespace Dou\Admin\Controller\Backup;
 
 use Dou\Admin\Controller\BaseController;
+use Dou\Admin\Service\Backup\MaintenanceModeService;
+use Dou\Admin\Service\Backup\RestoreService;
 use Dou\Admin\Service\Backup\SnapshotPageService;
 use Dou\Core\Facade\Zip;
 use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Service\Admin\AdminLogAction;
-use Dou\Core\Service\Upgrade\MaintenanceModeService;
-use Dou\Core\Service\Upgrade\RestoreService;
+use Dou\Core\Service\Snapshot\SnapshotRepository;
+use Dou\Core\Service\Snapshot\SnapshotService;
 use Dou\Core\Service\Upgrade\RunLockService;
-use Dou\Core\Service\Upgrade\SnapshotRepository;
-use Dou\Core\Service\Upgrade\SnapshotService;
 use Dou\Core\Web\Http\Request;
 use Dou\Core\Web\Http\Response;
 
@@ -36,7 +36,7 @@ if (!defined('IN_DOUCO')) {
  *
  * 恢复为 dou_msg 链式续跑：确认（POST）→ 启动跳板页（立即响应，1 秒后自动带 start=1
  * 跳转）→ 每次请求推进一段（GET + token 续跑链接），直至完成；还原执行链本体在
- * core 侧 {@see RestoreService}（与模块更新失败自动回滚共用）。
+ * 同域 {@see RestoreService}（与模块更新失败自动回滚共用）。
  * 本页属技术人员补救入口，按钮在「恢复备份」页以灰色样式低调提供。
  */
 class SnapshotController extends BaseController

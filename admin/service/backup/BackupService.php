@@ -19,9 +19,9 @@ use Dou\Core\Facade\Session;
 use Dou\Core\Facade\Zip;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Exception\DomainException;
+use Dou\Core\Infra\Database\DbDumpService;
 use Dou\Core\Service\Admin\AdminLogAction;
 use Dou\Core\Service\BaseService;
-use Dou\Core\Service\Upgrade\DbDumpService;
 use Dou\Core\Support\Arr;
 use Dou\Core\Support\Check;
 use Dou\Core\Support\DbVersion;
@@ -252,7 +252,7 @@ class BackupService extends BaseService
         $startfrom = isset($req['startfrom']) ? intval($req['startfrom']) : 0;
         $tablenumber = count((array) $tables);
         // 单卷实际字节预算：min(设定值, 上传限制) 再预留安全余量
-        $budget = $this->volumeBudgetBytes($vol_size);
+        $budget = DbDumpService::volumeBudgetBytes($vol_size);
 
         // 下一卷续传起点：默认「已全部导完」，for 正常跑完（$i 达到 $tablenumber）时保持此值，
         // 下一轮 for 不执行、$sqldump 为空即收尾，不会再回退重导最后一张表

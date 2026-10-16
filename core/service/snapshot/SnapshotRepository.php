@@ -12,7 +12,7 @@
  * Release Date: 2026-10-16
  */
 
-namespace Dou\Core\Service\Upgrade;
+namespace Dou\Core\Service\Snapshot;
 
 use Dou\Core\Support\FileHelper;
 

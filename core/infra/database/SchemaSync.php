@@ -153,7 +153,10 @@ class SchemaSync
         }
         $result = DB::query($sql);
         if ($result === false) {
-            $this->error('SQL 执行失败：' . $sql);
+            // 附加库端原始错误（如 5.6 的 "Specified key was too long"）：同一条 SQL 在不同
+            // MySQL 版本上的失败原因不同，没有原始错误文本将无法从日志分辨根因。
+            $dbError = trim((string) DB::getLastError());
+            $this->error('SQL 执行失败：' . $sql . ($dbError !== '' ? '（MySQL: ' . $dbError . '）' : ''));
             return false;
         }
         $this->log('[OK] ' . $sql);

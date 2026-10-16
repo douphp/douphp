@@ -15,9 +15,7 @@
 namespace Dou\Admin\Service\Backup;
 
 use Dou\Core\Service\BaseService;
-use Dou\Core\Service\Upgrade\MaintenanceModeService;
-use Dou\Core\Service\Upgrade\RestoreService;
-use Dou\Core\Service\Upgrade\SnapshotRepository;
+use Dou\Core\Service\Snapshot\SnapshotRepository;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
@@ -28,7 +26,7 @@ if (!defined('IN_DOUCO')) {
  *
  * 数据源为 core 侧 {@see SnapshotRepository}（storage/snapshot 扫描）+ 维护模式状态 +
  * 进行中还原状态；还原 / 删除 / 救援令牌等动作由 {@see \Dou\Admin\Controller\Backup\SnapshotController}
- * 直接驱动 core 服务。
+ * 直接驱动服务。
  */
 class SnapshotPageService extends BaseService
 {

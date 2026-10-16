@@ -12,10 +12,13 @@
  * Release Date: 2026-10-16
  */
 
-namespace Dou\Core\Service\Upgrade;
+namespace Dou\Admin\Service\Backup;
 
+use Dou\Admin\Service\Cache\CacheClearService;
 use Dou\Core\Facade\DB;
 use Dou\Core\Facade\Zip;
+use Dou\Core\Service\Snapshot\SnapshotRepository;
+use Dou\Core\Service\Snapshot\SnapshotService;
 use Dou\Core\Support\FileHelper;
 
 if (!defined('IN_DOUCO')) {
@@ -195,7 +198,7 @@ class RestoreService
                 }
             } elseif ($phase === 'cache') {
                 $cacheClear = new CacheClearService();
-                $cacheClear->clearSiteCache($this->rootPath);
+                $cacheClear->clearCache($this->rootPath . 'storage/cache/template');
                 $logs[] = $this->t('snapshot_log_cache_cleared', '模板缓存已清理');
                 $state['phase'] = 'done';
                 $this->saveState($dir, $state);

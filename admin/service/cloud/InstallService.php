@@ -438,11 +438,11 @@ class InstallService extends BaseService
             return array('ok' => true, 'error' => '', 'logs' => array(), 'next_step' => self::STEP_APPLY);
         }
 
-        if (!class_exists('Dou\\Core\\Service\\Upgrade\\SnapshotService')) {
+        if (!class_exists('Dou\\Core\\Service\\Snapshot\\SnapshotService')) {
             return array('ok' => false, 'error' => (string) lang('cloud_snapshot_engine_missing'), 'logs' => array());
         }
 
-        $snapshot = new \Dou\Core\Service\Upgrade\SnapshotService(ROOT_PATH);
+        $snapshot = new \Dou\Core\Service\Snapshot\SnapshotService(ROOT_PATH);
         $active = $snapshot->active();
         $logs = array();
         if ($active === null) {
@@ -501,7 +501,7 @@ class InstallService extends BaseService
      * 口径：files 阶段 5–80%（file_index/file_total）、db 阶段 80–98%（table_index/表数）、
      * finalize 99%；collect（收集清单，无细粒度游标）与取不到进度时返回 null（前端回落秒表）。
      *
-     * @param \Dou\Core\Service\Upgrade\SnapshotService $snapshot
+     * @param \Dou\Core\Service\Snapshot\SnapshotService $snapshot
      * @return int|null
      */
     private function snapshotPercent($snapshot)
@@ -911,18 +911,18 @@ class InstallService extends BaseService
         if ($type !== 'module' || $mode !== 'update') {
             return 'none';
         }
-        if (!class_exists('Dou\\Core\\Service\\Upgrade\\RestoreService')
-            || !class_exists('Dou\\Core\\Service\\Upgrade\\SnapshotRepository')) {
+        if (!class_exists('Dou\\Admin\\Service\\Backup\\RestoreService')
+            || !class_exists('Dou\\Core\\Service\\Snapshot\\SnapshotRepository')) {
             return 'none';
         }
 
-        $repository = new \Dou\Core\Service\Upgrade\SnapshotRepository(ROOT_PATH);
+        $repository = new \Dou\Core\Service\Snapshot\SnapshotRepository(ROOT_PATH);
         $row = $repository->latest('module', (string) $cloudId);
         if ($row === null) {
             return 'none';
         }
 
-        $restore = new \Dou\Core\Service\Upgrade\RestoreService(ROOT_PATH);
+        $restore = new \Dou\Admin\Service\Backup\RestoreService(ROOT_PATH);
         $begin = $restore->begin($row['name']);
         if (empty($begin['ok'])) {
             $this->installNotes[] = str_replace('d%', (string) $begin['error'], (string) lang('cloud_snapshot_restore_failed'));
@@ -1487,8 +1487,8 @@ class InstallService extends BaseService
         // T6：模块被清理（卸载 / 失败回滚）时同步移除其包版本记录，避免残留脏账本
         $this->updateState->removeModuleVersion($cloudId);
         // T7：模块卸载（含安装失败回滚）时清理其专属还原点，避免残留不可再用的快照
-        if (class_exists('Dou\\Core\\Service\\Upgrade\\SnapshotRepository')) {
-            $repository = new \Dou\Core\Service\Upgrade\SnapshotRepository(ROOT_PATH);
+        if (class_exists('Dou\\Core\\Service\\Snapshot\\SnapshotRepository')) {
+            $repository = new \Dou\Core\Service\Snapshot\SnapshotRepository(ROOT_PATH);
             foreach ($repository->all() as $row) {
                 if (isset($row['manifest']['scope'], $row['manifest']['scope_id'])
                     && $row['manifest']['scope'] === 'module'

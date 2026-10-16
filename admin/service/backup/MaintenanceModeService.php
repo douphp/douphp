@@ -12,7 +12,7 @@
  * Release Date: 2026-10-16
  */
 
-namespace Dou\Core\Service\Upgrade;
+namespace Dou\Admin\Service\Backup;
 
 use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Configuration\Config;

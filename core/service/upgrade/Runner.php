@@ -15,6 +15,7 @@
 namespace Dou\Core\Service\Upgrade;
 
 use Dou\Core\Facade\DB;
+use Dou\Core\Service\Snapshot\SnapshotService;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
@@ -206,7 +207,7 @@ class Runner
     private function createWizardSnapshot()
     {
         try {
-            if (!class_exists('Dou\\Core\\Service\\Upgrade\\SnapshotService')) {
+            if (!class_exists('Dou\\Core\\Service\\Snapshot\\SnapshotService')) {
                 return;
             }
             $snapshot = new SnapshotService($this->ctx->rootPath);

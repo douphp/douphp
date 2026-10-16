@@ -589,7 +589,7 @@ class Init
         $engine->assign('features', $features);
         $engine->assign('link_list', class_exists(Link::class) ? Link::linkList() : array());
         $engine->assign('lang_menu', $langMenu);
-        $engine->assign('generator', 'DouPHP v1.9');
+        $engine->assign('generator', 'DouPHP v2.0');
         $engine->assign('authorized', Config::get('app.licensed', false));
         $engine->assign('url', (new Fix())->buildLegacyUrlMap((string) request()->routeModule()));
         // 页面事实变量引擎级兜底（chat.md §3.4）：正常派发路径由 BaseController::pageFactVars 覆盖为真实命中；
