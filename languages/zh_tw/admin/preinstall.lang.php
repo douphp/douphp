@@ -23,6 +23,7 @@ $_LANG['preinstall_hide_confirm'] = '隱藏後該預置入口將從左側選單�
 $_LANG['preinstall_hide_success'] = '預置項已隱藏';
 
 // 預置內容：ai（AI 應用）
+$_LANG['preinstall_ai_name'] = 'AI 應用';
 $_LANG['preinstall_ai_intro'] = 'AI 應用為站點提供整站 AI 能力中心，統一管理模型與供應商、API 金鑰、呼叫日誌與生成任務，並向商品、文章等內容模組提供智慧生成端點。';
 $_LANG['preinstall_ai_feature_1_title'] = '欄位潤色';
 $_LANG['preinstall_ai_feature_1_desc'] = '在內容編輯頁對單個欄位一鍵呼叫 AI 潤色與改寫，支援即時預覽後再確認寫入。';

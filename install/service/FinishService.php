@@ -14,16 +14,15 @@
 
 namespace Dou\Install\Service;
 
-use Dou\Core\Support\Arr;
-
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
 }
 
 /**
- * 写入 config/module.php 与 storage/state/install.lock，完成安装收尾。
+ * 写入 storage/state/install.lock，完成安装收尾。
  *
- * 与旧版安装阶段保持最小集；云模块安装时再追加 link_* 等键。
+ * config/module.php 随安装包附带（固定文件），安装阶段不再生成或改写；
+ * 模块的增删改由后台「模块管理」按需维护。
  */
 class FinishService
 {
@@ -39,23 +38,12 @@ class FinishService
     }
 
     /**
-     * 落盘 config/module.php 并写入安装锁。
+     * 写入安装锁，完成安装收尾。
      *
      * @return void
      */
     public function finalize()
     {
-        $moduleFile = ROOT_PATH . 'config/module.php';
-        $setting = array(
-            'column_module' => array('product', 'article'),
-            'single_module' => array('data', 'ai', 'language'),
-            'link_ai' => array('product', 'article'),
-            'no_show_menu' => array('data'),
-            'no_show_nav' => array('data'),
-        );
-        $content = "<?php\nreturn " . Arr::export($setting) . ";\n";
-        file_put_contents($moduleFile, $content);
-
         $this->lockService->lock();
 
         // 埋点：站点首次安装完成后上报安装记录（匿名基础遥测，落库 site / site_event）。

@@ -39,7 +39,7 @@ class SettingController
     public function index()
     {
         require_once INSTALL_PATH . 'init/php_version_gate.php';
-        douphp_require_min_php('5.6.0');
+        douphp_require_min_php();
 
         $title = $this->ctx->lang['douphp'] . ' &rsaquo; ' . $this->ctx->lang['setting'];
         $token = $this->ctx->csrf->generate('static_admin');

@@ -134,12 +134,14 @@ class DatabaseInstallService
             }
 
             // 服务器版本探测（经 DbVersion 归一，兼容 MariaDB 前缀与未来 CalVer 版本号）：
-            // MySQL 低于 5.7 明确报最低版本要求，避免导入阶段连环 SQL 失败；MariaDB 提示兼容后继续。
+            // MySQL 低于 version.php 的 mysql_min 时明确报最低版本要求，避免导入阶段连环 SQL 失败；
+            // MariaDB 提示兼容后继续。最低版本取自 install/version.php（单一来源）。
             $serverVersion = (string) mysqli_get_server_info($link);
+            $mysql_min = douphp_install_min_mysql();
             if (DbVersion::serverFamily($serverVersion) === 'mysql'
-                && !DbVersion::isAtLeast($serverVersion, '5.7')) {
+                && !DbVersion::isAtLeast($serverVersion, $mysql_min)) {
                 @mysqli_close($link);
-                return sprintf($this->lang['cue_mysql_too_old'], $serverVersion, '5.7');
+                return sprintf($this->lang['cue_mysql_too_old'], $serverVersion, $mysql_min);
             }
 
             @mysqli_set_charset($link, 'utf8mb4');
@@ -183,6 +185,14 @@ class DatabaseInstallService
         $email = isset($post['email']) ? trim((string) $post['email']) : '';
         $test_data = isset($post['test_data']) ? (string) $post['test_data'] : 'yes';
 
+        // 本次安装版本：单一来源 install/version.php（不再依赖 SQL dump 内置版本串）。
+        // 在落盘 / 导库之前校验，缺失即 fail loud，避免装出半成品。
+        $meta = douphp_install_version_meta();
+        $douphp_version = isset($meta['version']) ? trim((string) $meta['version']) : '';
+        if ($douphp_version === '') {
+            throw new \Exception('安装包缺少版本信息：install/version.php 的 version 字段缺失或为空，请确认安装包完整。');
+        }
+
         // 落盘 config/config.php
         $this->configWriter->write(array(
             'dbhost' => $dbhost,
@@ -203,7 +213,7 @@ class DatabaseInstallService
 
         $build_date = time();
         $this->initAdmin($username, $password, $email, $build_date);
-        $douphp_version = $this->initSiteConfig($dbhost, $dbname, $dbuser, $dbpass, $build_date);
+        $this->initSiteConfig($dbhost, $dbname, $dbuser, $dbpass, $build_date, $douphp_version);
         $this->maybeClearTestData($prefix, $test_data);
 
         return array('username' => $username, 'douphp_version' => $douphp_version);
@@ -226,23 +236,24 @@ class DatabaseInstallService
     }
 
     /**
-     * 写入站点初始 dou_config：hash_code / build_date / update_date / domain / cloud_account / rewrite。
+     * 写入站点初始 dou_config：douphp_version / hash_code / build_date / update_date / domain / cloud_account / rewrite。
      *
      * @param string $dbhost
      * @param string $dbname
      * @param string $dbuser
      * @param string $dbpass
-     * @param int $buildDate
-     * @return string 本次安装的核心版本（dou_config.douphp_version）
+     * @param int    $buildDate
+     * @param string $douphpVersion 本次安装版本（来自 install/version.php，单一来源）
+     * @return void
      */
-    private function initSiteConfig($dbhost, $dbname, $dbuser, $dbpass, $buildDate)
+    private function initSiteConfig($dbhost, $dbname, $dbuser, $dbpass, $buildDate, $douphpVersion)
     {
         // 站点唯一性密钥
         $hash_code = md5(md5(time()) . md5(md5(ROOT_URL . $dbhost . $dbname . $dbuser . $dbpass)));
 
-        $douphp_version = DB::table('config')->where('name', 'douphp_version')->value('value');
-        $version_date = substr(trim((string) $douphp_version), -8);
-        $update_date = 'a:3:{s:6:"system";a:2:{s:6:"update";s:8:"' . $version_date . '";s:5:"patch";s:8:"' . $version_date . '";}s:6:"module";a:5:{s:7:"article";s:8:"' . $version_date . '";s:7:"product";s:8:"' . $version_date . '";s:4:"data";s:8:"' . $version_date . '";s:2:"ai";s:8:"' . $version_date . '";s:8:"language";s:8:"' . $version_date . '";}s:5:"theme";a:0:{}}';
+        $douphp_version = trim((string) $douphpVersion);
+        $version_date = substr($douphp_version, -8);
+        $update_date = 'a:3:{s:6:"system";a:2:{s:6:"update";s:8:"' . $version_date . '";s:5:"patch";s:8:"' . $version_date . '";}s:6:"module";a:3:{s:7:"article";s:8:"' . $version_date . '";s:7:"product";s:8:"' . $version_date . '";s:8:"language";s:8:"' . $version_date . '";}s:5:"theme";a:0:{}}';
 
         $configUpdates = array(
             'rewrite' => '0',
@@ -251,12 +262,12 @@ class DatabaseInstallService
             'update_date' => $update_date,
             'cloud_account' => '',
             'domain' => ROOT_URL,
+            // 版本串由 install/version.php 单一来源写入（SQL dump 不再内置固定版本）
+            'douphp_version' => $douphp_version,
         );
         foreach ($configUpdates as $name => $value) {
             DB::table('config')->where('name', $name)->update(array('value' => $value));
         }
-
-        return trim((string) $douphp_version);
     }
 
     /**

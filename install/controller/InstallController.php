@@ -54,7 +54,7 @@ class InstallController
     public function post()
     {
         require_once INSTALL_PATH . 'init/php_version_gate.php';
-        douphp_require_min_php('5.6.0');
+        douphp_require_min_php();
 
         $token = isset($_POST['token']) ? (string) $_POST['token'] : '';
         if (!$this->ctx->csrf->verify($token, 'static_admin')) {
@@ -81,7 +81,7 @@ class InstallController
     public function callback()
     {
         require_once INSTALL_PATH . 'init/php_version_gate.php';
-        douphp_require_min_php('5.6.0');
+        douphp_require_min_php();
 
         $token = isset($_POST['token']) ? (string) $_POST['token'] : '';
         if (!$this->ctx->csrf->verify($token, 'static_admin')) {

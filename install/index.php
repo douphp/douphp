@@ -15,7 +15,9 @@
 define('IN_DOUCO', true);
 define('IS_INSTALL', true);
 
+require dirname(__FILE__) . '/init/version_meta.php';
 require dirname(__FILE__) . '/init/php_version_gate.php';
-douphp_require_min_php('5.6.0');
+// 最低 PHP 版本由 install/version.php 单一来源提供（不再硬编码）
+douphp_require_min_php();
 
 require dirname(__FILE__) . '/run.php';

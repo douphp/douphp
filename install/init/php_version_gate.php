@@ -12,15 +12,22 @@
  * Release Date: 2026-09-08
  */
 
+if (!function_exists('douphp_install_version_meta')) {
+    require_once dirname(__FILE__) . '/version_meta.php';
+}
+
 if (!function_exists('douphp_require_min_php')) {
     /**
      * 当前 PHP 低于 $minVersion 时输出提示并终止。
      *
-     * @param string $minVersion 如 5.6.0
+     * @param string $minVersion 最低版本（如 5.6.0）；传空串时取 install/version.php 的 php_min（单一来源）
      * @return void
      */
-    function douphp_require_min_php($minVersion)
+    function douphp_require_min_php($minVersion = '')
     {
+        if ($minVersion === '') {
+            $minVersion = douphp_install_min_php();
+        }
         if (version_compare(PHP_VERSION, $minVersion, '<')) {
             $min = htmlspecialchars($minVersion, ENT_QUOTES, 'UTF-8');
             $cur = htmlspecialchars(PHP_VERSION, ENT_QUOTES, 'UTF-8');

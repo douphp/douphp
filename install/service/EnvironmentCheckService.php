@@ -53,17 +53,16 @@ class EnvironmentCheckService
         $this->lang = $lang;
     }
 
-    /** 与 install/init/php_version_gate.php、core/bootstrap.php 对齐的最低 PHP 版本 */
-    const MIN_PHP_VERSION = '5.6.0';
-
     /**
      * 当前运行时 PHP 是否满足最低版本要求。
+     *
+     * 最低版本取自 install/version.php 的 php_min（单一来源，与安装入口门禁同源）。
      *
      * @return bool
      */
     public function isPhpVersionOk()
     {
-        return version_compare(PHP_VERSION, self::MIN_PHP_VERSION, '>=');
+        return version_compare(PHP_VERSION, douphp_install_min_php(), '>=');
     }
 
     /**
