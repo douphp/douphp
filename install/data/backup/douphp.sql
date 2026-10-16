@@ -156,7 +156,7 @@ INSERT INTO dou_config VALUES('37','instagram','','text','','customer');
 INSERT INTO dou_config VALUES('38','tiktok','','text','','customer');
 INSERT INTO dou_config VALUES('39','skype','','text','','customer');
 INSERT INTO dou_config VALUES('40','whatsapp','','text','','customer');
-INSERT INTO dou_config VALUES('41','chat','','text','','customer');
+INSERT INTO dou_config VALUES('41','chat_link','','text','','customer');
 INSERT INTO dou_config VALUES('42','image_width','1000','text','','display');
 INSERT INTO dou_config VALUES('43','thumb_width','300','text','','display');
 INSERT INTO dou_config VALUES('44','thumb_height','300','text','','display');
@@ -193,11 +193,12 @@ INSERT INTO dou_config VALUES('74','site_theme','default','hidden','','');
 INSERT INTO dou_config VALUES('75','miniprogram_code','default','hidden','','');
 INSERT INTO dou_config VALUES('76','build_date','1377768032','hidden','','');
 INSERT INTO dou_config VALUES('77','update_number','a:5:{s:6:\"update\";i:0;s:5:\"patch\";i:0;s:6:\"module\";i:0;s:6:\"plugin\";i:0;s:5:\"theme\";i:0;}','hidden','','');
-INSERT INTO dou_config VALUES('78','update_date','a:3:{s:6:\"system\";a:2:{s:6:\"update\";s:8:\"20261016\";s:5:\"patch\";s:8:\"20261016\";}s:6:\"module\";a:4:{s:7:\"article\";s:8:\"20261016\";s:7:\"product\";s:8:\"20261016\";s:4:\"data\";s:8:\"20261016\";s:8:\"language\";s:8:\"20261016\";}s:5:\"theme\";a:0:{}}','hidden','','');
+INSERT INTO dou_config VALUES('78','update_date','a:3:{s:6:\"system\";a:2:{s:6:\"update\";s:8:\"20261016\";s:5:\"patch\";s:8:\"20261016\";}s:6:\"module\";a:3:{s:7:\"article\";s:8:\"20261016\";s:7:\"product\";s:8:\"20261016\";s:8:\"language\";s:8:\"20261016\";}s:5:\"theme\";a:0:{}}','hidden','','');
 INSERT INTO dou_config VALUES('79','file_update_time','1653395208','hidden','','');
 INSERT INTO dou_config VALUES('80','cloud_account','','hidden','','');
 INSERT INTO dou_config VALUES('81','hash_code','166d0de32dafdef9ab26e10130dd115b','hidden','','');
-INSERT INTO dou_config VALUES('82','douphp_version','v2.0 Release 20261016','hidden','','');
+INSERT INTO dou_config VALUES('82','module_version','a:0:{}','hidden','','');
+INSERT INTO dou_config VALUES('83','douphp_version','v2.0 Release 20261016','hidden','','');
 
 DROP TABLE IF EXISTS `dou_data`;
 CREATE TABLE `dou_data` (

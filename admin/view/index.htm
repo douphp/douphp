@@ -146,11 +146,11 @@
          <!-- {/foreach} -->
         </ul>
         <ul>
-         <li>{$lang.language}：{$site.language}</li>
+         <li>{$lang.config_language}：{$site.language}</li>
          <li>{$lang.charset}：{$sys_info.charset}</li>
          <!-- {if $_SYSTEM_SIGN neq 'miniprogram'} -->
-         <li>{$lang.site_theme}：{$site.site_theme}</li>
-         <li>{$lang.rewrite}：<!-- {if $site.rewrite} -->{$lang.open}<!-- {else} -->{$lang.close}<a href="{url link='admin.setting' light=rewrite}" class="cue-red ml">{$lang.open_cue}</a>
+         <li>{$lang.config_site_theme}：{$site.site_theme}</li>
+         <li>{$lang.config_rewrite}：<!-- {if $site.rewrite} -->{$lang.open}<!-- {else} -->{$lang.close}<a href="{url link='admin.setting' light=rewrite}" class="cue-red ml">{$lang.open_cue}</a>
             <!-- {/if} --></li>
          <li>{$lang.if_sitemap}：<!-- {if $site.sitemap} -->{$lang.open}<!-- {else} -->{$lang.close}<!-- {/if} --></li>
          <!-- {/if} -->

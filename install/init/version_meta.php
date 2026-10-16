@@ -60,7 +60,7 @@ if (!function_exists('douphp_install_min_php')) {
 }
 
 /**
- * install 最低 MySQL 版本（version.php 的 mysql_min；缺失时兜底 5.7）。
+ * install 最低 MySQL 版本（version.php 的 mysql_min；缺失时兜底 5.5.3）。
  *
  * @return string
  */
@@ -69,6 +69,6 @@ if (!function_exists('douphp_install_min_mysql')) {
     {
         $meta = douphp_install_version_meta();
 
-        return (isset($meta['mysql_min']) && (string) $meta['mysql_min'] !== '') ? (string) $meta['mysql_min'] : '5.7';
+        return (isset($meta['mysql_min']) && (string) $meta['mysql_min'] !== '') ? (string) $meta['mysql_min'] : '5.5.3';
     }
 }

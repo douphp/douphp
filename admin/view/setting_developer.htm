@@ -74,7 +74,7 @@
    <!-- {/foreach} -->
    <div class="form grid">
     <div class="form-item">
-     <div class="form-label">{$lang.short_url_module}</div>
+     <div class="form-label">{$lang.config_short_url_module}</div>
      <div class="input-block">
       <select class="select" name="short_url_module">
        <option value=""{if !$site.short_url_module} selected{/if}>{$lang.no}</option>
@@ -82,12 +82,12 @@
        <option value="{$value}"{if $site.short_url_module eq $value} selected{/if}>{$value}</option>
        <!-- {/foreach} -->
       </select>
-      <span class="cue ml">{$lang.short_url_module_cue}</span>
+      <span class="cue ml">{$lang.config_short_url_module_cue}</span>
      </div>
     </div>
     <!-- {if $cloud_vip} -->
     <div class="form-item">
-     <div class="form-label">{$lang.pure_mode}</div>
+     <div class="form-label">{$lang.config_pure_mode}</div>
      <div class="input-block">
       <label for="pure_mode_0">
        <input type="radio" name="pure_mode" id="pure_mode_0" value="0"{if $cfg_pure_mode.value eq '0'} checked="true"{/if}>
@@ -95,7 +95,7 @@
       <label for="pure_mode_1">
        <input type="radio" name="pure_mode" id="pure_mode_1" value="1"{if $cfg_pure_mode.value eq '1'} checked="true"{/if}>
        {$lang.yes}</label>
-     <span class="cue ml">{$lang.pure_mode_cue}</span>
+     <span class="cue ml">{$lang.config_pure_mode_cue}</span>
      </div>
     </div>
     <!-- {/if} -->

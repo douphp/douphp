@@ -37,7 +37,7 @@ class EnvCompatService
      *
      * 规则（与 devtools/mysql-compat-check 同口径）：
      *   - PHP < 5.6.0 → blocked；
-     *   - MySQL < 5.7（或版本无法识别）→ blocked；
+     *   - MySQL < 5.5.3（或版本无法识别）→ blocked（utf8mb4 自 5.5.3 引入，为全站编码底座）；
      *   - PHP < 7.4 + MySQL 9.x → blocked（mysql_native_password 已移除、无法配置开启）；
      *   - PHP < 7.4 + MySQL 8.4 / 8.0 → limited（需 native 认证账号或升级 PHP）；
      *   - MySQL 9.x + 当前账号仍为 mysql_native_password → blocked（连接将报 1524）。
@@ -61,11 +61,11 @@ class EnvCompatService
             // 版本读取失败不阻断（保守），仅提示
             $verdict['reasons'][] = '无法读取数据库版本（SELECT VERSION() 失败），未做 MySQL 兼容判定';
         } else {
-            if (!DbVersion::isAtLeast($serverRaw, '5.7')) {
+            if (!DbVersion::isAtLeast($serverRaw, '5.5.3')) {
                 $verdict['status'] = 'blocked';
                 $verdict['reasons'][] = $normalized === ''
                     ? 'MySQL 版本无法识别：' . $serverRaw
-                    : 'MySQL ' . $normalized . ' 低于最低要求 5.7';
+                    : 'MySQL ' . $normalized . ' 低于最低要求 5.5.3';
             }
             if ($family === 'mysql' && $normalized !== '' && version_compare(PHP_VERSION, '7.4.0', '<')) {
                 if (version_compare($normalized, '9.0.0', '>=')) {

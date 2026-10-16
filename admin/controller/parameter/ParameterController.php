@@ -58,11 +58,11 @@ class ParameterController extends BaseController
 
         return $this->view('parameter.htm', [
             'ur_here' => lang('parameter_list'),
-            'page_breadcrumb' => lang('setting_developer'),
+            'page_breadcrumb' => lang('config_setting_developer'),
             'page_actions' => array(
-                array('href' => route('admin.setting', array(), array('query' => array('dou' => ''))), 'text' => lang('setting_developer'), 'style' => ''),
+                array('href' => route('admin.setting', array(), array('query' => array('dou' => ''))), 'text' => lang('config_setting_developer'), 'style' => ''),
             ),
-            'page_cue' => '<em>' . lang('setting_developer_cue') . '</em>',
+            'page_cue' => '<em>' . lang('config_setting_developer_cue') . '</em>',
             'rec' => 'default',
             'parameter_list' => $listData['parameter_list'],
         ]);
@@ -80,11 +80,11 @@ class ParameterController extends BaseController
 
         return $this->view('parameter.htm', [
             'ur_here' => lang('parameter_create'),
-            'page_breadcrumb' => lang('setting_developer'),
+            'page_breadcrumb' => lang('config_setting_developer'),
             'page_actions' => array(
-                array('href' => route('admin.setting', array(), array('query' => array('dou' => ''))), 'text' => lang('setting_developer'), 'style' => ''),
+                array('href' => route('admin.setting', array(), array('query' => array('dou' => ''))), 'text' => lang('config_setting_developer'), 'style' => ''),
             ),
-            'page_cue' => '<em>' . lang('setting_developer_cue') . '</em>',
+            'page_cue' => '<em>' . lang('config_setting_developer_cue') . '</em>',
             'rec' => 'create',
             'group' => $defaultData['group'],
             'parameter' => $defaultData['parameter'],
@@ -124,11 +124,11 @@ class ParameterController extends BaseController
 
         return $this->view('parameter.htm', [
             'ur_here' => lang('parameter_edit'),
-            'page_breadcrumb' => lang('setting_developer'),
+            'page_breadcrumb' => lang('config_setting_developer'),
             'page_actions' => array(
-                array('href' => route('admin.setting', array(), array('query' => array('dou' => ''))), 'text' => lang('setting_developer'), 'style' => ''),
+                array('href' => route('admin.setting', array(), array('query' => array('dou' => ''))), 'text' => lang('config_setting_developer'), 'style' => ''),
             ),
-            'page_cue' => '<em>' . lang('setting_developer_cue') . '</em>',
+            'page_cue' => '<em>' . lang('config_setting_developer_cue') . '</em>',
             'rec' => 'edit',
             'parameter' => $bundle['parameter'],
             'parameter_help' => $bundle['parameter_help'],

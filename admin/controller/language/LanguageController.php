@@ -136,7 +136,7 @@ class LanguageController extends BaseController
         foreach ($tabList as $tab) {
             $cfg[] = array(
                 'name' => $tab,
-                'lang' => lang('setting_' . $tab),
+                'lang' => lang('config_setting_' . $tab, lang('setting_' . $tab)),
                 'list' => $this->settingService->buildConfigList($tab),
             );
         }

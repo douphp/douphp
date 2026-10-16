@@ -20,10 +20,11 @@ if (!defined('IN_DOUCO')) {
  *
  * - version   ：写入 dou_config.douphp_version 的版本串（全新安装 / 升级完成后；发版时唯一手动修改点）
  * - php_min   ：最低 PHP 版本（安装入口门禁 / 升级包解压后二次校验，低于即中止）
- * - mysql_min ：最低 MySQL 版本（与 devtools/mysql-compat-check 判定口径一致）
+ * - mysql_min ：最低 MySQL 版本（utf8mb4 字符集自 5.5.3 起支持，为全站编码底座；
+ *               与 devtools/mysql-compat-check 判定口径一致）
  */
 return array(
     'version' => 'v2.0 Release 20261016',
     'php_min' => '5.6.0',
-    'mysql_min' => '5.7',
+    'mysql_min' => '5.5.3',
 );

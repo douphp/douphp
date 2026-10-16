@@ -164,7 +164,7 @@ class ToolService extends BaseService
     {
         return array(
             'action_link' => array(
-                'text' => lang('setting_developer'),
+                'text' => lang('config_setting_developer'),
                 'href' => route('admin.setting', array(), array('query' => array('dou' => ''))),
             ),
         );
@@ -201,7 +201,7 @@ class ToolService extends BaseService
 
         return array(
             'action_link' => array(
-                'text' => lang('setting_developer'),
+                'text' => lang('config_setting_developer'),
                 'href' => route('admin.setting', array(), array('query' => array('dou' => ''))),
             ),
         );

@@ -87,11 +87,11 @@ class SettingController extends BaseController
 
         if ($data['is_developer_tab']) {
             return $this->view('setting_developer.htm', [
-                'ur_here' => lang('setting_developer'),
+                'ur_here' => lang('config_setting_developer'),
                 'page_actions' => array(
                     array('href' => route('admin.setting'), 'text' => lang('setting'), 'style' => ''),
                 ),
-                'page_cue' => '<em>' . lang('setting_developer_cue') . '</em>',
+                'page_cue' => '<em>' . lang('config_setting_developer_cue') . '</em>',
                 'rec' => 'default',
                 'light' => $smarty_light,
                 'config_list' => $data['config_list'],
@@ -105,7 +105,7 @@ class SettingController extends BaseController
         } else {
             $pageActions = array();
             if (Config::get('site.developer', false)) {
-                $pageActions[] = array('href' => route('admin.setting', array(), array('query' => array('dou' => ''))), 'text' => lang('setting_developer'), 'style' => '');
+                $pageActions[] = array('href' => route('admin.setting', array(), array('query' => array('dou' => ''))), 'text' => lang('config_setting_developer'), 'style' => '');
             }
             return $this->view('setting.htm', [
                 'ur_here' => lang('setting'),

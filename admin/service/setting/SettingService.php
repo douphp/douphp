@@ -88,7 +88,7 @@ class SettingService extends BaseService
         foreach ($tab_list as $tab) {
             $config_list[] = array(
                 'name' => $tab,
-                'lang' => lang('setting_' . $tab),
+                'lang' => lang('config_setting_' . $tab, lang('setting_' . $tab)),
                 'list' => $this->buildConfigList($tab),
             );
         }
@@ -231,15 +231,15 @@ class SettingService extends BaseService
             }
 
             if ($row['name'] == 'editor') {
-                $box = $this->formatConfigOption('editor_', array('ueditor', 'vditor'));
+                $box = $this->formatConfigOption('config_editor_', array('ueditor', 'vditor'));
             }
 
             if ($row['name'] == 'open_icon') {
-                $box = $this->formatConfigOption('open_icon_', array('close', 'image', 'text'));
+                $box = $this->formatConfigOption('config_open_icon_', array('close', 'image', 'text'));
             }
 
-            $cueKey = $row['name'] . '_cue';
-            $cue = lang($cueKey);
+            $cueKey = 'config_' . $row['name'] . '_cue';
+            $cue = lang($cueKey, lang($row['name'] . '_cue'));
 
             if ($row['name'] == 'rewrite') {
                 $rewrite_file = '';
@@ -258,12 +258,12 @@ class SettingService extends BaseService
                 }
 
                 if (stristr($_SERVER['SERVER_SOFTWARE'], "nginx")) {
-                    $nginxKey = $row['name'] . '_cue_nginx';
+                    $nginxKey = 'config_' . $row['name'] . '_cue_nginx';
                     $cue = lang($nginxKey, $cue);
                 } elseif ($rewrite_file) {
                     $cue = preg_replace('/d%/Ums', $rewrite_file, $cue);
                 } else {
-                    $otherKey = $row['name'] . '_cue_other';
+                    $otherKey = 'config_' . $row['name'] . '_cue_other';
                     $cue = lang($otherKey, $cue);
                 }
             }
@@ -299,8 +299,8 @@ class SettingService extends BaseService
                         );
                     } else {
                         $item = (string) $item;
-                        $labelKey = $row['name'] . '_' . $item;
-                        $label = ((lang($labelKey) !== '')) ? lang($labelKey) : $item;
+                        $labelKey = 'config_' . $row['name'] . '_' . $item;
+                        $label = ((lang($labelKey) !== '')) ? lang($labelKey) : lang($row['name'] . '_' . $item, $item);
                         $normalizedBox[] = array(
                             'value' => $item,
                             'name' => $label,
@@ -311,12 +311,12 @@ class SettingService extends BaseService
             }
 
             $itemLangKey = $row['name'];
-            $itemLang = lang($itemLangKey);
-            if ($itemLang === '' && lang_has('setting_' . $itemLangKey)) {
-                $itemLang = lang('setting_' . $itemLangKey);
+            $itemLang = lang('config_' . $itemLangKey);
+            if ($itemLang === '' && lang_has('config_setting_' . $itemLangKey)) {
+                $itemLang = lang('config_setting_' . $itemLangKey);
             }
             if ($itemLang === '') {
-                $itemLang = $row['name'];
+                $itemLang = lang($itemLangKey, $row['name']);
             }
 
             $cfg_list[] = array(

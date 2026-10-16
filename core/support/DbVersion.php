@@ -74,11 +74,11 @@ class DbVersion
     /**
      * 判断数据库版本是否达到最低要求。
      *
-     * 注意：MariaDB 10.x 按其真实版本号与 MySQL 门槛比较（10.x ≥ 5.7 恒成立），
+     * 注意：MariaDB 10.x 按其真实版本号与 MySQL 门槛比较（10.x ≥ 5.5.3 恒成立），
      * 模块如需区分 MySQL / MariaDB 能力差异，应使用能力探测而非版本门槛表达。
      *
      * @param string $raw 原始版本串
-     * @param string $min 最低要求（如 '4.1' / '5.7' / '8.0.13'）
+     * @param string $min 最低要求（如 '4.1' / '5.5.3' / '8.0.13'）
      * @return bool 达到要求返回 true；任一版本无法解析时返回 false
      */
     public static function isAtLeast($raw, $min)
