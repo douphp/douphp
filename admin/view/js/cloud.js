@@ -5,6 +5,7 @@
   var steps = meta.steps || [];
   var langPack = meta.lang || {};
   var stepUrl = route('admin.cloud.install_step');
+  var progressUrl = route('admin.cloud.install_progress');
 
   var $log = $('#dou-install-log');
   if (!$log.length) { return; }
@@ -12,6 +13,13 @@
   var currentStep = steps[0];
   var seededLines = {};
   var activeSpinner = null;
+  var activeLine = null;          // 当前进行中行（同一步骤循环时继续计时不重置）
+  var activeProgress = null;      // 进行中行进度 span（旋转圈前：N% 或「已用时 N 秒」）
+  var progressHasPercent = false; // 本行已显示真实百分比（秒表不再覆写）
+  var elapsedTimer = null;        // 秒表刷新 interval
+  var elapsedStart = 0;           // 当前行计时起点（毫秒时间戳）
+  var dlPollTimer = null;         // 下载进度轮询 interval
+  var dlPollFails = 0;            // 下载进度轮询连续失败次数
   var stepOrder = ['preflight', 'download', 'unzip', 'snapshot', 'apply', 'finalize'];
 
   function escapeText(text) {
@@ -78,18 +86,61 @@
     return '';
   }
 
+  function stopElapsedTimer() {
+    if (elapsedTimer) {
+      clearInterval(elapsedTimer);
+      elapsedTimer = null;
+    }
+  }
+
+  function formatElapsed() {
+    var sec = Math.floor((Date.now() - elapsedStart) / 1000);
+    if (sec < 0) { sec = 0; }
+    // 语言串沿用项目 d% 占位约定
+    return String(langPack.cloud_step_elapsed || '已用时 d% 秒').replace('d%', String(sec));
+  }
+
+  function renderElapsed() {
+    if (!activeProgress || progressHasPercent) { return; }
+    activeProgress.text(' ' + formatElapsed());
+  }
+
+  function setActivePercent(pct) {
+    if (!activeProgress) { return; }
+    var n = parseInt(pct, 10);
+    if (isNaN(n)) { return; }
+    if (n < 0) { n = 0; }
+    if (n > 100) { n = 100; }
+    progressHasPercent = true; // 百分比保持到下次更新，期间秒表不覆写
+    activeProgress.text(' ' + n + '%');
+  }
+
   function clearActiveSpinner() {
+    // 停表定格：旧行保留已显示的时间 / 百分比文本
+    stopElapsedTimer();
     if (activeSpinner) {
       activeSpinner.remove();
       activeSpinner = null;
     }
+    activeLine = null;
+    activeProgress = null;
+    progressHasPercent = false;
   }
 
   function setActiveSpinner($line) {
+    // 目标行未变（快照 / 下载分片循环）：同一行继续计时不重置
+    if ($line && $line.length && activeLine && $line.get(0) === activeLine.get(0)) {
+      return;
+    }
     clearActiveSpinner();
     if (!$line || !$line.length) { return; }
+    activeLine = $line;
+    activeProgress = $('<span class="install-step-progress"></span>');
     activeSpinner = $('<i class="bi bi-arrow-repeat install-step-spinner" aria-hidden="true"></i>');
-    $line.append(' ').append(activeSpinner);
+    $line.append(activeProgress).append(' ').append(activeSpinner);
+    elapsedStart = Date.now();
+    renderElapsed();
+    elapsedTimer = setInterval(renderElapsed, 1000);
   }
 
   function attachStepSpinner(step) {
@@ -148,12 +199,47 @@
   }
 
   function showFinishActions(result) {
+    // 完成态安全提示（含「查看还原点」小按钮）单独一行；仅在确有还原点时由服务端下发
+    if (result && result.finish_note_html) {
+      appendLogHtml(result.finish_note_html);
+    }
     var html = '';
     if (result && result.btn_action_html) { html += result.btn_action_html; }
     if (result && result.btn_back_html) { html += result.btn_back_html; }
     if (html !== '') {
       appendLogHtml(html);
     }
+  }
+
+  function stopDownloadPoll() {
+    if (dlPollTimer) {
+      clearInterval(dlPollTimer);
+      dlPollTimer = null;
+    }
+  }
+
+  function startDownloadPoll() {
+    stopDownloadPoll();
+    dlPollFails = 0;
+    dlPollTimer = setInterval(function () {
+      $.ajax({
+        url: progressUrl,
+        type: 'GET',
+        dataType: 'json',
+        data: { install_id: installId, token: token }
+      }).then(function (data) {
+        if (data && data.ok && data.percent !== null && data.percent !== undefined) {
+          dlPollFails = 0;
+          setActivePercent(data.percent);
+        }
+      }, function () {
+        // 旧代码窗口 / 网络异常：连续 3 次失败即静默停用，回落秒表
+        dlPollFails++;
+        if (dlPollFails >= 3) {
+          stopDownloadPoll();
+        }
+      });
+    }, 1200);
   }
 
   function buildNextUrl(next) {
@@ -177,12 +263,23 @@
   function runStep(step) {
     currentStep = step;
     attachStepSpinner(step);
+    // 下载步骤：并行轮询真实百分比（需有 download_url 且非 local 模式）
+    if (step === 'download'
+      && meta.download_url && String(meta.download_url) !== ''
+      && String(meta.mode || '') !== 'local') {
+      startDownloadPoll();
+    }
     return $.ajax({
       url: stepUrl,
       type: 'POST',
       dataType: 'json',
       data: { install_id: installId, step: step, token: token }
     }).then(function (data) {
+      // 本步请求已返回：停止下载轮询；下载成功时先将该行定格 100% 再进入下一步
+      stopDownloadPoll();
+      if (data && typeof data === 'object' && step === 'download' && data.ok) {
+        setActivePercent(100);
+      }
       if (!data || typeof data !== 'object') {
         clearActiveSpinner();
         showFailure({
@@ -196,6 +293,10 @@
         meta.mode = String(data.mode);
       }
       pushLogs(data.logs || [], data.ok ? 'info' : 'error');
+      // 快照等步骤携带真实进度（0-99 整数）时更新进行中行
+      if (typeof data.progress === 'number') {
+        setActivePercent(data.progress);
+      }
       if (!data.ok) {
         clearActiveSpinner();
         if (!data.error || String(data.error) === '') {
@@ -236,6 +337,7 @@
       }
       clearActiveSpinner();
     }, function (jqXHR, textStatus) {
+      stopDownloadPoll();
       clearActiveSpinner();
       var parsed = jqXHR && jqXHR.responseJSON ? jqXHR.responseJSON : null;
       if (parsed && typeof parsed === 'object' && parsed.error) {

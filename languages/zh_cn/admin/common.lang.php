@@ -809,6 +809,7 @@ $_LANG['snapshot_btn_abandon'] = '放弃还原';
 $_LANG['snapshot_btn_restore_submit'] = '确认恢复';
 $_LANG['snapshot_abandon_none'] = '该还原点没有进行中的还原任务';
 $_LANG['snapshot_abandon_done'] = '已放弃本次还原，维护模式已按原值恢复';
+$_LANG['snapshot_restore_starting'] = '正在开始还原「d%」，请勿重复点击或关闭页面，系统将自动继续…';
 $_LANG['snapshot_restore_running'] = '正在还原，请勿关闭页面…';
 $_LANG['snapshot_restore_success'] = '恢复完成';
 $_LANG['snapshot_restore_failed'] = '恢复失败：d%';

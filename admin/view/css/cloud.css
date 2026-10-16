@@ -333,6 +333,34 @@
   }
 }
 
+/* -- 进行中行的进度文本（旋转图标前）：真实百分比 N%，拿不到时显示「已用时 N 秒」秒表 -- */
+#dou-install-log .install-step-progress {
+  display: inline-block;
+  margin-left: 6px;
+  color: #999;
+}
+
+/* -- 完成态安全提示与「查看还原点」小号按钮（仅在确有还原点时输出） -- */
+#dou-install-log .dou-finish-note {
+  color: #999;
+  font-size: 13px;
+}
+#dou-install-log .dou-snapshot-link-btn {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 0 10px;
+  line-height: 20px;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  color: #666;
+  text-decoration: none;
+  vertical-align: middle;
+}
+#dou-install-log .dou-snapshot-link-btn:hover {
+  border-color: #19b4ea;
+  color: #19b4ea;
+}
+
 /*- cloud-frame -*/
 .cloud-frame .bg {
   position: fixed;

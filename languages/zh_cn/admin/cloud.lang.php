@@ -143,3 +143,9 @@ $_LANG['cloud_snapshot_engine_missing'] = '还原点引擎缺失（core/service/
 $_LANG['cloud_snapshot_restored'] = '本次更新失败，已从升级还原点自动回滚：文件与数据库均恢复为更新前状态';
 $_LANG['cloud_snapshot_restore_failed'] = '本次更新失败，自动回滚未完成：d%；请在「数据备份 - 升级还原点」页继续或手动恢复';
 $_LANG['cloud_snapshot_restore_pending'] = '本次更新失败，自动回滚超时；请在「数据备份 - 升级还原点」页继续恢复';
+
+// 完成态安全提示与进行中秒表（cloud/install）
+$_LANG['cloud_finish_note_system'] = '提示：升级前已自动创建还原点（含站点文件与数据库）；若升级后发现异常，可将站点恢复到升级前的状态：';
+$_LANG['cloud_finish_note_module'] = '提示：更新前已自动创建还原点（含本次涉及的文件与数据库）；若更新后发现异常，可将模块恢复到更新前的状态：';
+$_LANG['cloud_finish_note_view'] = '查看还原点';
+$_LANG['cloud_step_elapsed'] = '已用时 d% 秒';

@@ -34,8 +34,9 @@ if (!defined('IN_DOUCO')) {
 /**
  * 升级还原点（快照）管理：列表 / 恢复 / 下载 / 删除 / 急救链接 / 维护模式恢复。
  *
- * 恢复为 dou_msg 链式续跑：确认（POST）→ 每次请求推进一段（GET + token 续跑链接），
- * 直至完成；还原执行链本体在 core 侧 {@see RestoreService}（与模块更新失败自动回滚共用）。
+ * 恢复为 dou_msg 链式续跑：确认（POST）→ 启动跳板页（立即响应，1 秒后自动带 start=1
+ * 跳转）→ 每次请求推进一段（GET + token 续跑链接），直至完成；还原执行链本体在
+ * core 侧 {@see RestoreService}（与模块更新失败自动回滚共用）。
  * 本页属技术人员补救入口，按钮在「恢复备份」页以灰色样式低调提供。
  */
 class SnapshotController extends BaseController
@@ -85,7 +86,7 @@ class SnapshotController extends BaseController
     }
 
     /**
-     * 执行还原（dou_msg 链：确认 → 分段推进 → 完成）。
+     * 执行还原（dou_msg 链：确认 → 启动跳板 → 分段推进 → 完成）。
      *
      * @param Request $request
      * @return Response
@@ -100,29 +101,45 @@ class SnapshotController extends BaseController
         }
 
         $confirm = (string) $request->post('confirm', '');
+        $start = (string) $request->query('start', '');
         $restore = new RestoreService(ROOT_PATH);
         $active = $restore->activeDir();
 
-        // 二次确认页（未确认且无本目录进行中的还原）
-        if ($confirm === '' && $active !== $dirName) {
+        // 界面态（尚未进入实际还原）：未带 start 启动标记，且无本目录进行中的还原。
+        // 未确认 → 二次确认页；已确认 → 启动跳板页（均不在此执行实际工作，见下）。
+        if ($start === '' && $active !== $dirName) {
             $row = $repository->row($dirName);
             if ($row === null) {
                 throw new DomainException(str_replace('d%', $dirName, lang('snapshot_missing')), route('admin.backup.snapshot'));
             }
             $title = !empty($row['manifest']['title']) ? (string) $row['manifest']['title'] : $dirName;
 
+            // 二次确认页。
             // respond() 第三参是「裸页布局」开关而非附注（dou_msg 正文按纯文本渲染，勿放 HTML）；
             // 第六参覆盖确认按钮文案（默认是「确认删除」，恢复动作不能用）
+            if ($confirm === '') {
+                return message()->respond(
+                    str_replace('d%', $title, lang('snapshot_restore_confirm')) . ' ' . lang('snapshot_restore_confirm_cue'),
+                    route('admin.backup.snapshot'),
+                    '',
+                    '30',
+                    route('admin.backup.snapshot_restore', array(), array('query' => array('snapshot' => $dirName))),
+                    lang('snapshot_btn_restore_submit')
+                );
+            }
+
+            // 启动跳板页：点击「确认恢复」后立即响应（本请求不执行任何实际工作），
+            // 1 秒后自动带 start=1 跳回本动作开始执行——还原单次请求最长耗时十几秒，
+            // 若在确认请求内直接执行，长时间空白等待会被误认为「没有点上」而重复提交。
             return message()->respond(
-                str_replace('d%', $title, lang('snapshot_restore_confirm')) . ' ' . lang('snapshot_restore_confirm_cue'),
-                route('admin.backup.snapshot'),
+                str_replace('d%', $title, lang('snapshot_restore_starting')),
+                route('admin.backup.snapshot_restore', array(), array('query' => array('snapshot' => $dirName, 'token' => csrf()->token(), 'start' => '1'))),
                 '',
-                '30',
-                route('admin.backup.snapshot_restore', array(), array('query' => array('snapshot' => $dirName))),
-                lang('snapshot_btn_restore_submit')
+                '1'
             );
         }
 
+        // 执行态：start=1 首跑 / 续跑 GET / 进行中重复确认，统一走还原执行链。
         // 全局互斥锁（与云更新 / 向导共用）：还原链持有并逐步刷新，完成后释放
         $holder = 'snapshot:' . $dirName;
         $runLock = new RunLockService(ROOT_PATH);

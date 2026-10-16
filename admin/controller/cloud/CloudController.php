@@ -191,6 +191,7 @@ class CloudController extends BaseController
             'cloud_install_ing' => lang('cloud_install_ing'),
             'cloud_install_request_failed' => lang('cloud_install_request_failed'),
             'cloud_install_step_failed_generic' => lang('cloud_install_step_failed_generic'),
+            'cloud_step_elapsed' => lang('cloud_step_elapsed'),
         );
 
         $meta = array(
@@ -304,7 +305,14 @@ class CloudController extends BaseController
             'mode' => '',
         );
 
-        $updatedState = $session->withLock($installId, function ($state) use ($service, $step, &$response, $session, $runLock) {
+        // 下载可能持续数分钟：提前释放 PHP 会话文件锁，避免前端进度轮询请求被
+        // session_start 阻塞（CSRF 与入参均已读取完毕；安装会话由 InstallSessionService
+        // 独立文件锁保护，本请求后续不再写 PHP Session）。
+        if ($step === InstallService::STEP_DOWNLOAD && session_status() === PHP_SESSION_ACTIVE) {
+            @session_write_close();
+        }
+
+        $updatedState = $session->withLock($installId, function ($state) use ($service, $step, &$response, $session, $runLock, $installId) {
             if (!empty($state['finished'])) {
                 $response['ok'] = true;
                 $response['finished'] = true;
@@ -425,6 +433,8 @@ class CloudController extends BaseController
             $response['ok'] = true;
             $response['logs'] = $logs;
             $response['next'] = $next;
+            // 快照步骤的真实进度（0-99 整数或 null）透传，前端用于更新进行中行
+            $response['progress'] = isset($outcome['progress']) ? $outcome['progress'] : null;
 
             if ($step === InstallService::STEP_FINALIZE) {
                 $state['success'] = true;
@@ -455,6 +465,64 @@ class CloudController extends BaseController
         }
 
         return $this->installStepJson($response, 200);
+    }
+
+    /**
+     * 下载进度轮询（JSON API，GET）。
+     *
+     * 供前端在 download 步骤并行轮询（每 1.2 秒）：读取 {@see InstallService::runDownload()}
+     * 经 curl 进度回调节流落盘的进度文件，换算为 0-99 百分比；文件缺失或超过 5 秒未刷新
+     * （下载已结束 / 请求已消亡）时返回 percent=null，前端回落秒表显示。
+     *
+     * 本接口不触碰安装会话锁、不写 PHP Session，可安全与下载长请求并发
+     * （installStep() 在 download 步骤已提前 session_write_close()）。
+     *
+     * 入参：install_id / token（query）
+     * 出参：{ ok, percent: int|null, now: int, total: int }
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function installProgress(Request $request)
+    {
+        $token = trim((string) $request->input('token', ''));
+        if (!csrf()->verify($token, 'static_admin')) {
+            return $this->installStepJson(array('ok' => false, 'error' => lang('illegal')), 419);
+        }
+
+        $installId = (string) $request->input('install_id', '');
+        if (!$this->installSession->isValidId($installId)) {
+            return $this->installStepJson(array('ok' => false, 'error' => lang('illegal')), 400);
+        }
+
+        $percent = null;
+        $now = 0;
+        $total = 0;
+
+        $progressFile = STORAGE_PATH . 'install/' . $installId . '.dl.json';
+        if (is_file($progressFile)) {
+            $raw = @file_get_contents($progressFile);
+            $data = $raw !== false ? json_decode($raw, true) : null;
+            if (is_array($data) && isset($data['total'], $data['now'], $data['t'])) {
+                $total = (int) $data['total'];
+                $now = (int) $data['now'];
+                // 超过 5 秒未刷新视为无效（下载已结束或请求已消亡）
+                if ($total > 0 && (time() - (int) $data['t']) <= 5) {
+                    $pct = (int) floor($now * 100 / $total);
+                    $percent = $pct > 99 ? 99 : ($pct < 0 ? 0 : $pct);
+                } else {
+                    $total = 0;
+                    $now = 0;
+                }
+            }
+        }
+
+        return $this->installStepJson(array(
+            'ok' => true,
+            'percent' => $percent,
+            'now' => $now,
+            'total' => $total,
+        ), 200);
     }
 
     /**

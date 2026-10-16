@@ -277,7 +277,7 @@ class InstallService extends BaseService
     /**
      * 步骤 2：下载安装包到 cache 目录；local 模式仅校验文件存在。
      *
-     * @param array $params 至少包含 type / cloud_id / mode；须含云端 install-resolve 下发的 download_url（经 {@see filterTrustedInstallDownloadUrl} 白名单校验）
+     * @param array $params 至少包含 type / cloud_id / mode（install_id 用于下载进度文件命名）；须含云端 install-resolve 下发的 download_url（经 {@see filterTrustedInstallDownloadUrl} 白名单校验）
      * @return array { ok: bool, error: string, logs: string[] }
      */
     public function runDownload(array $params)
@@ -285,9 +285,17 @@ class InstallService extends BaseService
         $type = isset($params['type']) ? (string) $params['type'] : '';
         $cloudId = isset($params['cloud_id']) ? (string) $params['cloud_id'] : '';
         $mode = isset($params['mode']) ? (string) $params['mode'] : 'install';
+        $installId = isset($params['install_id']) ? (string) $params['install_id'] : '';
 
         $logs = array();
         $itemZip = $this->cacheDir . $cloudId . '.zip';
+
+        // 下载进度文件：供前端轮询显示百分比（install_id 形态非法时不启用；开始前清掉可能残留的旧文件）
+        $progressFile = '';
+        if (preg_match('/^[a-f0-9]{1,64}$/', $installId)) {
+            $progressFile = STORAGE_PATH . 'install/' . $installId . '.dl.json';
+            @unlink($progressFile);
+        }
 
         if ($mode === 'local') {
             if (!is_file($itemZip)) {
@@ -314,10 +322,13 @@ class InstallService extends BaseService
 
         $logs[] = lang('cloud_down_ing_0') . $downUrl . lang('cloud_down_ing_1');
 
-        $downloaded = $this->downloadFile($downUrl, $this->cacheDir);
+        $downloaded = $this->downloadFile($downUrl, $this->cacheDir, $progressFile);
+        if ($progressFile !== '') {
+            @unlink($progressFile);
+        }
         if ($downloaded !== false) {
             // 包完整性校验（最小档）：云端 install-resolve 下发 sha256 时必须一致，否则删除并拒绝；
-            // 未下发 sha256（旧云端/镜像缺 sidecar）→ 提示后继续（平滑过渡）
+            // 未下发 sha256（旧云端/镜像缺 sidecar）→ 静默继续（平滑过渡）
             $expected = isset($params['sha256']) ? strtolower(trim((string) $params['sha256'])) : '';
             if ($expected !== '') {
                 $actual = @hash_file('sha256', $downloaded);
@@ -330,8 +341,6 @@ class InstallService extends BaseService
                     return array('ok' => false, 'error' => $msg, 'logs' => $logs);
                 }
                 $logs[] = lang_has('cloud_package_hash_ok') ? (string) lang('cloud_package_hash_ok') : '包完整性校验通过。';
-            } else {
-                $logs[] = lang_has('cloud_package_hash_skipped') ? (string) lang('cloud_package_hash_skipped') : '云端未下发 sha256，跳过完整性校验。';
             }
 
             return array('ok' => true, 'error' => '', 'logs' => $logs);
@@ -403,11 +412,18 @@ class InstallService extends BaseService
      * 建 module 域还原点（按解压目录反推将被覆盖 / 新增的文件）。其余类型（全新安装、
      * 主题 / 插件 / 小程序）不建还原点，直接放行到 apply。
      *
-     * 断点续传：一次调用按时间预算推进一个单元；未完成时返回 next_step=snapshot，
-     * 由前端循环再次调用本步骤（active.json 记录创建进度），直至完成再进入 apply。
+     * 断点续传：一次调用按时间预算推进一个单元；未完成时返回 next_step=snapshot 与
+     * progress 百分比（取自 progress.json 实时游标），由前端循环再次调用本步骤
+     * （active.json 记录创建进度），直至完成再进入 apply。
+     *
+     * 日志收敛：过程中仅保留前端预置的进行中提示（含旋转圈与进度），完成时输出一行
+     * 「已创建：目录名」；快照引擎的内部进度日志不再回传（其它入口不受影响）。
+     *
+     * 命名：系统还原点目录名 = system-<升级前版本净化>-<YmdHis>（快照内容即升级前状态，
+     * 供列表页 / 恢复确认直观识别被备份的版本）；模块 / 向导命名策略不变。
      *
      * @param array $params 至少包含 type / cloud_id / mode / install_id
-     * @return array { ok: bool, error: string, logs: string[], next_step?: string }
+     * @return array { ok: bool, error: string, logs: string[], next_step?: string, progress?: int|null }
      */
     public function runSnapshot(array $params)
     {
@@ -430,11 +446,22 @@ class InstallService extends BaseService
         $active = $snapshot->active();
         $logs = array();
         if ($active === null) {
+            // 系统还原点记录「被备份的升级前版本」：snapshot 步骤先于 apply 执行，
+            // 此处读到的 douphp_version 即升级前版本；取不到时回退目标包标识（原行为）。
+            $scopeId = $cloudId;
+            $title = $cloudId;
+            if ($isSystem) {
+                $backedVersion = (string) Config::get('site.douphp_version', '');
+                if ($backedVersion !== '') {
+                    $scopeId = $backedVersion;
+                    $title = $backedVersion;
+                }
+            }
             $options = array(
                 'db' => true,
                 'channel' => 'cloud',
                 'install_id' => $installId,
-                'title' => $cloudId,
+                'title' => $title,
             );
             if ($isSystem) {
                 $options['file_mode'] = 'full';
@@ -442,28 +469,75 @@ class InstallService extends BaseService
                 $options['file_mode'] = 'list';
                 $options['item_dir'] = $this->cacheDir . $cloudId;
             }
-            $begin = $snapshot->begin($isSystem ? 'system' : 'module', $cloudId, $options);
+            $begin = $snapshot->begin($isSystem ? 'system' : 'module', $scopeId, $options);
             if (empty($begin['ok'])) {
                 return array('ok' => false, 'error' => (string) $begin['error'], 'logs' => $logs);
             }
-            $logs[] = (string) lang('cloud_snapshot_begin');
         }
 
         $result = $snapshot->step(array('max_seconds' => 12, 'file_batch' => 700, 'db_bytes' => 4194304));
         if (empty($result['ok'])) {
             return array('ok' => false, 'error' => (string) $result['error'], 'logs' => $logs);
         }
-        foreach ((array) $result['logs'] as $line) {
-            $logs[] = (string) $line;
-        }
 
         if (empty($result['done'])) {
-            return array('ok' => true, 'error' => '', 'logs' => $logs, 'next_step' => self::STEP_SNAPSHOT);
+            return array(
+                'ok' => true,
+                'error' => '',
+                'logs' => $logs,
+                'next_step' => self::STEP_SNAPSHOT,
+                'progress' => $this->snapshotPercent($snapshot),
+            );
         }
 
-        $logs[] = sprintf((string) lang('cloud_snapshot_done'), $result['dir']);
+        $logs[] = str_replace('d%', basename(rtrim((string) $result['dir'], '/')), (string) lang('cloud_snapshot_done'));
 
         return array('ok' => true, 'error' => '', 'logs' => $logs, 'next_step' => self::STEP_APPLY);
+    }
+
+    /**
+     * 还原点创建百分比（阶段加权估算，用于前端进行中提示）。
+     *
+     * 口径：files 阶段 5–80%（file_index/file_total）、db 阶段 80–98%（table_index/表数）、
+     * finalize 99%；collect（收集清单，无细粒度游标）与取不到进度时返回 null（前端回落秒表）。
+     *
+     * @param \Dou\Core\Service\Upgrade\SnapshotService $snapshot
+     * @return int|null
+     */
+    private function snapshotPercent($snapshot)
+    {
+        $active = $snapshot->active();
+        if (!is_array($active) || !isset($active['progress']) || !is_array($active['progress'])) {
+            return null;
+        }
+        $p = $active['progress'];
+        $phase = isset($p['phase']) ? (string) $p['phase'] : '';
+
+        if ($phase === 'files') {
+            $total = isset($p['file_total']) ? (int) $p['file_total'] : 0;
+            if ($total > 0) {
+                $index = isset($p['file_index']) ? (int) $p['file_index'] : 0;
+
+                return 5 + (int) floor(75 * $index / $total);
+            }
+
+            return null;
+        }
+        if ($phase === 'db') {
+            $total = isset($p['tables']) ? count((array) $p['tables']) : 0;
+            if ($total > 0) {
+                $index = isset($p['table_index']) ? (int) $p['table_index'] : 0;
+
+                return 80 + (int) floor(18 * $index / $total);
+            }
+
+            return 85;
+        }
+        if ($phase === 'finalize') {
+            return 99;
+        }
+
+        return null;
     }
 
     /**
@@ -566,6 +640,7 @@ class InstallService extends BaseService
         $buttons = $this->buildSuccessButtons($mode, $type, $cloudId, $backUrl);
         $btnAction = isset($buttons['action']) ? (string) $buttons['action'] : '';
         $btnBack = isset($buttons['back']) ? (string) $buttons['back'] : '';
+        $btnNote = isset($buttons['note']) ? (string) $buttons['note'] : '';
 
         $nextInstall = $this->resolveNextInstall($batch, $themeId, $mode, $version);
 
@@ -575,6 +650,7 @@ class InstallService extends BaseService
             'result' => array(
                 'btn_action_html' => $btnAction,
                 'btn_back_html' => $btnBack,
+                'finish_note_html' => $btnNote,
                 'next_install' => $nextInstall,
             ),
         );
@@ -1519,9 +1595,10 @@ class InstallService extends BaseService
      *
      * @param string $fileUrl
      * @param string $savePath
+     * @param string $progressFile 可选：下载进度文件路径（非空时启用 curl 进度回调，节流写入 total/now/t）
      * @return string|false 成功返回保存绝对路径，失败返回 false
      */
-    public function downloadFile($fileUrl, $savePath)
+    public function downloadFile($fileUrl, $savePath, $progressFile = '')
     {
         $this->lastDownloadFailureDetail = '';
         $basename = basename($fileUrl);
@@ -1537,6 +1614,29 @@ class InstallService extends BaseService
             'localsystem' => $this->updateState->localSystemPayload(),
         );
 
+        // 下载进度回调（进度文件非空时启用）：0.5 秒节流写盘，供前端轮询接口读取显示百分比
+        $progressCb = null;
+        if ($progressFile !== '') {
+            $lastWritten = 0.0;
+            $progressCb = function ($dlTotal, $dlNow) use (&$lastWritten, $progressFile) {
+                $dlTotal = (int) $dlTotal;
+                $dlNow = (int) $dlNow;
+                if ($dlTotal <= 0) {
+                    return;
+                }
+                $now = microtime(true);
+                if ($dlNow < $dlTotal && ($now - $lastWritten) < 0.5) {
+                    return;
+                }
+                $lastWritten = $now;
+                @file_put_contents(
+                    $progressFile,
+                    json_encode(array('total' => $dlTotal, 'now' => $dlNow, 't' => time())),
+                    LOCK_EX
+                );
+            };
+        }
+
         $mirrorErrors = array('upstream_not_found', 'upstream_unavailable', 'upstream_misconfigured');
 
         // 先清理可能残留的旧包，避免上一次失败留下半截文件被误判为完整。
@@ -1544,7 +1644,7 @@ class InstallService extends BaseService
 
         $attempts = 3;
         for ($attempt = 1; $attempt <= $attempts; $attempt++) {
-            $result = $this->attemptStreamDownload($fileUrl, $data, $saveFile, $mirrorErrors);
+            $result = $this->attemptStreamDownload($fileUrl, $data, $saveFile, $mirrorErrors, $progressCb);
             if ($result === true) {
                 return $saveFile;
             }
@@ -1565,22 +1665,21 @@ class InstallService extends BaseService
     /**
      * 单次流式下载尝试。
      *
+     * @param callable|null $progressCb 可选进度回调（入参 $dlTotal / $dlNow），转交 {@see Client} 的 progress_cb
      * @return true|string 成功返回 true；失败返回失败原因码（供 {@see $lastDownloadFailureDetail}）
      */
-    private function attemptStreamDownload($fileUrl, array $data, $saveFile, array $mirrorErrors)
+    private function attemptStreamDownload($fileUrl, array $data, $saveFile, array $mirrorErrors, $progressCb = null)
     {
-        $meta = Client::request(
-            'POST',
-            $fileUrl,
-            $data,
-            array(),
-            array(
-                'return_meta' => true,
-                'timeout' => 7200,
-                'connect_timeout' => 20,
-                'stream_to' => $saveFile,
-            )
+        $options = array(
+            'return_meta' => true,
+            'timeout' => 7200,
+            'connect_timeout' => 20,
+            'stream_to' => $saveFile,
         );
+        if (is_callable($progressCb)) {
+            $options['progress_cb'] = $progressCb;
+        }
+        $meta = Client::request('POST', $fileUrl, $data, array(), $options);
 
         if (!is_array($meta)) {
             return 'curl_error';
@@ -2199,17 +2298,21 @@ class InstallService extends BaseService
      * 仅在 {@see runFinalize} 收尾成功时调用；仅打开 `cloud/install` 页面不会执行本方法。
      * `update` 与 `patch` 均视为「已装机上的更新类操作」，返回按钮统一回 {@see CloudController::update} 入口。
      *
+     * 安全提示（note）：仅在流程真正创建了还原点时输出（system + update/patch、module + update），
+     * 以提示行 + 小号入口按钮替代原「升级还原点」大按钮；其余场景（全新安装等）为空串。
+     *
      * @param string $mode
      * @param string $type
      * @param string $cloudId
      * @param string $backUrl 自定义返回地址（调用方需预先校验为本站后台 URL）；非空时覆盖默认返回按钮 href，
      *                        用于预置模块安装后跳回模块真实页面等场景。按钮文案仍按 type 取对应 lang 键。
-     * @return array { action: string, back: string }
+     * @return array { action: string, back: string, note: string }
      */
     public function buildSuccessButtons($mode, $type, $cloudId, $backUrl = '')
     {
         $btnAction = '';
         $btnBack = '';
+        $btnNote = '';
         switch ($type) {
             case 'system':
                 $btnBack = '<a href="' . Util::absolutizeEntryUrl('index.php') . '" class="btn-secondary">' . lang('cloud_admin_home') . '</a>';
@@ -2237,9 +2340,16 @@ class InstallService extends BaseService
                 $btnBack = '<a href="' . Util::absolutizeEntryUrl('index.php') . '" class="btn-secondary">' . lang('cloud_admin_home') . '</a>';
         }
 
-        // 上下文入口：系统升级 / 模块更新完成后直达「升级还原点」（回滚补救页）
-        if ($type === 'system' || $type === 'module') {
-            $btnAction = '<a href="' . Util::absolutizeEntryUrl(route('admin.backup.snapshot')) . '" class="btn-secondary">' . lang('snapshot_page_title') . '</a>';
+        // 安全提示（替代原「升级还原点」大按钮）：仅当流程真正创建了还原点时输出，
+        // 条件与 {@see runSnapshot} 建快照条件一致（system + update/patch、module + update）；
+        // 全新安装等无快照场景不显示，避免误导。入口以「小号描边按钮」附在提示行内。
+        $snapshotCreated = ($type === 'system' && ($mode === 'update' || $mode === 'patch'))
+            || ($type === 'module' && $mode === 'update');
+        if ($snapshotCreated) {
+            $noteText = $this->finishNoteText($type);
+            $viewLabel = lang_has('cloud_finish_note_view') ? (string) lang('cloud_finish_note_view') : '查看还原点';
+            $btnNote = '<span class="dou-finish-note">' . $noteText
+                . '<a class="dou-snapshot-link-btn" href="' . Util::absolutizeEntryUrl(route('admin.backup.snapshot')) . '">' . $viewLabel . '</a></span>';
         }
 
         if ($mode === 'update' || $mode === 'patch') {
@@ -2251,7 +2361,26 @@ class InstallService extends BaseService
             $btnBack = '<a href="' . htmlspecialchars((string) $backUrl, ENT_QUOTES, DOU_CHARSET) . '" class="btn-secondary">' . $this->backButtonLabel($type) . '</a>';
         }
 
-        return array('action' => $btnAction, 'back' => $btnBack);
+        return array('action' => $btnAction, 'back' => $btnBack, 'note' => $btnNote);
+    }
+
+    /**
+     * 完成态安全提示文案：按 type 区分「升级 / 更新」与「站点 / 模块」措辞。
+     *
+     * @param string $type
+     * @return string
+     */
+    private function finishNoteText($type)
+    {
+        if ($type === 'module') {
+            return lang_has('cloud_finish_note_module')
+                ? (string) lang('cloud_finish_note_module')
+                : '提示：更新前已自动创建还原点（含本次涉及的文件与数据库）；若更新后发现异常，可将模块恢复到更新前的状态：';
+        }
+
+        return lang_has('cloud_finish_note_system')
+            ? (string) lang('cloud_finish_note_system')
+            : '提示：升级前已自动创建还原点（含站点文件与数据库）；若升级后发现异常，可将站点恢复到升级前的状态：';
     }
 
     /**

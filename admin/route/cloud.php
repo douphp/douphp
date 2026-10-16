@@ -35,4 +35,9 @@ Route::name('admin.')->group(function () {
     // 不能走 CsrfMiddleware 的 HTML 提示页拒绝（会破坏 API 契约），故路由级豁免 csrf。
     Route::any('cloud/install_step', CloudController::class, 'install_step', 'cloud')
         ->withoutMiddleware(['csrf']);
+
+    // install_progress：下载进度轮询（GET JSON，控制器自带 token 校验），
+    // 与 install_step 同理豁免 csrf 中间件（避免 HTML 拒绝页破坏 JSON 契约）。
+    Route::any('cloud/install_progress', CloudController::class, 'install_progress', 'cloud')
+        ->withoutMiddleware(['csrf']);
 });

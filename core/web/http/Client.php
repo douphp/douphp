@@ -59,9 +59,10 @@ class Client
      * @param string $url 请求地址
      * @param array|string $data 请求数据（GET 时作为 query）
      * @param array $headers 请求头
-     * @param array $options 可选项：timeout、connect_timeout、return_meta、verify_ssl、max_bytes、resolve、stream_to
+     * @param array $options 可选项：timeout、connect_timeout、return_meta、verify_ssl、max_bytes、resolve、stream_to、progress_cb
      *                       stream_to：将响应体直接流式写入该文件路径（用于大文件下载，
      *                       避免整包读入内存字符串；return_meta 时 body 返回空串，并附带 size / content_length）
+     *                       progress_cb：callable($dlTotal, $dlNow)，传输中周期性回调（用于下载进度观测，返回继续）
      * @return mixed
      */
     public static function request($method, $url, $data = array(), $headers = array(), $options = array())
@@ -72,6 +73,7 @@ class Client
         $verifySsl = !isset($options['verify_ssl']) || $options['verify_ssl'] !== false;
         $maxBytes = isset($options['max_bytes']) ? max(0, (int) $options['max_bytes']) : 0;
         $streamTo = isset($options['stream_to']) ? (string) $options['stream_to'] : '';
+        $progressCb = isset($options['progress_cb']) && is_callable($options['progress_cb']) ? $options['progress_cb'] : null;
         if ($timeout < 1) {
             $timeout = 30;
         }
@@ -184,6 +186,16 @@ class Client
             }
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, false);
             curl_setopt($ch, CURLOPT_FILE, $streamFp);
+        }
+
+        if ($progressCb !== null) {
+            // 下载进度观测（可选）：转发 dlTotal/dlNow 给调用方，返回 0 表示继续传输
+            curl_setopt($ch, CURLOPT_NOPROGRESS, false);
+            curl_setopt($ch, CURLOPT_PROGRESSFUNCTION, function ($ch, $dlTotal, $dlNow) use ($progressCb) {
+                call_user_func($progressCb, (int) $dlTotal, (int) $dlNow);
+
+                return 0;
+            });
         }
 
         $response = curl_exec($ch);

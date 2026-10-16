@@ -28,8 +28,8 @@ if (!defined('IN_DOUCO')) {
  *   1. 目录权限全量写测：站点根 + 关键目录（含 storage 各子目录；临时文件探测，Windows 友好）；
  *   2. PHP 硬性下限（≥5.6.0）与必需扩展（zip/mysqli；openssl 缺失降级为警告）；
  *   3. PHP × MySQL 组合判定（口径同 devtools/mysql-compat-check：blocked 拒绝、limited 警告）；
- *   4. 磁盘余量参考提示（尽力而为：disk_free_space 对虚拟主机是服务器分区而非账号配额、数值不可信，
- *      仅作参考提示，绝不阻断；真正的护栏是升级各写点的「写入失败即中止并清理」）。
+ *   4. 磁盘余量友情提示（尽力而为：disk_free_space 对虚拟主机是服务器分区而非账号配额、数值不可信，
+ *      仅在可用空间可能不足时输出一行，绝不阻断；真正的护栏是升级各写点的「写入失败即中止并清理」）。
  *
  * 结果：blocked/必需项缺失 → errors（调用方 fail-loud）；limited/提示 → warnings/notices（进日志不阻断）。
  */
@@ -84,8 +84,11 @@ class PreflightService
             }
         }
 
-        // 4) 磁盘余量参考提示（不阻断）
-        $notices[] = $this->diskHint($rootPath);
+        // 4) 磁盘余量友情提示（仅可用空间可能不足时输出；不阻断）
+        $diskHint = $this->diskHint($rootPath);
+        if ($diskHint !== '') {
+            $notices[] = $diskHint;
+        }
 
         return array(
             'ok' => empty($errors),
@@ -137,10 +140,14 @@ class PreflightService
     }
 
     /**
-     * 磁盘余量参考提示（估算 = 代码目录体积 + 数据库体积 + 20% 余量）。
+     * 磁盘余量友情提示：仅当可用空间可能不足时返回一行文本，其余情况返回空串。
+     *
+     * 估算 = 代码目录体积 + 数据库体积 + 20% 余量；disk_free_space 不可用
+     * （虚拟主机常见）或空间充足时静默跳过（省去体积统计开销）。
+     * 该提示仅供参考，绝不阻断升级：真正的护栏是升级各写点的「写入失败即中止并清理」。
      *
      * @param string $rootPath
-     * @return string
+     * @return string 空间可能不足时的友情提示；空间充足或无法检测时为空串
      */
     private function diskHint($rootPath)
     {
@@ -150,6 +157,11 @@ class PreflightService
         if (function_exists('disk_free_space')) {
             $free = @disk_free_space($rootPath);
         }
+        if ($free === false || (int) $free <= 0) {
+            // 无法检测：静默跳过
+            return '';
+        }
+        $free = (int) $free;
 
         // 代码目录体积（排除 images/ 与 storage/ 动态目录，它们是体积大头且不进升级快照）
         $codeBytes = 0;
@@ -168,19 +180,13 @@ class PreflightService
         }
 
         $estimate = (int) (($codeBytes + $dbBytes) * 1.2);
-        $text = '升级参考提示：预计占用磁盘约 ' . $this->formatBytes($estimate)
-            . '（代码 ' . $this->formatBytes($codeBytes) . ' + 数据库 ' . $this->formatBytes($dbBytes) . '，含约 20% 余量）';
-
-        if ($free !== false && $free > 0) {
-            $text .= '；当前磁盘可用 ' . $this->formatBytes((int) $free) . '。';
-            if ($free < $estimate) {
-                $text .= '可用空间可能不足，建议先清理磁盘（提示仅供参考，不阻断升级）。';
-            }
-        } else {
-            $text .= '；服务器未提供磁盘余量（虚拟主机常见），无法检测。';
+        if ($free >= $estimate) {
+            return '';
         }
 
-        return $text;
+        return '友情提示：本次升级预计占用磁盘约 ' . $this->formatBytes($estimate)
+            . '（代码 ' . $this->formatBytes($codeBytes) . ' + 数据库 ' . $this->formatBytes($dbBytes) . '，含约 20% 余量）'
+            . '，当前磁盘可用 ' . $this->formatBytes($free) . '，空间可能不足，建议先清理磁盘。该提示仅供参考，不会中断升级。';
     }
 
     /**
