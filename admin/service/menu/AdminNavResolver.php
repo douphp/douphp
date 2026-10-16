@@ -66,7 +66,7 @@ class AdminNavResolver
      * 解析路由名得到 $nav 契约。
      *
      * @param string $routeName 当前路由名（如 admin.user.contact.edit），空字符串=未派发
-     * @param array  $overrides 页面级覆盖：submenu|null、subitem|null、sidebar|null
+     * @param array $overrides 页面级覆盖：submenu|null、subitem|null、sidebar|null
      * @return array
      */
     public static function resolve($routeName, array $overrides = array())
@@ -211,8 +211,8 @@ class AdminNavResolver
      * 多模式竞争的 specificity：exclude 命中即不匹配；取 match 中最大者。
      *
      * @param string $routeName
-     * @param array  $match
-     * @param array  $exclude
+     * @param array $match
+     * @param array $exclude
      * @return int|null
      */
     private static function matchSpecificity($routeName, array $match, array $exclude)
@@ -247,8 +247,8 @@ class AdminNavResolver
      * 目标项按别名定位（别名项允许覆盖 key，只比 key 会在覆盖时静默失效）；无别名的
      * 全字段项退回按 key 比对。
      *
-     * @param string     $familyKey
-     * @param array      $family
+     * @param string $familyKey
+     * @param array $family
      * @param array|null $familyKeys 全部族名（缺省从注册表取，用于 renders 跳族推导）
      * @return array
      */
@@ -307,9 +307,9 @@ class AdminNavResolver
      * null 丢弃该项——会员中心等跳模块入口据此随装卸自动增减，无需改写声明文件；
      * link 与 match 均为空的无效声明同样丢弃。
      *
-     * @param mixed  $item
+     * @param mixed $item
      * @param string $familyKey
-     * @param array  $familyKeys
+     * @param array $familyKeys
      * @return array|null
      */
     private static function normalizeItem($item, $familyKey, array $familyKeys)
@@ -337,10 +337,10 @@ class AdminNavResolver
                 unset($item['match']);
             }
             $derived = array(
-                'key'     => $base,
-                'name'    => lang_has($base . '_manager') ? $base . '_manager' : $base,
-                'link'    => 'admin.' . $alias,
-                'match'   => $patterns,
+                'key' => $base,
+                'name' => lang_has($base . '_manager') ? $base . '_manager' : $base,
+                'link' => 'admin.' . $alias,
+                'match' => $patterns,
                 'renders' => ($prefix !== $familyKey && in_array($prefix, $familyKeys, true)) ? $prefix : $familyKey,
             );
             if (isset($item['exclude'])) {
@@ -380,8 +380,8 @@ class AdminNavResolver
     /**
      * 构建渲染族的子菜单视图数据（项按 when 过滤，name 经 lang() 求值为文本）。
      *
-     * @param array       $family        展开后的族（title / icon / items）
-     * @param string      $familyKey
+     * @param array $family 展开后的族（title / icon / items）
+     * @param string $familyKey
      * @param string|null $activeItemKey 激活项 key
      * @return array
      */
@@ -499,8 +499,8 @@ class AdminNavResolver
      * 全局 max specificity 唯一激活；无节点命中时回落到本次渲染的子菜单族名（族名即节点 id）；
      * 页面级 override('sidebar') 优先级最高，清空后强制指定节点。
      *
-     * @param string      $routeName
-     * @param array       $overrides
+     * @param string $routeName
+     * @param array $overrides
      * @param string|null $familyKey 本次渲染的子菜单族名（无族命中传 null，不参与回落）
      * @return array ['state' => array, 'active_id' => string]
      */

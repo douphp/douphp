@@ -122,7 +122,7 @@ class Cors
      * '*'（credentials=true 时 '*' 不生效，必须显式列 origin）。
      *
      * @param string $origin 请求 Origin
-     * @param array  $config cors 配置
+     * @param array $config cors 配置
      * @return bool
      */
     public static function matchOrigin($origin, array $config)
@@ -159,7 +159,7 @@ class Cors
      * 预检允许的请求头：请求方列表与配置白名单取交集（回显请求方大小写）。
      *
      * @param Request $request 当前请求
-     * @param array   $config  cors 配置
+     * @param array $config cors 配置
      * @return string 逗号分隔的允许头；请求方未列头时返回空串
      */
     private static function negotiateHeaders(Request $request, array $config)
@@ -188,7 +188,7 @@ class Cors
      * Access-Control-Allow-Origin 的回应值：credentials=false 且白名单含 '*' 时回 '*'，否则回显 origin。
      *
      * @param string $origin 请求 Origin
-     * @param array  $config cors 配置
+     * @param array $config cors 配置
      * @return string
      */
     private static function allowOriginValue($origin, array $config)

@@ -42,8 +42,8 @@ class SiteReportService
     /**
      * 上报系统级（核心）安装/升级事件。
      *
-     * @param string $eventType  install / update / patch
-     * @param string $toVersion  目标（安装后）核心版本
+     * @param string $eventType install / update / patch
+     * @param string $toVersion 目标（安装后）核心版本
      * @param string $fromVersion 升级前核心版本（安装可留空）
      * @return void
      */
@@ -63,10 +63,10 @@ class SiteReportService
      * 上报扩展（模块/主题/插件/小程序）安装/升级事件。
      *
      * @param string $targetType module / theme / plugin / miniprogram
-     * @param string $slug       扩展标识（cloud_id）
-     * @param string $eventType  install / update / patch
-     * @param string $toVersion  目标版本
-     * @param string $name       扩展名称（可空）
+     * @param string $slug 扩展标识（cloud_id）
+     * @param string $eventType install / update / patch
+     * @param string $toVersion 目标版本
+     * @param string $name 扩展名称（可空）
      * @return void
      */
     public function reportExtend($targetType, $slug, $eventType, $toVersion, $name = '')

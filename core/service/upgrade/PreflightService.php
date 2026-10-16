@@ -38,8 +38,8 @@ class PreflightService
     /**
      * 执行前置检查。
      *
-     * @param string $rootPath  站点根目录（结尾带 /）
-     * @param array  $aliasDirs 可选：自定义后台/接口/小程序目录名（不存在自动跳过）
+     * @param string $rootPath 站点根目录（结尾带 /）
+     * @param array $aliasDirs 可选：自定义后台/接口/小程序目录名（不存在自动跳过）
      * @return array array('ok' => bool, 'errors' => string[], 'warnings' => string[], 'notices' => string[])
      */
     public function check($rootPath, array $aliasDirs = array())
@@ -105,7 +105,7 @@ class PreflightService
      * 统一用 {@see FileHelper::permission()}（临时文件探测）。
      *
      * @param string $rootPath
-     * @param array  $aliasDirs
+     * @param array $aliasDirs
      * @return string[] 不可写目录的相对名（'' 显示为「站点根目录」）
      */
     public function unwriteableDirs($rootPath, array $aliasDirs = array())

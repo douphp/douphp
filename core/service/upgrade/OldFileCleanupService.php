@@ -82,7 +82,7 @@ class OldFileCleanupService
     );
 
     /**
-     * @param string $rootPath  站点根目录（结尾带 /）
+     * @param string $rootPath 站点根目录（结尾带 /）
      * @param string $adminPath 后台主目录（可为旧环境的相对值，如 'admin'，构造时归一化为绝对路径）
      */
     public function __construct($rootPath, $adminPath = '')

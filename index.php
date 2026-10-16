@@ -8,7 +8,7 @@
  * 本软件基于 MIT 协议开源发布，完整协议文本见项目根目录 LICENSE 文件。
  * 网站地址：http://www.douphp.com
  * ------------------------------------------------------------------------------------
- * Author: DouCo Co.,Ltd. 
+ * Author: DouCo Co.,Ltd.
  * Release Date: 2026-09-08
  */
 define('IN_DOUCO', true);

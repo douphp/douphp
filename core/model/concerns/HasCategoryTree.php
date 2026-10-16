@@ -79,7 +79,7 @@ trait HasCategoryTree
                 ->order('sort ASC, id ASC')
                 ->select();
             language()->warmup($table, array_column((array) $cache[$table], 'id'), 'name, description');
-            
+
             // 批量预热分类 icon 附件 URL，防止 categoryFlatWalk/categoryTreeWalk 中逐条查询
             $iconNumbers = array();
             foreach ((array) $cache[$table] as $row) {

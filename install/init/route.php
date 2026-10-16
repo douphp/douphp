@@ -11,7 +11,6 @@
  * Author: DouCo Co.,Ltd.
  * Release Date: 2026-09-08
  */
-
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
 }
@@ -24,10 +23,10 @@ if (!defined('IN_DOUCO')) {
  * - 安装锁存在时强制走 LockController::index（由 Router 控制）
  */
 return array(
-    'index'   => 'Dou\\Install\\Controller\\IndexController',
-    'check'   => 'Dou\\Install\\Controller\\CheckController',
+    'index' => 'Dou\\Install\\Controller\\IndexController',
+    'check' => 'Dou\\Install\\Controller\\CheckController',
     'setting' => 'Dou\\Install\\Controller\\SettingController',
     'install' => 'Dou\\Install\\Controller\\InstallController',
-    'finish'  => 'Dou\\Install\\Controller\\FinishController',
-    'lock'    => 'Dou\\Install\\Controller\\LockController',
+    'finish' => 'Dou\\Install\\Controller\\FinishController',
+    'lock' => 'Dou\\Install\\Controller\\LockController',
 );

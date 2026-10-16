@@ -30,11 +30,11 @@ class Helper
      * 渲染信息提示页（dou_msg.htm）并退出脚本。
      *
      * @param \Dou\Core\Web\Template\DouView $view
-     * @param array  $lang
+     * @param array $lang
      * @param string $text
      * @param string $url
      * @param string $title
-     * @param int    $time
+     * @param int $time
      * @return void
      */
     public static function douMsg($view, array $lang, $text, $url = '', $title = '', $time = 3)

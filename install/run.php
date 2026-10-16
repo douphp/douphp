@@ -11,7 +11,6 @@
  * Author: DouCo Co.,Ltd.
  * Release Date: 2026-09-08
  */
-
 if (!defined('IN_DOUCO') || !defined('IS_INSTALL')) {
     die('Hacking attempt');
 }
@@ -72,8 +71,8 @@ if (!defined('DOU_ID')) {
     define('DOU_ID', 'admin_install_' . substr(md5('install'), 0, 8));
 }
 
-use Dou\Install\Init\Init;
 use Dou\Install\Foundation\Routing\Router;
+use Dou\Install\Init\Init;
 use Dou\Install\Support\Helper;
 
 try {

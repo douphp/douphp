@@ -242,7 +242,7 @@ class DatabaseInstallService
      * @param string $dbname
      * @param string $dbuser
      * @param string $dbpass
-     * @param int    $buildDate
+     * @param int $buildDate
      * @param string $douphpVersion 本次安装版本（来自 install/version.php，单一来源）
      * @return void
      */

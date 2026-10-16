@@ -131,7 +131,7 @@ class UpdateStateService extends BaseService
      * 行不存在（老站首跳）时自动 INSERT。
      *
      * @param string $moduleId 模块标识
-     * @param string $version  包版本（打包日 Ymd）
+     * @param string $version 包版本（打包日 Ymd）
      * @return void
      */
     public function recordModuleVersion($moduleId, $version)

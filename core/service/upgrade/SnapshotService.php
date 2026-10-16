@@ -190,7 +190,7 @@ class SnapshotService
      *
      * @param array $options file_batch（默认 600）、db_bytes（默认 3MB）、max_seconds（默认 10 秒，0=不限）
      * @return array array('ok' => bool, 'done' => bool, 'phase' => string, 'dir' => string,
-     *                     'progress' => string, 'logs' => array, 'error' => string)
+     *               'progress' => string, 'logs' => array, 'error' => string)
      */
     public function step(array $options = array())
     {

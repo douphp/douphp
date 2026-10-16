@@ -75,10 +75,10 @@ class SchemaSync
 
     /**
      * @param array $options 可选：
-     *   - standards : array，元素为「标准文件绝对路径」或 array('file' => 路径, 'create' => bool)。
-     *     缺省 create=false（仅对齐已存在的表，不补建）；
-     *   - log_file  : string，日志落盘路径；
-     *   - dry_run   : bool，只收集不执行。
+     *                       - standards : array，元素为「标准文件绝对路径」或 array('file' => 路径, 'create' => bool)。
+     *                       缺省 create=false（仅对齐已存在的表，不补建）；
+     *                       - log_file  : string，日志落盘路径；
+     *                       - dry_run   : bool，只收集不执行。
      */
     public function __construct(array $options = array())
     {
@@ -88,7 +88,7 @@ class SchemaSync
                     $this->standards[] = array('file' => $item, 'create' => false);
                 } elseif (is_array($item) && !empty($item['file'])) {
                     $this->standards[] = array(
-                        'file'   => (string) $item['file'],
+                        'file' => (string) $item['file'],
                         'create' => !empty($item['create']),
                     );
                 }
@@ -230,8 +230,8 @@ class SchemaSync
      * 解析单份标准文件内容。
      *
      * @param string $content
-     * @param string $source  来源路径（日志用）
-     * @param bool   $create  本文件内表缺失时是否允许补建
+     * @param string $source 来源路径（日志用）
+     * @param bool $create 本文件内表缺失时是否允许补建
      * @return void
      */
     private function parseStandardContent($content, $source, $create)
@@ -285,13 +285,13 @@ class SchemaSync
         $tail = substr($stmt, $group[1] + 1);
 
         $model = array(
-            'name'       => $this->stripTablePrefix($name),
-            'columns'    => array(),
-            'indexes'    => array(),
-            'engine'     => 'InnoDB',
-            'charset'    => '',
-            'collate'    => '',
-            'create'     => false,
+            'name' => $this->stripTablePrefix($name),
+            'columns' => array(),
+            'indexes' => array(),
+            'engine' => 'InnoDB',
+            'charset' => '',
+            'collate' => '',
+            'create' => false,
         );
 
         foreach (explode("\n", $body) as $line) {
@@ -582,7 +582,7 @@ class SchemaSync
      * 提取从 $openPos 处 '(' 开始的成对括号内容（引号感知）。
      *
      * @param string $str
-     * @param int    $openPos
+     * @param int $openPos
      * @return array|null array(内容, 收尾 ')' 的下标)
      */
     private function extractParenGroup($str, $openPos)
@@ -783,7 +783,7 @@ class SchemaSync
     /**
      * 带列名的现网列定义（用于 CHANGE 改名：`旧` `新` <定义体>）。
      *
-     * @param array       $row
+     * @param array $row
      * @param string|null $newName 新列名（null 用 origin 名）
      * @return string
      */
@@ -806,15 +806,15 @@ class SchemaSync
     private function standardColumnSignature($def)
     {
         $sig = array(
-            'type'        => '',
-            'unsigned'    => (bool) preg_match('/\bunsigned\b/i', $def),
-            'nullable'    => preg_match('/\bNOT\s+NULL\b/i', $def) ? 'NO' : 'YES',
+            'type' => '',
+            'unsigned' => (bool) preg_match('/\bunsigned\b/i', $def),
+            'nullable' => preg_match('/\bNOT\s+NULL\b/i', $def) ? 'NO' : 'YES',
             'has_default' => false,
-            'default'     => null,
-            'auto'        => (bool) preg_match('/\bAUTO_INCREMENT\b/i', $def),
-            'comment'     => null,
-            'charset'     => '',
-            'collate'     => '',
+            'default' => null,
+            'auto' => (bool) preg_match('/\bAUTO_INCREMENT\b/i', $def),
+            'comment' => null,
+            'charset' => '',
+            'collate' => '',
         );
 
         if (preg_match('/^([a-zA-Z]+)\s*/', $def, $m)) {
@@ -856,15 +856,15 @@ class SchemaSync
     private function currentColumnSignature($row)
     {
         $sig = array(
-            'type'        => $this->normalizeType($row['COLUMN_TYPE']),
-            'unsigned'    => (strpos(strtolower($row['COLUMN_TYPE']), 'unsigned') !== false),
-            'nullable'    => $row['IS_NULLABLE'] === 'NO' ? 'NO' : 'YES',
+            'type' => $this->normalizeType($row['COLUMN_TYPE']),
+            'unsigned' => (strpos(strtolower($row['COLUMN_TYPE']), 'unsigned') !== false),
+            'nullable' => $row['IS_NULLABLE'] === 'NO' ? 'NO' : 'YES',
             'has_default' => !is_null($row['COLUMN_DEFAULT']),
-            'default'     => is_null($row['COLUMN_DEFAULT']) ? null : $this->normalizeDefaultToken($row['COLUMN_DEFAULT']),
-            'auto'        => (stripos($row['EXTRA'], 'auto_increment') !== false),
-            'comment'     => isset($row['COLUMN_COMMENT']) ? (string) $row['COLUMN_COMMENT'] : '',
-            'charset'     => '',
-            'collate'     => '',
+            'default' => is_null($row['COLUMN_DEFAULT']) ? null : $this->normalizeDefaultToken($row['COLUMN_DEFAULT']),
+            'auto' => (stripos($row['EXTRA'], 'auto_increment') !== false),
+            'comment' => isset($row['COLUMN_COMMENT']) ? (string) $row['COLUMN_COMMENT'] : '',
+            'charset' => '',
+            'collate' => '',
         );
         if (!is_null($row['COLLATION_NAME']) && $row['COLLATION_NAME'] !== '') {
             $sig['collate'] = $this->normalizeCollation($row['COLLATION_NAME']);
@@ -1108,10 +1108,10 @@ class SchemaSync
      * 覆盖三种旧站形态：主键在业务列上而标准 id 缺失；主键列名/列序与标准不同；
      * 自增列只有 UNIQUE 键而无 PRIMARY（此时 UNIQUE 与建主键合并，避免自增列短暂失去键）。
      *
-     * @param array  $model
+     * @param array $model
      * @param string $actual
-     * @param array  $curColumns 现网列（小写名 => 行）
-     * @param array  $curIndexes 现网索引（小写名 => array(name,unique,columns))
+     * @param array $curColumns 现网列（小写名 => 行）
+     * @param array $curIndexes 现网索引（小写名 => array(name,unique,columns))
      * @return string
      */
     private function primaryKeyTransitionSql($model, $actual, array $curColumns, array $curIndexes)
@@ -1205,7 +1205,7 @@ class SchemaSync
     /**
      * 表选项对齐（ENGINE / 字符集）。
      *
-     * @param array  $model
+     * @param array $model
      * @param string $actual
      * @return void
      */
@@ -1249,7 +1249,7 @@ class SchemaSync
      *
      * @param array $model
      * @param array $curIndexes 现网索引（小写名 => array(unique,columns)）
-     * @param array $ops        按引用：array('drop' => array(), 'add' => array())
+     * @param array $ops 按引用：array('drop' => array(), 'add' => array())
      * @return void
      */
     private function diffIndexes($model, $curIndexes, array &$ops)
@@ -1258,10 +1258,10 @@ class SchemaSync
         $stdIndexes = array();
         foreach ($model['indexes'] as $key => $idx) {
             $stdIndexes[$key] = array(
-                'unique'  => ($idx['type'] === 'PRIMARY' || $idx['type'] === 'UNIQUE'),
+                'unique' => ($idx['type'] === 'PRIMARY' || $idx['type'] === 'UNIQUE'),
                 'columns' => $this->normalizeIndexColumns($idx['columns']),
-                'name'    => ($idx['type'] === 'PRIMARY') ? 'PRIMARY' : $idx['name'],
-                'type'    => $idx['type'],
+                'name' => ($idx['type'] === 'PRIMARY') ? 'PRIMARY' : $idx['name'],
+                'type' => $idx['type'],
             );
         }
 
@@ -1439,8 +1439,8 @@ class SchemaSync
      * 列改名（保留数据；以现网定义 CHANGE，属性由最终结构同步校准）。
      *
      * @param string $table 裸表名
-     * @param string $old   旧列名
-     * @param string $new   新列名
+     * @param string $old 旧列名
+     * @param string $new 新列名
      * @return bool 是否执行了改名
      */
     public function renameColumn($table, $old, $new)
@@ -1461,7 +1461,7 @@ class SchemaSync
     /**
      * 按标准补列（列已存在时跳过）——用于「新增列 + 历史行回填」场景。
      *
-     * @param string $table  裸表名
+     * @param string $table 裸表名
      * @param string $column 列名
      * @return bool 列最终是否存在
      */
@@ -1590,7 +1590,7 @@ class SchemaSync
      * 严格模式下不能直接用零日期字面量比较，须 CAST 成字符串再比对。
      *
      * @param string $table
-     * @param array  $fields
+     * @param array $fields
      * @return void
      */
     public function nullifyZeroDates($table, array $fields)
@@ -1683,7 +1683,7 @@ class SchemaSync
      * 流程：SELECT * 全行快照 -> DROP -> 按标准 CREATE -> 导入默认行（$defaultsFile）
      *       -> 回灌：同名行恢复 value 值；旧站独有行按快照完整插回（保留自定义配置）。
      *
-     * @param string $table        裸表名（config）
+     * @param string $table 裸表名（config）
      * @param string $standardFile 结构标准文件（其中须含该表 CREATE TABLE）
      * @param string $defaultsFile 默认行数据文件（INSERT 语句）
      * @return array array('rows_before' => n, 'defaults' => n, 'restored' => n, 'kept' => n)

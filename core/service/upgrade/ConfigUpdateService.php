@@ -42,9 +42,9 @@ class ConfigUpdateService
      * 并在流程末尾随完整 up_sql 再执行一次（幂等）；版本号刻意不包含在内：
      * 半途失败时站点仍显示升级前的旧版本，可被云端/后台检测并允许重试。
      *
-     * @param array  $cfg        当前 dou_config（key => value）
-     * @param string $prefix     表前缀
-     * @param string $rootUrl    用于 hash_code 计算与 domain 回填
+     * @param array $cfg 当前 dou_config（key => value）
+     * @param string $prefix 表前缀
+     * @param string $rootUrl 用于 hash_code 计算与 domain 回填
      * @param string $dbhost
      * @param string $dbname
      * @param string $dbuser
@@ -84,7 +84,7 @@ class ConfigUpdateService
      *
      * 版本号只在流程末尾写：半途失败时站点仍显示旧版本，避免"看起来已升级"。
      *
-     * @param string $prefix     表前缀
+     * @param string $prefix 表前缀
      * @param string $newVersion 升级后写入的版本号字符串
      * @return string
      */
@@ -112,9 +112,9 @@ class ConfigUpdateService
      * 快照（升级前真实账本）都能把缺失的键并回来；@unserialize 失败时的降级同样保留 boot 快照键，
      * 绝不退化为硬编码 article/product。
      *
-     * @param array  $bootSnapshot 升级启动时读取的 dou_config 全量快照（含真实 update_date）
-     * @param string $prefix       表前缀
-     * @param string $newVersion   升级后版本号串（末 8 位作系统更新日期）
+     * @param array $bootSnapshot 升级启动时读取的 dou_config 全量快照（含真实 update_date）
+     * @param string $prefix 表前缀
+     * @param string $newVersion 升级后版本号串（末 8 位作系统更新日期）
      * @return string 落库的 update_date 序列化串
      * @throws \Exception 写后读回校验失败（SQL 失败 / 转义 / 列截断等）时抛出，不让升级静默留在"账本未落库"状态
      */

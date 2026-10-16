@@ -11,7 +11,6 @@
  * Author: DouCo Co.,Ltd.
  * Release Date: 2026-10-16
  */
-
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
 }
@@ -24,7 +23,7 @@ if (!defined('IN_DOUCO')) {
  * - mysql_min ：最低 MySQL 版本（与 devtools/mysql-compat-check 判定口径一致）
  */
 return array(
-    'version'   => 'v2.0 Release 20261016',
-    'php_min'   => '5.6.0',
+    'version' => 'v2.0 Release 20261016',
+    'php_min' => '5.6.0',
     'mysql_min' => '5.7',
 );

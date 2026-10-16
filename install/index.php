@@ -11,7 +11,6 @@
  * Author: DouCo Co.,Ltd.
  * Release Date: 2026-09-08
  */
-
 define('IN_DOUCO', true);
 define('IS_INSTALL', true);
 

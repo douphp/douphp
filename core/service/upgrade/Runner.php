@@ -63,7 +63,7 @@ class Runner
 
     /**
      * @param UpgradeContext $ctx
-     * @param array          $options 扩展选项（合并进 ctx->options）
+     * @param array $options 扩展选项（合并进 ctx->options）
      */
     public function __construct(UpgradeContext $ctx, array $options = array())
     {
@@ -107,7 +107,7 @@ class Runner
         \Dou\Upgrade\Lib\ConfigMerge::run($ctx->rootPath, $ctx->materialsRoot . 'resources/config/', array(
             'overrides' => array(
                 'ADMIN_REWRITE' => $ctx->adminRewrite,
-                'DOU_APP_KEY'   => $ctx->appKey,
+                'DOU_APP_KEY' => $ctx->appKey,
             ),
         ));
 
@@ -316,14 +316,14 @@ class Runner
      * include 结束后由本方法写回。字段/表改名与值迁移一律经 $schema 的规范化迁移 API 执行。
      *
      * @param string[] $versions
-     * @param array    $upSqlRef array(0 => string)；补丁结束后写回元素 0
+     * @param array $upSqlRef array(0 => string)；补丁结束后写回元素 0
      * @param \Dou\Core\Infra\Database\SchemaSync $schema 结构同步引擎（注入补丁作用域）
      * @return void
      */
     private function runPhpPatches(array $versions, array &$upSqlRef, $schema)
     {
         $up_sql = $upSqlRef[0];
-        $_CFG   = $this->ctx->siteConfig;
+        $_CFG = $this->ctx->siteConfig;
         $prefix = $this->ctx->prefix;
         $dbhost = $this->ctx->dbhost;
         $dbname = $this->ctx->dbname;
@@ -367,11 +367,11 @@ class Runner
         }
         $systemSign = defined('SYSTEM_SIGN') ? SYSTEM_SIGN : 'company';
         $data = array(
-            'user'        => isset($cloud_account['user']) ? $cloud_account['user'] : '',
-            'password'    => isset($cloud_account['password']) ? $cloud_account['password'] : '',
-            'domain'      => $this->ctx->rootUrl,
-            'shell'       => substr(md5($hash), 16),
-            'version'     => isset($cfg['douphp_version']) ? $cfg['douphp_version'] : '',
+            'user' => isset($cloud_account['user']) ? $cloud_account['user'] : '',
+            'password' => isset($cloud_account['password']) ? $cloud_account['password'] : '',
+            'domain' => $this->ctx->rootUrl,
+            'shell' => substr(md5($hash), 16),
+            'version' => isset($cfg['douphp_version']) ? $cfg['douphp_version'] : '',
             'system_sign' => $systemSign,
         );
 
@@ -389,7 +389,7 @@ class Runner
      * 极简 HTTP POST，仅供版权 API 调用；网络失败时返回空串。
      *
      * @param string $url
-     * @param array  $data
+     * @param array $data
      * @return string
      */
     private function httpPost($url, array $data)

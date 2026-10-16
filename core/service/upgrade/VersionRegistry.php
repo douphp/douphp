@@ -184,7 +184,7 @@ class VersionRegistry
      * 过滤出 ver >= current 的版本。
      *
      * @param string[] $versions
-     * @param string   $current
+     * @param string $current
      * @return string[]
      */
     public function pending(array $versions, $current)

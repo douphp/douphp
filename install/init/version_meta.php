@@ -11,7 +11,6 @@
  * Author: DouCo Co.,Ltd.
  * Release Date: 2026-10-16
  */
-
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
 }
