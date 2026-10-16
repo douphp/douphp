@@ -33,6 +33,9 @@ if (!defined('IN_DOUCO')) {
  * 例外令牌：
  * - `login/password_reset_post`（找回密码提交）：匿名流程，使用一次性令牌 password_reset；
  * - `backup/backup`、`backup/import`：分卷备份 / 导入为带 token 的 GET 续跑链接，GET 也校验；
+ * - `backup/snapshot_restore`、`backup/snapshot_rescue`、`backup/snapshot_abandon`、
+ *   `backup/snapshot_maintenance_off`：升级还原点的链式续跑 / 生成急救链接 / 放弃还原 /
+ *   恢复维护原值，同为带 token 的 GET 链接；
  * - `order/report/export`：报表导出为带 token 的 GET 链接，GET 也校验。
  */
 class CsrfMiddleware extends AbstractCsrfMiddleware
@@ -61,6 +64,10 @@ class CsrfMiddleware extends AbstractCsrfMiddleware
         return array(
             'backup/backup',
             'backup/import',
+            'backup/snapshot_restore',
+            'backup/snapshot_rescue',
+            'backup/snapshot_abandon',
+            'backup/snapshot_maintenance_off',
             'order/report/export',
         );
     }

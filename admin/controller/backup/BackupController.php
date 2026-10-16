@@ -106,6 +106,8 @@ class BackupController extends BaseController
             'ur_here' => lang('backup_restore'),
             'page_actions' => array(
                 array('href' => route('admin.backup'), 'text' => lang('backup'), 'style' => ''),
+                // 升级还原点属技术人员补救入口：灰色低调按钮，避免普通管理员误点
+                array('href' => route('admin.backup.snapshot'), 'text' => lang('snapshot_page_title'), 'style' => 'gray'),
             ),
             'rec' => 'restore',
             'file_list' => $this->backupService->buildRestoreFileList(),

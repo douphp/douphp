@@ -98,6 +98,17 @@ class IndexService extends BaseService
         if (FileHelper::permission(ROOT_PATH . 'upgrade') != 'no_exist') {
             $warning[] = lang('warning_upgrade_exists');
         }
+        // 还原流程（含模块失败自动回滚）中断时，站点会停留在维护模式：横幅提示并给出恢复入口
+        try {
+            if (class_exists('Dou\\Core\\Service\\Upgrade\\MaintenanceModeService')
+                && (new \Dou\Core\Service\Upgrade\MaintenanceModeService(ROOT_PATH))->isActive()) {
+                $warning[] = lang('warning_restore_maintenance');
+            }
+        } catch (\Exception $e) {
+            // 状态探测失败不影响首页渲染
+        } catch (\Throwable $e) {
+            // PHP 7+ 的 \Error 同样忽略
+        }
         // 兜底清理后台目录改名引导脚本残留（正常流程执行后自删，此处只兜底未跟随跳转的情况）
         foreach ((array) glob(STORAGE_PATH . 'cache/tmp/admin_dir_relocate_*.php') as $relocateScript) {
             if (is_file($relocateScript)) {

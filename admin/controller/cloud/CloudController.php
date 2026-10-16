@@ -86,8 +86,10 @@ class CloudController extends BaseController
      *   2) `type` 可省略：在 `mode=update|patch` 且无 `type` 时视为 **system** 内核包；`cloud_id=font` 且无 `type` 时视为 **system** 字体包。
      *   3) `cloud_id` 形如 `a|b|c` 时拆出首项 a 与批量队列 [b, c]。
      *   4) 调 {@see InstallSessionService::create()} 落盘新会话，得到 install_id。
-     *   5) 渲染 `cloud.htm` 的 `rec='install'` 区块，将 install_id / token / 5 步元数据
-     *      暴露给前端 JS，由其逐步 POST `cloud/install_step` 完成实际工作。
+     *   5) 渲染 `cloud.htm` 的 `rec='install'` 区块，将 install_id / token / 6 步元数据
+     *      （preflight→download→unzip→snapshot→apply→finalize）暴露给前端 JS，
+     *      由其逐步 POST `cloud/install_step` 完成实际工作；snapshot 步未完成时
+     *      返回 next_step 指回自身，前端循环续做直至还原点创建完成。
      *
      * 同步阶段（不在浏览器实时显示「半截 HTML」）已下沉到独立 {@see installStep()} 中执行。
      *
@@ -137,12 +139,18 @@ class CloudController extends BaseController
         if ($mode === 'local') {
             $authStatus = 'ok';
             $downloadUrl = '';
+            $downloadSha256 = '';
         } else {
             $resolved = $this->cloudService->resolveInstallDownload($type, $cloudId, $mode);
             $authStatus = isset($resolved['status']) ? (string) $resolved['status'] : 'unavailable';
             $downloadUrl = isset($resolved['download_url']) ? (string) $resolved['download_url'] : '';
+            $downloadSha256 = isset($resolved['sha256']) ? (string) $resolved['sha256'] : '';
             if ($downloadUrl !== '') {
                 $downloadUrl = $this->installService->filterTrustedInstallDownloadUrl($downloadUrl);
+            }
+            if ($downloadUrl === '') {
+                // URL 被白名单拒绝时其哈希一并弃用，避免「有哈希无包」的不一致状态
+                $downloadSha256 = '';
             }
         }
 
@@ -154,6 +162,7 @@ class CloudController extends BaseController
             'theme_id' => $themeId,
             'batch' => $batch,
             'download_url' => $downloadUrl,
+            'sha256' => $downloadSha256,
             'auth_status' => $authStatus,
             'back_url' => $backUrl,
         ));
@@ -164,6 +173,7 @@ class CloudController extends BaseController
             InstallService::STEP_PREFLIGHT,
             InstallService::STEP_DOWNLOAD,
             InstallService::STEP_UNZIP,
+            InstallService::STEP_SNAPSHOT,
             InstallService::STEP_APPLY,
             InstallService::STEP_FINALIZE,
         );
@@ -177,6 +187,7 @@ class CloudController extends BaseController
             'cloud_down_ing_0' => lang('cloud_down_ing_0'),
             'cloud_down_ing_1' => lang('cloud_down_ing_1'),
             'cloud_unzip_ing' => lang('cloud_unzip_ing'),
+            'cloud_snapshot_ing' => lang('cloud_snapshot_ing'),
             'cloud_install_ing' => lang('cloud_install_ing'),
             'cloud_install_request_failed' => lang('cloud_install_request_failed'),
             'cloud_install_step_failed_generic' => lang('cloud_install_step_failed_generic'),
@@ -262,6 +273,7 @@ class CloudController extends BaseController
             InstallService::STEP_PREFLIGHT => true,
             InstallService::STEP_DOWNLOAD => true,
             InstallService::STEP_UNZIP => true,
+            InstallService::STEP_SNAPSHOT => true,
             InstallService::STEP_APPLY => true,
             InstallService::STEP_FINALIZE => true,
         );
@@ -271,6 +283,12 @@ class CloudController extends BaseController
 
         $service = $this->installService;
         $session = $this->installSession;
+
+        // 全局互斥锁（跨会话/跨入口）：preflight 获取、逐步骤刷新、失败/收尾释放；
+        // 防「两个窗口」或「云更新 + 手动向导」并发升级同一站点。类缺失时优雅跳过（旧版本代码窗口）。
+        $runLock = class_exists('Dou\\Core\\Service\\Upgrade\\RunLockService')
+            ? new \Dou\Core\Service\Upgrade\RunLockService(ROOT_PATH)
+            : null;
 
         $response = array(
             'ok' => false,
@@ -286,13 +304,27 @@ class CloudController extends BaseController
             'mode' => '',
         );
 
-        $updatedState = $session->withLock($installId, function ($state) use ($service, $step, &$response, $session) {
+        $updatedState = $session->withLock($installId, function ($state) use ($service, $step, &$response, $session, $runLock) {
             if (!empty($state['finished'])) {
                 $response['ok'] = true;
                 $response['finished'] = true;
                 $response['success'] = !empty($state['success']);
                 $response['result'] = isset($state['result']) ? $state['result'] : null;
                 return $state;
+            }
+
+            if ($runLock !== null) {
+                if ($step === InstallService::STEP_PREFLIGHT) {
+                    $locked = $runLock->acquire($installId);
+                    if (empty($locked['ok'])) {
+                        $response['ok'] = false;
+                        $response['error'] = (string) $locked['error'];
+                        return $state;
+                    }
+                } else {
+                    // 长流程（下载/解压等）逐步刷新锁时间，避免被其他入口误判为陈旧锁
+                    $runLock->touch($installId);
+                }
             }
 
             $params = array(
@@ -302,8 +334,10 @@ class CloudController extends BaseController
                 'version' => isset($state['version']) ? (string) $state['version'] : '',
                 'theme_id' => isset($state['theme_id']) ? (string) $state['theme_id'] : '',
                 'download_url' => isset($state['download_url']) ? (string) $state['download_url'] : '',
+                'sha256' => isset($state['sha256']) ? (string) $state['sha256'] : '',
                 'auth_status' => isset($state['auth_status']) ? (string) $state['auth_status'] : 'ok',
                 'back_url' => isset($state['back_url']) ? (string) $state['back_url'] : '',
+                'install_id' => $installId,
             );
 
             $outcome = $this->runStep($service, $step, $params, $state);
@@ -371,6 +405,9 @@ class CloudController extends BaseController
                 if (!empty($outcome['redirect_target'])) {
                     $response['redirect_target'] = (string) $outcome['redirect_target'];
                 }
+                if ($runLock !== null) {
+                    $runLock->release($installId);
+                }
                 return $state;
             }
 
@@ -381,7 +418,8 @@ class CloudController extends BaseController
             if (!in_array($step, $state['completed_steps'], true)) {
                 $state['completed_steps'][] = $step;
             }
-            $next = $this->nextStep($step);
+            // 步骤可携带 next_step 覆写（快照创建未完成时指回自身，前端循环续做）
+            $next = !empty($outcome['next_step']) ? (string) $outcome['next_step'] : $this->nextStep($step);
             $state['current_step'] = $next ? $next : InstallService::STEP_FINALIZE;
 
             $response['ok'] = true;
@@ -395,6 +433,9 @@ class CloudController extends BaseController
                 $response['success'] = true;
                 $response['finished'] = true;
                 $response['result'] = $state['result'];
+                if ($runLock !== null) {
+                    $runLock->release($installId);
+                }
             }
 
             return $state;
@@ -434,6 +475,8 @@ class CloudController extends BaseController
                 return $service->runDownload($params);
             case InstallService::STEP_UNZIP:
                 return $service->runUnzip($params);
+            case InstallService::STEP_SNAPSHOT:
+                return $service->runSnapshot($params);
             case InstallService::STEP_APPLY:
                 return $service->runApply($params);
             case InstallService::STEP_FINALIZE:
@@ -453,7 +496,8 @@ class CloudController extends BaseController
         $order = array(
             InstallService::STEP_PREFLIGHT => InstallService::STEP_DOWNLOAD,
             InstallService::STEP_DOWNLOAD => InstallService::STEP_UNZIP,
-            InstallService::STEP_UNZIP => InstallService::STEP_APPLY,
+            InstallService::STEP_UNZIP => InstallService::STEP_SNAPSHOT,
+            InstallService::STEP_SNAPSHOT => InstallService::STEP_APPLY,
             InstallService::STEP_APPLY => InstallService::STEP_FINALIZE,
             InstallService::STEP_FINALIZE => null,
         );

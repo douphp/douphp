@@ -62,6 +62,9 @@ $_LANG['cloud_down_upstream_misconfigured'] = '雲端下載服務未正確設定
 $_LANG['cloud_down_login_required'] = '目前雲帳號沒有該資源的下載權限。';
 $_LANG['cloud_down_invalid_package'] = '下載內容不是有效的安裝包（未獲得該資源權限或資源不存在），請確認後重試。';
 $_LANG['cloud_down_truncated'] = '安裝包下載不完整（傳輸中斷或已損壞），已自動重試仍未成功，請稍後重試或檢查網路/下載服務。';
+$_LANG['cloud_package_hash_mismatch'] = '安裝包完整性校驗未通過（下載檔案與雲端 sha256 不一致），已刪除並中止本次安裝，請重試或檢查下載鏈路。';
+$_LANG['cloud_package_hash_ok'] = '安裝包完整性校驗通過。';
+$_LANG['cloud_package_hash_skipped'] = '雲端未下發 sha256，跳過完整性校驗。';
 
 // 安裝
 $_LANG['cloud_install_ing'] = '正在安裝 ';
@@ -131,3 +134,12 @@ $_LANG['cloud_extend_miniprogram_badge'] = '適配小程式';
 $_LANG['cloud_extend_update_time_label'] = '更新時間：';
 $_LANG['cloud_extend_min_version_label'] = '最低版本要求：';
 $_LANG['cloud_extend_detail'] = '詳細資訊';
+
+// 升級還原點（T7：unzip 與 apply 之間的快照步驟）
+$_LANG['cloud_snapshot_ing'] = '正在建立升級還原點…';
+$_LANG['cloud_snapshot_begin'] = '開始建立升級還原點（升級失敗時用於還原）…';
+$_LANG['cloud_snapshot_done'] = '升級還原點已建立：d%';
+$_LANG['cloud_snapshot_engine_missing'] = '還原點引擎缺失（core/service/upgrade 未隨包更新），無法建立升級還原點，升級已中止';
+$_LANG['cloud_snapshot_restored'] = '本次更新失敗，已從升級還原點自動還原：檔案與資料庫均恢復為更新前狀態';
+$_LANG['cloud_snapshot_restore_failed'] = '本次更新失敗，自動還原未完成：d%；請在「資料備份 - 升級還原點」頁繼續或手動恢復';
+$_LANG['cloud_snapshot_restore_pending'] = '本次更新失敗，自動還原逾時；請在「資料備份 - 升級還原點」頁繼續恢復';

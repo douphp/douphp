@@ -24,13 +24,13 @@ return [
     'miniprogram_extra_page' => ['pages/debug/debug'],
 
     // 不参与小程序 app.json 生成的 single 模块（系统型 / 容器型，无小程序页面）
-    'miniprogram_no_handle' => ['plugin', 'box', 'fragment', 'language', 'data', 'weixin', 'attribute', 'email'],
+    'miniprogram_no_handle' => ['plugin', 'language', 'weixin', 'attribute', 'email'],
 
     // 不进前台主导航目标下拉的 single 模块（系统型 / 容器型，无前台分类入口）
-    'nav_hidden_single' => ['plugin', 'box', 'fragment', 'language'],
+    'nav_hidden_single' => ['plugin', 'language'],
 
     // 后台菜单 / 工作台 / 首页统计隐藏的系统级 single 模块
-    'admin_hidden_single' => ['box', 'fragment', 'language'],
+    'admin_hidden_single' => ['language'],
 
     // 后台自定义模板开关：空数组=关闭；写入槽位名则启用对应 admin/view/<槽位>.custom.htm（需自行创建该文件）。
     // 可选槽位：header / sidebar / toolbar / index（如 ['sidebar'] 用 sidebar.custom.htm 覆盖内置侧栏）

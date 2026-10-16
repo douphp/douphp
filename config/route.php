@@ -41,7 +41,7 @@ return [
             'rules' => [
                 [
                     'pattern' => '{slug}.html',
-                    'params' => ['slug' => '[a-zA-Z][a-zA-Z0-9_-]*'],
+                    'params' => ['slug' => '[a-zA-Z0-9][a-zA-Z0-9_-]*'],
                     'module_fixed' => 'page',
                 ],
             ],
@@ -51,7 +51,7 @@ return [
             'rules' => [
                 [
                     'pattern' => 'page/{slug}',
-                    'params' => ['slug' => '[a-zA-Z][a-zA-Z0-9_-]*'],
+                    'params' => ['slug' => '[a-zA-Z0-9][a-zA-Z0-9_-]*'],
                     'module_fixed' => 'page',
                 ],
             ],
@@ -84,12 +84,12 @@ return [
                 ],
                 [
                     'pattern' => '{module}/{category_slug}[/o{page:\d*}]',
-                    'params' => ['module' => '[a-z]+', 'category_slug' => '[a-zA-Z][a-zA-Z0-9_-]*'],
+                    'params' => ['module' => '[a-z]+', 'category_slug' => '[a-zA-Z0-9][a-zA-Z0-9_-]*'],
                     'target' => '{module}_category',
                 ],
                 [
                     'pattern' => '{module}[/{category_slug}]/{id:\d+}.html',
-                    'params' => ['module' => '[a-z]+', 'category_slug' => '[a-zA-Z][a-zA-Z0-9_-]*'],
+                    'params' => ['module' => '[a-z]+', 'category_slug' => '[a-zA-Z0-9][a-zA-Z0-9_-]*'],
                 ],
             ],
             // 短地址模块：顶级分类别名取代模块名段，分类段取全链（惰性量词优先让位给 /oN 分页段），
@@ -97,12 +97,12 @@ return [
             'short_rules' => [
                 [
                     'pattern' => '{category_slug}[/o{page:\d*}]',
-                    'params' => ['category_slug' => '[a-zA-Z][a-zA-Z0-9_-]*(?:/[a-zA-Z][a-zA-Z0-9_-]*)*?'],
+                    'params' => ['category_slug' => '[a-zA-Z0-9][a-zA-Z0-9_-]*(?:/[a-zA-Z0-9][a-zA-Z0-9_-]*)*?'],
                     'target' => '{module}_category',
                 ],
                 [
                     'pattern' => '[{category_slug}/]{id:\d+}.html',
-                    'params' => ['category_slug' => '[a-zA-Z][a-zA-Z0-9_-]*'],
+                    'params' => ['category_slug' => '[a-zA-Z0-9][a-zA-Z0-9_-]*'],
                 ],
             ],
         ],
@@ -123,19 +123,19 @@ return [
                 ],
                 [
                     'pattern' => '{module}/{slug}',
-                    'params' => ['module' => '[a-z]+', 'slug' => '[a-zA-Z][a-zA-Z0-9_-]*'],
+                    'params' => ['module' => '[a-z]+', 'slug' => '[a-zA-Z0-9][a-zA-Z0-9_-]*'],
                 ],
             ],
             // 短地址模块：仅去掉模块名段，collections 前缀与详情 slug 结构保持不变
             'short_rules' => [
                 [
                     'pattern' => 'collections/{category_slug}[/o{page:\d*}]',
-                    'params' => ['category_slug' => '[a-zA-Z][a-zA-Z0-9_-]*(?:/[a-zA-Z][a-zA-Z0-9_-]*)*?'],
+                    'params' => ['category_slug' => '[a-zA-Z0-9][a-zA-Z0-9_-]*(?:/[a-zA-Z0-9][a-zA-Z0-9_-]*)*?'],
                     'target' => '{module}_category',
                 ],
                 [
                     'pattern' => '{slug}',
-                    'params' => ['slug' => '[a-zA-Z][a-zA-Z0-9_-]*'],
+                    'params' => ['slug' => '[a-zA-Z0-9][a-zA-Z0-9_-]*'],
                 ],
             ],
         ],
@@ -151,7 +151,7 @@ return [
                 ],
                 [
                     'pattern' => '{module}/{category_slug}[/o{page:\d*}]',
-                    'params' => ['module' => '[a-z]+', 'category_slug' => '[a-zA-Z][a-zA-Z0-9_-]*'],
+                    'params' => ['module' => '[a-z]+', 'category_slug' => '[a-zA-Z0-9][a-zA-Z0-9_-]*'],
                     'target' => '{module}_category',
                 ],
                 [
@@ -163,7 +163,7 @@ return [
             'short_rules' => [
                 [
                     'pattern' => '{category_slug}[/o{page:\d*}]',
-                    'params' => ['category_slug' => '[a-zA-Z][a-zA-Z0-9_-]*(?:/[a-zA-Z][a-zA-Z0-9_-]*)*?'],
+                    'params' => ['category_slug' => '[a-zA-Z0-9][a-zA-Z0-9_-]*(?:/[a-zA-Z0-9][a-zA-Z0-9_-]*)*?'],
                     'target' => '{module}_category',
                 ],
                 [
@@ -183,24 +183,24 @@ return [
                 ],
                 [
                     'pattern' => '{module}/{category_slug}[/o{page:\d*}]',
-                    'params' => ['module' => '[a-z]+', 'category_slug' => '[a-zA-Z][a-zA-Z0-9_-]*'],
+                    'params' => ['module' => '[a-z]+', 'category_slug' => '[a-zA-Z0-9][a-zA-Z0-9_-]*'],
                     'target' => '{module}_category',
                 ],
                 [
                     'pattern' => '{module}[/{category_slug}]/{id:\d+}',
-                    'params' => ['module' => '[a-z]+', 'category_slug' => '[a-zA-Z][a-zA-Z0-9_-]*'],
+                    'params' => ['module' => '[a-z]+', 'category_slug' => '[a-zA-Z0-9][a-zA-Z0-9_-]*'],
                 ],
             ],
             // 短地址模块：分类段取代模块名段并取全链；详情段的分类取顶级祖先别名（单段）
             'short_rules' => [
                 [
                     'pattern' => '{category_slug}[/o{page:\d*}]',
-                    'params' => ['category_slug' => '[a-zA-Z][a-zA-Z0-9_-]*(?:/[a-zA-Z][a-zA-Z0-9_-]*)*?'],
+                    'params' => ['category_slug' => '[a-zA-Z0-9][a-zA-Z0-9_-]*(?:/[a-zA-Z0-9][a-zA-Z0-9_-]*)*?'],
                     'target' => '{module}_category',
                 ],
                 [
                     'pattern' => '[{category_slug}/]{id:\d+}',
-                    'params' => ['category_slug' => '[a-zA-Z][a-zA-Z0-9_-]*'],
+                    'params' => ['category_slug' => '[a-zA-Z0-9][a-zA-Z0-9_-]*'],
                 ],
             ],
         ],
@@ -228,7 +228,7 @@ return [
             'short_rules' => [
                 [
                     'pattern' => 'category/{category_slug}[/o{page:\d*}]',
-                    'params' => ['category_slug' => '[a-zA-Z][a-zA-Z0-9_-]*(?:/[a-zA-Z][a-zA-Z0-9_-]*)*?'],
+                    'params' => ['category_slug' => '[a-zA-Z0-9][a-zA-Z0-9_-]*(?:/[a-zA-Z0-9][a-zA-Z0-9_-]*)*?'],
                     'target' => '{module}_category',
                 ],
                 [
@@ -289,7 +289,7 @@ return [
                 ],
                 [
                     'pattern' => '{module}/{category_slug}[/o{page:\d*}]',
-                    'params' => ['module' => '[a-z]+', 'category_slug' => '[a-zA-Z][a-zA-Z0-9_-]*'],
+                    'params' => ['module' => '[a-z]+', 'category_slug' => '[a-zA-Z0-9][a-zA-Z0-9_-]*'],
                     'target' => '{module}_category',
                 ],
                 [
@@ -298,7 +298,7 @@ return [
                 ],
             ],
             // 短地址模块：归档与详情结构保持不变，仅去掉模块名段（模块根无 URL）；
-            // 分类段取代模块名段并取全链（与 {year} 归档段以「首字符为字母」区分）
+            // 分类段取代模块名段并取全链（数字开头别名与 {year} 归档段可重叠，按路由排序规则决议）
             'short_rules' => [
                 [
                     'pattern' => '{year:\d{4}}[/o{page:\d*}]',
@@ -310,7 +310,7 @@ return [
                 ],
                 [
                     'pattern' => '{category_slug}[/o{page:\d*}]',
-                    'params' => ['category_slug' => '[a-zA-Z][a-zA-Z0-9_-]*(?:/[a-zA-Z][a-zA-Z0-9_-]*)*?'],
+                    'params' => ['category_slug' => '[a-zA-Z0-9][a-zA-Z0-9_-]*(?:/[a-zA-Z0-9][a-zA-Z0-9_-]*)*?'],
                     'target' => '{module}_category',
                 ],
                 [

@@ -688,7 +688,7 @@ class CloudService extends BaseService
      * @param string $type
      * @param string $cloudId
      * @param string $mode
-     * @return array{status:string, download_url:string}
+     * @return array{status:string, download_url:string, sha256?:string}
      */
     public function resolveInstallDownload($type, $cloudId, $mode)
     {
@@ -710,7 +710,14 @@ class CloudService extends BaseService
             $data = isset($envelope['data']) && is_array($envelope['data']) ? $envelope['data'] : array();
 
             if ($code === 0 && isset($data['download_url']) && (string) $data['download_url'] !== '') {
-                return array('status' => 'ok', 'download_url' => (string) $data['download_url']);
+                // 包完整性校验（最小档）：云端 install-resolve 下发 sha256 时随会话保存，下载后解压前强校验；
+                // 未下发（旧云端/镜像缺 sidecar）→ 空串，跳过校验（平滑过渡）
+                $sha256 = isset($data['sha256']) ? strtolower(trim((string) $data['sha256'])) : '';
+                if (!preg_match('/^[a-f0-9]{64}$/', $sha256)) {
+                    $sha256 = '';
+                }
+
+                return array('status' => 'ok', 'download_url' => (string) $data['download_url'], 'sha256' => $sha256);
             }
 
             if ($code === 401 || $message === 'login_required') {

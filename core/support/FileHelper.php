@@ -148,6 +148,52 @@ class FileHelper
     }
 
     /**
+     * 覆盖式替换单个文件（Windows 文件锁容忍）。
+     *
+     * 首选直接 copy 覆盖；目标被占用/锁定导致失败时退化为「把目标改名移开 → 写入新文件 →
+     * 删除旧文件」的三步替换——rename 对被占用文件同样可能失败，故短重试若干次
+     * （多由杀软扫描、并发请求等毫秒级占用引起）。
+     * 写入以字节数一致校验，防止 copy 静默截断把文件写坏。
+     *
+     * @param string $source 源文件
+     * @param string $destination 目标文件（父目录不存在时自动创建）
+     * @return bool
+     */
+    public static function replace($source, $destination)
+    {
+        if (!is_file($source) || !is_string($destination) || $destination === '') {
+            return false;
+        }
+
+        $parentDir = dirname($destination);
+        if (!is_dir($parentDir) && !@mkdir($parentDir, 0777, true)) {
+            return false;
+        }
+
+        $size = @filesize($source);
+        if (@copy($source, $destination) && @filesize($destination) === $size) {
+            return true;
+        }
+
+        for ($attempt = 0; $attempt < 3; $attempt++) {
+            $aside = $destination . '.dou_bak_' . mt_rand(1000, 9999);
+            if (@rename($destination, $aside)) {
+                if (@copy($source, $destination) && @filesize($destination) === $size) {
+                    @unlink($aside);
+                    return true;
+                }
+                // 写入失败：把原文件放回去，避免目标丢失
+                @unlink($destination);
+                @rename($aside, $destination);
+                return false;
+            }
+            usleep(50000);
+        }
+
+        return false;
+    }
+
+    /**
      * 递归列出目录与文件路径（带前缀裁剪）。
      *
      * @param mixed $dir

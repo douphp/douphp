@@ -123,4 +123,66 @@ class UpdateStateService extends BaseService
             ->where('name', 'update_date')
             ->update(array('value' => serialize($updateDate)));
     }
+
+    /**
+     * 记录模块包版本（T6）：dou_config.module_version 行 = 序列化 map（模块标识 => 包版本）。
+     *
+     * 用途：模块升级载荷读已装版本做「相等短路 / 降级拒绝」，成功后写新版本；
+     * 行不存在（老站首跳）时自动 INSERT。
+     *
+     * @param string $moduleId 模块标识
+     * @param string $version  包版本（打包日 Ymd）
+     * @return void
+     */
+    public function recordModuleVersion($moduleId, $version)
+    {
+        $moduleId = (string) $moduleId;
+        $version = (string) $version;
+        if ($moduleId === '' || $version === '') {
+            return;
+        }
+
+        $raw = DB::table('config')->where('name', 'module_version')->value('value');
+        $map = (is_string($raw) && $raw !== '') ? @unserialize($raw) : array();
+        if (!is_array($map)) {
+            $map = array();
+        }
+        $map[$moduleId] = $version;
+
+        if (!is_string($raw) || $raw === '') {
+            // 行不存在（老站首跳）：INSERT
+            DB::query('INSERT INTO `' . DB::getPrefix() . "config` (`value`, `name`, `type`, `box`, `tab`)"
+                . " VALUES ('" . DB::escapeString(serialize($map)) . "', 'module_version', 'hidden', '', '')");
+            return;
+        }
+
+        DB::table('config')
+            ->where('name', 'module_version')
+            ->update(array('value' => serialize($map)));
+    }
+
+    /**
+     * 移除模块包版本记录（T6：模块卸载 / clearModule 清理时调用）。
+     *
+     * @param string $moduleId
+     * @return void
+     */
+    public function removeModuleVersion($moduleId)
+    {
+        $moduleId = (string) $moduleId;
+        if ($moduleId === '') {
+            return;
+        }
+
+        $raw = DB::table('config')->where('name', 'module_version')->value('value');
+        $map = (is_string($raw) && $raw !== '') ? @unserialize($raw) : array();
+        if (!is_array($map) || !isset($map[$moduleId])) {
+            return;
+        }
+        unset($map[$moduleId]);
+
+        DB::table('config')
+            ->where('name', 'module_version')
+            ->update(array('value' => serialize($map)));
+    }
 }

@@ -12,7 +12,7 @@
   var currentStep = steps[0];
   var seededLines = {};
   var activeSpinner = null;
-  var stepOrder = ['preflight', 'download', 'unzip', 'apply', 'finalize'];
+  var stepOrder = ['preflight', 'download', 'unzip', 'snapshot', 'apply', 'finalize'];
 
   function escapeText(text) {
     return String(text == null ? '' : text)
@@ -65,6 +65,9 @@
     }
     if (step === 'unzip') {
       return langPack.cloud_unzip_ing || '';
+    }
+    if (step === 'snapshot') {
+      return langPack.cloud_snapshot_ing || '';
     }
     if (step === 'apply') {
       var prefix = langPack.cloud_install_ing || '';

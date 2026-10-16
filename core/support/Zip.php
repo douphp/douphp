@@ -26,7 +26,10 @@ if (!defined('IN_DOUCO')) {
  *
  * 业务侧用法：
  *   Zip::extract($zipPath, $destinationDir);
- *   $rv = Zip::create($zipPath, $paths, $removePath, $error);
+ *   $result = Zip::create($zipPath, $paths, $removePath);  // array('ok','response','error')
+ *
+ * 注：凡经静态门面调用的方法一律以返回值传错（不用引用出参）——门面经
+ * call_user_func_array 转发，引用参数在 PHP 7.4/8 会告警且不回填。
  */
 class Zip
 {
@@ -292,17 +295,229 @@ class Zip
      * @param string $zipPath
      * @param array $paths
      * @param string $removePath
-     * @param string $errorInfo 出参：失败时写入 PclZip 错误信息
-     * @return int PclZip::create 返回值（0 表示失败）
+     * @return array array('ok' => bool, 'response' => int, 'error' => string)
      */
-    public function create($zipPath, array $paths, $removePath, &$errorInfo = '')
+    public function create($zipPath, array $paths, $removePath)
     {
         $archive = Container::getInstance()->make(PclZip::class, array('p_zipname' => $zipPath));
         $response = $archive->create($paths, PCLZIP_OPT_REMOVE_PATH, $removePath);
-        if ($response == 0) {
-            $errorInfo = $archive->errorInfo(true);
+        if ($response == 0 || $response === false) {
+            return array('ok' => false, 'response' => 0, 'error' => $archive->errorInfo(true));
         }
 
-        return $response;
+        return array(
+            'ok' => true,
+            'response' => is_array($response) ? count($response) : (int) $response,
+            'error' => '',
+        );
+    }
+
+    /**
+     * 追加一批文件到 zip（不存在则创建）；归档内条目名 = 绝对路径去掉 removePath 前缀。
+     *
+     * 快照创建按批续传依赖本方法：ZipArchive 增量 addFile 为 O(批)，PclZip add 为兜底。
+     * 结果以数组返回（而非引用出参）：静态门面经 call_user_func_array 转发，引用出参
+     * 在 PHP 8 会告警且不回填，故此类批量方法一律走「返回值传错」。
+     *
+     * @param string $zipPath
+     * @param array $absolutePaths 绝对路径列表（同一次调用内需同一 removePath 根）
+     * @param string $removePath 条目名剥离前缀（通常为 ROOT_PATH）
+     * @return array array('ok' => bool, 'error' => string)
+     */
+    public function append($zipPath, array $absolutePaths, $removePath)
+    {
+        $absolutePaths = array_values(array_filter((array) $absolutePaths, 'is_file'));
+        if (!$absolutePaths) {
+            return array('ok' => true, 'error' => '');
+        }
+
+        if (class_exists('ZipArchive')) {
+            $archive = new \ZipArchive();
+            if (@$archive->open($zipPath, \ZipArchive::CREATE) !== true) {
+                return array('ok' => false, 'error' => 'zip open failed: ' . $zipPath);
+            }
+            foreach ($absolutePaths as $absPath) {
+                $localName = $this->relativeEntryName($absPath, $removePath);
+                if ($localName === '' || @$archive->addFile($absPath, $localName) === false) {
+                    @$archive->close();
+                    return array('ok' => false, 'error' => 'zip addFile failed: ' . $absPath);
+                }
+            }
+            @$archive->close();
+
+            return array('ok' => true, 'error' => '');
+        }
+
+        $archive = Container::getInstance()->make(PclZip::class, array('p_zipname' => $zipPath));
+        $response = @$archive->add($absolutePaths, PCLZIP_OPT_REMOVE_PATH, $removePath);
+        if ($response == 0) {
+            return array('ok' => false, 'error' => $archive->errorInfo(true));
+        }
+
+        return array('ok' => true, 'error' => '');
+    }
+
+    /**
+     * 按条目序号区间解压（快照还原按批续传依赖本方法）。
+     *
+     * 区间以归档当前条目顺序为准（同一文件内顺序稳定），offset 从 0 计。
+     * 结果以数组返回（理由同 {@see append()}）。
+     *
+     * @param string $zipPath
+     * @param string $destinationDir
+     * @param int $offset 起始条目序号
+     * @param int $limit 本批最多条目数
+     * @return array array('ok' => bool, 'count' => int, 'total' => int, 'error' => string)
+     *               count=0 表示已到尾部
+     */
+    public function extractRange($zipPath, $destinationDir, $offset, $limit)
+    {
+        $offset = max(0, (int) $offset);
+        $limit = max(1, (int) $limit);
+
+        if (class_exists('ZipArchive')) {
+            $archive = new \ZipArchive();
+            if (@$archive->open($zipPath) !== true) {
+                return array('ok' => false, 'count' => 0, 'total' => 0, 'error' => 'zip open failed: ' . $zipPath);
+            }
+            $total = (int) $archive->numFiles;
+            $names = array();
+            $end = min($offset + $limit, $total);
+            for ($i = $offset; $i < $end; $i++) {
+                $name = $archive->getNameIndex($i);
+                if ($name === false || $name === '') {
+                    $archive->close();
+                    return array('ok' => false, 'count' => 0, 'total' => $total, 'error' => 'zip entry read failed');
+                }
+                $names[] = $name;
+            }
+            if (!$names) {
+                $archive->close();
+                return array('ok' => true, 'count' => 0, 'total' => $total, 'error' => '');
+            }
+            if (!is_dir($destinationDir)) {
+                @mkdir($destinationDir, 0777, true);
+            }
+            $result = @$archive->extractTo($destinationDir, $names);
+            if ($result === false) {
+                // Windows 文件锁（杀软/句柄占用）等导致批量解压失败：逐条流写 + 三步替换兜底
+                $failed = $this->extractNamesManually($archive, $names, $destinationDir);
+                $archive->close();
+                if ($failed > 0) {
+                    return array('ok' => false, 'count' => 0, 'total' => $total, 'error' => 'extractTo failed, manual failed: ' . $failed);
+                }
+
+                return array('ok' => true, 'count' => count($names), 'total' => $total, 'error' => '');
+            }
+            $archive->close();
+
+            return array('ok' => true, 'count' => count($names), 'total' => $total, 'error' => '');
+        }
+
+        $archive = Container::getInstance()->make(PclZip::class, array('p_zipname' => $zipPath));
+        $list = @$archive->listContent();
+        if (!is_array($list)) {
+            return array('ok' => false, 'count' => 0, 'total' => 0, 'error' => 'zip open failed: ' . $zipPath);
+        }
+        $total = count($list);
+        $end = min($offset + $limit, $total) - 1;
+        if ($end < $offset) {
+            return array('ok' => true, 'count' => 0, 'total' => $total, 'error' => '');
+        }
+        // 区间必须用 array 形式传：PclZip 内部守卫是 `!= 0`，而 PHP 5.6/7.x 对
+        // 「字符串 vs 整数」按数值比较——"0-49" 会被转成 0 判假，首个批次（offset=0）
+        // 整个跳过 by-index 分支、一条都不解压，却返回成功（还原静默不完整）。
+        // array 与 0 比较在 5.6~8.x 恒为 true。
+        $result = @$archive->extract(PCLZIP_OPT_PATH, $destinationDir, PCLZIP_OPT_BY_INDEX, array($offset . '-' . $end));
+        if (!is_array($result)) {
+            return array('ok' => false, 'count' => 0, 'total' => $total, 'error' => 'pclzip extract failed');
+        }
+
+        return array('ok' => true, 'count' => count($result), 'total' => $total, 'error' => '');
+    }
+
+    /**
+     * 统计 zip 内条目数。
+     *
+     * @param string $zipPath
+     * @return int|false
+     */
+    public function count($zipPath)
+    {
+        if (class_exists('ZipArchive')) {
+            $archive = new \ZipArchive();
+            if (@$archive->open($zipPath) !== true) {
+                return false;
+            }
+            $total = (int) $archive->numFiles;
+            $archive->close();
+
+            return $total;
+        }
+
+        $archive = Container::getInstance()->make(PclZip::class, array('p_zipname' => $zipPath));
+        $list = @$archive->listContent();
+
+        return is_array($list) ? count($list) : false;
+    }
+
+    /**
+     * 绝对路径 → 归档条目名（去掉 removePath 前缀，统一 / 分隔）。
+     *
+     * @param string $absPath
+     * @param string $removePath
+     * @return string
+     */
+    private function relativeEntryName($absPath, $removePath)
+    {
+        $abs = str_replace('\\', '/', (string) $absPath);
+        $root = str_replace('\\', '/', (string) $removePath);
+        if ($root !== '' && strpos($abs, $root) === 0) {
+            $abs = substr($abs, strlen($root));
+        }
+
+        return ltrim($abs, '/');
+    }
+
+    /**
+     * 逐条流写解压（批量 extractTo 失败时的兜底；经临时文件 + {@see FileHelper::replace()} 容忍文件锁）。
+     *
+     * @param \ZipArchive $archive 已打开的归档
+     * @param array $names 本批条目名
+     * @param string $destinationDir
+     * @return int 失败条目数（0=全部成功）
+     */
+    private function extractNamesManually($archive, array $names, $destinationDir)
+    {
+        $destRoot = rtrim(str_replace('\\', '/', (string) $destinationDir), '/');
+        $failed = 0;
+        foreach ($names as $name) {
+            $normalized = ltrim(str_replace('\\', '/', (string) $name), '/');
+            $target = $destRoot . '/' . $normalized;
+            if (substr($normalized, -1) === '/') {
+                if (!is_dir($target)) {
+                    @mkdir($target, 0777, true);
+                }
+                continue;
+            }
+            $parent = dirname($target);
+            if (!is_dir($parent)) {
+                @mkdir($parent, 0777, true);
+            }
+            $stream = @$archive->getStream($name);
+            if (!$stream) {
+                $failed++;
+                continue;
+            }
+            $content = stream_get_contents($stream);
+            fclose($stream);
+            $tmp = $target . '.dou_tmp_' . mt_rand(1000, 9999);
+            if (@file_put_contents($tmp, $content) === false || !FileHelper::replace($tmp, $target)) {
+                @unlink($tmp);
+                $failed++;
+            }
+        }
+
+        return $failed;
     }
 }

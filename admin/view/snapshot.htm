@@ -1,0 +1,94 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="copyright" content="DouCo Co.,Ltd." />
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="csrf-token" content="{$csrf_token}">
+<title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+<link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+<link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+<link href="css/common.css" rel="stylesheet" type="text/css">
+{include file="inc/javascript.tpl"}
+</head>
+<body>
+<div id="dou"> {include file="inc/header.tpl"}
+ {include file="inc/sidebar.tpl"}
+ <div id="dou-content"> {include file="inc/toolbar.tpl"}
+  <div class="dou-main">
+   <div class="dou-page">
+   {include file="inc/page_header.tpl"}
+   <h3>{$lang.snapshot_group_system}</h3>
+   <table class="table">
+    <tr>
+     <th class="text-left">{$lang.snapshot_col_name}</th>
+     <th class="m-none text-center">{$lang.snapshot_col_created}</th>
+     <th class="m-none text-center">{$lang.snapshot_col_size}</th>
+     <th class="m-none text-center">{$lang.snapshot_col_content}</th>
+     <th class="m-none text-center">{$lang.snapshot_col_status}</th>
+     <th class="m-none text-center">{$lang.snapshot_col_rescue}</th>
+     <th width="260" class="text-center">{$lang.handler}</th>
+    </tr>
+    <!-- {foreach from=$rows_system item=row} -->
+    <tr>
+     <td class="text-left">{$row.title}</td>
+     <td class="m-none text-center">{$row.created_at_text}</td>
+     <td class="m-none text-center">{$row.size_text}</td>
+     <td class="m-none text-center">{$row.files_text} / {$row.db_text}</td>
+     <td class="m-none text-center">{$row.status_text}</td>
+     <td class="m-none text-center">{if $row.rescue_url}<a href="{$row.rescue_url}">{$row.rescue_state_text}</a>{else}{$row.rescue_state_text}{/if}</td>
+     <td class="text-center">
+      <!-- {if $row.is_restoring} -->
+      <a href="{$row.restore_url}">{$lang.snapshot_btn_resume}</a>
+      | <a href="{$row.abandon_url}">{$lang.snapshot_btn_abandon}</a>
+      <!-- {else} -->
+      <a href="{$row.restore_url}">{$lang.snapshot_btn_restore}</a>
+      <!-- {/if} -->
+      | <a href="{$row.download_url}">{$lang.snapshot_btn_download}</a>
+      | <a href="javascript:;" class="js-delete" data-url="{$row.delete_url}">{$lang.snapshot_btn_delete}</a>
+     </td>
+    </tr>
+    <!-- {/foreach} -->
+   </table>
+   <!-- {if !$rows_system} -->
+   <p>{$lang.snapshot_empty}</p>
+   <!-- {/if} -->
+   <h3>{$lang.snapshot_group_module}</h3>
+   <table class="table">
+    <tr>
+     <th class="text-left">{$lang.snapshot_col_name}</th>
+     <th class="m-none text-center">{$lang.snapshot_col_created}</th>
+     <th class="m-none text-center">{$lang.snapshot_col_size}</th>
+     <th class="m-none text-center">{$lang.snapshot_col_content}</th>
+     <th class="m-none text-center">{$lang.snapshot_col_status}</th>
+     <th width="260" class="text-center">{$lang.handler}</th>
+    </tr>
+    <!-- {foreach from=$rows_module item=row} -->
+    <tr>
+     <td class="text-left">{$row.title}</td>
+     <td class="m-none text-center">{$row.created_at_text}</td>
+     <td class="m-none text-center">{$row.size_text}</td>
+     <td class="m-none text-center">{$row.files_text} / {$row.db_text}</td>
+     <td class="m-none text-center">{$row.status_text}</td>
+     <td class="text-center">
+      <!-- {if $row.is_restoring} -->
+      <a href="{$row.restore_url}">{$lang.snapshot_btn_resume}</a>
+      | <a href="{$row.abandon_url}">{$lang.snapshot_btn_abandon}</a>
+      <!-- {else} -->
+      <a href="{$row.restore_url}">{$lang.snapshot_btn_restore}</a>
+      <!-- {/if} -->
+      | <a href="{$row.download_url}">{$lang.snapshot_btn_download}</a>
+      | <a href="javascript:;" class="js-delete" data-url="{$row.delete_url}">{$lang.snapshot_btn_delete}</a>
+     </td>
+    </tr>
+    <!-- {/foreach} -->
+   </table>
+   <!-- {if !$rows_module} -->
+   <p>{$lang.snapshot_empty}</p>
+   <!-- {/if} -->
+  </div>
+ </div>
+  </div>
+ {include file="inc/footer.tpl"} </div>
+</body>
+</html>

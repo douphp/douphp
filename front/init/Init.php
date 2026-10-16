@@ -355,7 +355,7 @@ class Init
             $engine->assign('data', $dataResult);
             $engine->assign('fragment', self::withLegacyFragmentMark($dataResult));
 
-            // 兼容存量主题 {$box_list.xxx} 标签：由 data 中 box 分组数据组装旧 box 结构。
+            // 兼容存量主题 {$box_list.xxx} 标签：由 data 分组行（box 已并入 index 组）组装旧 box 结构。
             $engine->assign('box_list', self::legacyBoxList());
         }
 
@@ -476,9 +476,10 @@ class Init
     /**
      * 兼容旧 box 模板标签：组装 $box_list 全量集合（数字 + slug 双 key）。
      *
-     * box 模块已退役：数据升级时并入 data 表。本方法取 box 分组父行（无该
-     * 分组数据时回退全主题 is_class=1 分组行，覆盖仅经旧 transform 手工导入的
-     * 站点）作为 slug 列表，逐 slug 经 Portal::boxList() 按旧输出契约组装。
+     * box 模块已退役：数据升级时并入 data 的 index 分组（与 fragment 同组，不再单独占组名）。
+     * 旧标签按分类标识取值，而 Portal::boxList() 由父行自身的分组/关联项推导子行，与组名无关，
+     * 故此处取本主题全部 is_class=1 分组行作为 slug 列表——同时覆盖历史已按 box 分组入库的站点
+     * 与仅经旧 transform 手工导入的站点。
      *
      * @return array
      */
@@ -488,17 +489,9 @@ class Init
 
         $parents = DB::table('data')
             ->where('theme', $theme)
-            ->where('data_group', 'box')
             ->where('is_class', 1)
             ->order('sort ASC, id ASC')
             ->select();
-        if (!is_array($parents) || empty($parents)) {
-            $parents = DB::table('data')
-                ->where('theme', $theme)
-                ->where('is_class', 1)
-                ->order('sort ASC, id ASC')
-                ->select();
-        }
         if (!is_array($parents)) {
             $parents = array();
         }

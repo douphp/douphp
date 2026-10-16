@@ -94,8 +94,17 @@ class InstallService extends BaseService
     const STEP_PREFLIGHT = 'preflight';
     const STEP_DOWNLOAD = 'download';
     const STEP_UNZIP = 'unzip';
+    const STEP_SNAPSHOT = 'snapshot';
     const STEP_APPLY = 'apply';
     const STEP_FINALIZE = 'finalize';
+
+    /**
+     * 最近一次 install() 过程的附加说明（如模块更新失败后的快照回滚结果），
+     * 由 runApply 合并进步骤日志展示。
+     *
+     * @var array
+     */
+    private $installNotes = array();
 
     /**
      * 步骤 1：版本校验 + 重复安装校验 + system 授权前置校验。
@@ -113,14 +122,33 @@ class InstallService extends BaseService
 
         $logs = array();
 
-        $unwriteable = $this->findUnwriteableDirs();
-        if ($unwriteable !== array()) {
-            @unlink($this->cacheDir . $cloudId . '.zip');
-            return array(
-                'ok' => false,
-                'error' => sprintf((string) lang('cloud_writeable_denied'), implode('、', $unwriteable)),
-                'logs' => $logs,
-            );
+        // 前置检查（core/service/upgrade/PreflightService：全量关键目录写测 + PHP/MySQL 兼容判定 +
+        // 扩展检查 + 磁盘余量参考提示；blocked 拒绝、limited/提示写入日志。
+        // 类缺失（旧版本代码窗口）时回退旧版基础目录可写检查，行为不劣化）
+        if (class_exists('Dou\\Core\\Service\\Upgrade\\PreflightService')) {
+            $preflight = new \Dou\Core\Service\Upgrade\PreflightService();
+            $report = $preflight->check($this->rootDir, $this->preflightAliasDirs());
+            foreach (array_merge($report['warnings'], $report['notices']) as $preflightLine) {
+                $logs[] = (string) $preflightLine;
+            }
+            if (empty($report['ok'])) {
+                @unlink($this->cacheDir . $cloudId . '.zip');
+                return array(
+                    'ok' => false,
+                    'error' => implode('；', $report['errors']),
+                    'logs' => $logs,
+                );
+            }
+        } else {
+            $unwriteable = $this->findUnwriteableDirs();
+            if ($unwriteable !== array()) {
+                @unlink($this->cacheDir . $cloudId . '.zip');
+                return array(
+                    'ok' => false,
+                    'error' => sprintf((string) lang('cloud_writeable_denied'), implode('、', $unwriteable)),
+                    'logs' => $logs,
+                );
+            }
         }
 
         if ($mode !== 'local' && $authStatus !== '' && $authStatus !== 'ok') {
@@ -199,6 +227,43 @@ class InstallService extends BaseService
     }
 
     /**
+     * 前置检查的目录别名（自定义后台/接口/小程序目录名；不存在自动跳过）。
+     *
+     * @return array
+     */
+    private function preflightAliasDirs()
+    {
+        return array(
+            defined('ADMIN_DIR') ? ADMIN_DIR : 'admin',
+            defined('API_DIR') ? API_DIR : 'api',
+            defined('MINIPROGRAM_DIR') ? MINIPROGRAM_DIR : 'miniprogram',
+        );
+    }
+
+    /**
+     * 记录模块包版本（T6）：从包解压目录 _update/version.php 读元信息，写入 dou_config.module_version。
+     *
+     * 仅用于「安装模式」成功后记录；「更新模式」由包内升级载荷自行完成（载荷先于本流程收尾执行）。
+     *
+     * @param string $cloudId
+     * @param string $itemDir 包解压目录（绝对路径，不带结尾斜杠）
+     * @return void
+     */
+    private function recordModuleVersionFromPackage($cloudId, $itemDir)
+    {
+        $metaFile = rtrim(str_replace('\\', '/', (string) $itemDir), '/') . '/_update/version.php';
+        if (!is_file($metaFile)) {
+            return;
+        }
+        $meta = include $metaFile;
+        if (!is_array($meta) || empty($meta['version'])) {
+            return;
+        }
+        $module = isset($meta['module']) && (string) $meta['module'] !== '' ? (string) $meta['module'] : (string) $cloudId;
+        $this->updateState->recordModuleVersion($module, (string) $meta['version']);
+    }
+
+    /**
      * 以创建临时文件探测目录是否可写（与 {@see FileHelper::permission()} 一致）。
      *
      * @param string $dir 绝对路径
@@ -249,7 +314,26 @@ class InstallService extends BaseService
 
         $logs[] = lang('cloud_down_ing_0') . $downUrl . lang('cloud_down_ing_1');
 
-        if ($this->downloadFile($downUrl, $this->cacheDir)) {
+        $downloaded = $this->downloadFile($downUrl, $this->cacheDir);
+        if ($downloaded !== false) {
+            // 包完整性校验（最小档）：云端 install-resolve 下发 sha256 时必须一致，否则删除并拒绝；
+            // 未下发 sha256（旧云端/镜像缺 sidecar）→ 提示后继续（平滑过渡）
+            $expected = isset($params['sha256']) ? strtolower(trim((string) $params['sha256'])) : '';
+            if ($expected !== '') {
+                $actual = @hash_file('sha256', $downloaded);
+                if ($actual === false || strtolower((string) $actual) !== $expected) {
+                    @unlink($downloaded);
+                    $msg = lang_has('cloud_package_hash_mismatch')
+                        ? (string) lang('cloud_package_hash_mismatch')
+                        : (string) lang('cloud_down_wrong');
+                    $logs[] = $msg;
+                    return array('ok' => false, 'error' => $msg, 'logs' => $logs);
+                }
+                $logs[] = lang_has('cloud_package_hash_ok') ? (string) lang('cloud_package_hash_ok') : '包完整性校验通过。';
+            } else {
+                $logs[] = lang_has('cloud_package_hash_skipped') ? (string) lang('cloud_package_hash_skipped') : '云端未下发 sha256，跳过完整性校验。';
+            }
+
             return array('ok' => true, 'error' => '', 'logs' => $logs);
         }
 
@@ -283,6 +367,25 @@ class InstallService extends BaseService
 
         if (Zip::extract($itemZip, $itemDir)) {
             $this->synchronizeDirname($type, $itemDir, $mode);
+
+            // 解压后二次环境校验（system 包）：按包内 _update/version.php 的 php_min / mysql_min
+            // fail-loud（前置检查基于站点现行代码；此处以「包自述要求」为准，防解压完成后才发现环境不满足）
+            $metaFile = $itemDir . '/_update/version.php';
+            if ($type === 'system' && is_file($metaFile) && class_exists('Dou\\Core\\Service\\Upgrade\\EnvCompatService')) {
+                $meta = include $metaFile;
+                if (is_array($meta)) {
+                    $envCompat = new \Dou\Core\Service\Upgrade\EnvCompatService();
+                    $require = $envCompat->checkPackageRequirements($meta);
+                    if (empty($require['ok'])) {
+                        @unlink($itemZip);
+                        FileHelper::delDir($itemDir);
+                        $msg = implode('；', $require['errors']);
+                        $logs[] = $msg;
+                        return array('ok' => false, 'error' => $msg, 'logs' => $logs);
+                    }
+                }
+            }
+
             return array('ok' => true, 'error' => '', 'logs' => $logs);
         }
 
@@ -291,6 +394,76 @@ class InstallService extends BaseService
         $logs[] = lang('cloud_unzip_wrong');
 
         return array('ok' => false, 'error' => lang('cloud_unzip_wrong'), 'logs' => $logs);
+    }
+
+    /**
+     * 步骤 3.5：创建升级还原点（unzip 与 apply 之间）。
+     *
+     * 系统更新（system + update/patch）建 system 域全量还原点；模块更新（module + update）
+     * 建 module 域还原点（按解压目录反推将被覆盖 / 新增的文件）。其余类型（全新安装、
+     * 主题 / 插件 / 小程序）不建还原点，直接放行到 apply。
+     *
+     * 断点续传：一次调用按时间预算推进一个单元；未完成时返回 next_step=snapshot，
+     * 由前端循环再次调用本步骤（active.json 记录创建进度），直至完成再进入 apply。
+     *
+     * @param array $params 至少包含 type / cloud_id / mode / install_id
+     * @return array { ok: bool, error: string, logs: string[], next_step?: string }
+     */
+    public function runSnapshot(array $params)
+    {
+        $type = isset($params['type']) ? (string) $params['type'] : '';
+        $cloudId = isset($params['cloud_id']) ? (string) $params['cloud_id'] : '';
+        $mode = isset($params['mode']) ? (string) $params['mode'] : 'install';
+        $installId = isset($params['install_id']) ? (string) $params['install_id'] : '';
+
+        $isSystem = ($type === 'system' && ($mode === 'update' || $mode === 'patch'));
+        $isModule = ($type === 'module' && $mode === 'update');
+        if (!$isSystem && !$isModule) {
+            return array('ok' => true, 'error' => '', 'logs' => array(), 'next_step' => self::STEP_APPLY);
+        }
+
+        if (!class_exists('Dou\\Core\\Service\\Upgrade\\SnapshotService')) {
+            return array('ok' => false, 'error' => (string) lang('cloud_snapshot_engine_missing'), 'logs' => array());
+        }
+
+        $snapshot = new \Dou\Core\Service\Upgrade\SnapshotService(ROOT_PATH);
+        $active = $snapshot->active();
+        $logs = array();
+        if ($active === null) {
+            $options = array(
+                'db' => true,
+                'channel' => 'cloud',
+                'install_id' => $installId,
+                'title' => $cloudId,
+            );
+            if ($isSystem) {
+                $options['file_mode'] = 'full';
+            } else {
+                $options['file_mode'] = 'list';
+                $options['item_dir'] = $this->cacheDir . $cloudId;
+            }
+            $begin = $snapshot->begin($isSystem ? 'system' : 'module', $cloudId, $options);
+            if (empty($begin['ok'])) {
+                return array('ok' => false, 'error' => (string) $begin['error'], 'logs' => $logs);
+            }
+            $logs[] = (string) lang('cloud_snapshot_begin');
+        }
+
+        $result = $snapshot->step(array('max_seconds' => 12, 'file_batch' => 700, 'db_bytes' => 4194304));
+        if (empty($result['ok'])) {
+            return array('ok' => false, 'error' => (string) $result['error'], 'logs' => $logs);
+        }
+        foreach ((array) $result['logs'] as $line) {
+            $logs[] = (string) $line;
+        }
+
+        if (empty($result['done'])) {
+            return array('ok' => true, 'error' => '', 'logs' => $logs, 'next_step' => self::STEP_SNAPSHOT);
+        }
+
+        $logs[] = sprintf((string) lang('cloud_snapshot_done'), $result['dir']);
+
+        return array('ok' => true, 'error' => '', 'logs' => $logs, 'next_step' => self::STEP_APPLY);
     }
 
     /**
@@ -321,6 +494,9 @@ class InstallService extends BaseService
 
         $wrong = $this->install($type, $cloudId, $mode);
         if (is_array($wrong) && $wrong) {
+            foreach ($this->installNotes as $note) {
+                $logs[] = (string) $note;
+            }
             return array('ok' => false, 'error' => $this->joinMessages($wrong), 'logs' => $logs);
         }
 
@@ -522,8 +698,12 @@ class InstallService extends BaseService
     private function isOptionalUpdateHookError($e)
     {
         $message = $e->getMessage();
+        if (strpos($message, 'CredentialCipher') !== false) {
+            return true;
+        }
 
-        return strpos($message, 'CredentialCipher') !== false;
+        // 模块版本门卫（T6）：降级拒绝属「跳过执行」语义，不得触发 clearModule 破坏式回滚
+        return strpos($message, '已拒绝执行降级') !== false;
     }
 
     /**
@@ -541,6 +721,7 @@ class InstallService extends BaseService
         $moduleType = '';
         $operate = array();
         $wrong = array();
+        $this->installNotes = array();
 
         $itemZip = $this->cacheDir . $cloudId . '.zip';
         $itemDir = $this->cacheDir . $cloudId;
@@ -594,6 +775,10 @@ class InstallService extends BaseService
                     $wrong[] = lang('cloud_systemfile_wrong');
                 }
                 $this->changeMiniprogramConfigFile();
+                // T6：模块「安装」成功后记录包版本（「更新」模式由包内升级载荷自行记录）
+                if ($mode !== 'update') {
+                    $this->recordModuleVersionFromPackage($cloudId, $itemDir);
+                }
             }
         } elseif ($type === 'system' || $type === 'miniprogram' || $type === 'dou') {
             $this->includeOptionalScript($updateFile, $wrong);
@@ -605,7 +790,13 @@ class InstallService extends BaseService
         }
 
         if ($wrong) {
-            $this->clearModule($cloudId);
+            // 模块「更新」失败优先快照回滚（无快照才回退 clearModule 卸载语义）；
+            // 安装失败 / 其它类型保持旧语义。
+            if ($this->tryRestoreModuleSnapshot($type, $mode, $cloudId) !== 'restored') {
+                if (empty($this->installNotes)) {
+                    $this->clearModule($cloudId);
+                }
+            }
         }
         @unlink($itemZip);
         FileHelper::delDir($itemDir);
@@ -622,6 +813,62 @@ class InstallService extends BaseService
         }
 
         return null;
+    }
+
+    /**
+     * 模块更新失败时从最近还原点回滚（替代 clearModule 破坏式卸载）。
+     *
+     * 语义约定（T7）：
+     *   - 模块「更新」失败：优先回滚到更新前快照（文件 + 数据库 + 模块版本账本）；
+     *     无可用快照时回退旧语义 clearModule（等价卸载）；
+     *     快照存在但回滚未完成（失败 / 超时）时不执行 clearModule——半还原现场由
+     *     后台「升级还原点」页继续/手动处理，避免把仍在用的模块连文件一起删掉。
+     *   - 模块「安装」失败与真卸载：保持 clearModule 卸载语义（由调用方处理）。
+     *
+     * @param string $type
+     * @param string $mode
+     * @param string $cloudId
+     * @return string restored（已回滚）| failed（有快照但未完成）| none（无快照，走旧语义）
+     */
+    private function tryRestoreModuleSnapshot($type, $mode, $cloudId)
+    {
+        if ($type !== 'module' || $mode !== 'update') {
+            return 'none';
+        }
+        if (!class_exists('Dou\\Core\\Service\\Upgrade\\RestoreService')
+            || !class_exists('Dou\\Core\\Service\\Upgrade\\SnapshotRepository')) {
+            return 'none';
+        }
+
+        $repository = new \Dou\Core\Service\Upgrade\SnapshotRepository(ROOT_PATH);
+        $row = $repository->latest('module', (string) $cloudId);
+        if ($row === null) {
+            return 'none';
+        }
+
+        $restore = new \Dou\Core\Service\Upgrade\RestoreService(ROOT_PATH);
+        $begin = $restore->begin($row['name']);
+        if (empty($begin['ok'])) {
+            $this->installNotes[] = str_replace('d%', (string) $begin['error'], (string) lang('cloud_snapshot_restore_failed'));
+            return 'failed';
+        }
+
+        $deadline = time() + 180;
+        while (true) {
+            $step = $restore->step(array('max_seconds' => 20, 'file_batch' => 800, 'delete_batch' => 800));
+            if (empty($step['ok'])) {
+                $this->installNotes[] = str_replace('d%', (string) $step['error'], (string) lang('cloud_snapshot_restore_failed'));
+                return 'failed';
+            }
+            if (!empty($step['done'])) {
+                $this->installNotes[] = (string) lang('cloud_snapshot_restored');
+                return 'restored';
+            }
+            if (time() > $deadline) {
+                $this->installNotes[] = (string) lang('cloud_snapshot_restore_pending');
+                return 'failed';
+            }
+        }
     }
 
     /**
@@ -845,26 +1092,23 @@ class InstallService extends BaseService
             return '';
         }
 
-        $gotHost = strtolower($parts['host']);
-        $defPort = ($scheme === 'https') ? 443 : 80;
-        $gotPort = isset($parts['port']) ? (int) $parts['port'] : $defPort;
+        // 主机必须与 download_base 完全一致；协议在过渡期允许 http/https 并存
+        // （download_base 已切 https；云端尚未切换前仍可能下发 http，同一主机视为可信——
+        //  包完整性由 install-resolve 下发的 sha256 强校验兜底）。
         $baseParts = @parse_url($downloadBase);
-        if (!$baseParts || empty($baseParts['scheme']) || empty($baseParts['host'])) {
+        if (!$baseParts || empty($baseParts['host'])) {
             return '';
         }
-
-        $wantScheme = strtolower($baseParts['scheme']);
-        if ($scheme !== $wantScheme) {
-            return '';
-        }
-
+        $gotHost = strtolower($parts['host']);
         $wantHost = strtolower($baseParts['host']);
         if ($gotHost !== $wantHost) {
             return '';
         }
 
-        $wantPort = isset($baseParts['port']) ? (int) $baseParts['port'] : $defPort;
-        if ($wantPort !== $gotPort) {
+        // 仅允许默认端口（http 80 / https 443），防非常规端口外联
+        $defPort = ($scheme === 'https') ? 443 : 80;
+        $gotPort = isset($parts['port']) ? (int) $parts['port'] : $defPort;
+        if (!in_array($gotPort, array(80, 443), true)) {
             return '';
         }
 
@@ -1158,6 +1402,19 @@ class InstallService extends BaseService
         $this->changeNav($cloudId, null, true);
         $this->changeModulePhp($cloudId, null, true);
         $this->changeMiniprogramConfigFile();
+        // T6：模块被清理（卸载 / 失败回滚）时同步移除其包版本记录，避免残留脏账本
+        $this->updateState->removeModuleVersion($cloudId);
+        // T7：模块卸载（含安装失败回滚）时清理其专属还原点，避免残留不可再用的快照
+        if (class_exists('Dou\\Core\\Service\\Upgrade\\SnapshotRepository')) {
+            $repository = new \Dou\Core\Service\Upgrade\SnapshotRepository(ROOT_PATH);
+            foreach ($repository->all() as $row) {
+                if (isset($row['manifest']['scope'], $row['manifest']['scope_id'])
+                    && $row['manifest']['scope'] === 'module'
+                    && (string) $row['manifest']['scope_id'] === (string) $cloudId) {
+                    $repository->delete($row['name']);
+                }
+            }
+        }
     }
 
     /**
@@ -1978,6 +2235,11 @@ class InstallService extends BaseService
                 break;
             default:
                 $btnBack = '<a href="' . Util::absolutizeEntryUrl('index.php') . '" class="btn-secondary">' . lang('cloud_admin_home') . '</a>';
+        }
+
+        // 上下文入口：系统升级 / 模块更新完成后直达「升级还原点」（回滚补救页）
+        if ($type === 'system' || $type === 'module') {
+            $btnAction = '<a href="' . Util::absolutizeEntryUrl(route('admin.backup.snapshot')) . '" class="btn-secondary">' . lang('snapshot_page_title') . '</a>';
         }
 
         if ($mode === 'update' || $mode === 'patch') {
