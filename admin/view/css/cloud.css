@@ -340,27 +340,6 @@
   color: #999;
 }
 
-/* -- 完成态安全提示与「查看还原点」小号按钮（仅在确有还原点时输出） -- */
-#dou-install-log .dou-finish-note {
-  color: #999;
-  font-size: 13px;
-}
-#dou-install-log .dou-snapshot-link-btn {
-  display: inline-block;
-  margin-left: 8px;
-  padding: 0 10px;
-  line-height: 20px;
-  border: 1px solid #ddd;
-  border-radius: 3px;
-  color: #666;
-  text-decoration: none;
-  vertical-align: middle;
-}
-#dou-install-log .dou-snapshot-link-btn:hover {
-  border-color: #19b4ea;
-  color: #19b4ea;
-}
-
 /*- cloud-frame -*/
 .cloud-frame .bg {
   position: fixed;

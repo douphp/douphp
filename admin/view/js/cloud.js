@@ -95,14 +95,16 @@
 
   function formatElapsed() {
     var sec = Math.floor((Date.now() - elapsedStart) / 1000);
-    if (sec < 0) { sec = 0; }
+    // 不足 1 秒不显示秒表，避免快速完成的步骤留下「已用时 0 秒」
+    if (sec < 1) { return ''; }
     // 语言串沿用项目 d% 占位约定
     return String(langPack.cloud_step_elapsed || '已用时 d% 秒').replace('d%', String(sec));
   }
 
   function renderElapsed() {
     if (!activeProgress || progressHasPercent) { return; }
-    activeProgress.text(' ' + formatElapsed());
+    var text = formatElapsed();
+    activeProgress.text(text === '' ? '' : ' ' + text);
   }
 
   function setActivePercent(pct) {
@@ -199,16 +201,15 @@
   }
 
   function showFinishActions(result) {
-    // 完成态安全提示（含「查看还原点」小按钮）单独一行；仅在确有还原点时由服务端下发
-    if (result && result.finish_note_html) {
-      appendLogHtml(result.finish_note_html);
-    }
-    var html = '';
-    if (result && result.btn_action_html) { html += result.btn_action_html; }
-    if (result && result.btn_back_html) { html += result.btn_back_html; }
-    if (html !== '') {
-      appendLogHtml(html);
-    }
+    var back = (result && result.btn_back_html) ? String(result.btn_back_html) : '';
+    var action = (result && result.btn_action_html) ? String(result.btn_action_html) : '';
+    var note = (result && result.finish_note_html) ? String(result.finish_note_html) : '';
+    var m = meta.mode ? String(meta.mode) : '';
+    var isUpdate = (m === 'update' || m === 'patch');
+    // 更新/补丁：返回更新主页 → 启用模板/插件 → 查看还原点（同一行，还原点最后）
+    // 全新安装：启用在前、返回在后（维持原顺序）
+    var html = isUpdate ? (back + action + note) : (action + back);
+    if (html !== '') { appendLogHtml(html); }
   }
 
   function stopDownloadPoll() {

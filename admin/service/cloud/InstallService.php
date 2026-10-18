@@ -99,8 +99,8 @@ class InstallService extends BaseService
     const STEP_FINALIZE = 'finalize';
 
     /**
-     * 最近一次 install() 过程的附加说明（如模块更新失败后的快照回滚结果、
-     * 主题升级时保留的站点 Logo 清单），由 runApply 合并进步骤日志展示。
+     * 最近一次 install() 过程的附加说明（如模块更新失败后的快照回滚结果），
+     * 由 runApply 合并进步骤日志展示。
      *
      * @var array
      */
@@ -510,7 +510,8 @@ class InstallService extends BaseService
             );
         }
 
-        $logs[] = str_replace('d%', basename(rtrim((string) $result['dir'], '/')), (string) lang('cloud_snapshot_done'));
+        // 还原点目录名不再作为日志输出：完成态由底部安全提示（finish_note_html）说明，
+        // 避免升级日志里出现一串对用户无意义的目录名
 
         return array('ok' => true, 'error' => '', 'logs' => $logs, 'next_step' => self::STEP_APPLY);
     }
@@ -587,7 +588,7 @@ class InstallService extends BaseService
         }
 
         $wrong = $this->install($type, $cloudId, $mode);
-        // 附加说明无论成败都回传：失败时含快照回滚结果，成功时含主题升级保留的 Logo 清单
+        // 附加说明无论成败都回传：失败时含快照回滚结果
         foreach ($this->installNotes as $note) {
             $logs[] = (string) $note;
         }
@@ -1129,6 +1130,7 @@ class InstallService extends BaseService
      * 主题包内与站点同名的 logo 文件在拷贝前从临时解压目录摘除，使 {@see FileHelper::copyDir}
      * 不再覆盖；目标不存在的 logo 文件（主题新增语言 / 新增 Logo）保留在包内照常安装。
      * 摘除仅作用于本次临时解压目录（升级结束整体删除），不动站点文件。
+     * 保留动作本身不输出前台日志，避免升级日志里出现对用户无意义的文件名清单。
      *
      * @param string $itemDir 包解压目录（绝对路径）
      * @param string $themeDir 目标主题目录（绝对路径）
@@ -1142,7 +1144,6 @@ class InstallService extends BaseService
             return;
         }
 
-        $kept = array();
         foreach ((array) @scandir($sourceImageDir) as $file) {
             if (!is_string($file) || $file === '.' || $file === '..') {
                 continue;
@@ -1153,12 +1154,7 @@ class InstallService extends BaseService
             }
             if (is_file($targetImageDir . $file)) {
                 @unlink($sourceImageDir . $file);
-                $kept[] = $file;
             }
-        }
-
-        if ($kept && lang_has('cloud_theme_logo_kept')) {
-            $this->installNotes[] = str_replace('d%', implode('、', $kept), (string) lang('cloud_theme_logo_kept'));
         }
     }
 
@@ -2426,8 +2422,8 @@ class InstallService extends BaseService
      * 仅在 {@see runFinalize} 收尾成功时调用；仅打开 `cloud/install` 页面不会执行本方法。
      * `update` 与 `patch` 均视为「已装机上的更新类操作」，返回按钮统一回 {@see CloudController::update} 入口。
      *
-     * 安全提示（note）：仅在流程真正创建了还原点时输出（system + update/patch、module + update），
-     * 以提示行 + 小号入口按钮替代原「升级还原点」大按钮；其余场景（全新安装等）为空串。
+     * 还原点入口（note）：仅在流程真正创建了还原点时输出「查看还原点」按钮
+     * （system + update/patch、module|theme|plugin + update）；其余场景（全新安装等）为空串。
      *
      * @param string $mode
      * @param string $type
@@ -2468,21 +2464,18 @@ class InstallService extends BaseService
                 $btnBack = '<a href="' . Util::absolutizeEntryUrl('index.php') . '" class="btn-secondary">' . lang('cloud_admin_home') . '</a>';
         }
 
-        // 安全提示（替代原「升级还原点」大按钮）：仅当流程真正创建了还原点时输出，
-        // 条件与 {@see runSnapshot} 建快照条件一致（system + update/patch、
-        // module|theme|plugin + update）；全新安装等无快照场景不显示，避免误导。
-        // 入口以「小号描边按钮」附在提示行内。
+        // 还原点入口：仅当流程真正创建了还原点时输出，条件与 {@see runSnapshot}
+        // 建快照条件一致（system + update/patch、module|theme|plugin + update）；
+        // 全新安装等无快照场景不显示，避免误导。
         $snapshotCreated = ($type === 'system' && ($mode === 'update' || $mode === 'patch'))
             || (in_array($type, array('module', 'theme', 'plugin'), true) && $mode === 'update');
         if ($snapshotCreated) {
-            $noteText = $this->finishNoteText($type);
             $viewLabel = lang_has('cloud_finish_note_view') ? (string) lang('cloud_finish_note_view') : '查看还原点';
-            $btnNote = '<span class="dou-finish-note">' . $noteText
-                . '<a class="dou-snapshot-link-btn" href="' . Util::absolutizeEntryUrl(route('admin.backup.snapshot')) . '">' . $viewLabel . '</a></span>';
+            $btnNote = '<a class="btn-secondary" href="' . Util::absolutizeEntryUrl(route('admin.backup.snapshot')) . '">' . $viewLabel . '</a>';
         }
 
         if ($mode === 'update' || $mode === 'patch') {
-            $btnBack = '<a href="' . Util::absolutizeEntryUrl(route('admin.cloud.update')) . '" class="btn-secondary">' . lang('cloud_update_home') . '</a>';
+            $btnBack = '<a href="' . Util::absolutizeEntryUrl(route('admin.cloud.update')) . '" class="btn">' . lang('cloud_update_home') . '</a>';
         }
 
         // 自定义返回地址：仅覆盖 href，保留按 type 选出的按钮文案；update/patch 模式不覆盖（其返回目标固定为更新页）。
@@ -2491,35 +2484,6 @@ class InstallService extends BaseService
         }
 
         return array('action' => $btnAction, 'back' => $btnBack, 'note' => $btnNote);
-    }
-
-    /**
-     * 完成态安全提示文案：按 type 区分「升级 / 更新」与「站点 / 模块」措辞。
-     *
-     * @param string $type
-     * @return string
-     */
-    private function finishNoteText($type)
-    {
-        if ($type === 'module') {
-            return lang_has('cloud_finish_note_module')
-                ? (string) lang('cloud_finish_note_module')
-                : '提示：更新前已自动创建还原点（含本次涉及的文件与数据库）；若更新后发现异常，可将模块恢复到更新前的状态：';
-        }
-        if ($type === 'theme') {
-            return lang_has('cloud_finish_note_theme')
-                ? (string) lang('cloud_finish_note_theme')
-                : '提示：更新前已自动创建还原点（含模板文件）；若更新后发现异常，可将模板恢复到更新前的状态：';
-        }
-        if ($type === 'plugin') {
-            return lang_has('cloud_finish_note_plugin')
-                ? (string) lang('cloud_finish_note_plugin')
-                : '提示：更新前已自动创建还原点（含插件文件）；若更新后发现异常，可将插件恢复到更新前的状态：';
-        }
-
-        return lang_has('cloud_finish_note_system')
-            ? (string) lang('cloud_finish_note_system')
-            : '提示：升级前已自动创建还原点（含站点文件与数据库）；若升级后发现异常，可将站点恢复到升级前的状态：';
     }
 
     /**
