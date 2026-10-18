@@ -118,18 +118,26 @@
      <div class="box-left">
       <div class="backup-box">
        <div class="index-box">
-        <h2>{$lang.title_backup}</h2>
+        <h2>
+         {$lang.title_backup}
+         <a href="{url link='admin.backup.snapshot'}" class="backup-clean" title="{$lang.snapshot_cleanup_entry_cue}">{$lang.snapshot_cleanup_entry}</a>
+        </h2>
         <div class="backup">
+         <!-- {if $backup.rows} -->
+         <!-- {foreach from=$backup.rows item=row} -->
          <dl>
-          <dd class="date">{$backup.new.maketime}</dd>
-          <dt>{$lang.backup_new}：{$backup.new.filename}</dt>
-          <dd class="size">{$backup.new.filesize}</dd>
+          <dd class="date">{$row.maketime}</dd>
+          <dt>{if $row.url}<a href="{$row.url}">{$row.label}：{$row.title}</a>{else}{$row.label}：{$row.title}{/if}</dt>
+          <dd class="size">{$row.filesize}</dd>
          </dl>
+         <!-- {/foreach} -->
+         <!-- {else} -->
          <dl class="last">
-          <dd class="date">{$backup.old.maketime}</dd>
-          <dt>{$lang.backup_old}：{$backup.old.filename}</dt>
-          <dd class="size">{$backup.old.filesize}</dd>
+          <dd class="date">-</dd>
+          <dt>{$lang.backup_new}：-</dt>
+          <dd class="size">-</dd>
          </dl>
+         <!-- {/if} -->
         </div>
        </div>
        <div class="prompt{if $backup.light} red{/if}">

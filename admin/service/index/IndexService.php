@@ -20,6 +20,7 @@ use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Service\Admin\AdminLogAction;
 use Dou\Core\Service\BaseService;
+use Dou\Core\Service\Snapshot\SnapshotRepository;
 use Dou\Core\Support\Arr;
 use Dou\Core\Support\FileHelper;
 use Dou\Core\Web\Http\Client;
@@ -281,7 +282,12 @@ class IndexService extends BaseService
     }
 
     /**
-     * @return array Smarty assign 用 backup 结构
+     * 首页备份区块：数据库备份 + 最近还原点合并为统一行列表。
+     *
+     * 还原点与用户主动执行的数据库备份定位不同（前者是升级应急回退），
+     * 但同属「可恢复的数据」在首页合并展示；完整还原点列表在还原点页。
+     *
+     * @return array Smarty assign 用 backup 结构（rows / msg / light / back_url）
      */
     public function buildBackupAssign()
     {
@@ -289,23 +295,96 @@ class IndexService extends BaseService
             (array) glob(STORAGE_PATH . 'backup/*.sql'),
             (array) glob(STORAGE_PATH . 'backup/*.zip')
         );
-        if ($backup_files && count($backup_files) > 0) {
-            return $this->buildBackupSummary($backup_files);
-        }
 
-        $placeholder = array(
-            'maketime' => '-',
-            'filename' => '-',
-            'filesize' => '-',
-        );
-
-        return array(
-            'new' => $placeholder,
-            'old' => $placeholder,
+        $backup = array(
             'msg' => lang('backup_action_cue_never'),
             'light' => true,
             'back_url' => route('admin.index'),
         );
+        $rows = array();
+
+        if ($backup_files && count($backup_files) > 0) {
+            $backup = $this->buildBackupSummary($backup_files);
+            if (!empty($backup['new'])) {
+                $new = $backup['new'];
+                $rows[] = array(
+                    'label' => lang('backup_new'),
+                    'title' => $new['filename'],
+                    'maketime' => $new['maketime'],
+                    'filesize' => $new['filesize'],
+                    'timestamp' => (int) strtotime($new['maketime']),
+                    'url' => '',
+                );
+            }
+            // 只有一个备份时 new 与 old 相同，不重复展示
+            if (!empty($backup['old']) && $backup['old']['filename'] !== $backup['new']['filename']) {
+                $old = $backup['old'];
+                $rows[] = array(
+                    'label' => lang('backup_old'),
+                    'title' => $old['filename'],
+                    'maketime' => $old['maketime'],
+                    'filesize' => $old['filesize'],
+                    'timestamp' => (int) strtotime($old['maketime']),
+                    'url' => '',
+                );
+            }
+        }
+
+        // 还原点：最近 3 个（跨 scope），用 manifest 估算大小，不递归扫描目录
+        $snapshotUrl = route('admin.backup.snapshot');
+        $repository = new SnapshotRepository(ROOT_PATH);
+        foreach (array_slice($repository->all(false), 0, 3) as $row) {
+            $manifest = $row['manifest'];
+            $scope = isset($manifest['scope']) ? (string) $manifest['scope'] : '';
+            if ($scope === 'system') {
+                $label = lang('snapshot_group_system');
+            } elseif ($scope === 'module') {
+                $label = lang('snapshot_group_module');
+            } else {
+                $label = lang('snapshot_group_extend');
+            }
+            $rows[] = array(
+                'label' => $label,
+                'title' => !empty($manifest['title']) ? (string) $manifest['title'] : $row['name'],
+                'maketime' => date('Y-m-d H:i:s', (int) $row['created_at']),
+                'filesize' => $this->formatBytes($row['total_size']),
+                'timestamp' => (int) $row['created_at'],
+                'url' => $snapshotUrl,
+            );
+        }
+
+        usort($rows, function ($a, $b) {
+            if ($a['timestamp'] === $b['timestamp']) {
+                return 0;
+            }
+
+            return $b['timestamp'] - $a['timestamp'];
+        });
+        $backup['rows'] = $rows;
+
+        return $backup;
+    }
+
+    /**
+     * 字节数格式化（展示用）。
+     *
+     * @param int $bytes
+     * @return string
+     */
+    private function formatBytes($bytes)
+    {
+        $bytes = (int) $bytes;
+        if ($bytes >= 1073741824) {
+            return round($bytes / 1073741824, 2) . ' GB';
+        }
+        if ($bytes >= 1048576) {
+            return round($bytes / 1048576, 2) . ' MB';
+        }
+        if ($bytes >= 1024) {
+            return round($bytes / 1024, 1) . ' KB';
+        }
+
+        return $bytes . ' B';
     }
 
     /**

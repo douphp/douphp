@@ -93,6 +93,30 @@ class MaintenanceModeService
     }
 
     /**
+     * 还原中断超时兜底：维护状态超过阈值仍存在，直接恢复原值。
+     *
+     * 正常情况只做一次 is_file（文件不存在立即返回），可安全地挂在后台每个 GET
+     * 请求上，避免「还原任务中断 → 前台长期关闭」。
+     *
+     * @param int $seconds 超时阈值（秒）
+     * @return bool 是否执行了恢复
+     */
+    public function recoverIfStale($seconds = 86400)
+    {
+        $state = $this->state();
+        if ($state === null) {
+            return false;
+        }
+        $since = isset($state['since']) ? (int) $state['since'] : 0;
+        if ($since > 0 && time() - $since <= (int) $seconds) {
+            return false;
+        }
+        $this->restore();
+
+        return true;
+    }
+
+    /**
      * 维护状态（不存在时返回 null）。
      *
      * @return array|null array('was_closed' => bool, 'since' => int, 'reason' => string)

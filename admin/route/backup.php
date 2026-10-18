@@ -20,6 +20,7 @@
  *
  * 升级还原点（快照）另起一组同名前缀路由（SnapshotController）：
  * snapshot_restore 为 any（确认 POST + dou_msg 链 GET 续跑，见 CsrfMiddleware::getTokenRoutes），
+ * snapshot_cleanup 为 POST（按留存策略清理，二次确认），
  * snapshot_destroy 为 DELETE（dou_msg 二次确认表单以 _method=DELETE 提交）。
  */
 
@@ -41,4 +42,5 @@ Route::group('backup', SnapshotController::class)->name('admin.')
     ->prefix('backup')
     ->get(['snapshot', 'snapshot_down', 'snapshot_rescue', 'snapshot_abandon', 'snapshot_maintenance_off'])
     ->any(['snapshot_restore'])
+    ->post(['snapshot_cleanup'])
     ->delete(['snapshot_destroy']);

@@ -14,11 +14,20 @@ $(function () {
   });
 
   // 通用 POST 动作事件委托（替代内联 onclick="douPost(...)"，避免单引号嵌套冲突）
-  // 优先读 data-url，否则回退到 <a> 的 href；data-confirm 可选提供确认文案
+  // 优先读 data-url，否则回退到 <a> 的 href；data-modal-confirm 优先走 dou-modal 确认弹窗，
+  // 否则回退到 data-confirm 的原生 confirm
   $(document).on("click", ".js-post", function (e) {
     e.preventDefault();
-    var url = $(this).data("url") || this.href;
-    var confirmMsg = $(this).data("confirm");
+    var $btn = $(this);
+    var url = $btn.data("url") || this.href;
+    var modalMsg = $btn.data("modal-confirm");
+    if (modalMsg) {
+      douConfirm(modalMsg, function () {
+        douPost(url);
+      }, $btn.data("modal-title"));
+      return false;
+    }
+    var confirmMsg = $btn.data("confirm");
     return douPost(url, confirmMsg);
   });
 
@@ -714,6 +723,51 @@ function douPost(url, confirmMsg) {
   form.setAttribute("action", url);
   form.submit();
   return false;
+}
+
+/**
+ +----------------------------------------------------------
+ * 确认弹窗（dou-modal）：替代原生 window.confirm
+ *
+ * message 以纯文本渲染（不解析 HTML），点「确定」后关闭弹窗并执行 onOk。
+ * 声明式接入：动作链接声明 data-modal-confirm="文案"（可选 data-modal-title="标题"），
+ * 由 .js-post 委托自动调用；data-confirm 仍保持原生 confirm 兼容。
+ +----------------------------------------------------------
+ */
+function douConfirm(message, onOk, title) {
+  var cancelText = typeof lang === "function" ? lang("cancel") : "Cancel";
+  var okText = typeof lang === "function" ? lang("confirm") : "OK";
+  var $modal = douModal.open({
+    title: title || "",
+    placement: "center",
+    buttons: [
+      {
+        text: okText,
+        className: "btn",
+        onClick: function ($m, done) {
+          done();
+          if (typeof onOk === "function") {
+            onOk();
+          }
+        },
+      },
+      {
+        text: cancelText,
+        className: "btn-secondary",
+        onClick: function ($m, done) {
+          done();
+        },
+      },
+    ],
+  });
+
+  $modal
+    .find(".dou-modal-body")
+    .html('<div class="dou-modal-message" style="white-space:pre-line"></div>')
+    .find(".dou-modal-message")
+    .text(message);
+
+  return $modal;
 }
 
 /**

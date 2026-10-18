@@ -17,6 +17,7 @@ namespace Dou\Admin\Controller\Backup;
 use Dou\Admin\Controller\BaseController;
 use Dou\Admin\Service\Backup\MaintenanceModeService;
 use Dou\Admin\Service\Backup\RestoreService;
+use Dou\Admin\Service\Backup\SnapshotCleanupService;
 use Dou\Admin\Service\Backup\SnapshotPageService;
 use Dou\Core\Facade\Zip;
 use Dou\Core\Foundation\Exception\DomainException;
@@ -82,7 +83,54 @@ class SnapshotController extends BaseController
         return $this->view('snapshot.htm', array(
             'ur_here' => lang('snapshot_page_title'),
             'page_cue' => $cue,
+            'page_actions' => array(
+                array(
+                    'href' => route('admin.backup.snapshot_cleanup'),
+                    'text' => lang('snapshot_cleanup_btn'),
+                    'style' => '',
+                    'post' => true,
+                    // 走 dou-modal 确认弹窗；风险提示随弹窗正文展示（页面不再占篇幅）
+                    'modal_confirm' => lang('snapshot_cleanup_confirm') . "\n" . lang('snapshot_cleanup_risk'),
+                    'modal_title' => lang('snapshot_cleanup_btn'),
+                ),
+            ),
         ) + $data);
+    }
+
+    /**
+     * 按留存策略清理还原点（POST，页面按钮二确认后提交）。
+     *
+     * 只删除超出留存上限的旧还原点（每项目最新 1 个 + 7 天内全部），
+     * 不做「全部清空」；活跃创建中 / 还原中 / 未超时的快照不会被动。
+     *
+     * @param Request $request
+     * @return Response
+     */
+    public function snapshotCleanup(Request $request)
+    {
+        @set_time_limit(0);
+
+        $cleanup = new SnapshotCleanupService(ROOT_PATH);
+        $result = $cleanup->cleanup();
+        $deleted = count((array) $result['deleted']);
+        $stale = count((array) $result['stale']);
+
+        audit()->writeAdminLog(
+            (int) auth('admin')->id(),
+            AdminLogAction::DELETE,
+            1,
+            sprintf('快照清理：删除 %d 个，放弃还原任务 %d 个', $deleted, $stale),
+            'snapshot'
+        );
+
+        $text = $deleted > 0
+            ? str_replace('d%', (string) $deleted, lang('snapshot_cleanup_done'))
+            : lang('snapshot_cleanup_none');
+        if ($stale > 0) {
+            $text .= ' ' . str_replace('d%', (string) $stale, lang('snapshot_cleanup_stale'));
+        }
+
+        return message()->respond($text, route('admin.backup.snapshot'));
     }
 
     /**
@@ -250,6 +298,9 @@ class SnapshotController extends BaseController
         if (!$repository->isValidName($dirName)) {
             throw new DomainException(lang('illegal'), route('admin.backup.snapshot'));
         }
+
+        // 超过 24 小时未推进的还原状态先按放弃处理，避免它永久阻止删除该快照
+        (new RestoreService(ROOT_PATH))->cleanupStaleStates();
 
         $post = $request->post();
         if (isset($post['confirm'])) {

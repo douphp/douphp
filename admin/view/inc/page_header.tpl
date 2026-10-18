@@ -19,7 +19,7 @@
    <!-- {if $btn.delete} -->
    <a href="javascript:;" class="page-header-action-btn js-delete{if $btn.style} {$btn.style}{/if}" data-url="{$btn.href}"<!-- {if $btn.confirm} --> data-confirm="{$btn.confirm}"<!-- {/if} -->>{$btn.text}</a>
    <!-- {elseif $btn.post} -->
-   <a href="javascript:;" class="page-header-action-btn js-post{if $btn.style} {$btn.style}{/if}" data-url="{$btn.href}"<!-- {if $btn.confirm} --> data-confirm="{$btn.confirm}"<!-- {/if} -->>{$btn.text}</a>
+   <a href="javascript:;" class="page-header-action-btn js-post{if $btn.style} {$btn.style}{/if}" data-url="{$btn.href}"<!-- {if $btn.modal_confirm} --> data-modal-confirm="{$btn.modal_confirm}"<!-- {if $btn.modal_title} --> data-modal-title="{$btn.modal_title}"<!-- {/if} --><!-- {elseif $btn.confirm} --> data-confirm="{$btn.confirm}"<!-- {/if} -->>{$btn.text}</a>
    <!-- {else} -->
    <a href="{$btn.href}" class="page-header-action-btn{if $btn.style} {$btn.style}{/if}" <!-- {if $btn.attrs} --><!-- {foreach from=$btn.attrs key=k item=v} --> {$k}="{$v|escape}"<!-- {/foreach} --><!-- {/if} -->>{$btn.text}</a>
    <!-- {/if} -->

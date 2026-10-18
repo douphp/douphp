@@ -671,6 +671,11 @@ class SnapshotService
         if ($deleted) {
             $logs[] = sprintf($this->t('snapshot_log_pruned', '已按留存策略清理 %d 个旧还原点'), count($deleted));
         }
+
+        // 写留存水位：后台首页据此判断「距最后一次创建 / 清理是否超过保留窗口」
+        $retention = new SnapshotRetention($this->rootPath);
+        $retention->markCreated(basename(rtrim($dir, '/')), (string) $manifest['scope'], (int) $manifest['created_at']);
+
         $logs[] = sprintf($this->t('snapshot_log_finalized', '还原点创建完成：%s'), basename(rtrim($dir, '/')));
 
         return '';

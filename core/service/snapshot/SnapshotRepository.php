@@ -24,7 +24,8 @@ if (!defined('IN_DOUCO')) {
  * 升级还原点仓库：storage/snapshot 下快照目录的枚举 / 查找 / 删除 / 留存策略。
  *
  * 目录命名：`{scope}-{scope_id}-{YmdHis}`；有效快照必须含 manifest.json。
- * 留存策略（prune）：同一 scope+scope_id 分组下，保留最新 1 个 + 7 天内全部，
+ * 留存策略（prune）：按项目分组——系统升级整体为一个项目（跨升级前版本号合并），
+ * 模块 / 模板 / 插件按 scope+scope_id 各自成组；每组保留最新 1 个 + 7 天内全部，
  * 其余删除；无 manifest 的残缺目录（创建中断）一并清理，但不触碰活跃快照
  * （active.json 指向）与正在还原的快照（含 restore_state.json）。
  *
@@ -32,6 +33,12 @@ if (!defined('IN_DOUCO')) {
  */
 class SnapshotRepository
 {
+    /** 留存窗口（秒）：该窗口内的快照全部保留 */
+    const KEEP_DAYS = 7;
+
+    /** 每个项目至少保留的最新数量 */
+    const KEEP_LATEST = 1;
+
     /** @var string 站点根（结尾带 /） */
     private $rootPath;
 
@@ -80,10 +87,11 @@ class SnapshotRepository
     /**
      * 列出全部有效快照（含 manifest），按创建时间倒序。
      *
+     * @param bool $withSize 是否递归统计目录真实大小（列表展示用 manifest 估算即可传 false）
      * @return array 行数组：name、path、manifest、created_at、has_rescue、
      *               rescue_expires_at、restored_at、total_size
      */
-    public function all()
+    public function all($withSize = true)
     {
         $rows = array();
         foreach ((array) glob($this->snapshotRoot . '*/manifest.json') as $manifestFile) {
@@ -91,7 +99,7 @@ class SnapshotRepository
             if (!$this->isValidName($dirName)) {
                 continue;
             }
-            $row = $this->row($dirName);
+            $row = $this->row($dirName, $withSize);
             if ($row !== null) {
                 $rows[] = $row;
             }
@@ -111,9 +119,10 @@ class SnapshotRepository
      * 读取单个快照行；目录缺失 / manifest 缺失时返回 null。
      *
      * @param string $dirName
+     * @param bool $withSize 是否递归统计目录真实大小
      * @return array|null
      */
-    public function row($dirName)
+    public function row($dirName, $withSize = true)
     {
         if (!$this->isValidName($dirName)) {
             return null;
@@ -141,8 +150,28 @@ class SnapshotRepository
             'has_rescue' => is_file($dir . 'rescue.php'),
             'rescue_expires_at' => $rescueExpires,
             'restored_at' => isset($manifest['restored_at']) ? (int) $manifest['restored_at'] : 0,
-            'total_size' => $this->dirSize($dir),
+            'total_size' => $withSize ? $this->dirSize($dir) : $this->manifestSize($manifest),
         );
+    }
+
+    /**
+     * 从 manifest 估算快照占用（files.zip + db 分卷），避免递归扫描目录。
+     *
+     * @param array $manifest
+     * @return int
+     */
+    public function manifestSize($manifest)
+    {
+        $size = isset($manifest['files_zip_size']) ? (int) $manifest['files_zip_size'] : 0;
+        if (isset($manifest['db_files']) && is_array($manifest['db_files'])) {
+            foreach ($manifest['db_files'] as $file) {
+                if (isset($file['size'])) {
+                    $size += (int) $file['size'];
+                }
+            }
+        }
+
+        return $size;
     }
 
     /**
@@ -171,7 +200,7 @@ class SnapshotRepository
      */
     public function latest($scope, $scopeId = '')
     {
-        foreach ($this->all() as $row) {
+        foreach ($this->all(false) as $row) {
             $manifest = $row['manifest'];
             if (isset($manifest['scope']) && (string) $manifest['scope'] === (string) $scope) {
                 if ($scopeId === '' || (isset($manifest['scope_id']) && (string) $manifest['scope_id'] === (string) $scopeId)) {
@@ -220,7 +249,7 @@ class SnapshotRepository
         $scope = (string) $scope;
         $scopeId = (string) $scopeId;
         $deleted = 0;
-        foreach ($this->all() as $row) {
+        foreach ($this->all(false) as $row) {
             $manifest = $row['manifest'];
             if (isset($manifest['scope'], $manifest['scope_id'])
                 && (string) $manifest['scope'] === $scope
@@ -262,7 +291,8 @@ class SnapshotRepository
     }
 
     /**
-     * 留存策略：同一 scope+scope_id 分组保留最新 1 个 + 7 天内全部；
+     * 留存策略：按项目分组，每组保留最新 1 个 + 7 天内全部；
+     * 系统升级整体视为一个项目（跨升级前版本号合并）；
      * 残缺目录（无 manifest，且非活跃、超过 2 小时）一并清理。
      *
      * @return array 被删除的目录名列表
@@ -270,7 +300,7 @@ class SnapshotRepository
     public function prune()
     {
         $deleted = array();
-        $keepWindow = 7 * 86400;
+        $keepWindow = self::KEEP_DAYS * 86400;
         $now = time();
         $activeDir = '';
 
@@ -306,15 +336,18 @@ class SnapshotRepository
 
         // 分组留存策略
         $groups = array();
-        foreach ($this->all() as $row) {
+        foreach ($this->all(false) as $row) {
             $manifest = $row['manifest'];
-            $key = (isset($manifest['scope']) ? $manifest['scope'] : '') . '|' . (isset($manifest['scope_id']) ? $manifest['scope_id'] : '');
+            $scope = isset($manifest['scope']) ? (string) $manifest['scope'] : '';
+            $scopeId = isset($manifest['scope_id']) ? (string) $manifest['scope_id'] : '';
+            // 系统升级整体视为一个项目：跨升级前版本号合并，避免每个版本各自成组导致永久保留
+            $key = $scope === 'system' ? 'system' : $scope . '|' . $scopeId;
             $groups[$key][] = $row;
         }
         foreach ($groups as $rows) {
             // all() 已按时间倒序：$rows[0] 为最新
             foreach ($rows as $index => $row) {
-                if ($index === 0) {
+                if ($index < self::KEEP_LATEST) {
                     continue;
                 }
                 if ($now - $row['created_at'] <= $keepWindow) {

@@ -71,6 +71,28 @@
 #index .index-box h2 .close:hover {
   color: #333;
 }
+#index .index-box h2 .backup-clean {
+  float: right;
+  margin-top: -2px;
+  padding: 1px 8px;
+  border: 1px solid #cfcfcf;
+  border-radius: 3px;
+  background-color: transparent;
+  color: #888;
+  font-size: 12px;
+  font-weight: normal;
+  line-height: 18px;
+  text-decoration: none;
+}
+#index .index-box h2 .backup-clean:hover {
+  border-color: #19b4ea;
+  color: #19b4ea;
+}
+@media (max-width: 768px) {
+  #index .index-box h2 .backup-clean {
+    margin-top: 0;
+  }
+}
 /*- quick-start -*/
 #index .quick-start {
   zoom: 1;
@@ -127,7 +149,7 @@
   overflow: hidden;
   margin-bottom: 10px;
 }
-#index .backup-box .backup dl.last {
+#index .backup-box .backup dl:last-child {
   margin-bottom: 0;
 }
 #index .backup-box .backup dt {

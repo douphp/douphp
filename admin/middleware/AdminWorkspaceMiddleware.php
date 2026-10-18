@@ -14,6 +14,8 @@
 
 namespace Dou\Admin\Middleware;
 
+use Dou\Admin\Service\Backup\MaintenanceModeService;
+use Dou\Admin\Service\Backup\RestoreService;
 use Dou\Admin\Service\Workspace\UpdateBadgeBuilder;
 use Dou\Admin\Service\Workspace\WorkspaceBuilder;
 use Dou\Core\Foundation\Middleware\MiddlewareInterface;
@@ -60,6 +62,17 @@ class AdminWorkspaceMiddleware implements MiddlewareInterface
         $admin = (array) auth('admin')->user();
         if (empty($admin)) {
             return $next();
+        }
+
+        // 还原中断超时兜底：维护状态超过 24 小时仍存在则恢复 site_closed 原值，
+        // 避免「还原任务中断 → 前台长期关闭」。正常情况只做一次 is_file。
+        try {
+            $maintenance = new MaintenanceModeService(ROOT_PATH);
+            $maintenance->recoverIfStale(RestoreService::STALE_SECONDS);
+        } catch (\Exception $e) {
+            // 恢复失败不阻断后台请求
+        } catch (\Throwable $e) {
+            // PHP 7+ 的 \Error 同样吞掉
         }
 
         $engine = app(DouView::class);

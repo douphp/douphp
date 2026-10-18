@@ -20,6 +20,7 @@ use Dou\Core\Facade\DB;
 use Dou\Core\Facade\Zip;
 use Dou\Core\Service\Snapshot\SnapshotRepository;
 use Dou\Core\Service\Snapshot\SnapshotService;
+use Dou\Core\Service\Upgrade\RunLockService;
 use Dou\Core\Support\FileHelper;
 
 if (!defined('IN_DOUCO')) {
@@ -45,6 +46,9 @@ if (!defined('IN_DOUCO')) {
  */
 class RestoreService
 {
+    /** 还原状态超过该秒数未推进，视为已放弃（一次操作中断基本代表放弃） */
+    const STALE_SECONDS = 86400;
+
     /** @var string 站点根（结尾带 /） */
     private $rootPath;
 
@@ -222,10 +226,14 @@ class RestoreService
     /**
      * 当前还原中的快照目录名（无则 null）。
      *
+     * 先清理超时未推进的状态：超过 {@see STALE_SECONDS} 未推进视为放弃，
+     * 避免「离开页面后状态永久残留，快照永远无法删除」。
+     *
      * @return string|null
      */
     public function activeDir()
     {
+        $this->cleanupStaleStates();
         foreach ((array) glob($this->snapshotRoot . '*/restore_state.json') as $stateFile) {
             $dirName = basename(dirname($stateFile));
             if ($this->repository->isValidName($dirName)) {
@@ -234,6 +242,46 @@ class RestoreService
         }
 
         return null;
+    }
+
+    /**
+     * 清理超时未推进的还原状态（视为放弃）。
+     *
+     * 只删除状态文件，不动快照内容；同时释放对应升级互斥锁，并在没有其它
+     * 新鲜状态时恢复维护模式原值，避免「还原中断 → 站点永久关闭」。
+     *
+     * @return array 被清理的目录名列表
+     */
+    public function cleanupStaleStates()
+    {
+        $cleaned = array();
+        $fresh = 0;
+        $runLock = null;
+
+        foreach ((array) glob($this->snapshotRoot . '*/restore_state.json') as $stateFile) {
+            $dirName = basename(dirname($stateFile));
+            if (!$this->repository->isValidName($dirName)) {
+                continue;
+            }
+            if (time() - (int) @filemtime($stateFile) <= self::STALE_SECONDS) {
+                $fresh++;
+                continue;
+            }
+            $dir = $this->repository->dirPath($dirName);
+            $this->appendLog($dir, $this->t('snapshot_log_restore_stale', '还原中断超过 24 小时，已自动放弃（请核查站点内容是否完整）'));
+            @unlink($stateFile);
+            if ($runLock === null) {
+                $runLock = new RunLockService($this->rootPath);
+            }
+            $runLock->release('snapshot:' . $dirName);
+            $cleaned[] = $dirName;
+        }
+
+        if ($cleaned && $fresh === 0) {
+            $this->maintenance->restore();
+        }
+
+        return $cleaned;
     }
 
     /**

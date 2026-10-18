@@ -17,6 +17,7 @@ namespace Dou\Admin\Controller\Index;
 use Dou\Admin\Controller\BaseController;
 use Dou\Admin\Facade\Cloud;
 use Dou\Admin\Model\Page\Page;
+use Dou\Admin\Service\Backup\SnapshotCleanupService;
 use Dou\Admin\Service\Cloud\CloudService;
 use Dou\Admin\Service\Index\IndexService;
 use Dou\Admin\Service\Workspace\UpdateBadgeBuilder;
@@ -64,6 +65,16 @@ class IndexController extends BaseController
      */
     public function index()
     {
+        // 还原点自动清理：距最后一次创建 / 清理超过保留窗口才实际执行，未到期只读一次水位文件
+        try {
+            $cleanup = new SnapshotCleanupService(ROOT_PATH);
+            $cleanup->runScheduled();
+        } catch (\Exception $e) {
+            // 清理失败不影响首页渲染，下次加载会再次触发
+        } catch (\Throwable $e) {
+            // PHP 7+ 的 \Error 同样吞掉
+        }
+
         $this->indexService->syncEmptyConfigDomainToRootUrl();
 
         $root_url = Config::get('site.root_url', '') !== '' ? rtrim(Config::get('site.root_url', ''), '/') : '';
