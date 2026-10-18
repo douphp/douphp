@@ -1,0 +1,64 @@
+name: 技术问题反馈
+description: 请提供可定位、可验证的具体技术信息。缺乏具体行号或复现步骤的主观评价将不予处理。
+title: "[Issue]: "
+labels: ["triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        提交前请确认：你能指出**具体文件、具体行号、具体现象**。纯情绪表达无法作为有效 Issue 跟进。
+        本仓库 Issue 面向代码级缺陷与二次开发改进；安装、使用、配置类问题不在受理范围。
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: 提交前确认
+      options:
+        - label: 已搜索现有 Issue，确认没有重复反馈
+          required: true
+        - label: 已阅读项目文档，确认不是使用或配置问题
+          required: true
+        - label: 已确认该问题能在当前主分支或最新版本复现
+          required: true
+  - type: input
+    id: file_path
+    attributes:
+      label: 涉及的文件路径
+      description: 必须填写完整相对路径，不接受“路由那里”“核心模块”等模糊描述
+      placeholder: 例如：core/route/Router.php
+    validations:
+      required: true
+  - type: input
+    id: line_number
+    attributes:
+      label: 代码行号或范围
+      description: 必须精确到行，方便定位
+      placeholder: 例如：L45-L60
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: 具体技术问题
+      description: 说明代码在逻辑、命名、嵌套、耦合等方面哪里存在问题，而不是表达主观感受
+      placeholder: 描述具体的代码行为或结构问题，不要写“头皮发麻”“看不懂”之类的话
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 复现步骤或证据
+      description: 给出触发条件、错误日志或对比示例。没有证据的指责不会被处理
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: 运行环境
+      description: 填写版本信息，缺失环境的问题通常无法复现
+      placeholder: |
+        DouPHP 版本：
+        PHP 版本：
+        Web 服务器 / 数据库：
+        浏览器（前端问题时填写）：
+    validations:
+      required: true
