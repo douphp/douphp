@@ -74,7 +74,7 @@ class SnapshotRepository
     {
         $dirName = is_string($dirName) ? $dirName : '';
 
-        return (bool) preg_match('/^(system|module)-[A-Za-z0-9_\-]{1,60}-\d{14}$/', $dirName);
+        return (bool) preg_match('/^(system|module|theme|plugin)-[A-Za-z0-9_\-]{1,60}-\d{14}$/', $dirName);
     }
 
     /**
@@ -204,6 +204,33 @@ class SnapshotRepository
         FileHelper::delDir($dir);
 
         return !is_dir($dir);
+    }
+
+    /**
+     * 按域批量删除快照（模块/主题/插件卸载后其还原点不可再用）。
+     *
+     * 活跃创建中与还原中的快照由 {@see delete()} 内部保护，不会被删除。
+     *
+     * @param string $scope 域（module / theme / plugin）
+     * @param string $scopeId 域内标识（cloud_id）
+     * @return int 实际删除数量
+     */
+    public function deleteByScope($scope, $scopeId)
+    {
+        $scope = (string) $scope;
+        $scopeId = (string) $scopeId;
+        $deleted = 0;
+        foreach ($this->all() as $row) {
+            $manifest = $row['manifest'];
+            if (isset($manifest['scope'], $manifest['scope_id'])
+                && (string) $manifest['scope'] === $scope
+                && (string) $manifest['scope_id'] === $scopeId
+                && $this->delete($row['name'])) {
+                $deleted++;
+            }
+        }
+
+        return $deleted;
     }
 
     /**

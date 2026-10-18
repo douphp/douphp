@@ -180,6 +180,11 @@ class ThemeService extends BaseService
 
         FileHelper::delDir(ROOT_PATH . 'theme/' . $slug);
         $this->cloud->changeUpdateDate('theme', $slug, true);
+        // 主题卸载后其专属还原点不可再用，一并清理（还原中的快照由仓库层保护）
+        if (class_exists('Dou\\Core\\Service\\Snapshot\\SnapshotRepository')) {
+            $repository = new \Dou\Core\Service\Snapshot\SnapshotRepository(ROOT_PATH);
+            $repository->deleteByScope('theme', $slug);
+        }
 
         $rows = Theme::selectDataRowsByThemeOrdered($slug);
         foreach ($rows as $row) {

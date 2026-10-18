@@ -549,14 +549,17 @@ class Portal
     }
 
     /**
-     * 单页行（按 unique_id）；未命中返回 null。
+     * 单页行（按 slug）；未命中返回 null。
      *
-     * @param string $uniqueId
+     * 2.0 单页表以 slug 作为唯一标识（无 unique_id 列），与 Page::about() /
+     * RouteIdValidator::page() 保持一致；主题脚本传入的单页别名即 slug。
+     *
+     * @param string $slug
      * @return array|null
      */
-    public static function page($uniqueId)
+    public static function page($slug)
     {
-        $model = Page::where('unique_id', (string) $uniqueId)->first();
+        $model = Page::where('slug', (string) $slug)->first();
 
         return $model ? $model->getAttributes() : null;
     }

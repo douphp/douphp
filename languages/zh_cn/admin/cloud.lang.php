@@ -74,9 +74,12 @@ $_LANG['cloud_install_next'] = '即将安装下一个模块';
 $_LANG['cloud_install_theme'] = '即将安装模板';
 $_LANG['cloud_below_mini_version_support'] = '您的系统版本过低，请升级后重新安装！';
 $_LANG['cloud_install_repeat'] = '已经存在，不要重复安装';
+$_LANG['cloud_theme_logo_kept'] = '已保留模板 Logo 图片：d%（升级不覆盖站点自定义 Logo）';
 $_LANG['cloud_sql_repeat'] = '数据表已经存在于数据库中，不要重复安装';
 $_LANG['cloud_sql_wrong'] = '数据库无法导入、';
 $_LANG['cloud_systemfile_wrong'] = '无法修改系统配置文件';
+$_LANG['cloud_files_wrong'] = '文件拷贝失败：d%（请检查目录写入权限后重试）';
+$_LANG['cloud_files_wrong_count'] = '共 d% 个文件拷贝失败（仅展示前 10 条，详见服务器错误日志）';
 
 // 在线安装多步流程（cloud/install）
 $_LANG['cloud_install_retry'] = '重新安装';
@@ -147,5 +150,7 @@ $_LANG['cloud_snapshot_restore_pending'] = '本次更新失败，自动回滚超
 // 完成态安全提示与进行中秒表（cloud/install）
 $_LANG['cloud_finish_note_system'] = '提示：升级前已自动创建还原点（含站点文件与数据库）；若升级后发现异常，可将站点恢复到升级前的状态：';
 $_LANG['cloud_finish_note_module'] = '提示：更新前已自动创建还原点（含本次涉及的文件与数据库）；若更新后发现异常，可将模块恢复到更新前的状态：';
+$_LANG['cloud_finish_note_theme'] = '提示：更新前已自动创建还原点（含模板文件）；若更新后发现异常，可将模板恢复到更新前的状态：';
+$_LANG['cloud_finish_note_plugin'] = '提示：更新前已自动创建还原点（含插件文件）；若更新后发现异常，可将插件恢复到更新前的状态：';
 $_LANG['cloud_finish_note_view'] = '查看还原点';
 $_LANG['cloud_step_elapsed'] = '已用时 d% 秒';

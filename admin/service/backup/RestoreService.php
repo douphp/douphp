@@ -15,6 +15,7 @@
 namespace Dou\Admin\Service\Backup;
 
 use Dou\Admin\Service\Cache\CacheClearService;
+use Dou\Admin\Service\Cloud\UpdateStateService;
 use Dou\Core\Facade\DB;
 use Dou\Core\Facade\Zip;
 use Dou\Core\Service\Snapshot\SnapshotRepository;
@@ -31,7 +32,7 @@ if (!defined('IN_DOUCO')) {
  * 还原分五个阶段（均可断点续传，DouMsg 链 / 步骤机按次调用 step()）：
  *   files  按条目区间解压 files.zip 覆盖站点（sys 与 module 通用）
  *   mirror 系统域镜像还原：删除快照外的新增文件（升级引入的新文件回滚时移除）
- *   added  模块域：删除升级包将新增、而快照时尚不存在的文件
+ *   added  模块 / 主题 / 插件域：删除升级包将新增、而快照时尚不存在的文件
  *   db     按 db/ 分卷顺序导入数据库（DB::fnExecute 为全库唯一 SQL 导入入口）
  *   cache  清模板缓存
  * begin() 前先做清单哈希验证（files.zip / 各 db 分卷的 sha256 与 manifest 比对，
@@ -292,8 +293,9 @@ class RestoreService
      * files 之后的阶段。
      *
      * 只有「全量文件」的系统域快照才做镜像清理（删除快照外文件）；仅数据库快照
-     * （file_mode=none，如向导渠道）与模块域一律不得走 mirror，否则会把快照
-     * 未收录的文件误判为「新增」而全量删除。
+     * （file_mode=none，如向导渠道）与模块 / 主题 / 插件域一律不得走 mirror，否则
+     * 会把快照未收录的文件误判为「新增」而全量删除。模块 / 主题 / 插件域改走
+     * added 阶段：删除升级包引入、快照时尚不存在的文件。
      *
      * @param array $state
      * @return string
@@ -305,7 +307,7 @@ class RestoreService
         if ($scope === SnapshotService::SCOPE_SYSTEM && $fileMode === 'full') {
             return 'mirror';
         }
-        if ($scope === SnapshotService::SCOPE_MODULE) {
+        if (in_array($scope, array(SnapshotService::SCOPE_MODULE, SnapshotService::SCOPE_THEME, SnapshotService::SCOPE_PLUGIN), true)) {
             return 'added';
         }
 
@@ -379,7 +381,7 @@ class RestoreService
     }
 
     /**
-     * added 阶段（仅模块域）：删除升级包将新增、快照时尚不存在的文件。
+     * added 阶段（模块 / 主题 / 插件域）：删除升级包将新增、快照时尚不存在的文件。
      *
      * @param string $dir
      * @param array $manifest
@@ -490,6 +492,21 @@ class RestoreService
     {
         $manifest['restored_at'] = time();
         @file_put_contents($dir . 'manifest.json', json_encode($manifest), LOCK_EX);
+
+        // 主题 / 插件还原点不含数据库（db=false），需单独清掉更新日期账本：
+        // 还原后视同「未更新」，云端比对时可再次提示更新。失败不阻断还原收尾。
+        $scope = isset($state['scope']) ? (string) $state['scope'] : '';
+        if (in_array($scope, array(SnapshotService::SCOPE_THEME, SnapshotService::SCOPE_PLUGIN), true)
+            && !empty($manifest['scope_id'])) {
+            try {
+                $updateState = new UpdateStateService();
+                $updateState->changeUpdateDate($scope, (string) $manifest['scope_id'], true);
+            } catch (\Exception $e) {
+                // 账本清理失败不阻断还原收尾
+            } catch (\Throwable $e) {
+                // PHP 7+ 的 \Error 同样忽略
+            }
+        }
 
         $failed = (int) $state['failed_statements'];
         $summary = $failed > 0

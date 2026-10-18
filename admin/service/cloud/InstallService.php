@@ -99,8 +99,8 @@ class InstallService extends BaseService
     const STEP_FINALIZE = 'finalize';
 
     /**
-     * 最近一次 install() 过程的附加说明（如模块更新失败后的快照回滚结果），
-     * 由 runApply 合并进步骤日志展示。
+     * 最近一次 install() 过程的附加说明（如模块更新失败后的快照回滚结果、
+     * 主题升级时保留的站点 Logo 清单），由 runApply 合并进步骤日志展示。
      *
      * @var array
      */
@@ -408,9 +408,11 @@ class InstallService extends BaseService
     /**
      * 步骤 3.5：创建升级还原点（unzip 与 apply 之间）。
      *
-     * 系统更新（system + update/patch）建 system 域全量还原点；模块更新（module + update）
-     * 建 module 域还原点（按解压目录反推将被覆盖 / 新增的文件）。其余类型（全新安装、
-     * 主题 / 插件 / 小程序）不建还原点，直接放行到 apply。
+     * 系统更新（system + update/patch）建 system 域全量还原点；模块 / 主题 / 插件更新
+     * （module|theme|plugin + update）按解压目录反推将被覆盖 / 新增的文件，分别建
+     * module / theme / plugin 域还原点（theme / plugin 以 item_prefix 映射目标目录）。
+     * 主题 / 插件更新不执行 SQL 脚本，其还原点不含数据库（db=false）。其余类型
+     * （全新安装、小程序）不建还原点，直接放行到 apply。
      *
      * 断点续传：一次调用按时间预算推进一个单元；未完成时返回 next_step=snapshot 与
      * progress 百分比（取自 progress.json 实时游标），由前端循环再次调用本步骤
@@ -420,7 +422,8 @@ class InstallService extends BaseService
      * 「已创建：目录名」；快照引擎的内部进度日志不再回传（其它入口不受影响）。
      *
      * 命名：系统还原点目录名 = system-<升级前版本净化>-<YmdHis>（快照内容即升级前状态，
-     * 供列表页 / 恢复确认直观识别被备份的版本）；模块 / 向导命名策略不变。
+     * 供列表页 / 恢复确认直观识别被备份的版本）；模块 / 主题 / 插件目录名为
+     * module|theme|plugin-<cloud_id>-<YmdHis>，向导命名策略不变。
      *
      * @param array $params 至少包含 type / cloud_id / mode / install_id
      * @return array { ok: bool, error: string, logs: string[], next_step?: string, progress?: int|null }
@@ -434,7 +437,9 @@ class InstallService extends BaseService
 
         $isSystem = ($type === 'system' && ($mode === 'update' || $mode === 'patch'));
         $isModule = ($type === 'module' && $mode === 'update');
-        if (!$isSystem && !$isModule) {
+        $isTheme = ($type === 'theme' && $mode === 'update');
+        $isPlugin = ($type === 'plugin' && $mode === 'update');
+        if (!$isSystem && !$isModule && !$isTheme && !$isPlugin) {
             return array('ok' => true, 'error' => '', 'logs' => array(), 'next_step' => self::STEP_APPLY);
         }
 
@@ -445,7 +450,13 @@ class InstallService extends BaseService
         $snapshot = new \Dou\Core\Service\Snapshot\SnapshotService(ROOT_PATH);
         $active = $snapshot->active();
         $logs = array();
-        if ($active === null) {
+        // 同 install_id 的活跃快照由 begin() 续建；其它会话遗留的活跃快照（上次创建中断、
+        // 4 小时内）必须交给 begin() 中止重建——否则 step() 会继续推进旧扩展的旧快照，
+        // 本次更新实际没有还原点，失败回滚还会命中过期的旧快照。
+        $resumeOther = $active !== null
+            && $installId !== ''
+            && (!isset($active['install_id']) || (string) $active['install_id'] !== $installId);
+        if ($active === null || $resumeOther) {
             // 系统还原点记录「被备份的升级前版本」：snapshot 步骤先于 apply 执行，
             // 此处读到的 douphp_version 即升级前版本；取不到时回退目标包标识（原行为）。
             $scopeId = $cloudId;
@@ -458,18 +469,27 @@ class InstallService extends BaseService
                 }
             }
             $options = array(
-                'db' => true,
+                'db' => ($isSystem || $isModule),
                 'channel' => 'cloud',
                 'install_id' => $installId,
                 'title' => $title,
             );
+            $scope = 'module';
             if ($isSystem) {
                 $options['file_mode'] = 'full';
+                $scope = 'system';
             } else {
                 $options['file_mode'] = 'list';
                 $options['item_dir'] = $this->cacheDir . $cloudId;
+                if ($isTheme) {
+                    $options['item_prefix'] = 'theme/' . $cloudId . '/';
+                    $scope = 'theme';
+                } elseif ($isPlugin) {
+                    $options['item_prefix'] = 'plugin/' . $cloudId . '/';
+                    $scope = 'plugin';
+                }
             }
-            $begin = $snapshot->begin($isSystem ? 'system' : 'module', $scopeId, $options);
+            $begin = $snapshot->begin($scope, $scopeId, $options);
             if (empty($begin['ok'])) {
                 return array('ok' => false, 'error' => (string) $begin['error'], 'logs' => $logs);
             }
@@ -567,10 +587,11 @@ class InstallService extends BaseService
         }
 
         $wrong = $this->install($type, $cloudId, $mode);
+        // 附加说明无论成败都回传：失败时含快照回滚结果，成功时含主题升级保留的 Logo 清单
+        foreach ($this->installNotes as $note) {
+            $logs[] = (string) $note;
+        }
         if (is_array($wrong) && $wrong) {
-            foreach ($this->installNotes as $note) {
-                $logs[] = (string) $note;
-            }
             return array('ok' => false, 'error' => $this->joinMessages($wrong), 'logs' => $logs);
         }
 
@@ -813,7 +834,22 @@ class InstallService extends BaseService
             FileHelper::delDir($updateDir);
         }
 
-        $this->copyExtractedFiles($type, $cloudId, $mode, $itemDir, $installedDir);
+        $copyFailed = $this->copyExtractedFiles($type, $cloudId, $mode, $itemDir, $installedDir);
+        if ($copyFailed) {
+            // 拷贝失败必须进入 $wrong：否则主题 / 插件更新会「半更新」被记为成功，
+            // 失败快照回滚分支永远不会触发。仅逐条展示前 10 个，避免大目录刷屏。
+            $shown = 0;
+            foreach ($copyFailed as $rel) {
+                if ($shown >= 10) {
+                    break;
+                }
+                $wrong[] = str_replace('d%', (string) $rel, (string) lang('cloud_files_wrong'));
+                $shown++;
+            }
+            if (count($copyFailed) > $shown) {
+                $wrong[] = str_replace('d%', (string) count($copyFailed), (string) lang('cloud_files_wrong_count'));
+            }
+        }
 
         if ($type === 'module') {
             $moduleFlags = array(
@@ -866,12 +902,11 @@ class InstallService extends BaseService
         }
 
         if ($wrong) {
-            // 模块「更新」失败优先快照回滚（无快照才回退 clearModule 卸载语义）；
-            // 安装失败 / 其它类型保持旧语义。
-            if ($this->tryRestoreModuleSnapshot($type, $mode, $cloudId) !== 'restored') {
-                if (empty($this->installNotes)) {
-                    $this->clearModule($cloudId);
-                }
+            // 模块 / 主题 / 插件「更新」失败优先快照回滚；模块无快照时回退 clearModule
+            // 卸载语义（含安装失败）；主题 / 插件与其它类型保持现场不动。
+            $restoreState = $this->tryRestoreUpdateSnapshot($type, $mode, $cloudId);
+            if ($restoreState === 'none' && $type === 'module' && empty($this->installNotes)) {
+                $this->clearModule($cloudId);
             }
         }
         @unlink($itemZip);
@@ -892,23 +927,25 @@ class InstallService extends BaseService
     }
 
     /**
-     * 模块更新失败时从最近还原点回滚（替代 clearModule 破坏式卸载）。
+     * 模块 / 主题 / 插件更新失败时从最近还原点回滚（替代 clearModule 破坏式卸载）。
      *
      * 语义约定（T7）：
-     *   - 模块「更新」失败：优先回滚到更新前快照（文件 + 数据库 + 模块版本账本）；
-     *     无可用快照时回退旧语义 clearModule（等价卸载）；
+     *   - 更新失败：优先回滚到更新前快照（模块含文件 + 数据库 + 模块版本账本；
+     *     主题 / 插件为文件级快照，恢复 theme/<slug>/、plugin/<slug>/ 目录）；
+     *     模块无可用快照时回退旧语义 clearModule（等价卸载）；
      *     快照存在但回滚未完成（失败 / 超时）时不执行 clearModule——半还原现场由
-     *     后台「升级还原点」页继续/手动处理，避免把仍在用的模块连文件一起删掉。
-     *   - 模块「安装」失败与真卸载：保持 clearModule 卸载语义（由调用方处理）。
+     *     后台「升级还原点」页继续/手动处理，避免把仍在用的扩展连文件一起删掉。
+     *   - 模块「安装」失败与真卸载：保持 clearModule 卸载语义（由调用方处理）；
+     *     主题 / 插件无快照时保持现场，不执行任何卸载动作。
      *
      * @param string $type
      * @param string $mode
      * @param string $cloudId
      * @return string restored（已回滚）| failed（有快照但未完成）| none（无快照，走旧语义）
      */
-    private function tryRestoreModuleSnapshot($type, $mode, $cloudId)
+    private function tryRestoreUpdateSnapshot($type, $mode, $cloudId)
     {
-        if ($type !== 'module' || $mode !== 'update') {
+        if (!in_array($type, array('module', 'theme', 'plugin'), true) || $mode !== 'update') {
             return 'none';
         }
         if (!class_exists('Dou\\Admin\\Service\\Backup\\RestoreService')
@@ -917,7 +954,7 @@ class InstallService extends BaseService
         }
 
         $repository = new \Dou\Core\Service\Snapshot\SnapshotRepository(ROOT_PATH);
-        $row = $repository->latest('module', (string) $cloudId);
+        $row = $repository->latest((string) $type, (string) $cloudId);
         if ($row === null) {
             return 'none';
         }
@@ -950,25 +987,32 @@ class InstallService extends BaseService
     /**
      * 把解压后的目录文件按 type 拷贝到站点对应目录（同时记录 module 类型的 installed 清单）。
      *
+     * 主题 / 插件返回失败文件的相对站点根路径列表（theme/<slug>/...、plugin/<slug>/...），
+     * 由调用方并入 $wrong 以便触发快照回滚；其它类型保持既有拷贝语义，返回空数组。
+     *
      * @param string $type
      * @param string $cloudId
      * @param string $mode
      * @param string $itemDir
      * @param string $installedDir
-     * @return void
+     * @return array 拷贝失败的站点相对路径列表
      */
     private function copyExtractedFiles($type, $cloudId, $mode, $itemDir, $installedDir)
     {
         if ($type === 'theme') {
-            FileHelper::copyDir($itemDir, $this->rootDir . 'theme/' . $cloudId);
+            $themeDir = $this->rootDir . 'theme/' . $cloudId;
+            if ($mode === 'update') {
+                // 升级不覆盖站点已自定义的 Logo：先摘除包内与目标同名的 logo 图片，再整体覆盖拷贝
+                $this->preserveThemeLogos($itemDir, $themeDir);
+            }
+            $failed = $this->copyDirCollectFailures($itemDir, $themeDir, 'theme/' . $cloudId . '/');
             FileHelper::copyDir($this->rootDir . 'images/data', $this->rootDir . 'images/data_old');
-            return;
+            return $failed;
         }
 
         if ($type === 'plugin') {
             $pluginDir = defined('PLUGIN_PATH') ? rtrim((string) PLUGIN_PATH, '/') . '/' : $this->rootDir . 'plugin/';
-            FileHelper::copyDir($itemDir, $pluginDir . $cloudId);
-            return;
+            return $this->copyDirCollectFailures($itemDir, $pluginDir . $cloudId, 'plugin/' . $cloudId . '/');
         }
 
         // 配置基准保护：升级包携带 _update/resources/config/ 基准文件时，包根 config/ 中与基准同名的
@@ -1031,6 +1075,90 @@ class InstallService extends BaseService
             }
         } else {
             FileHelper::copyDir($itemDir, $this->rootDir);
+        }
+
+        return array();
+    }
+
+    /**
+     * 递归拷贝目录并收集失败项（不静默吞掉 mkdir / copy 的失败）。
+     *
+     * 拷贝语义与 FileHelper::copyDir 的默认调用一致（递归、覆盖同名文件、不删源）；
+     * 源目录不存在时视为无文件可拷（与原行为一致，不算失败）。供主题 / 插件更新把
+     * 「半拷贝」升级为可判定的失败，从而触发快照回滚。
+     *
+     * @param string $sourceDir 源目录（绝对路径）
+     * @param string $destinationDir 目标目录（绝对路径）
+     * @param string $relative 相对站点根的路径前缀（含结尾 /，用于错误提示）
+     * @return array 失败项的站点相对路径列表（目录创建失败时记目录本身）
+     */
+    private function copyDirCollectFailures($sourceDir, $destinationDir, $relative)
+    {
+        $failures = array();
+        if (!@is_dir($sourceDir)) {
+            return $failures;
+        }
+        if (!is_dir($destinationDir) && !@mkdir($destinationDir, 0777, true) && !is_dir($destinationDir)) {
+            return array(rtrim($relative, '/'));
+        }
+        $handle = @opendir($sourceDir);
+        if ($handle === false) {
+            return array(rtrim($relative, '/'));
+        }
+        while (($file = @readdir($handle)) !== false) {
+            if ($file === '.' || $file === '..') {
+                continue;
+            }
+            $source = rtrim($sourceDir, '/\\') . '/' . $file;
+            $target = rtrim($destinationDir, '/\\') . '/' . $file;
+            $rel = $relative . $file;
+            if (@is_dir($source) && !is_link($source)) {
+                $failures = array_merge($failures, $this->copyDirCollectFailures($source, $target, $rel . '/'));
+            } elseif (!@copy($source, $target) || !@is_file($target)) {
+                $failures[] = $rel;
+            }
+        }
+        @closedir($handle);
+
+        return $failures;
+    }
+
+    /**
+     * 主题升级：保留站点已自定义的 Logo 图片（theme/<id>/images/ 第一层，文件名以 logo 开头）。
+     *
+     * 主题包内与站点同名的 logo 文件在拷贝前从临时解压目录摘除，使 {@see FileHelper::copyDir}
+     * 不再覆盖；目标不存在的 logo 文件（主题新增语言 / 新增 Logo）保留在包内照常安装。
+     * 摘除仅作用于本次临时解压目录（升级结束整体删除），不动站点文件。
+     *
+     * @param string $itemDir 包解压目录（绝对路径）
+     * @param string $themeDir 目标主题目录（绝对路径）
+     * @return void
+     */
+    private function preserveThemeLogos($itemDir, $themeDir)
+    {
+        $sourceImageDir = rtrim(str_replace('\\', '/', (string) $itemDir), '/') . '/images/';
+        $targetImageDir = rtrim(str_replace('\\', '/', (string) $themeDir), '/') . '/images/';
+        if (!is_dir($sourceImageDir)) {
+            return;
+        }
+
+        $kept = array();
+        foreach ((array) @scandir($sourceImageDir) as $file) {
+            if (!is_string($file) || $file === '.' || $file === '..') {
+                continue;
+            }
+            // 仅处理第一层、以 logo 开头的图片文件名（不区分大小写）
+            if (!preg_match('/^logo/i', $file) || !is_file($sourceImageDir . $file)) {
+                continue;
+            }
+            if (is_file($targetImageDir . $file)) {
+                @unlink($sourceImageDir . $file);
+                $kept[] = $file;
+            }
+        }
+
+        if ($kept && lang_has('cloud_theme_logo_kept')) {
+            $this->installNotes[] = str_replace('d%', implode('、', $kept), (string) lang('cloud_theme_logo_kept'));
         }
     }
 
@@ -1489,13 +1617,7 @@ class InstallService extends BaseService
         // T7：模块卸载（含安装失败回滚）时清理其专属还原点，避免残留不可再用的快照
         if (class_exists('Dou\\Core\\Service\\Snapshot\\SnapshotRepository')) {
             $repository = new \Dou\Core\Service\Snapshot\SnapshotRepository(ROOT_PATH);
-            foreach ($repository->all() as $row) {
-                if (isset($row['manifest']['scope'], $row['manifest']['scope_id'])
-                    && $row['manifest']['scope'] === 'module'
-                    && (string) $row['manifest']['scope_id'] === (string) $cloudId) {
-                    $repository->delete($row['name']);
-                }
-            }
+            $repository->deleteByScope('module', $cloudId);
         }
     }
 
@@ -2347,10 +2469,11 @@ class InstallService extends BaseService
         }
 
         // 安全提示（替代原「升级还原点」大按钮）：仅当流程真正创建了还原点时输出，
-        // 条件与 {@see runSnapshot} 建快照条件一致（system + update/patch、module + update）；
-        // 全新安装等无快照场景不显示，避免误导。入口以「小号描边按钮」附在提示行内。
+        // 条件与 {@see runSnapshot} 建快照条件一致（system + update/patch、
+        // module|theme|plugin + update）；全新安装等无快照场景不显示，避免误导。
+        // 入口以「小号描边按钮」附在提示行内。
         $snapshotCreated = ($type === 'system' && ($mode === 'update' || $mode === 'patch'))
-            || ($type === 'module' && $mode === 'update');
+            || (in_array($type, array('module', 'theme', 'plugin'), true) && $mode === 'update');
         if ($snapshotCreated) {
             $noteText = $this->finishNoteText($type);
             $viewLabel = lang_has('cloud_finish_note_view') ? (string) lang('cloud_finish_note_view') : '查看还原点';
@@ -2382,6 +2505,16 @@ class InstallService extends BaseService
             return lang_has('cloud_finish_note_module')
                 ? (string) lang('cloud_finish_note_module')
                 : '提示：更新前已自动创建还原点（含本次涉及的文件与数据库）；若更新后发现异常，可将模块恢复到更新前的状态：';
+        }
+        if ($type === 'theme') {
+            return lang_has('cloud_finish_note_theme')
+                ? (string) lang('cloud_finish_note_theme')
+                : '提示：更新前已自动创建还原点（含模板文件）；若更新后发现异常，可将模板恢复到更新前的状态：';
+        }
+        if ($type === 'plugin') {
+            return lang_has('cloud_finish_note_plugin')
+                ? (string) lang('cloud_finish_note_plugin')
+                : '提示：更新前已自动创建还原点（含插件文件）；若更新后发现异常，可将插件恢复到更新前的状态：';
         }
 
         return lang_has('cloud_finish_note_system')

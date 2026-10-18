@@ -44,7 +44,9 @@ if (!defined('IN_DOUCO')) {
  *
  * 文件集模型（three 参数位之一）：
  *   - system：全站代码（排除动态目录：images / storage / .git / .svn / .dou / node_modules）
- *   - module：按升级包解压目录反推「将被覆盖的文件」（备份集）+「将被新增的文件」（还原时删除）
+ *   - module / theme / plugin：按升级包解压目录反推「将被覆盖的文件」（备份集）+
+ *     「将被新增的文件」（还原时删除）；theme / plugin 经 item_prefix 映射到
+ *     theme/<slug>/ / plugin/<slug>/ 目标目录
  *   - none  ：仅数据库（向导渠道：文件已由用户手工上传，只有库需要备份）
  *
  * 兼容 PHP 5.6+。
@@ -56,6 +58,12 @@ class SnapshotService
 
     /** @var string 模块域 */
     const SCOPE_MODULE = 'module';
+
+    /** @var string 主题域 */
+    const SCOPE_THEME = 'theme';
+
+    /** @var string 插件域 */
+    const SCOPE_PLUGIN = 'plugin';
 
     /** @var string 站点根（结尾带 /） */
     private $rootPath;
@@ -112,15 +120,18 @@ class SnapshotService
     /**
      * 开始创建还原点（同 install_id 的活跃快照自动续建，其余活跃快照中止重建）。
      *
-     * @param string $scope system|module
+     * @param string $scope system|module|theme|plugin
      * @param string $scopeId 域内标识（cloud_id / wizard 等）
      * @param array $options file_mode(full|list|none)、item_dir（list 模式解压目录）、
+     *                       item_prefix（list 模式目标目录前缀，如 theme/m149/）、
      *                       db(bool)、channel、title、install_id
      * @return array array('ok' => bool, 'dir' => string, 'resumed' => bool, 'error' => string)
      */
     public function begin($scope, $scopeId, array $options = array())
     {
-        $scope = ($scope === self::SCOPE_MODULE) ? self::SCOPE_MODULE : self::SCOPE_SYSTEM;
+        if (!in_array($scope, array(self::SCOPE_SYSTEM, self::SCOPE_MODULE, self::SCOPE_THEME, self::SCOPE_PLUGIN), true)) {
+            $scope = self::SCOPE_SYSTEM;
+        }
         $fileMode = isset($options['file_mode']) ? (string) $options['file_mode'] : 'full';
         if (!in_array($fileMode, array('full', 'list', 'none'), true)) {
             $fileMode = 'full';
@@ -148,7 +159,10 @@ class SnapshotService
         if (!is_dir($dir) && !@mkdir($dir, 0777, true)) {
             return array('ok' => false, 'dir' => '', 'resumed' => false, 'error' => $this->t('snapshot_error_dir', '还原点目录无法创建（storage/snapshot 不可写）'));
         }
-        @mkdir($dir . 'db/', 0777, true);
+        // 数据库目录按需创建：theme / plugin 与仅文件快照不导出数据库，避免留下空 db/ 目录
+        if (!empty($options['db'])) {
+            @mkdir($dir . 'db/', 0777, true);
+        }
 
         $progress = array(
             'scope' => $scope,
@@ -159,6 +173,7 @@ class SnapshotService
             'created_at' => time(),
             'file_mode' => $fileMode,
             'item_dir' => isset($options['item_dir']) ? (string) $options['item_dir'] : '',
+            'item_prefix' => isset($options['item_prefix']) ? (string) $options['item_prefix'] : '',
             'db' => !empty($options['db']),
             'files' => array(),
             'file_total' => 0,
@@ -393,16 +408,23 @@ class SnapshotService
     }
 
     /**
-     * 模块域文件清单：按升级包解压目录反推将被覆盖 / 新增的文件。
+     * 模块 / 主题 / 插件域文件清单：按升级包解压目录反推将被覆盖 / 新增的文件。
+     *
+     * 模块包解压目录结构与站点根一致（空前缀）；主题 / 插件包解压目录内容即目标
+     * 子目录内容，需以 itemPrefix 映射（theme/<slug>/、plugin/<slug>/），输出统一为
+     * 站点相对路径，供备份（Zip::append 以 rootPath 为源）与还原阶段直接使用。
      *
      * @param string $rootPath
      * @param string $itemDir 解压目录（绝对路径，无结尾 /）
+     * @param string $itemPrefix 目标目录前缀（'' 或 'theme/m149/'）
      * @return array array('files' => array, 'added' => array)
      */
-    public static function moduleFileList($rootPath, $itemDir)
+    public static function moduleFileList($rootPath, $itemDir, $itemPrefix = '')
     {
         $root = rtrim(str_replace('\\', '/', (string) $rootPath), '/') . '/';
         $item = rtrim(str_replace('\\', '/', (string) $itemDir), '/') . '/';
+        $prefix = trim(str_replace('\\', '/', (string) $itemPrefix), '/');
+        $prefix = ($prefix === '') ? '' : $prefix . '/';
         $list = array();
         self::walkDir($item, '', false, $list);
         sort($list, SORT_STRING);
@@ -410,10 +432,11 @@ class SnapshotService
         $files = array();
         $added = array();
         foreach ($list as $rel) {
-            if (is_file($root . $rel)) {
-                $files[] = $rel;
+            $target = $prefix . $rel;
+            if (is_file($root . $target)) {
+                $files[] = $target;
             } else {
-                $added[] = $rel;
+                $added[] = $target;
             }
         }
 
@@ -471,9 +494,10 @@ class SnapshotService
         } elseif ($mode === 'list') {
             $itemDir = isset($progress['item_dir']) ? (string) $progress['item_dir'] : '';
             if ($itemDir === '' || !is_dir($itemDir)) {
-                return $this->t('snapshot_error_item_dir', '升级包解压目录缺失，无法创建模块还原点');
+                return $this->t('snapshot_error_item_dir', '升级包解压目录缺失，无法创建还原点');
             }
-            $listed = self::moduleFileList($this->rootPath, $itemDir);
+            $itemPrefix = isset($progress['item_prefix']) ? (string) $progress['item_prefix'] : '';
+            $listed = self::moduleFileList($this->rootPath, $itemDir, $itemPrefix);
             $progress['files'] = $listed['files'];
             $progress['added'] = $listed['added'];
         } else {
@@ -529,6 +553,11 @@ class SnapshotService
      */
     protected function doDbStep($dir, array &$progress, $dbBytes, $title, array &$logs)
     {
+        // db 目录由 begin() 按需创建；续建或目录缺失时在此兜底重建
+        if (!is_dir($dir . 'db')) {
+            @mkdir($dir . 'db', 0777, true);
+        }
+
         $tables = (array) $progress['tables'];
         $total = count($tables);
         $bytesThisCall = 0;
@@ -626,6 +655,12 @@ class SnapshotService
             return $this->t('snapshot_error_manifest', '还原点清单写入失败');
         }
         @chmod($dir . 'manifest.json', 0644);
+
+        // 无数据库分卷（theme / plugin 或表清单为空）时清掉空 db/ 目录：
+        // manifest 的 db_files 已按实际文件生成，删除后还原链路不受影响
+        if (is_dir($dir . 'db') && count((array) glob($dir . 'db/*')) === 0) {
+            @rmdir($dir . 'db');
+        }
 
         if ($manifest['scope'] === self::SCOPE_SYSTEM) {
             $this->writeRescueArtifacts($dir);

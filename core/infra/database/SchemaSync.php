@@ -155,12 +155,48 @@ class SchemaSync
         if ($result === false) {
             // 附加库端原始错误（如 5.6 的 "Specified key was too long"）：同一条 SQL 在不同
             // MySQL 版本上的失败原因不同，没有原始错误文本将无法从日志分辨根因。
-            $dbError = trim((string) DB::getLastError());
+            $dbError = $this->lastDbError();
             $this->error('SQL 执行失败：' . $sql . ($dbError !== '' ? '（MySQL: ' . $dbError . '）' : ''));
             return false;
         }
         $this->log('[OK] ' . $sql);
         return true;
+    }
+
+    /**
+     * 读取最近一次 SQL 失败时的库端原始错误文本（尽力而为，绝不让取错本身中断升级）。
+     *
+     * 云升级是「整包覆盖 -> 同请求 include 执行」：进程内的 Connection 可能仍是覆盖前的
+     * 旧版实例（无 getLastError()）。此时裸调用会抛 "does not have a method"，用二次报错
+     * 掩盖真正的 SQL 失败原因。故先探测方法，旧版则退回反射读取私有连接句柄取 mysqli 错误。
+     *
+     * @return string 取不到时为空串
+     */
+    private function lastDbError()
+    {
+        try {
+            $connection = DB::getFacadeRoot();
+            if (!is_object($connection)) {
+                return '';
+            }
+            if (method_exists($connection, 'getLastError')) {
+                return trim((string) $connection->getLastError());
+            }
+            $ref = new \ReflectionObject($connection);
+            if ($ref->hasProperty('dou_link')) {
+                $prop = $ref->getProperty('dou_link');
+                $prop->setAccessible(true);
+                $link = $prop->getValue($connection);
+                if ($link instanceof \mysqli) {
+                    return trim((string) mysqli_error($link));
+                }
+            }
+        } catch (\Exception $e) {
+            // PHP 5.6：门面/反射异常，忽略
+        } catch (\Throwable $e) {
+            // PHP 7+：门面/反射异常，忽略
+        }
+        return '';
     }
 
     /**

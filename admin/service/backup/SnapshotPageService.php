@@ -47,7 +47,7 @@ class SnapshotPageService extends BaseService
         $groups = array('system' => array(), 'module' => array());
         foreach ($rows as $row) {
             $manifest = $row['manifest'];
-            $scope = isset($manifest['scope']) && $manifest['scope'] === 'module' ? 'module' : 'system';
+            $scope = isset($manifest['scope']) && $manifest['scope'] === 'system' ? 'system' : 'module';
             $dirName = $row['name'];
             $isRestoring = ($activeRestore === $dirName);
 
@@ -84,8 +84,10 @@ class SnapshotPageService extends BaseService
                 'douphp_version' => isset($manifest['douphp_version']) ? (string) $manifest['douphp_version'] : '',
                 'created_at_text' => date('Y-m-d H:i:s', (int) $row['created_at']),
                 'size_text' => $this->formatBytes($row['total_size']),
+                // 0 文件时按 db 字段区分文案：主题 / 插件还原点固定 db=false，
+                // 不能显示「仅数据库」这样自相矛盾的内容描述。
                 'files_text' => empty($manifest['files_count'])
-                    ? lang('snapshot_files_db_only')
+                    ? (!empty($manifest['db']) ? lang('snapshot_files_db_only') : lang('snapshot_files_none'))
                     : str_replace('d%', (string) (int) $manifest['files_count'], lang('snapshot_files_count')),
                 'db_text' => count((array) (isset($manifest['db_files']) ? $manifest['db_files'] : array())) === 0
                     ? lang('snapshot_db_none')
