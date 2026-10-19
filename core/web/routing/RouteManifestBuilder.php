@@ -15,7 +15,7 @@
 namespace Dou\Core\Web\Routing;
 
 use Dou\Core\Foundation\Configuration\Config;
-use Dou\Core\Support\Naming;
+use Dou\Core\Infra\Log\Log;
 use Dou\Core\Web\Manifest\ManifestCacheGeneration;
 
 if (!defined('IN_DOUCO')) {
@@ -25,21 +25,13 @@ if (!defined('IN_DOUCO')) {
 /**
  * 路由清单批量生成器
  *
- * 输入源：config/module.php、config/route.php 风格规则、系统内置端点表、
- * front|admin|api/route/*.php 声明式路由文件。
+ * 输入源：config/module.php、config/route.php（及可选 route_custom.php）风格规则、
+ * 系统内置端点表、front|admin|api/route/*.php 声明式路由文件。
  *
  * 产出：RouteEntry[]，顺序与 PrettyRouteMatcher / BackendDeclaredMatcher 入站匹配顺序一致。
  */
 class RouteManifestBuilder
 {
-    /** @var ModuleRegistry */
-    private $registry;
-
-    public function __construct()
-    {
-        $this->registry = new ModuleRegistry();
-    }
-
     /**
      * 构建完整 manifest 条目列表，顺序：home → 系统内置 declared → 声明文件 declared。
      *
@@ -60,7 +52,39 @@ class RouteManifestBuilder
             $entries[] = $this->withPaginationSegment($e);
         }
 
+        $this->warnDuplicateNames($entries);
+
         return $entries;
+    }
+
+    /**
+     * 构建期检查重复路由名。
+     *
+     * 运行期仍遵循「先注册先生效」；本方法只在清单重建时告警，避免按请求刷日志。
+     * 硬性门禁由 devtools/route-audit.php 承担。
+     *
+     * @param RouteEntry[] $entries
+     * @return void
+     */
+    private function warnDuplicateNames(array $entries)
+    {
+        $seen = array();
+        foreach ($entries as $entry) {
+            $name = (string) $entry->name;
+            if ($name === '') {
+                continue;
+            }
+            if (!isset($seen[$name])) {
+                $seen[$name] = $entry->source;
+                continue;
+            }
+            Log::warning('Duplicate route name', array(
+                'channel' => 'route',
+                'name' => $name,
+                'kept' => $seen[$name],
+                'dropped' => $entry->source,
+            ));
+        }
     }
 
     /**
@@ -125,8 +149,6 @@ class RouteManifestBuilder
             'module' => 'index',
             'controller' => '\\Dou\\Front\\Controller\\Index\\IndexController',
             'action' => 'index',
-            'is_short_url_aware' => false,
-            'is_family' => false,
             'source' => 'home',
         ));
     }
@@ -193,8 +215,6 @@ class RouteManifestBuilder
             'module' => $module,
             'controller' => $controller,
             'action' => $action,
-            'is_short_url_aware' => false,
-            'is_family' => false,
             'source' => 'system:' . $name,
         );
 
@@ -202,10 +222,10 @@ class RouteManifestBuilder
     }
 
     /**
-     * 风格规则条目（page / column / column_short / simple，按 RouteRules 顺序）。
+     * 出站规则视图条目（page / column / column_short / simple，按 RouteRules 顺序）。
      *
-     * 保留 meta 模板（{module} 占位符），匹配时由调用方通过 ModuleRegistry 准入校验。
-     * 同一规则的多个条目按 RouteRules 顺序入清单。
+     * 保留 meta 模板（{module} 占位符），仅供 UrlBuilder 出站生成；不进入入站清单。
+     * 同一规则的多个条目按 RouteRules 顺序排列。
      *
      * @return RouteEntry[]
      */
@@ -228,8 +248,6 @@ class RouteManifestBuilder
                     'params' => isset($rule['params']) && is_array($rule['params']) ? $rule['params'] : array(),
                     'target' => isset($rule['target']) ? $rule['target'] : null,
                     'module_fixed' => isset($rule['module_fixed']) ? $rule['module_fixed'] : null,
-                    'is_short_url_aware' => in_array($type, array('column', 'column_short'), true),
-                    'is_family' => false,
                     'source' => 'rules:' . $type . ':' . $idx,
                 ));
             }
@@ -255,11 +273,9 @@ class RouteManifestBuilder
             Route::useCollector($collector);
             try {
                 $loaded = $this->includeRouteFile($file);
-            } catch (\Exception $e) {
+            } finally {
                 Route::useCollector(null);
-                throw $e;
             }
-            Route::useCollector(null);
 
             foreach ($collector->flush() as $fluentEntry) {
                 $entries[] = $fluentEntry;
@@ -321,9 +337,14 @@ class RouteManifestBuilder
     }
 
     /**
-     * 清单来源指纹：各路由文件与 route.php / module.php 的 mtime + size，加清缓存世代。
+     * 清单来源指纹：路由文件 mtime + size、路由配置内容哈希、站点风格快照、清缓存世代。
      *
-     * 源文件或配置变更、管理员清空缓存（世代 +1）时指纹变化，落盘缓存随之失效。
+     * 风格规则在构建期按 site.route_* / site.short_url_module 展开成具体 pattern，
+     * 因此这些字段必须进入指纹，否则后台切换风格后入站仍按旧清单匹配。
+     *
+     * features 不单独入快照：它由 config/module.php 派生（已用内容哈希覆盖），且 admin 端
+     * 额外注入 sort / slug，按端纳入会造成前台与后台指纹互斥。
+     * domain / root_url / language / rewrite 与规则展开无关，同样不得纳入。
      *
      * @return string
      */
@@ -333,11 +354,21 @@ class RouteManifestBuilder
         foreach ($this->declaredSourceFiles() as $file) {
             $parts[] = $file . ':' . (int) @filemtime($file) . ':' . (int) @filesize($file);
         }
+
         $configPath = defined('CONFIG_PATH') ? CONFIG_PATH : '';
-        foreach (array('route.php', 'module.php') as $name) {
+        foreach (array('route.php', 'module.php', 'route_custom.php') as $name) {
             $cfg = $configPath . $name;
-            $parts[] = $cfg . ':' . (is_file($cfg) ? (int) @filemtime($cfg) : 0);
+            $parts[] = $cfg . ':' . (is_file($cfg) ? (string) @md5_file($cfg) : '');
         }
+
+        $snapshot = array(
+            'route_page' => (string) Config::get('site.route_page', ''),
+            'route_column' => (string) Config::get('site.route_column', ''),
+            'route_simple' => (string) Config::get('site.route_simple', ''),
+            'short_url_module' => (string) Config::get('site.short_url_module', ''),
+        );
+        $parts[] = 'site:' . md5(serialize($snapshot));
+
         $parts[] = 'gen:' . ManifestCacheGeneration::current();
 
         return md5(implode('|', $parts));
@@ -376,56 +407,5 @@ class RouteManifestBuilder
             return rtrim(ROOT_PATH, '/\\') . DIRECTORY_SEPARATOR . $endLower . DIRECTORY_SEPARATOR . 'route' . DIRECTORY_SEPARATOR;
         }
         return null;
-    }
-
-    /**
-     * 取 link_user_center 列表（供消费方校验声明条目的 module 是否合法）。
-     *
-     * @return string[]
-     */
-    public function linkUserCenterModules()
-    {
-        return (array) Config::get('module.link_user_center', array());
-    }
-
-    /**
-     * 取栏目模块列表。
-     *
-     * @return string[]
-     */
-    public function columnModules()
-    {
-        return (array) Config::get('module.column_module', array());
-    }
-
-    /**
-     * 取单表模块列表。
-     *
-     * @return string[]
-     */
-    public function singleModules()
-    {
-        return (array) Config::get('module.single_module', array());
-    }
-
-    /**
-     * 模块注册表访问接口（供消费方进一步派生数据，如 ModuleRegistry::isColumn 决策）。
-     *
-     * @return ModuleRegistry
-     */
-    public function registry()
-    {
-        return $this->registry;
-    }
-
-    /**
-     * Naming::baseModule 透出（避免下游消费者再 import）。
-     *
-     * @param string $module
-     * @return string
-     */
-    public function baseModule($module)
-    {
-        return Naming::baseModule($module);
     }
 }

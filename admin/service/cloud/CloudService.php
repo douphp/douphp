@@ -298,11 +298,7 @@ class CloudService extends BaseService
         $cdkey = (string) $probe['cdkey'];
 
         if ($code === 0 && $status === 'ok' && $cdkey !== '') {
-            $stateDir = STORAGE_PATH . 'state/';
-            if (!is_dir($stateDir)) {
-                @mkdir($stateDir, 0777, true);
-            }
-            file_put_contents($stateDir . 'cdkey.php', $cdkey);
+            $this->persistCdkey($cdkey);
             $msg = lang('cloud_copyright_success');
         } elseif ($code === 403 || (isset($probe['message']) && $probe['message'] === 'unauthorized')) {
             $msg = lang('cloud_copyright_no_vip');
@@ -315,6 +311,42 @@ class CloudService extends BaseService
         }
 
         return null;
+    }
+
+    /**
+     * 静默刷新授权凭据（去版权），供升级收尾等后台流程自动调用。
+     *
+     * 与 {@see copyright()} 同一云端接口与落盘目标，只返回是否成功，不产生提示文案。
+     * 版权凭据的校验串绑定 site.douphp_version：升级落库新版本后旧凭据立即失效，
+     * 故系统升级完成后必须按新版本重新领取一次。
+     *
+     * @return bool 云端返回有效凭据且落盘成功时为 true
+     */
+    public function refreshCopyright()
+    {
+        $probe = $this->probeCopyright();
+
+        if ((int) $probe['code'] !== 0 || (string) $probe['status'] !== 'ok' || (string) $probe['cdkey'] === '') {
+            return false;
+        }
+
+        return $this->persistCdkey((string) $probe['cdkey']);
+    }
+
+    /**
+     * 写入版权凭据文件 storage/state/cdkey.php。
+     *
+     * @param string $cdkey 云端下发的文件内容
+     * @return bool
+     */
+    private function persistCdkey($cdkey)
+    {
+        $stateDir = STORAGE_PATH . 'state/';
+        if (!is_dir($stateDir)) {
+            @mkdir($stateDir, 0777, true);
+        }
+
+        return @file_put_contents($stateDir . 'cdkey.php', $cdkey) !== false;
     }
 
     /**

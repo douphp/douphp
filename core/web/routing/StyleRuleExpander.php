@@ -29,16 +29,15 @@ if (!defined('IN_DOUCO')) {
  *
  * 与 PrettyRouteMatcher 的 meta 分支语义等价：
  *   - column 模块（如 product）每条 column 规则展开为一条 declared 条目（{module} → 'product'）
- *   - simple 模块（如 book）同 column 思路展开 simple 规则：由第一条匹配
- *     {module}/{action} 的规则展开成「逐 action 一条」，由调用方在路由文件里枚举
- *     （不在本展开器里枚举所有可能 action）
+ *   - simple 模块（如 book）同 column 思路展开 simple 规则；动作型规则（含 {action} /
+ *     {sub_action}）不物化，由模块路由文件显式声明，避免无白名单的通配兜底
  *   - page 模块从 page 风格规则展开
  *
  * 关键设计：
  *   - 本类不做 ModuleRegistry 准入校验（声明文件本身就是「模块是这一类的」断言）
  *   - 默认 controller FQCN 由调用方传入；不做约定式 fallback
  *   - column 模块为短地址模块时整族选用风格的 short_rules，与 rules 族互斥不并存
- *   - 风格切换在每次构建 manifest 时生效（route_custom.php / site.route_* 改变后 clearCache 即可）
+ *   - 风格切换在每次构建 manifest 时生效；site.route_* 已纳入清单指纹，变更后自动重建
  */
 class StyleRuleExpander
 {
@@ -115,8 +114,6 @@ class StyleRuleExpander
                 'controller' => $ctrl,
                 'action' => 'show',
                 'sub' => null,
-                'is_short_url_aware' => false,
-                'is_family' => false,
                 'source' => $sourcePrefix . ':' . $name,
             ));
         }
@@ -146,6 +143,11 @@ class StyleRuleExpander
             if (!isset($rule['pattern'])) {
                 continue;
             }
+            // 动作型规则不物化：允许哪些 action 由模块路由文件显式声明。
+            // config/route.php 已无此类规则，保留防御以防后续回填。
+            if (preg_match('/\{(?:sub_)?action\b/', (string) $rule['pattern'])) {
+                continue;
+            }
             $pattern = str_replace('{module}', $urlModule, (string) $rule['pattern']);
             $params = isset($rule['params']) && is_array($rule['params']) ? $rule['params'] : array();
             // 占位符 module 已被字面替换，从 params 中移除
@@ -155,11 +157,9 @@ class StyleRuleExpander
 
             $hasTarget = isset($rule['target']);
             $action = $hasTarget ? 'index' : 'show';
-            // simple 规则无 target 概念：路径段含 {action} / {sub_action} / {class} / {id} 等占位符
-            // 时仍交由 controller 端按 declared action='index' 入口分发（show 形态由 {id:\d+}
-            // 规则本身承载）。本展开器保持「有 target → index，无 target → show」二分法
-            // 与 PrettyRouteMatcher 的派生逻辑近似（仅当无 target 且 pattern 含 {id:\d+} 时
-            // 视为 show；其它无 target 形态 fallback 仍为 index 由 controller 端解释）。
+            // simple 规则无 target：含 {id:\d+} 的规则视为详情（show），
+            // 其余（列表 / 分类）统一为 index。动作型 URL 不在此展开，
+            // 由各模块路由文件显式声明。
             if ($typeTag === 'simple' && !$hasTarget && strpos($pattern, '{id:\\d+}') === false) {
                 $action = 'index';
             }
@@ -174,8 +174,6 @@ class StyleRuleExpander
                 'controller' => $ctrl,
                 'action' => $action,
                 'sub' => null,
-                'is_short_url_aware' => ($typeTag === 'column'),
-                'is_family' => false,
                 'source' => $sourcePrefix . ':' . $name,
             ));
         }

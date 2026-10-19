@@ -367,12 +367,17 @@ class Runner
             return;
         }
         $systemSign = defined('SYSTEM_SIGN') ? SYSTEM_SIGN : 'company';
+        // 版权凭据的校验串绑定标的新版本：必须上报 newVersion，否则云端按升级前快照
+        // 下发的旧凭据在升级完成后依旧失效（等于没刷新）。
+        $version = $this->ctx->newVersion !== ''
+            ? $this->ctx->newVersion
+            : (isset($cfg['douphp_version']) ? (string) $cfg['douphp_version'] : '');
         $data = array(
             'user' => isset($cloud_account['user']) ? $cloud_account['user'] : '',
             'password' => isset($cloud_account['password']) ? $cloud_account['password'] : '',
             'domain' => $this->ctx->rootUrl,
             'shell' => substr(md5($hash), 16),
-            'version' => isset($cfg['douphp_version']) ? $cfg['douphp_version'] : '',
+            'version' => $version,
             'system_sign' => $systemSign,
         );
 

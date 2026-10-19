@@ -310,8 +310,6 @@ class RouteGroupBuilder
                     'action' => $action,
                     'sub' => $this->sub,
                     'methods' => $methods,
-                    'is_short_url_aware' => false,
-                    'is_family' => false,
                     'source' => $this->collector->sourceFor($name),
                 );
                 $fields = array_merge($fields, $mwFields);

@@ -58,12 +58,19 @@ class RouteGroupRegistrar
     /**
      * 设置组级 name 前缀（叠加到组内每条路由的默认 localBase）。
      *
+     * 组级 name 始终是前缀语义：非空且末字符不是 '.' 时自动补点，避免 'api' + 'book'
+     * 静默拼成 'apibook'。单条 builder 的 name() 双语义（尾点=前缀 / 无尾点=全量覆盖）不变。
+     *
      * @param string $prefix 如 'api.' / 'admin.'
      * @return self
      */
     public function name($prefix)
     {
-        $this->namePrefix = (string) $prefix;
+        $prefix = (string) $prefix;
+        if ($prefix !== '' && substr($prefix, -1) !== '.') {
+            $prefix .= '.';
+        }
+        $this->namePrefix = $prefix;
         return $this;
     }
 
@@ -92,10 +99,8 @@ class RouteGroupRegistrar
         ));
         try {
             $routes();
-        } catch (\Exception $e) {
+        } finally {
             $this->collector->popGroupAttributes();
-            throw $e;
         }
-        $this->collector->popGroupAttributes();
     }
 }

@@ -22,6 +22,7 @@ use Dou\Core\Foundation\Middleware\MiddlewareRegistry;
 use Dou\Core\Infra\Log\Log;
 use Dou\Core\Web\Http\Request;
 use Dou\Core\Web\Routing\DispatchPlan;
+use Dou\Core\Web\Routing\FormTargetBinder;
 use Dou\Core\Web\Routing\MethodResolver;
 use Dou\Front\Service\Init\ThemeExtensionLoader;
 
@@ -42,6 +43,50 @@ if (!defined('IN_DOUCO')) {
  */
 class FrontResolver
 {
+    /**
+     * 别名 → 中间件 FQCN 映射。
+     *
+     * @var array<string,string>
+     */
+    private static $middlewareAliases = array(
+        'security_headers' => 'Dou\\Front\\Middleware\\SecurityHeadersMiddleware',
+        'trust_proxy' => 'Dou\\Core\\Foundation\\Middleware\\TrustProxyMiddleware',
+        'throttle' => 'Dou\\Front\\Middleware\\ThrottleMiddleware',
+        'user_auth' => 'Dou\\Front\\Middleware\\UserAuthMiddleware',
+        'csrf' => 'Dou\\Front\\Middleware\\CsrfMiddleware',
+    );
+
+    /**
+     * 中间件定义（Resolver 组链与 route-audit 共用同一真值源）。
+     *
+     * @return array{aliases:array<string,string>,default_aliases:string[]}
+     */
+    public static function middlewareSpec()
+    {
+        return array(
+            'aliases' => self::$middlewareAliases,
+            'default_aliases' => self::defaultMiddlewareAliases(),
+        );
+    }
+
+    /**
+     * 前台全局默认中间件栈（别名有序）。
+     *
+     * 会员认证仅在 features.user 开启时入栈；类缺失时由 MiddlewareRegistry 兜底跳过。
+     *
+     * @return string[]
+     */
+    private static function defaultMiddlewareAliases()
+    {
+        $aliases = array('security_headers', 'trust_proxy', 'throttle');
+        if (Config::get('features.user', false)) {
+            $aliases[] = 'user_auth';
+        }
+        $aliases[] = 'csrf';
+
+        return $aliases;
+    }
+
     /**
      * 解析当前前台请求为分发计划。
      *
@@ -99,47 +144,14 @@ class FrontResolver
         $request->setRouteParams($params);
         $request->mergeRouteInputs($params);
         View::assign('cur', $routeModule);
-        self::assignFormTarget($routeAction, $result, $params);
+        FormTargetBinder::assign(
+            $routeAction,
+            isset($result['name']) ? (string) $result['name'] : '',
+            $params
+        );
         self::loadThemeExtension($container, $routeModule, $routeAction);
 
         return new DispatchPlan($fqcn, MethodResolver::resolve($routeAction, $fqcn), $params, $middlewares);
-    }
-
-    /**
-     * 渲染会员中心 create / edit 表单页时，单点装配表单提交目标 URL 与方法伪装值到视图引擎全局。
-     *
-     * create 提交到资源 store（POST，URL 无 id），edit 提交到 update（PUT，URL 带成员 id）。逻辑与
-     * {@see \Dou\Admin\Foundation\Routing\AdminResolver::assignFormTarget()} 相同。目标 URL 由
-     * {@see route()} 按命中条目路由名去末段动作得到的 base 生成；模板统一用 `{$form_action}`
-     * （action 属性）+ `{$form_method}`（隐藏 `_method`，空值由 {@see \Dou\Core\Web\Http\Request::method()}
-     * 忽略，等价原生 POST）。仅资源条目（路由名形如 `module.sub.action`）参与，普通 group/column
-     * 条目无 create/edit 动作不受影响。
-     *
-     * @param string $action 命中动作（仅 create / edit 装配）
-     * @param array $result 匹配器命中结构（含 name 路由名）
-     * @param array $params 路径捕获的具名参数（edit 的成员 id）
-     * @return void
-     */
-    private static function assignFormTarget($action, array $result, array $params)
-    {
-        if ($action !== 'create' && $action !== 'edit') {
-            return;
-        }
-        $name = isset($result['name']) ? (string) $result['name'] : '';
-        $dot = strrpos($name, '.');
-        if ($dot === false) {
-            return;
-        }
-        $base = substr($name, 0, $dot);
-
-        if ($action === 'create') {
-            View::assign('form_action', route($base . '.store'));
-            View::assign('form_method', '');
-            return;
-        }
-
-        View::assign('form_action', route($base . '.update', $params));
-        View::assign('form_method', 'PUT');
     }
 
     /**
@@ -173,24 +185,10 @@ class FrontResolver
      */
     private static function composeMiddlewares(Container $container, array $result)
     {
-        $aliasMap = array(
-            'security_headers' => 'Dou\\Front\\Middleware\\SecurityHeadersMiddleware',
-            'trust_proxy' => 'Dou\\Core\\Foundation\\Middleware\\TrustProxyMiddleware',
-            'throttle' => 'Dou\\Front\\Middleware\\ThrottleMiddleware',
-            'user_auth' => 'Dou\\Front\\Middleware\\UserAuthMiddleware',
-            'csrf' => 'Dou\\Front\\Middleware\\CsrfMiddleware',
-        );
-
-        $defaultAliases = array('security_headers', 'trust_proxy', 'throttle');
-        if (Config::get('features.user', false)) {
-            $defaultAliases[] = 'user_auth';
-        }
-        $defaultAliases[] = 'csrf';
-
-        $registry = new MiddlewareRegistry($container, $aliasMap);
+        $registry = new MiddlewareRegistry($container, self::$middlewareAliases);
 
         return $registry->composeFromSpec(
-            $defaultAliases,
+            self::defaultMiddlewareAliases(),
             isset($result['mw_skip_all']) ? (bool) $result['mw_skip_all'] : false,
             isset($result['mw_without']) && is_array($result['mw_without']) ? $result['mw_without'] : array(),
             isset($result['mw_append']) && is_array($result['mw_append']) ? $result['mw_append'] : array(),

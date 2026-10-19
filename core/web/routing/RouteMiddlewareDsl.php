@@ -24,8 +24,11 @@ if (!defined('IN_DOUCO')) {
  * 承载「在各端全局默认中间件栈之上的路由级细化」四种语义：
  *   - middleware([...])          追加：在默认栈末尾追加额外中间件别名（含参数如 'throttle:5,60'）
  *   - withoutMiddleware([...])   豁免：从默认栈中按别名过滤掉对应中间件实例
- *   - 参数糖 permission/throttle/auth  覆盖：给默认栈中对应中间件实例传参（新建独占实例）
+ *   - 参数糖 throttle/auth        覆盖：给默认栈中对应中间件实例传参（新建独占实例）
  *   - skipAllMiddleware()        跳全链：装空中间件链
+ *
+ * 参数糖的键必须与目标端的中间件别名一致，且对应中间件须实现 ParameterizedMiddleware；
+ * 有效性由 devtools/route-audit.php 静态校验，不做请求期告警。
  *
  * 各 builder 把这些字段经 {@see middlewareFields} 一次写入它展开的每条 RouteEntry。
  */
@@ -89,19 +92,7 @@ trait RouteMiddlewareDsl
     }
 
     /**
-     * 参数糖：覆盖该路由的权限节点（等价于给 permission 中间件传参）。
-     *
-     * @param string $node 权限节点 id（如 'reports.sales_full'）
-     * @return $this
-     */
-    public function permission($node)
-    {
-        $this->mwParams['permission'] = (string) $node;
-        return $this;
-    }
-
-    /**
-     * 参数糖：覆盖该路由的限流配额（等价于给 throttle 中间件传参）。
+     * 参数糖：覆盖该路由的限流配额（仅 front / api 有 throttle 别名）。
      *
      * @param int $max 窗口内最大次数
      * @param int $window 窗口秒数
@@ -114,14 +105,14 @@ trait RouteMiddlewareDsl
     }
 
     /**
-     * 参数糖：覆盖该路由的会员鉴权模式（等价于给 auth 中间件传参）。
+     * 参数糖：覆盖该路由的会员鉴权模式（仅 front / api 生效；admin 认证由默认栈承担）。
      *
      * @param string $mode 'public' | 'optional' | 'required' 等
      * @return $this
      */
     public function auth($mode)
     {
-        $this->mwParams['auth'] = (string) $mode;
+        $this->mwParams['user_auth'] = (string) $mode;
         return $this;
     }
 

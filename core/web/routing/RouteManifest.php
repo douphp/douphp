@@ -14,6 +14,8 @@
 
 namespace Dou\Core\Web\Routing;
 
+use Dou\Core\Foundation\Configuration\Config;
+
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
 }
@@ -21,12 +23,13 @@ if (!defined('IN_DOUCO')) {
 /**
  * 路由清单（不可变可枚举数据源）
  *
- * RouteRules 负责底层 config/route.php 解析；RouteManifest 在其之上承载 home / static /
- * system_reserved 家族 / 风格规则 / 声明式条目的物化清单。
+ * RouteRules 负责底层 config/route.php（含可选 route_custom.php）解析；RouteManifest
+ * 在其之上承载 home / declared 两类物化条目（风格规则已由 StyleRuleExpander 展开为具体
+ * declared 条目）。
  *
  * 调用面：
- *   - 入站匹配：getEntries() 由 PrettyRouteMatcher 迭代消费（home / static / system_reserved /
- *     家族 / declared，不含 page/column/simple meta 模板——后者已展开为具体 declared 条目）。
+ *   - 入站匹配：getEntries() 由 PrettyRouteMatcher 迭代消费（home / declared，不含
+ *     page/column/simple meta 模板——后者已展开为具体 declared 条目）。
  *   - 出站生成：getRuleGroups() 返回 page / column / simple 分组视图（与 RouteRules::getSelectedRuleGroups()
  *     字段结构相同），独立构建（不取自 getEntries），供 UrlBuilder 读 pattern；
  *     getEntryByName() 供具名反查（如 /user/book 等声明式条目）。
@@ -37,6 +40,13 @@ if (!defined('IN_DOUCO')) {
  */
 class RouteManifest
 {
+    /**
+     * 落盘缓存结构版本。
+     *
+     * 条目字段结构变化时必须递增；版本不符时旧缓存自动重建，避免以旧结构反序列化。
+     */
+    const CACHE_VERSION = 3;
+
     /** @var RouteEntry[]|null */
     private static $entries = null;
 
@@ -125,20 +135,10 @@ class RouteManifest
     }
 
     /**
-     * 是否已构建（外部诊断用，避免触发构建）。
-     *
-     * @return bool
-     */
-    public static function isBuilt()
-    {
-        return self::$entries !== null;
-    }
-
-    /**
      * 触发构建（内部用）。
      *
      * 优先读落盘缓存（按源文件指纹校验），命中则免去每请求 include 全部路由声明文件的开销；
-     * 未命中或指纹不符时重建并回写。
+     * 未命中或指纹不符时重建；Web SAPI 回写落盘缓存，CLI 仅保留进程内副本。
      *
      * @return void
      */
@@ -149,10 +149,18 @@ class RouteManifest
         }
 
         $builder = new RouteManifestBuilder();
-        $entries = self::readDiskCache($builder);
+        $fingerprint = $builder->sourceFingerprint();
+        $entries = self::readDiskCache($fingerprint);
         if ($entries === null) {
             $entries = $builder->build();
-            self::writeDiskCache($builder->sourceFingerprint(), $entries);
+            // CLI 进程只构建进程内副本：它可能未装载站点上下文，写盘会污染 Web 共享缓存，
+            // 并与 Web 形成「指纹不符 → 互相重建」的乒乓。现有流程不依赖 CLI 暖缓存。
+            // site / features 未就绪的 Web 入口同样不写盘，避免写入不完整清单。
+            $siteReady = !empty(Config::get('site', array()));
+            $featuresReady = !empty(Config::get('features', array()));
+            if (!in_array(PHP_SAPI, array('cli', 'phpdbg'), true) && $siteReady && $featuresReady) {
+                self::writeDiskCache($fingerprint, $entries);
+            }
         }
         self::$entries = $entries;
 
@@ -161,8 +169,8 @@ class RouteManifest
             if ($entry->name === null || $entry->name === '') {
                 continue;
             }
-            // name 唯一性由 devtools/route-list.php 在启动期断言；此处遵循「先注册先生效」，
-            // 与 home / static / system_reserved 家族条目的内置 name 相容。
+            // name 唯一性由 devtools/route-audit.php 门禁；此处遵循「先注册先生效」。
+            // 重复项的构建期告警见 RouteManifestBuilder::warnDuplicateNames()。
             if (!isset(self::$nameIndex[$entry->name])) {
                 self::$nameIndex[$entry->name] = $idx;
             }
@@ -170,12 +178,12 @@ class RouteManifest
     }
 
     /**
-     * 读取落盘缓存并重建条目；文件缺失 / 指纹不符 / 内容损坏时返回 null。
+     * 读取落盘缓存并重建条目；文件缺失 / 版本不符 / 指纹不符 / 内容损坏时返回 null。
      *
-     * @param RouteManifestBuilder $builder 用于取当前来源指纹
+     * @param string $fingerprint 当前来源指纹
      * @return RouteEntry[]|null
      */
-    private static function readDiskCache(RouteManifestBuilder $builder)
+    private static function readDiskCache($fingerprint)
     {
         $file = self::diskCacheFile();
         if (!is_file($file)) {
@@ -188,10 +196,16 @@ class RouteManifest
         }
 
         $payload = @unserialize($raw);
-        if (!is_array($payload) || !isset($payload['fingerprint']) || !isset($payload['entries']) || !is_array($payload['entries'])) {
+        if (!is_array($payload)
+            || !isset($payload['version'])
+            || (int) $payload['version'] !== self::CACHE_VERSION
+            || !isset($payload['fingerprint'])
+            || !isset($payload['entries'])
+            || !is_array($payload['entries'])
+        ) {
             return null;
         }
-        if ($payload['fingerprint'] !== $builder->sourceFingerprint()) {
+        if ($payload['fingerprint'] !== $fingerprint) {
             return null;
         }
 
@@ -207,7 +221,7 @@ class RouteManifest
     }
 
     /**
-     * 回写落盘缓存（指纹 + 条目全字段数组）。
+     * 回写落盘缓存（结构版本 + 指纹 + 条目全字段数组）。
      *
      * @param string $fingerprint
      * @param RouteEntry[] $entries
@@ -225,7 +239,12 @@ class RouteManifest
         if (!is_dir($dir)) {
             @mkdir($dir, 0777, true);
         }
-        @file_put_contents($file, serialize(array('fingerprint' => $fingerprint, 'entries' => $rows)), LOCK_EX);
+        $payload = array(
+            'version' => self::CACHE_VERSION,
+            'fingerprint' => $fingerprint,
+            'entries' => $rows,
+        );
+        @file_put_contents($file, serialize($payload), LOCK_EX);
     }
 
     /**

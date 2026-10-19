@@ -19,9 +19,11 @@ use Dou\Core\Facade\View;
 use Dou\Core\Foundation\Container\Container;
 use Dou\Core\Foundation\Extension\Module;
 use Dou\Core\Foundation\Middleware\MiddlewareRegistry;
+use Dou\Core\Infra\Log\Log;
 use Dou\Core\Web\Http\Request;
 use Dou\Core\Web\Routing\BackendDeclaredMatcher;
 use Dou\Core\Web\Routing\DispatchPlan;
+use Dou\Core\Web\Routing\FormTargetBinder;
 use Dou\Core\Web\Routing\MethodResolver;
 
 if (!defined('IN_DOUCO')) {
@@ -64,6 +66,19 @@ class AdminResolver
     );
 
     /**
+     * 中间件定义（Resolver 组链与 route-audit 共用同一真值源）。
+     *
+     * @return array{aliases:array<string,string>,default_aliases:string[]}
+     */
+    public static function middlewareSpec()
+    {
+        return array(
+            'aliases' => self::$aliasMap,
+            'default_aliases' => self::$defaultAliases,
+        );
+    }
+
+    /**
      * 解析当前后台请求为分发计划。
      *
      * @param Request $request
@@ -86,6 +101,18 @@ class AdminResolver
         $action = $hit['action'];
         $fqcn = $hit['fqcn'];
 
+        if ($fqcn === null || $fqcn === '' || !class_exists($fqcn)) {
+            Log::warning('Admin route dispatch failed', array(
+                'channel' => 'route',
+                'route' => $routeRaw,
+                'module' => $cur,
+                'action' => $action,
+                'controller' => (string) $fqcn,
+            ));
+
+            return DispatchPlan::notFound();
+        }
+
         // 会员衍生模块闸：features.user 关闭时直接抛 DomainException，避免容器反射到 user 模块下发的类。
         Module::assertUserAvailable($cur);
 
@@ -98,7 +125,11 @@ class AdminResolver
         View::assign('cur', $cur);
         // $nav 契约：按命中路由名中央解析（侧栏 / 二级菜单 / 面包屑数据源）
         View::assign('nav', AdminNavResolver::resolve((string) $hit['entry']->name));
-        self::assignFormTarget($action, $hit);
+        FormTargetBinder::assign(
+            $action,
+            isset($hit['entry']) ? (string) $hit['entry']->name : '',
+            isset($hit['params']) && is_array($hit['params']) ? $hit['params'] : array()
+        );
 
         $registry = new MiddlewareRegistry($container, self::$aliasMap);
         $middlewares = $registry->compose(self::$defaultAliases, $hit['entry']);
@@ -106,41 +137,4 @@ class AdminResolver
         return new DispatchPlan($fqcn, $method, $hit['params'], $middlewares);
     }
 
-    /**
-     * 渲染 create / edit 表单页时，单点装配表单提交目标 URL 与方法伪装值到视图引擎全局。
-     *
-     * 表单 action 由本方法单点装配：create 提交到资源 store
-     * （POST，URL 无 id），edit 提交到 update（PUT，URL 带成员 id）。目标 URL 由 {@see route()} 按
-     * 命中条目的真实 pattern 生成——resource 端得到 `module` / `module/{id}`，group 端得到
-     * `prefix/store` / `prefix/update&id=`，两端各自正确。base 为命中条目路由名去掉末段动作。
-     *
-     * 模板统一用 `{$form_action}`（action 属性）+ `{$form_method}`（隐藏 `_method`，空值由
-     * {@see \Dou\Core\Web\Http\Request::method()} 忽略，等价原生 POST）。
-     *
-     * @param string $action 命中动作（仅 create / edit 装配）
-     * @param array $hit 匹配器命中结构（含 entry 与 params）
-     * @return void
-     */
-    private static function assignFormTarget($action, array $hit)
-    {
-        if ($action !== 'create' && $action !== 'edit') {
-            return;
-        }
-        $name = isset($hit['entry']) ? (string) $hit['entry']->name : '';
-        $dot = strrpos($name, '.');
-        if ($dot === false) {
-            return;
-        }
-        $base = substr($name, 0, $dot);
-
-        if ($action === 'create') {
-            View::assign('form_action', route($base . '.store'));
-            View::assign('form_method', '');
-            return;
-        }
-
-        $params = isset($hit['params']) && is_array($hit['params']) ? $hit['params'] : array();
-        View::assign('form_action', route($base . '.update', $params));
-        View::assign('form_method', 'PUT');
-    }
 }

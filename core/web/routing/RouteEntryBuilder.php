@@ -152,8 +152,6 @@ class RouteEntryBuilder
             'action' => $this->action,
             'sub' => $this->sub,
             'methods' => $this->methods,
-            'is_short_url_aware' => false,
-            'is_family' => false,
             'source' => $this->collector->sourceFor($name),
         );
         $fields = array_merge($fields, $this->middlewareFields());

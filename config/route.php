@@ -327,19 +327,13 @@ return [
      */
     'simple' => [
         'alias_nested' => [
-            'name' => '<p><i>列表页</i>{root_url}module</p><p><i>分组页</i>{root_url}module/class/fenlei</p><p><i>操作页</i>{root_url}module/action/sub-action</p>',
+            'name' => '<p><i>列表页</i>{root_url}module</p><p><i>分组页</i>{root_url}module/class/fenlei</p>',
+            // 动作型 URL（module/action、module/sub/action）不在此展开，
+            // 由各模块 front/route/*.php 显式声明，避免无白名单的通配兜底。
             'rules' => [
                 [
                     'pattern' => '{module}/class/{class}[/o{page:\d*}]',
                     'params' => ['module' => '[a-z]+', 'class' => '[a-zA-Z0-9\-_\x{4e00}-\x{9fa5}]+'],
-                ],
-                [
-                    'pattern' => '{module}/{action}/{sub_action}',
-                    'params' => ['module' => '[a-z]+', 'action' => '[a-z_-]+', 'sub_action' => '[a-z_-]+'],
-                ],
-                [
-                    'pattern' => '{module}/{action}[/o{page:\d*}]',
-                    'params' => ['module' => '[a-z]+', 'action' => '[a-z_-]+'],
                 ],
                 [
                     'pattern' => '{module}/{id:\d+}',

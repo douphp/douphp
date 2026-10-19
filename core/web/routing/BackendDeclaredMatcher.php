@@ -30,7 +30,7 @@ if (!defined('IN_DOUCO')) {
  *      （保证 `article/featured` 胜过 `article/{id}`）。
  *   3. 若传入 $httpMethod：按排序遍历，首个 method 命中即 HIT；全不命中 → 405
  *      （返回 {status:'method_not_allowed', allow:[...]}）。
- *   4. 未传 $httpMethod（permissive 调用，如 route-list 诊断）：返回排序后首条。
+ *   4. 未传 $httpMethod（permissive 调用，如 route-audit --dump 诊断）：返回排序后首条。
  *
  * 无命中且 routeRaw 仍为空时再 fallback 到 `index`（伪静态下访问 /admin/ 或 /api/ 时
  * .htaccess 写入 ?route= 空串，与显式 ?route=index 等价）。
@@ -91,8 +91,8 @@ class BackendDeclaredMatcher
             $candidates[] = array(
                 'entry' => $entry,
                 'params' => self::namedCaptures($matches),
-                'placeholders' => self::placeholderCount($entry->pattern),
-                'literals' => self::literalSegmentCount($entry->pattern),
+                'placeholders' => RouteSpecificity::placeholderCount($entry->pattern),
+                'literals' => RouteSpecificity::literalSegmentCount($entry->pattern),
                 'order' => $order,
             );
             $order++;
@@ -102,7 +102,7 @@ class BackendDeclaredMatcher
             return null;
         }
 
-        usort($candidates, array(__CLASS__, 'compareSpecificity'));
+        usort($candidates, array(RouteSpecificity::class, 'compare'));
 
         if ($httpMethod === null) {
             return self::hitArray($candidates[0]);
@@ -144,59 +144,6 @@ class BackendDeclaredMatcher
             'params' => $candidate['params'],
             'entry' => $entry,
         );
-    }
-
-    /**
-     * specificity 比较器：占位符少者优先 → 字面段多者优先 → 声明顺序兜底。
-     *
-     * @param array $a
-     * @param array $b
-     * @return int
-     */
-    private static function compareSpecificity($a, $b)
-    {
-        if ($a['placeholders'] !== $b['placeholders']) {
-            return ($a['placeholders'] < $b['placeholders']) ? -1 : 1;
-        }
-        if ($a['literals'] !== $b['literals']) {
-            return ($a['literals'] > $b['literals']) ? -1 : 1;
-        }
-        if ($a['order'] === $b['order']) {
-            return 0;
-        }
-        return ($a['order'] < $b['order']) ? -1 : 1;
-    }
-
-    /**
-     * pattern 内占位符 `{...}` 数量。
-     *
-     * @param string $pattern
-     * @return int
-     */
-    private static function placeholderCount($pattern)
-    {
-        return preg_match_all('/\{[^}]+\}/', (string) $pattern, $m);
-    }
-
-    /**
-     * pattern 内不含占位符的字面段数量（'/'-分段）。
-     *
-     * @param string $pattern
-     * @return int
-     */
-    private static function literalSegmentCount($pattern)
-    {
-        $pattern = trim((string) $pattern, '/');
-        if ($pattern === '') {
-            return 0;
-        }
-        $count = 0;
-        foreach (explode('/', $pattern) as $seg) {
-            if ($seg !== '' && strpos($seg, '{') === false) {
-                $count++;
-            }
-        }
-        return $count;
     }
 
     /**

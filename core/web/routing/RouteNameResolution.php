@@ -27,6 +27,8 @@ if (!defined('IN_DOUCO')) {
  *   - name 前缀（尾点判定）：`->name('api.')`（尾点）= 前缀，叠加到默认 localBase；
  *     `->name('api.book')`（无尾点）= 全量覆盖 localBase。组栈前缀与单条前缀按
  *     `qualifyName()` 幂等拼接，禁止 `api.api.book`。
+ *     注意：组级 {@see RouteGroupRegistrar::name()} 始终是前缀语义并自动补尾点；
+ *     上述双语义仅适用于单条 builder 的 name()。
  *   - compositeModule：仅影响 emit 的 `module` 字段（喂后台权限 / 菜单 / 审计 / 校验），
  *     不影响路由名与 URL；仅在 `sub` 非空时生效。组栈开启或单条开启任一为真即生效。
  */

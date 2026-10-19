@@ -25,12 +25,14 @@ if (!defined('IN_DOUCO')) {
  * 实例字段全部 public 只读约定（PHP 5.6 不强制 readonly，靠规则与代码评审）；
  * 业务代码须经构造函数创建，禁止动态写入字段。
  *
- * route_type ∈ {'home','static','system_reserved','family','page','column','column_short','simple','declared'}
+ * 入站清单实体的 route_type ∈ {'home','declared'}；出站规则视图另使用 page / column /
+ * column_short / simple。
  * - meta 模板条目（page/column/column_short/simple）来自 config/route.php，pattern 含 {module} 等占位符；
- *   匹配时由调用方做 ModuleRegistry::isColumn/isSingle 等准入校验。
- *   column_short 为短地址模块专用家族（风格声明 short_rules 时存在），与 column 族互斥选用。
+ *   仅存在于 UrlBuilder 的出站规则视图，不参与入站匹配。
  * - 具体条目（declared）pattern 已无元变量，供具名反查（如 user_center.member）使用。
- * - 家族条目（family / system_reserved）一条 entry 承载一族 URL，is_family=true 豁免控制器缺失检测。
+ *
+ * 实际清单（getEntries）仅出现 home / declared；page / column / simple 等 meta 模板
+ * 只存在于 getRuleGroups() 的出站视图，不进入入站清单。
  */
 class RouteEntry
 {
@@ -84,17 +86,11 @@ class RouteEntry
     /** @var array 路由级豁免中间件别名（从默认栈中过滤，如 ['auth','permission']） */
     public $without_middleware;
 
-    /** @var array 路由级中间件参数覆盖（如 ['permission' => 'article.edit_extended','throttle' => '5,60']） */
+    /** @var array 路由级中间件参数覆盖（如 ['user_auth' => 'required','throttle' => '5,60']） */
     public $middleware_params;
 
     /** @var bool 路由级跳过全部中间件（空链；首页 / llms.txt 等字面豁免） */
     public $skip_all_middleware;
-
-    /** @var bool 是否参与 ShortUrlPolicy 短地址变形 */
-    public $is_short_url_aware;
-
-    /** @var bool 是否家族条目（plugin.* / system-reserved） */
-    public $is_family;
 
     /** @var string 诊断元数据：来源标识符 */
     public $source;
@@ -107,7 +103,7 @@ class RouteEntry
     public function __construct(array $fields)
     {
         $this->name = isset($fields['name']) ? $fields['name'] : null;
-        $this->route_type = isset($fields['route_type']) ? (string) $fields['route_type'] : 'simple';
+        $this->route_type = isset($fields['route_type']) ? (string) $fields['route_type'] : 'declared';
         $this->pattern = isset($fields['pattern']) ? (string) $fields['pattern'] : '';
         $this->params = isset($fields['params']) && is_array($fields['params']) ? $fields['params'] : array();
         $this->target = isset($fields['target']) ? $fields['target'] : null;
@@ -122,15 +118,13 @@ class RouteEntry
         $this->without_middleware = isset($fields['without_middleware']) && is_array($fields['without_middleware']) ? $fields['without_middleware'] : array();
         $this->middleware_params = isset($fields['middleware_params']) && is_array($fields['middleware_params']) ? $fields['middleware_params'] : array();
         $this->skip_all_middleware = !empty($fields['skip_all_middleware']);
-        $this->is_short_url_aware = !empty($fields['is_short_url_aware']);
-        $this->is_family = !empty($fields['is_family']);
         $this->source = isset($fields['source']) ? (string) $fields['source'] : '';
     }
 
     /**
      * 推导 declared 条目所属端（依 controller FQCN 命名空间前缀）。
      *
-     * 用于 PrettyRouteMatcher / route-list firstHit 等跨端隔离场景：admin / api 的 declared
+     * 用于 PrettyRouteMatcher / route-audit 等跨端隔离场景：admin / api 的 declared
      * 条目不应被前台匹配器或前台 self-hit 测试当作前台 URL 解析。
      *
      * @return string|null 'Front' | 'Admin' | 'Api' | null（无 controller 或非声明式条目）
@@ -154,9 +148,10 @@ class RouteEntry
     }
 
     /**
-     * 还原为 config/route.php 风格的 rule 字段子集（供 UrlBuilder 兼容视图使用）。
+     * 还原为 config/route.php 风格的 rule 字段子集（UrlBuilder 与 PrettyRouteMatcher 共用）。
      *
-     * 仅保留 pattern / params / target / module_fixed（UrlBuilder 出站生成所需字段子集）。
+     * 仅保留 pattern / params / target / module_fixed 四个规则字段；匹配器需要的方法与
+     * 显式目标字段由 PrettyRouteMatcher::loadRoutePatterns() 单独补齐。
      *
      * @return array
      */
@@ -199,8 +194,6 @@ class RouteEntry
             'without_middleware' => $this->without_middleware,
             'middleware_params' => $this->middleware_params,
             'skip_all_middleware' => $this->skip_all_middleware,
-            'is_short_url_aware' => $this->is_short_url_aware,
-            'is_family' => $this->is_family,
             'source' => $this->source,
         );
     }

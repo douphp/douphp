@@ -18,6 +18,7 @@ use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Container\Container;
 use Dou\Core\Foundation\Extension\Module;
 use Dou\Core\Foundation\Middleware\MiddlewareRegistry;
+use Dou\Core\Infra\Log\Log;
 use Dou\Core\Web\Http\Request;
 use Dou\Core\Web\Routing\BackendDeclaredMatcher;
 use Dou\Core\Web\Routing\DispatchPlan;
@@ -52,6 +53,19 @@ class ApiResolver
     );
 
     /**
+     * 中间件定义（Resolver 组链与 route-audit 共用同一真值源）。
+     *
+     * @return array{aliases:array<string,string>,default_aliases:string[]}
+     */
+    public static function middlewareSpec()
+    {
+        return array(
+            'aliases' => self::$aliasMap,
+            'default_aliases' => self::defaultAliases(),
+        );
+    }
+
+    /**
      * 解析当前 API 请求为分发计划。
      *
      * @param Request $request
@@ -74,6 +88,18 @@ class ApiResolver
         $action = $hit['action'];
         $fqcn = $hit['fqcn'];
         $sub = (string) $hit['sub'];
+
+        if ($fqcn === null || $fqcn === '' || !class_exists($fqcn)) {
+            Log::warning('Api route dispatch failed', array(
+                'channel' => 'route',
+                'route' => $routeRaw,
+                'module' => $cur,
+                'action' => $action,
+                'controller' => (string) $fqcn,
+            ));
+
+            return DispatchPlan::notFound();
+        }
 
         // 会员衍生模块闸：features.user 关闭时直接抛 DomainException，避免容器反射到 user 模块下发的类。
         Module::assertUserAvailable($cur);

@@ -402,8 +402,6 @@ class RouteResourceBuilder
             'controller' => $this->controller,
             'action' => $action,
             'sub' => $this->sub,
-            'is_short_url_aware' => false,
-            'is_family' => false,
             'source' => $this->collector->sourceFor($name),
         );
         $fields = array_merge($fields, $mwFields);

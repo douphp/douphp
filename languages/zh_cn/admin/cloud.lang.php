@@ -124,6 +124,8 @@ $_LANG['cloud_account_clean_success'] = '清空云账户成功';
 $_LANG['cloud_copyright'] = '去版权';
 $_LANG['cloud_copyright_success'] = '前台版权去除成功！';
 $_LANG['cloud_copyright_no_vip'] = '该账号或者该域名没有开通VIP会员！';
+$_LANG['cloud_copyright_auto_success'] = '升级完成，已自动刷新授权凭据（前台版权已去除）';
+$_LANG['cloud_copyright_auto_failed'] = '升级完成，自动刷新授权凭据失败（不影响站点运行），可稍后在更新主页点「去版权」重试';
 
 // 云端扩展列表（inc/cloud_extend_list.tpl）
 $_LANG['cloud_extend_filter_all'] = '全部';

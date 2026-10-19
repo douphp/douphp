@@ -16,6 +16,7 @@ namespace Dou\Front\Foundation\Routing;
 
 use Dou\Core\Web\Routing\PrettyUrlCompiler;
 use Dou\Core\Web\Routing\RouteManifest;
+use Dou\Core\Web\Routing\RouteSpecificity;
 use Dou\Core\Web\Routing\ShortUrlPolicy;
 
 if (!defined('IN_DOUCO')) {
@@ -123,7 +124,7 @@ class PrettyRouteMatcher
      *      靠后续方法过滤消歧）。
      *   3. 传入 $httpMethod：按排序遍历，首个方法命中即返回；URL 命中但方法全不命中 → null
      *      （前台无 405 页，按未命中交 FrontResolver 派发 page_wrong）。
-     *   4. 未传 $httpMethod（permissive，如 route-list 诊断）：返回排序后首条。
+     *   4. 未传 $httpMethod（permissive，如 route-audit --dump 诊断）：返回排序后首条。
      *
      * @param string $path
      * @param string|null $httpMethod
@@ -142,8 +143,8 @@ class PrettyRouteMatcher
             $candidates[] = array(
                 'rule' => $rule,
                 'captured' => $this->extractAllCaptures($matches),
-                'placeholders' => self::placeholderCount($pattern),
-                'literals' => self::literalSegmentCount($pattern),
+                'placeholders' => RouteSpecificity::placeholderCount($pattern),
+                'literals' => RouteSpecificity::literalSegmentCount($pattern),
                 'order' => $order,
             );
             $order++;
@@ -153,7 +154,7 @@ class PrettyRouteMatcher
             return null;
         }
 
-        usort($candidates, array(__CLASS__, 'compareSpecificity'));
+        usort($candidates, array(RouteSpecificity::class, 'compare'));
 
         if ($httpMethod === null) {
             return array('rule' => $candidates[0]['rule'], 'captured' => $candidates[0]['captured']);
@@ -189,59 +190,6 @@ class PrettyRouteMatcher
     }
 
     /**
-     * specificity 比较器：占位符少者优先 → 字面段多者优先 → 声明顺序兜底。
-     *
-     * @param array $a
-     * @param array $b
-     * @return int
-     */
-    private static function compareSpecificity($a, $b)
-    {
-        if ($a['placeholders'] !== $b['placeholders']) {
-            return ($a['placeholders'] < $b['placeholders']) ? -1 : 1;
-        }
-        if ($a['literals'] !== $b['literals']) {
-            return ($a['literals'] > $b['literals']) ? -1 : 1;
-        }
-        if ($a['order'] === $b['order']) {
-            return 0;
-        }
-        return ($a['order'] < $b['order']) ? -1 : 1;
-    }
-
-    /**
-     * pattern 内占位符 `{...}` 数量。
-     *
-     * @param string $pattern
-     * @return int
-     */
-    private static function placeholderCount($pattern)
-    {
-        return preg_match_all('/\{[^}]+\}/', (string) $pattern, $m);
-    }
-
-    /**
-     * pattern 内不含占位符的字面段数量（'/'-分段）。
-     *
-     * @param string $pattern
-     * @return int
-     */
-    private static function literalSegmentCount($pattern)
-    {
-        $pattern = trim((string) $pattern, '/');
-        if ($pattern === '') {
-            return 0;
-        }
-        $count = 0;
-        foreach (explode('/', $pattern) as $seg) {
-            if ($seg !== '' && strpos($seg, '{') === false) {
-                $count++;
-            }
-        }
-        return $count;
-    }
-
-    /**
      * 把命中的 declared 规则与捕获组组装为标准路由信息。
      *
      * 模块 / 动作 / 目标 / 子段 / 控制器一律取 entry 显式字段（_explicit_*）；具名捕获组
@@ -253,6 +201,8 @@ class PrettyRouteMatcher
      */
     private function buildResult(array $rule, array $captured)
     {
+        // action / sub_action 为历史防御：当前 config 与模块路由均不再产生这两个捕获，
+        // 但第三方模块若自定义含 {action} 的 pattern，捕获不应注入业务参数。
         $skipKeys = array('module' => 1, 'action' => 1, 'sub_action' => 1);
         $params = array();
         foreach ($captured as $k => $v) {

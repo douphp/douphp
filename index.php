@@ -9,7 +9,7 @@
  * 网站地址：http://www.douphp.com
  * ------------------------------------------------------------------------------------
  * Author: DouCo Co.,Ltd.
- * Release Date: 2026-10-16
+ * Release Date: 2026-09-08
  */
 define('IN_DOUCO', true);
 

@@ -23,8 +23,9 @@ if (!defined('IN_DOUCO')) {
 /**
  * 路径动作段 → 控制器方法名解析器（三端共用）
  *
- * 保持 snake_case ↔ camelCase ↔ 横线转驼峰的双形态兼容：先查保留字别名表（class / use / get
- * / default），再按候选顺序匹配控制器上存在的方法名，最后兜底同名方法，皆未命中则回退 'index'。
+ * 保持 snake_case ↔ camelCase ↔ 横线转驼峰的双形态兼容：先查保留字映射（default / list；
+ * class / use 由候选链处理），再按候选顺序匹配控制器上存在的方法名，最后兜底同名方法，
+ * 皆未命中则回退 'index'。严格版 {@see resolveStrict()} 供审计使用。
  */
 class MethodResolver
 {
@@ -36,6 +37,23 @@ class MethodResolver
      * @return string
      */
     public static function resolve($pathAction, $controllerClass)
+    {
+        $method = self::resolveStrict($pathAction, $controllerClass);
+
+        return $method !== null ? $method : 'index';
+    }
+
+    /**
+     * 严格版解析：未命中任何控制器方法时返回 null。
+     *
+     * 与 resolve() 的区别：保留字映射（default → index / list → listing）也要求目标方法
+     * 真实存在，避免审计把“映射目标缺失”误判为已解析。
+     *
+     * @param string $pathAction
+     * @param string $controllerClass
+     * @return string|null
+     */
+    public static function resolveStrict($pathAction, $controllerClass)
     {
         $pathAction = trim((string) $pathAction);
 
@@ -53,7 +71,9 @@ class MethodResolver
 
         $pathActionLower = strtolower($pathAction);
         if (isset($map[$pathActionLower])) {
-            return $map[$pathActionLower];
+            $mapped = $map[$pathActionLower];
+
+            return method_exists($controllerClass, $mapped) ? $mapped : null;
         }
 
         foreach (self::actionMethodCandidates($pathAction) as $candidate) {
@@ -67,7 +87,7 @@ class MethodResolver
             return $pathActionLower;
         }
 
-        return 'index';
+        return null;
     }
 
     /**
