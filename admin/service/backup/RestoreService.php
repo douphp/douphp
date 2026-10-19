@@ -556,6 +556,20 @@ class RestoreService
             }
         }
 
+        // 模块还原点只回滚模块自身表，config 不在 db_files 中；按 manifest 精确回写
+        // 升级前的 module_version / update_date 账本，避免版本日期停留在升级后的值。
+        if ($scope === SnapshotService::SCOPE_MODULE
+            && !empty($manifest['module_state']) && is_array($manifest['module_state'])) {
+            try {
+                $updateState = new UpdateStateService();
+                $updateState->restoreModuleState($manifest['module_state']);
+            } catch (\Exception $e) {
+                // 账本恢复失败不阻断还原收尾
+            } catch (\Throwable $e) {
+                // PHP 7+ 的 \Error 同样忽略
+            }
+        }
+
         $failed = (int) $state['failed_statements'];
         $summary = $failed > 0
             ? sprintf($this->t('snapshot_log_restore_done_partial', '还原完成，但有 %d 条 SQL 语句失败，请核查'), $failed)

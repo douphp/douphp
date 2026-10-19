@@ -124,7 +124,9 @@ class SnapshotService
      * @param string $scopeId 域内标识（cloud_id / wizard 等）
      * @param array $options file_mode(full|list|none)、item_dir（list 模式解压目录）、
      *                       item_prefix（list 模式目标目录前缀，如 theme/m149/）、
-     *                       db(bool)、channel、title、install_id
+     *                       db(bool)、channel、title、install_id；
+     *                       tables（仅 module：候选表清单，完整表名）、
+     *                       module_state（仅 module：升级前版本账本快照）
      * @return array array('ok' => bool, 'dir' => string, 'resumed' => bool, 'error' => string)
      */
     public function begin($scope, $scopeId, array $options = array())
@@ -137,6 +139,24 @@ class SnapshotService
             $fileMode = 'full';
         }
         $installId = isset($options['install_id']) ? (string) $options['install_id'] : '';
+
+        // 表白名单与模块账本快照仅对 module 域生效，系统域必须保持全库/无账本行为
+        $tablesWhitelist = array();
+        $moduleState = array();
+        if ($scope === self::SCOPE_MODULE) {
+            if (isset($options['tables'])) {
+                foreach ((array) $options['tables'] as $table) {
+                    $table = trim((string) $table);
+                    if ($table !== '') {
+                        $tablesWhitelist[] = $table;
+                    }
+                }
+                $tablesWhitelist = array_values(array_unique($tablesWhitelist));
+            }
+            if (isset($options['module_state']) && is_array($options['module_state'])) {
+                $moduleState = $options['module_state'];
+            }
+        }
 
         $active = $this->active();
         if ($active !== null) {
@@ -175,6 +195,9 @@ class SnapshotService
             'item_dir' => isset($options['item_dir']) ? (string) $options['item_dir'] : '',
             'item_prefix' => isset($options['item_prefix']) ? (string) $options['item_prefix'] : '',
             'db' => !empty($options['db']),
+            'tables_whitelist' => $tablesWhitelist,
+            'module_state' => $moduleState,
+            'tables_skipped' => array(),
             'files' => array(),
             'file_total' => 0,
             'file_index' => 0,
@@ -508,10 +531,48 @@ class SnapshotService
         $progress['file_index'] = 0;
 
         $progress['tables'] = array();
+        $progress['tables_skipped'] = array();
         if (!empty($progress['db'])) {
-            $result = DB::query("SHOW TABLE STATUS LIKE '" . DB::getPrefix() . "%'");
+            $prefix = (string) DB::getPrefix();
+            $result = DB::query("SHOW TABLE STATUS LIKE '" . $prefix . "%'");
+            if ($result === false) {
+                return $this->t('snapshot_error_db_scan', '数据库表清单读取失败');
+            }
+
+            $existing = array();
             while ($table = DB::fetchArray($result)) {
-                $progress['tables'][] = $table['Name'];
+                $name = isset($table['Name']) ? (string) $table['Name'] : '';
+                // LIKE 中的 `_` 是通配符，这里再按前缀精确过滤一次
+                if ($name === '' || strpos($name, $prefix) !== 0) {
+                    continue;
+                }
+                $existing[strtolower($name)] = $name;
+            }
+
+            $whitelist = isset($progress['tables_whitelist']) ? (array) $progress['tables_whitelist'] : array();
+            if ($whitelist) {
+                $seen = array();
+                foreach ($whitelist as $name) {
+                    $name = trim((string) $name);
+                    if ($name === '') {
+                        continue;
+                    }
+                    $key = strtolower($name);
+                    if (isset($existing[$key])) {
+                        if (!isset($seen[$key])) {
+                            $progress['tables'][] = $existing[$key];
+                            $seen[$key] = true;
+                        }
+                    } else {
+                        $progress['tables_skipped'][] = $name;
+                    }
+                }
+                // 白名单全部失效时宁可创建无库还原点，也不退回全库备份
+                if (empty($progress['tables'])) {
+                    $progress['db'] = false;
+                }
+            } else {
+                $progress['tables'] = array_values($existing);
             }
         }
         $progress['table_index'] = 0;
@@ -627,11 +688,16 @@ class SnapshotService
             'files_zip_sha256' => '',
             'added' => array_values((array) $progress['added']),
             'db' => !empty($progress['db']),
+            'tables' => array_values(isset($progress['tables']) ? (array) $progress['tables'] : array()),
+            'tables_skipped' => array_values(isset($progress['tables_skipped']) ? (array) $progress['tables_skipped'] : array()),
             'db_files' => array(),
             'db_bytes' => (int) $progress['db_bytes'],
             'douphp_version' => (string) \Dou\Core\Foundation\Configuration\Config::get('site.douphp_version', ''),
             'php_version' => PHP_VERSION,
         );
+        if (!empty($progress['module_state']) && is_array($progress['module_state'])) {
+            $manifest['module_state'] = $progress['module_state'];
+        }
 
         $zipFile = $dir . 'files.zip';
         if (is_file($zipFile)) {

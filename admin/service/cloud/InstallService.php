@@ -411,6 +411,8 @@ class InstallService extends BaseService
      * 系统更新（system + update/patch）建 system 域全量还原点；模块 / 主题 / 插件更新
      * （module|theme|plugin + update）按解压目录反推将被覆盖 / 新增的文件，分别建
      * module / theme / plugin 域还原点（theme / plugin 以 item_prefix 映射目标目录）。
+     * 模块还原点仅导出该模块自己的表（安装记录 / 包内 SQL 推导），并把升级前的
+     * module_version / update_date 账本写入 manifest；模块无表时不含数据库备份。
      * 主题 / 插件更新不执行 SQL 脚本，其还原点不含数据库（db=false）。其余类型
      * （全新安装、小程序）不建还原点，直接放行到 apply。
      *
@@ -468,12 +470,25 @@ class InstallService extends BaseService
                     $title = $backedVersion;
                 }
             }
+            // 模块还原点只导出模块自身表；升级前版本账本随 manifest 固化，供还原收尾回写
+            $moduleId = $cloudId;
+            $moduleTables = array();
+            $moduleState = array();
+            if ($isModule) {
+                $moduleId = $this->snapshotModuleId($cloudId);
+                $moduleTables = $this->snapshotModuleTables($cloudId, $moduleId);
+                $moduleState = $this->updateState->moduleSnapshotState($moduleId, $cloudId);
+            }
             $options = array(
-                'db' => ($isSystem || $isModule),
+                'db' => ($isSystem || ($isModule && !empty($moduleTables))),
                 'channel' => 'cloud',
                 'install_id' => $installId,
                 'title' => $title,
             );
+            if ($isModule) {
+                $options['tables'] = $moduleTables;
+                $options['module_state'] = $moduleState;
+            }
             $scope = 'module';
             if ($isSystem) {
                 $options['file_mode'] = 'full';
@@ -1747,6 +1762,182 @@ class InstallService extends BaseService
         }
 
         return $dropTableSqlList;
+    }
+
+    /**
+     * 模块还原点的模块标识：优先包内 _update/version.php 的 module 字段。
+     *
+     * @param string $cloudId
+     * @return string
+     */
+    private function snapshotModuleId($cloudId)
+    {
+        $metaFile = rtrim($this->cacheDir . $cloudId, '/\\') . '/_update/version.php';
+        if (is_file($metaFile)) {
+            $meta = include $metaFile;
+            if (is_array($meta) && !empty($meta['module'])) {
+                return (string) $meta['module'];
+            }
+        }
+
+        return (string) $cloudId;
+    }
+
+    /**
+     * 模块还原点候选表清单：安装记录为主，包内标准 SQL 兜底并集。
+     *
+     * 只返回归一后的完整表名；是否真实存在由 SnapshotService 与数据库表清单精确交集。
+     *
+     * @param string $cloudId
+     * @param string $moduleId
+     * @return array
+     */
+    private function snapshotModuleTables($cloudId, $moduleId)
+    {
+        if (!preg_match('/^[A-Za-z0-9_\-]+$/', (string) $cloudId)) {
+            return array();
+        }
+
+        $prefix = (string) DB::getPrefix();
+        $candidates = array_merge(
+            $this->moduleTablesFromRecords($cloudId),
+            $this->moduleTablesFromPackageSql($cloudId, $moduleId)
+        );
+
+        $tables = array();
+        foreach ($candidates as $name) {
+            $full = $this->normalizeModuleTableName($name, $prefix);
+            if ($full === '') {
+                continue;
+            }
+            $bare = substr($full, strlen($prefix));
+            if (!$this->isModuleOwnedTable($bare, $moduleId, $cloudId)) {
+                continue;
+            }
+            $tables[strtolower($full)] = $full;
+        }
+
+        return array_values($tables);
+    }
+
+    /**
+     * 从安装记录 storage/install/records/{id}.installed.php 提取模块表。
+     *
+     * @param string $cloudId
+     * @return array
+     */
+    private function moduleTablesFromRecords($cloudId)
+    {
+        $file = STORAGE_PATH . 'install/records/' . $cloudId . '.installed.php';
+        if (!is_file($file)) {
+            return array();
+        }
+
+        // 闭包隔离记录文件里的变量，避免与当前方法作用域互相覆盖
+        $loader = function ($recordFile) {
+            $installed_sql_list = '';
+            include $recordFile;
+            return (string) $installed_sql_list;
+        };
+        $list = @unserialize($loader($file));
+        $tables = array();
+        foreach ((array) $list as $sql) {
+            if (preg_match('/DROP\s+TABLE\s+IF\s+EXISTS\s+`?([A-Za-z0-9_]+)`?/i', (string) $sql, $m)) {
+                $tables[] = $m[1];
+            }
+        }
+
+        return $tables;
+    }
+
+    /**
+     * 从模块包标准 SQL 提取模块表（兼容 storage/backup 与旧 data/backup 布局）。
+     *
+     * @param string $cloudId
+     * @param string $moduleId
+     * @return array
+     */
+    private function moduleTablesFromPackageSql($cloudId, $moduleId)
+    {
+        $names = array_unique(array((string) $cloudId, (string) $moduleId));
+        $paths = array();
+        foreach ($names as $name) {
+            if ($name === '' || !preg_match('/^[A-Za-z0-9_\-]+$/', $name)) {
+                continue;
+            }
+            $paths[] = $this->cacheDir . $cloudId . '/storage/backup/' . $name . '.sql';
+            $paths[] = $this->cacheDir . $cloudId . '/data/backup/' . $name . '.sql';
+        }
+
+        $tables = array();
+        foreach (array_unique($paths) as $path) {
+            if (!is_file($path)) {
+                continue;
+            }
+            $content = (string) file_get_contents($path);
+            if (preg_match_all('/^\s*(?:DROP\s+TABLE\s+IF\s+EXISTS|CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?)\s+`?([A-Za-z0-9_]+)`?/im', $content, $m)) {
+                foreach ($m[1] as $name) {
+                    $tables[] = $name;
+                }
+            }
+        }
+
+        return $tables;
+    }
+
+    /**
+     * 表名归一：去反引号 / 当前前缀 / 导出前缀 dou_，再补当前前缀。
+     *
+     * @param string $name
+     * @param string $prefix
+     * @return string 非法或空串返回 ''
+     */
+    private function normalizeModuleTableName($name, $prefix)
+    {
+        $name = trim((string) $name);
+        $name = trim($name, '`');
+        if ($name === '') {
+            return '';
+        }
+
+        if ($prefix !== '' && strpos($name, $prefix) === 0) {
+            $bare = substr($name, strlen($prefix));
+        } elseif (stripos($name, 'dou_') === 0) {
+            $bare = substr($name, 4);
+        } else {
+            $bare = $name;
+        }
+
+        if (!preg_match('/^[A-Za-z0-9_]+$/', $bare)) {
+            return '';
+        }
+
+        return $prefix . $bare;
+    }
+
+    /**
+     * 表归属闸门：裸表名必须等于模块标识或以「模块标识_」开头。
+     *
+     * @param string $bare
+     * @param string $moduleId
+     * @param string $cloudId
+     * @return bool
+     */
+    private function isModuleOwnedTable($bare, $moduleId, $cloudId)
+    {
+        $bare = (string) $bare;
+        $ids = array_unique(array((string) $moduleId, (string) $cloudId));
+        foreach ($ids as $id) {
+            $id = preg_replace('/[^A-Za-z0-9_]/', '_', (string) $id);
+            if ($id === '') {
+                continue;
+            }
+            if ($bare === $id || strpos($bare, $id . '_') === 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

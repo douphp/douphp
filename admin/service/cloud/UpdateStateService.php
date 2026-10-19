@@ -185,4 +185,110 @@ class UpdateStateService extends BaseService
             ->where('name', 'module_version')
             ->update(array('value' => serialize($map)));
     }
+
+    /**
+     * 读取模块升级前的版本账本快照（module_version + update_date）。
+     *
+     * 模块还原点不再整表备份 config，创建快照时先把这两个键固化到 manifest，
+     * 还原收尾时由 {@see restoreModuleState()} 精确写回。
+     *
+     * @param string $moduleId 模块标识（dou_config.module_version 的键）
+     * @param string $cloudId 云端资源 id（dou_config.update_date.module 的键）
+     * @return array array('module_id','cloud_id','version','update_date')；缺失值均为空串
+     */
+    public function moduleSnapshotState($moduleId, $cloudId)
+    {
+        $moduleId = (string) $moduleId;
+        $cloudId = (string) $cloudId;
+        $state = array(
+            'module_id' => $moduleId,
+            'cloud_id' => $cloudId,
+            'version' => '',
+            'update_date' => '',
+        );
+
+        $raw = DB::table('config')->where('name', 'module_version')->value('value');
+        $map = (is_string($raw) && $raw !== '') ? @unserialize($raw) : array();
+        if (is_array($map) && $moduleId !== '' && isset($map[$moduleId])) {
+            $state['version'] = (string) $map[$moduleId];
+        }
+
+        $raw = DB::table('config')->where('name', 'update_date')->value('value');
+        $map = (is_string($raw) && $raw !== '') ? @unserialize($raw) : array();
+        if (is_array($map) && $cloudId !== ''
+            && isset($map['module']) && is_array($map['module'])
+            && isset($map['module'][$cloudId])) {
+            $state['update_date'] = (string) $map['module'][$cloudId];
+        }
+
+        return $state;
+    }
+
+    /**
+     * 还原模块升级前的版本账本：精确写回 / 删除对应键，保留其它模块与其它 type。
+     *
+     * 空串表示「升级前键不存在」；键存在但值为空的场景不在版本账本语义内。
+     *
+     * @param array $state {@see moduleSnapshotState()} 的返回值
+     * @return void
+     */
+    public function restoreModuleState(array $state)
+    {
+        $moduleId = isset($state['module_id']) ? (string) $state['module_id'] : '';
+        $cloudId = isset($state['cloud_id']) ? (string) $state['cloud_id'] : '';
+        $version = isset($state['version']) ? (string) $state['version'] : '';
+        $updateDate = isset($state['update_date']) ? (string) $state['update_date'] : '';
+
+        if ($moduleId !== '') {
+            $raw = DB::table('config')->where('name', 'module_version')->value('value');
+            if (!is_string($raw) || $raw === '') {
+                // 账本行不存在：仅当历史版本非空时补建，避免为老站凭空写入空 map
+                if ($version !== '') {
+                    $this->recordModuleVersion($moduleId, $version);
+                }
+            } else {
+                $map = @unserialize($raw);
+                if (!is_array($map)) {
+                    $map = array();
+                }
+                if ($version === '') {
+                    unset($map[$moduleId]);
+                } else {
+                    $map[$moduleId] = $version;
+                }
+
+                DB::table('config')
+                    ->where('name', 'module_version')
+                    ->update(array('value' => serialize($map)));
+            }
+        }
+
+        if ($cloudId !== '') {
+            $raw = DB::table('config')->where('name', 'update_date')->value('value');
+            if (is_string($raw) && $raw !== '') {
+                $map = @unserialize($raw);
+                if (!is_array($map)) {
+                    $map = array();
+                }
+
+                if ($updateDate === '') {
+                    if (isset($map['module']) && is_array($map['module'])) {
+                        unset($map['module'][$cloudId]);
+                        if (empty($map['module'])) {
+                            unset($map['module']);
+                        }
+                    }
+                } else {
+                    if (!isset($map['module']) || !is_array($map['module'])) {
+                        $map['module'] = array();
+                    }
+                    $map['module'][$cloudId] = $updateDate;
+                }
+
+                DB::table('config')
+                    ->where('name', 'update_date')
+                    ->update(array('value' => serialize($map)));
+            }
+        }
+    }
 }
