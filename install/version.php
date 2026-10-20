@@ -24,7 +24,7 @@ if (!defined('IN_DOUCO')) {
  *               与 devtools/mysql-compat-check 判定口径一致）
  */
 return array(
-    'version' => 'v2.0 Release 20261016',
+    'version' => 'v2.0 Release 20261019',
     'php_min' => '5.6.0',
     'mysql_min' => '5.5.3',
 );
