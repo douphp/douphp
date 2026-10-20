@@ -2658,11 +2658,14 @@ class InstallService extends BaseService
      * 还原点入口（note）：仅在流程真正创建了还原点时输出「查看还原点」按钮
      * （system + update/patch、module|theme|plugin + update）；其余场景（全新安装等）为空串。
      *
+     * 自定义返回地址（$backUrl）只作为 module 全新安装时的「进入模块」附加按钮，
+     * 且必须通过 {@see isAdminBackUrl} 校验；「返回××管理中心」按钮始终回对应中心，
+     * 避免按钮文案与跳转目标不一致（历史缺陷：模块安装后被自定义地址覆盖成前台形态 URL）。
+     *
      * @param string $mode
      * @param string $type
      * @param string $cloudId
-     * @param string $backUrl 自定义返回地址（调用方需预先校验为本站后台 URL）；非空时覆盖默认返回按钮 href，
-     *                        用于预置模块安装后跳回模块真实页面等场景。按钮文案仍按 type 取对应 lang 键。
+     * @param string $backUrl 安装成功后「进入模块」按钮的目标地址（须为本站后台 URL）
      * @return array { action: string, back: string, note: string }
      */
     public function buildSuccessButtons($mode, $type, $cloudId, $backUrl = '')
@@ -2711,33 +2714,70 @@ class InstallService extends BaseService
             $btnBack = '<a href="' . Util::absolutizeEntryUrl(route('admin.cloud.update')) . '" class="btn">' . lang('cloud_update_home') . '</a>';
         }
 
-        // 自定义返回地址：仅覆盖 href，保留按 type 选出的按钮文案；update/patch 模式不覆盖（其返回目标固定为更新页）。
-        if ($backUrl !== '' && $mode !== 'update' && $mode !== 'patch') {
-            $btnBack = '<a href="' . htmlspecialchars((string) $backUrl, ENT_QUOTES, DOU_CHARSET) . '" class="btn-secondary">' . $this->backButtonLabel($type) . '</a>';
+        // 预置模块安装成功后的「进入模块」入口：仅 module + 全新安装 + 合法后台地址时输出。
+        // 返回按钮不覆盖（始终回模块管理中心），保证按钮文案与跳转目标一致。
+        if ($type === 'module' && $mode !== 'update' && $mode !== 'patch'
+            && $backUrl !== '' && self::isAdminBackUrl($backUrl)) {
+            $enterLabel = lang_has('cloud_module_enter') ? (string) lang('cloud_module_enter') : '进入模块';
+            $btnAction = '<a href="' . htmlspecialchars((string) $backUrl, ENT_QUOTES, DOU_CHARSET) . '" class="btn">' . $enterLabel . '</a>' . $btnAction;
         }
 
         return array('action' => $btnAction, 'back' => $btnBack, 'note' => $btnNote);
     }
 
     /**
-     * 返回按钮文案：按 type 取对应 lang 键，与 {@see buildSuccessButtons} 默认分支保持一致。
+     * 判定 back_url 是否指向本站后台入口（同源 + 后台入口路径前缀）。
      *
-     * @param string $type
-     * @return string
+     * 合法形态（以 ADMIN_URL = http://host/sub/admin/ 为例）：
+     * - 相对：`index.php?route=...`（后台页面内相对解析到后台目录）
+     * - 相对：`/sub/admin/index.php?route=...`
+     * - 绝对：`http://host/sub/admin/index.php?route=...`
+     *
+     * 前台入口（如 `/sub/index.php?route=admin/ai`）、其它目录、协议相对 `//` 与危险协议一律拒绝。
+     * 安装入口（{@see CloudController::install} 的参数清洗）与收尾按钮（本类）共用此口径，
+     * 防止站内非后台地址经 back_url 混入会话后在完成页渲染。
+     *
+     * @param string $url
+     * @return bool
      */
-    private function backButtonLabel($type)
+    public static function isAdminBackUrl($url)
     {
-        switch ($type) {
-            case 'miniprogram':
-                return lang('cloud_miniprogram_home');
-            case 'plugin':
-                return lang('cloud_plugin_home');
-            case 'theme':
-                return lang('cloud_theme_home');
-            case 'module':
-                return lang('cloud_module_home');
-            default:
-                return lang('cloud_admin_home');
+        $url = trim((string) $url);
+        if ($url === '' || !defined('ADMIN_URL')) {
+            return false;
         }
+        if (preg_match('/^(javascript|data|vbscript|file):/i', $url) || strpos($url, '//') === 0) {
+            return false;
+        }
+
+        $admin = parse_url((string) ADMIN_URL);
+        if (!is_array($admin) || empty($admin['host'])) {
+            return false;
+        }
+        $adminHost = (string) $admin['host'];
+        $adminPath = isset($admin['path']) ? (string) $admin['path'] : '/';
+
+        $parsed = parse_url($url);
+        if ($parsed === false) {
+            return false;
+        }
+
+        // 无 host：后台页面内的相对入口（index.php 开头的链接在后台目录下解析）
+        if (empty($parsed['host'])) {
+            if (strpos($url, 'index.php') === 0) {
+                return true;
+            }
+            return $adminPath !== '/' && strpos($url, $adminPath) === 0;
+        }
+
+        if (strcasecmp((string) $parsed['host'], $adminHost) !== 0) {
+            return false;
+        }
+        if ($adminPath === '/' || $adminPath === '') {
+            return true;
+        }
+        $path = isset($parsed['path']) ? (string) $parsed['path'] : '';
+
+        return strpos($path, $adminPath) === 0;
     }
 }

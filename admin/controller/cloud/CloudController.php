@@ -638,13 +638,12 @@ class CloudController extends BaseController
     }
 
     /**
-     * 校验自定义返回地址：仅允许本站后台 URL，防止开放重定向。
+     * 校验自定义返回地址：必须是本站后台入口 URL，防止开放重定向与错入口。
      *
-     * 规则：
-     * - 拒绝含危险协议（javascript: / data: / vbscript: / file:）的输入；
-     * - 相对路径（不含 host）且以 index.php 或 / 开头 → 接受；
-     * - 绝对 URL 且 host 与 ADMIN_URL 的 host 一致 → 接受；
-     * - 其它一律返回空串（调用方按未设置处理）。
+     * 判定口径统一由 {@see InstallService::isAdminBackUrl} 提供（同源 + ADMIN_URL 路径前缀）：
+     * - 相对路径（不含 host）且以 index.php 或后台入口路径开头 → 接受；
+     * - 绝对 URL 且 host 与 ADMIN_URL 一致、path 落在后台入口下 → 接受；
+     * - 前台入口（如 `/douphp.dou/index.php?route=admin/ai`）、其它目录、危险协议一律拒绝。
      *
      * @param string $url
      * @return string 合法时返回原值（已 trim），否则返回空串
@@ -656,31 +655,7 @@ class CloudController extends BaseController
             return '';
         }
 
-        // 拒绝危险协议（含协议相对 // 与任何 scheme）
-        if (preg_match('/^(javascript|data|vbscript|file):/i', $url)) {
-            return '';
-        }
-
-        $parsed = parse_url($url);
-        if ($parsed === false) {
-            return '';
-        }
-
-        // 无 host：视为相对路径，仅接受 index.php 或 / 开头
-        if (empty($parsed['host'])) {
-            if (strpos($url, 'index.php') === 0 || strpos($url, '/') === 0) {
-                return $url;
-            }
-            return '';
-        }
-
-        // 有 host：必须与 ADMIN_URL 同 host
-        $adminHost = parse_url(ADMIN_URL, PHP_URL_HOST);
-        if ($adminHost !== null && strcasecmp($parsed['host'], (string) $adminHost) === 0) {
-            return $url;
-        }
-
-        return '';
+        return InstallService::isAdminBackUrl($url) ? $url : '';
     }
 
     /**

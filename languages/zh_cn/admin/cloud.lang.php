@@ -20,6 +20,7 @@ $_LANG['cloud_handle'] = '在线安装';
 $_LANG['cloud_update_home'] = '返回更新主页';
 $_LANG['cloud_module'] = '模块';
 $_LANG['cloud_module_home'] = '返回模块管理中心';
+$_LANG['cloud_module_enter'] = '进入模块';
 $_LANG['cloud_plugin'] = '插件';
 $_LANG['cloud_plugin_enable'] = '启用插件';
 $_LANG['cloud_plugin_home'] = '返回插件管理中心';

@@ -20,6 +20,7 @@ $_LANG['cloud_handle'] = '線上安裝';
 $_LANG['cloud_update_home'] = '返回更新首頁';
 $_LANG['cloud_module'] = '模組';
 $_LANG['cloud_module_home'] = '返回模組管理中心';
+$_LANG['cloud_module_enter'] = '進入模組';
 $_LANG['cloud_plugin'] = '外掛';
 $_LANG['cloud_plugin_enable'] = '啟用外掛';
 $_LANG['cloud_plugin_home'] = '返回外掛管理中心';

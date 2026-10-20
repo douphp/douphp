@@ -20,6 +20,7 @@ use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Web\Http\Request;
 use Dou\Core\Web\Http\Response;
+use Dou\Core\Web\Routing\RouteManifest;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
@@ -62,10 +63,15 @@ class PreinstallController extends BaseController
         $versionRaw = (string) Config::get('site.douphp_version', '');
         $version = preg_match('/(\d{8})\s*$/', $versionRaw, $m) ? $m[1] : '';
 
-        // 自定义返回地址：安装成功后「返回」按钮指向模块真实页面（admin.<slug>）。
-        // 若该路由尚未注册（模块未装且路由文件未随核心发布），route() 返回空串，
-        // 此时不传 back_url，由 buildSuccessButtons 走默认分支（回 admin.module）。
-        $moduleLandingUrl = route('admin.' . $slug);
+        // 自定义返回地址：安装成功后「进入模块」按钮指向模块真实页面（admin.<slug>）。
+        // 注意：route() 对未注册的 admin.<x> 并不返回空串（会退化为前台形态 URL），
+        // 因此必须用 RouteManifest 精确判断该后台路由是否真实存在，避免把无效地址带进安装会话；
+        // 不存在时不传 back_url，由 buildSuccessButtons 只输出「返回模块管理中心」。
+        $landingRouteName = 'admin.' . $slug;
+        $landingEntry = RouteManifest::getEntryByName($landingRouteName);
+        $moduleLandingUrl = ($landingEntry !== null && $landingEntry->endNamespace() === 'Admin')
+            ? route($landingRouteName)
+            : '';
         $installQuery = array(
             'type' => 'module',
             'cloud_id' => $slug,
