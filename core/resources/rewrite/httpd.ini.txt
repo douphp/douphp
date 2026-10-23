@@ -3,6 +3,9 @@
 CacheClockRate 3600
 RepeatLimit 32
 
+# images 目录禁止执行脚本（须置于防循环规则之前，否则 .php 请求会先被放行）
+RewriteRule ^images/.*\.(php[0-9]?|phtml|phar|pht|cgi|pl|py|asp|aspx|jsp|shtml)($|\.) - [F,L,I]
+
 # 防循环：URL 已是 .php 结尾就停止，避免内部重写循环
 RewriteRule ^(.*\.php)$ $1 [L]
 

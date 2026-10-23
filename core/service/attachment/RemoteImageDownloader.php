@@ -54,12 +54,16 @@ class RemoteImageDownloader
     /**
      * 下载远程图到指定磁盘 / 子目录。
      *
+     * 落盘扩展名一律由内容嗅探决定（getimagesize），且必须命中磁盘扩展白名单；
+     * URL 上的扩展名不可信，非图片内容一律拒绝——防止 x.php 之类的脚本被写进站点目录。
+     * 先写 `.part` 临时文件，校验通过后才 rename 为最终名，失败路径不留任何产物。
+     *
      * @param Disk $disk
      * @param string $remoteUrl
      * @param string $folder disk root 内子目录
-     * @param string $customFilename 自定义文件名（含扩展），空时按 `{YmdHis}_{rand6}.{ext}` 随机
+     * @param string $customFilename 自定义主名（扩展名忽略，由嗅探结果决定），空时按 `{YmdHis}_{rand6}.{ext}` 随机
      * @param AttachmentUploadOptions $options
-     * @return array{relative:string,absolute:string,basename:string}|null 失败 null
+     * @return array{relative:string,absolute:string,basename:string,original_name:string,mime_type:string}|null 失败 null
      */
     public function fetch(Disk $disk, $remoteUrl, $folder, $customFilename, AttachmentUploadOptions $options)
     {
@@ -70,18 +74,22 @@ class RemoteImageDownloader
             return null;
         }
 
-        $remoteFilename = rawurldecode(pathinfo(parse_url($remoteUrl, PHP_URL_PATH), PATHINFO_BASENAME));
-        if (empty($remoteFilename) || !pathinfo($remoteFilename, PATHINFO_EXTENSION)) {
-            $extension = 'jpg';
-            if (preg_match('/[&?]wx_fmt=(\w+)/i', $remoteUrl, $m)) {
-                $extension = $m[1];
+        // 远程名仅作 dou_file.original_name 元数据；落盘扩展名一律由内容嗅探决定，
+        // 不再从 URL basename / wx_fmt 参数推断（该支路曾把 x.php 原样落盘，可被 web 解析执行）。
+        // 入库前清洗：剔除控制字符；非法 UTF-8（伪造 URL 字节）整体置空；超长按字节截断后
+        // 回退到合法 UTF-8 边界，避免写入 utf8mb4 列时报 Incorrect string value。
+        $remoteFilename = (string) preg_replace('/[\x00-\x1f\x7f]/', '', rawurldecode(pathinfo(parse_url($remoteUrl, PHP_URL_PATH), PATHINFO_BASENAME)));
+        if (preg_match('//u', $remoteFilename) !== 1) {
+            $remoteFilename = '';
+        } elseif (strlen($remoteFilename) > 180) {
+            $remoteFilename = substr($remoteFilename, 0, 180);
+            while ($remoteFilename !== '' && preg_match('//u', $remoteFilename) !== 1) {
+                $remoteFilename = substr($remoteFilename, 0, -1);
             }
-        } else {
-            $extension = strtolower(pathinfo($remoteFilename, PATHINFO_EXTENSION));
         }
 
-        $randName = date('YmdHis') . '_' . Str::randomByType('letter', 6) . '.' . $extension;
-        $finalName = $customFilename !== '' ? $customFilename : $randName;
+        $maxKb = AttachmentPolicy::maxKb($disk, $options);
+        $maxBytes = $maxKb * 1024;
 
         // 重定向不交给 cURL 自动跟随：每一跳都要重新做公网地址校验，
         // 否则可用 302 把已通过校验的公网 URL 折回内网地址。
@@ -99,6 +107,7 @@ class RemoteImageDownloader
                 CURLOPT_CONNECTTIMEOUT => self::CONNECT_TIMEOUT,
                 CURLOPT_USERAGENT => 'Mozilla/5.0 Image Downloader',
                 CURLOPT_HEADER => false,
+                CURLOPT_MAXFILESIZE => $maxBytes,
             ));
             $body = curl_exec($ch);
             $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -131,15 +140,41 @@ class RemoteImageDownloader
 
             return null;
         }
+        if (strlen($data) > $maxBytes) {
+            error_log('Download failed: response exceeds ' . $maxKb . 'KB');
 
+            return null;
+        }
+
+        // 先落 `.part` 临时文件，嗅探真实类型并命中白名单后才 rename 为最终名；
+        // 任何一步失败都删除临时文件，不把未校验内容留在磁盘上。
         $folderRel = $folder !== '' ? trim($folder, '/') . '/' : '';
-        $relativePath = $folderRel . $finalName;
-        $absolutePath = $disk->path($relativePath);
-        $targetDir = dirname($absolutePath);
+        $base = $this->resolveBaseName($customFilename);
+        $partAbsolute = $disk->path($folderRel . $base . '.part');
+        $targetDir = dirname($partAbsolute);
         if (!is_dir($targetDir)) {
             @mkdir($targetDir, 0777, true);
         }
-        if (file_put_contents($absolutePath, $data) === false) {
+        if (file_put_contents($partAbsolute, $data) === false) {
+            @unlink($partAbsolute);
+
+            return null;
+        }
+
+        $extension = AttachmentPolicy::imageExtensionFromPath($partAbsolute);
+        if ($extension === '' || !AttachmentPolicy::extensionAllowed($extension, AttachmentPolicy::allowExtensions($disk, $options))) {
+            error_log('Download failed: rejected non-image content (detected: ' . ($extension !== '' ? $extension : 'unknown') . ')');
+            @unlink($partAbsolute);
+
+            return null;
+        }
+
+        $finalName = $base . '.' . $extension;
+        $relativePath = $folderRel . $finalName;
+        $absolutePath = $disk->path($relativePath);
+        if (!@rename($partAbsolute, $absolutePath)) {
+            @unlink($partAbsolute);
+
             return null;
         }
 
@@ -158,7 +193,36 @@ class RemoteImageDownloader
             'relative' => $relativePath,
             'absolute' => $absolutePath,
             'basename' => $finalName,
+            'original_name' => $remoteFilename,
+            'mime_type' => AttachmentPolicy::mimeTypeOf($extension),
         );
+    }
+
+    /**
+     * 解析落盘主名（不含扩展名）：customFilename 先取 basename 再剔除路径 / 控制字符 /
+     * URL 敏感字符，清洗后为空（未提供 / 只剩危险字符）时回退 `{YmdHis}_{rand6}` 随机名。
+     *
+     * 冒号会触发 PathNormalizer 的 ADS 校验异常，`? # % &` 空格等会破坏拼接后的 URL
+     * （urlFromSiteRoot 不做编码），`< > | * " '` 跨平台落盘不安全，一并剔除。
+     *
+     * @param string $customFilename
+     * @return string
+     */
+    private function resolveBaseName($customFilename)
+    {
+        $base = '';
+        if ((string) $customFilename !== '') {
+            $base = (string) pathinfo(basename((string) $customFilename), PATHINFO_FILENAME);
+            $base = str_replace(array("\0", '/', '\\'), '', $base);
+            $base = (string) preg_replace('/[\x00-\x1f\x7f]+/', '', $base);
+            $base = str_replace(array(':', '?', '#', '%', '&', '<', '>', '|', '*', '"', "'", ' '), '', $base);
+            $base = trim($base, '. ');
+        }
+        if ($base === '') {
+            $base = date('YmdHis') . '_' . Str::randomByType('letter', 6);
+        }
+
+        return $base;
     }
 
     /**

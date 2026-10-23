@@ -17,6 +17,7 @@ namespace Dou\Admin\Controller\Product;
 use Dou\Admin\Controller\BaseController;
 use Dou\Admin\Model\Product\ProductCategory;
 use Dou\Admin\Request\Product\ProductFormRequest;
+use Dou\Admin\Service\Metadata\MetadataFormBuilder;
 use Dou\Admin\Service\Product\ProductService;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Exception\DomainException;
@@ -46,16 +47,22 @@ class ProductController extends BaseController
     /** @var MarkdownRenderer */
     private $markdown;
 
+    /** @var MetadataFormBuilder */
+    private $metadataFormBuilder;
+
     /**
      * @param ProductService $productService
      * @param MarkdownRenderer $markdown
+     * @param MetadataFormBuilder $metadataFormBuilder
      */
     public function __construct(
         ProductService $productService,
-        MarkdownRenderer $markdown
+        MarkdownRenderer $markdown,
+        MetadataFormBuilder $metadataFormBuilder
     ) {
         $this->productService = $productService;
         $this->markdown = $markdown;
+        $this->metadataFormBuilder = $metadataFormBuilder;
     }
 
     /**
@@ -84,6 +91,7 @@ class ProductController extends BaseController
             'product_category' => ProductCategory::flat(),
             'product_list' => $result['list'],
             'pager' => $result['pager'],
+            'metadata_schema' => $result['metadata_schema'],
             'user_level_option' => $userLevelOption !== null ? $userLevelOption->options() : array(),
         ]);
     }
@@ -118,7 +126,9 @@ class ProductController extends BaseController
             'product_category' => ProductCategory::flat(),
             'brand_list' => Config::get('features.brand', false) ? Brand::applyDefaultOrder()->get() : array(),
             'user_level_option' => $userLevelOption !== null ? $userLevelOption->options() : array(),
-            'btn_lang' => language()->buildLangButtons('product', '', 'title, content, defined, keywords, description'),
+            'btn_lang' => $this->buildProductLangButtons(''),
+            'lang_drafts' => array(),
+            'metadata_form' => $this->metadataFormBuilder->build('product', '', 0),
             'data_list' => $dataList,
         ]);
     }
@@ -182,10 +192,53 @@ class ProductController extends BaseController
             'product_category' => ProductCategory::flat(),
             'brand_list' => Config::get('features.brand', false) ? Brand::applyDefaultOrder()->get() : array(),
             'user_level_option' => $userLevelOption !== null ? $userLevelOption->options(null, unserialize($product['level_price'])) : array(),
-            'btn_lang' => language()->buildLangButtons('product', $id, 'title, content, defined, keywords, description'),
+            'btn_lang' => $this->buildProductLangButtons($id),
+            'lang_drafts' => $this->productService->buildProductLanguageDrafts($id),
+            'metadata_form' => $this->metadataFormBuilder->build('product', isset($product['metadata']) ? $product['metadata'] : '', $id),
             'attribute_list' => $attributeList,
             'data_list' => $dataList,
         ]);
+    }
+
+    /**
+     * product 原生字段的语言按钮：draft 模式，值随主表单统一保存。
+     *
+     * @param string|int $itemId 空表示新增
+     * @return array
+     */
+    private function buildProductLangButtons($itemId)
+    {
+        $default = (string) Config::get('site.language', 'zh_cn');
+        $types = array(
+            'title' => 'text',
+            'content' => 'editor',
+            'keywords' => 'text',
+            'description' => 'textarea',
+        );
+        $targets = array();
+        foreach ($types as $field => $kind) {
+            $targets[$field] = array(
+                'kind' => $kind,
+                'target' => 'language_draft[%s][' . $field . ']',
+                'source' => $kind === 'editor' ? 'content' : $field,
+                'ai_field' => $field,
+                'ai_type' => $kind === 'editor' ? 'content' : $kind,
+            );
+        }
+
+        return language()->buildLangButtons('product', $itemId, array_keys($types), array(
+            'draft' => true,
+            'draft_create' => true,
+            'default_pack' => $default,
+            'exclude_pack' => $default,
+            'targets' => $targets,
+            'labels' => array(
+                'title' => lang('product_title'),
+                'content' => lang('product_content'),
+                'keywords' => lang('keywords'),
+                'description' => lang('description'),
+            ),
+        ));
     }
 
     /**

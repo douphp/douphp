@@ -67,6 +67,9 @@
         <!-- {/if} -->
         <th class="m-none text-center" width="80">{$lang.status}</th>
         <th class="m-none text-center" width="80">{$lang.created_at}</th>
+        <!-- {foreach from=$metadata_schema item=meta_field} -->
+        <th class="text-center">{$meta_field.label|escape}</th>
+        <!-- {/foreach} -->
         <th width="80" class="text-center">{$lang.handler}</th>
        </tr>
        <!-- {foreach from=$product_list item=product} -->
@@ -95,6 +98,9 @@
          data-on-class="ai-status ai-status-on" data-off-class="ai-status ai-status-off"
          data-text-on="{$lang.status_1}" data-text-off="{$lang.status_0}"><span class="js-toggle-state">{$product.status.format}</span><span class="js-toggle-action">{if $product.status.value}{$lang.status_0}{else}{$lang.status_1}{/if}</span></em></td>
         <td class="m-none text-center">{$product.created_at}</td>
+        <!-- {foreach from=$product.metadata_list item=meta} -->
+        <td class="text-center">{include file="inc/metadata_cell.tpl" field=$meta}</td>
+        <!-- {/foreach} -->
         <td class="text-center"><a href="{url link='admin.product.edit' id=$product.id}">{$lang.edit}</a> | <a href="javascript:;" class="js-delete" data-url="{url link='admin.product.destroy' id=$product.id}">{$lang.del}</a></td>
        </tr>
        <!-- {/foreach} -->
@@ -121,6 +127,7 @@
     {include file="inc/page_header.tpl"}
     <form action="{$form_action}" method="post" enctype="multipart/form-data"><input type="hidden" name="_method" value="{$form_method}" />
      <div class="form" x-data="slugApp">
+      {include file="inc/language_drafts.tpl"}
       <div class="form-item">
        <div class="form-label">{$lang.product_title}</div>
        <div class="input-block">
@@ -189,14 +196,6 @@
        </div>
       </div>
       <!-- {/if} -->
-      <!-- {if $product.defined} -->
-      <div class="form-item">
-       <div class="form-label">{$lang.product_defined}</div>
-       <div class="input-block"> <textarea name="defined" cols="50" class="textarea-auto auto-textarea">{$product.defined}</textarea>
-        <p class="action" data-field="defined">{$btn_lang.defined nofilter}</p>
-       </div>
-      </div>
-      <!-- {/if} -->
       <div class="form-item">
        <div class="form-label">{$lang.product_content}</div>
        <div class="input-block">
@@ -208,7 +207,7 @@
       <div class="form-item">
        <div class="form-label">{$lang.thumb}</div>
        <div class="input-block">
-        {include file="inc/file_input.tpl" name="image" value=$product.image file_number=$product.file_number crop_ratio=$setting.theme.product_img_crop}
+        {include file="inc/file_image.tpl" name="image" value=$product.image file_number=$product.file_number crop_ratio=$setting.theme.product_img_crop}
         <p class="cue">{$setting.theme.product_img_size}</p>
        </div>
       </div>
@@ -220,7 +219,7 @@
       <div class="form-item">
        <div class="form-label">{$lang.product_gallery}</div>
        <div class="input-block">
-        {include file="inc/gallery_upload.tpl" type="gallery" list_html=$product.img_list_html}
+        {include file="inc/file_gallery.tpl" type="gallery" list_html=$product.img_list_html}
        </div>
       </div>
       <!-- {if $features.attribute} -->
@@ -235,7 +234,6 @@
       <div class="form-item">
        <div class="form-label">{$lang.product_model}</div>
        <div class="input-block">
-        <!-- FileBox -->
         <div class="model-box">
          <div class="model-add">
           <input type="text" id="modelId" size="5" class="input" autocomplete="off" placeholder="{$lang.product_model_cue}" />
@@ -245,7 +243,6 @@
           {$product.model_list nofilter}
          </ul>
         </div>
-        <!-- /FileBox -->
        </div>
       </div>
       <!-- {/if} -->
@@ -265,6 +262,7 @@
        </div>
       </div>
       <!-- {/if} -->
+      {include file="inc/metadata_fields.tpl" metadata_form=$metadata_form}
       <!-- {if $features.sort} -->
       <div class="form-item">
        <div class="form-label">{$lang.sort}</div>
@@ -285,6 +283,13 @@
        <div class="input-block">
         <textarea name="description" cols="115" rows="3" class="textarea">{$product.description}</textarea>
         <p class="action" data-field="description">{$btn_lang.description nofilter}</p>
+       </div>
+      </div>
+      <div class="form-item">
+       <div class="form-label">{$lang.attach_download}</div>
+       <div class="input-block">
+        {include file="inc/file_attachment.tpl" list_html=$product.attach_list_html}
+        <p class="cue">{$lang.attach_cue}</p>
        </div>
       </div>
       <div class="form-item">

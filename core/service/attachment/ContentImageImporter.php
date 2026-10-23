@@ -125,6 +125,8 @@ class ContentImageImporter
             'type' => $type,
             'size' => $size,
             'thumb_size' => 0,
+            'original_name' => isset($result['original_name']) ? $result['original_name'] : '',
+            'mime_type' => isset($result['mime_type']) ? $result['mime_type'] : '',
             'last_used_at' => $now,
             'created_at' => $now,
         );

@@ -75,7 +75,7 @@
       <div class="form-label">{$lang.icon}</div>
       <div class="input-block">
        <!-- {if $site.open_icon eq 'image'} -->
-       {include file="inc/file_input.tpl" name="icon" value=$cat_info.icon file_number=$cat_info.file_number}
+       {include file="inc/file_image.tpl" name="icon" value=$cat_info.icon file_number=$cat_info.file_number}
        <!-- {else} -->
        <input type="text" name="icon" value="{$cat_info.icon}" size="30" class="input" />
        <p class="cue">{$lang.icon_text_cue}</p>

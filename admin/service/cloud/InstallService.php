@@ -23,6 +23,9 @@ use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Exception\SiteDebugExceptionRenderer;
 use Dou\Core\Service\Admin\AdminLogAction;
 use Dou\Core\Service\BaseService;
+use Dou\Core\Service\Metadata\MetadataService;
+use Dou\Core\Service\Metadata\MetadataTranslationStore;
+use Dou\Core\Service\Metadata\MetadataValues;
 use Dou\Core\Service\System\ModuleLanguageManifest;
 use Dou\Core\Service\System\ModuleSettingReader;
 use Dou\Core\Support\Arr;
@@ -418,10 +421,13 @@ class InstallService extends BaseService
      *
      * 断点续传：一次调用按时间预算推进一个单元；未完成时返回 next_step=snapshot 与
      * progress 百分比（取自 progress.json 实时游标），由前端循环再次调用本步骤
-     * （active.json 记录创建进度），直至完成再进入 apply。
+     * （active.json 记录创建进度），直至完成再进入 apply。完成态固定回传 progress=100：
+     * 最后一次 step() 往往连续推进 db / finalize 后直接返回 done，不再携带中间进度，
+     * 若末尾不补 100，前端进行中行会定格在 files 阶段上限 80%，看起来像「卡住未完成」。
      *
-     * 日志收敛：过程中仅保留前端预置的进行中提示（含旋转圈与进度），完成时输出一行
-     * 「已创建：目录名」；快照引擎的内部进度日志不再回传（其它入口不受影响）。
+     * 日志收敛：过程中仅保留前端预置的进行中提示（含旋转圈与进度），完成时不再输出
+     * 还原点目录名（改由底部安全提示说明）；快照引擎的内部进度日志不再回传
+     * （其它入口不受影响）。
      *
      * 命名：系统还原点目录名 = system-<升级前版本净化>-<YmdHis>（快照内容即升级前状态，
      * 供列表页 / 恢复确认直观识别被备份的版本）；模块 / 主题 / 插件目录名为
@@ -527,8 +533,15 @@ class InstallService extends BaseService
 
         // 还原点目录名不再作为日志输出：完成态由底部安全提示（finish_note_html）说明，
         // 避免升级日志里出现一串对用户无意义的目录名
-
-        return array('ok' => true, 'error' => '', 'logs' => $logs, 'next_step' => self::STEP_APPLY);
+        // 完成态显式回传 100%：最后一次 step() 在 files→db→finalize 连续推进后直接 done，
+        // 不再返回中间进度，缺失该值会让前端进度定格在 80%（files 上限）疑似未完成
+        return array(
+            'ok' => true,
+            'error' => '',
+            'logs' => $logs,
+            'next_step' => self::STEP_APPLY,
+            'progress' => 100,
+        );
     }
 
     /**
@@ -536,6 +549,7 @@ class InstallService extends BaseService
      *
      * 口径：files 阶段 5–80%（file_index/file_total）、db 阶段 80–98%（table_index/表数）、
      * finalize 99%；collect（收集清单，无细粒度游标）与取不到进度时返回 null（前端回落秒表）。
+     * 完成态的 100% 不在本方法内产生，由 {@see runSnapshot()} 收尾时显式回传。
      *
      * @param \Dou\Core\Service\Snapshot\SnapshotService $snapshot
      * @return int|null
@@ -677,12 +691,9 @@ class InstallService extends BaseService
         // 系统升级成功后自动刷新授权凭据（去版权）：版权凭据的校验串绑定 douphp_version，
         // 升级落库新版本后旧凭据必然失效（前台 app.licensed 归 false，版权重新出现）。
         // runFinalize 是 apply 之后的独立请求、Config 已重载为新版本，只有在这里领取到的
-        // 凭据才与新版本匹配；未绑定云账号 / 云端不可用均不阻断收尾。
+        // 凭据才与新版本匹配；未配置云账户 / 本地访问 / 云端不可用均静默跳过，不产生任何提示。
         if ($type === 'system' && ($mode === 'update' || $mode === 'patch')) {
-            $copyrightLog = $this->refreshCopyrightCredential();
-            if ($copyrightLog !== '') {
-                $logs[] = $copyrightLog;
-            }
+            $this->refreshCopyrightCredential();
         }
 
         $buttons = $this->buildSuccessButtons($mode, $type, $cloudId, $backUrl);
@@ -728,28 +739,68 @@ class InstallService extends BaseService
      * 升级完成、版本号落库后旧凭据立即失效，需按新版本重新向云端领取一次，
      * 否则前台版权信息会重新出现，用户必须手动访问 cloud/copyright 修复。
      *
-     * 仅在站点已绑定云账号时发起；网络不可用 / 未开通 VIP 等失败只写日志，不阻断收尾。
+     * 仅当站点已配置云账户且当前不是本地访问时发起；成功与失败均静默处理，
+     * 不写入步骤日志，也不阻断收尾。
      *
-     * @return string 供步骤日志展示的结果文案；未绑定云账号时返回空串
+     * @return void
      */
     private function refreshCopyrightCredential()
     {
         $account = CloudService::loadCloudAccount();
         if ($account['user'] === '' || $account['password'] === '') {
-            return '';
+            return;
+        }
+        if ($this->isLocalAccess()) {
+            return;
         }
 
         try {
-            $ok = (new CloudService())->refreshCopyright();
+            (new CloudService())->refreshCopyright();
         } catch (\Exception $e) {
-            $ok = false;
+            // 云端不可用 / 未开通 VIP 等失败静默忽略。
         } catch (\Throwable $e) {
-            $ok = false;
+            // PHP 7+ 的 \Error（如容器解析失败）同样静默忽略。
+        }
+    }
+
+    /**
+     * 当前请求是否来自本地访问（localhost / 回环地址 / 私有网段 IP）。
+     *
+     * 本地开发环境无法匹配云端绑定的授权域名，自动去版权必然失败，
+     * 因此这类访问直接跳过，避免发出无意义的云端请求。
+     *
+     * @return bool
+     */
+    private function isLocalAccess()
+    {
+        $values = array();
+        if (isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] !== '') {
+            $values[] = (string) $_SERVER['HTTP_HOST'];
+        }
+        if (defined('ROOT_URL')) {
+            $values[] = (string) ROOT_URL;
         }
 
-        return $ok
-            ? (string) lang('cloud_copyright_auto_success')
-            : (string) lang('cloud_copyright_auto_failed');
+        $resolved = false;
+        foreach ($values as $value) {
+            $url = strpos($value, '://') === false ? 'http://' . $value : $value;
+            $host = strtolower(trim((string) parse_url($url, PHP_URL_HOST), '[]'));
+            if ($host === '') {
+                continue;
+            }
+            $resolved = true;
+            if ($host === 'localhost' || substr($host, -10) === '.localhost') {
+                return true;
+            }
+            if (filter_var($host, FILTER_VALIDATE_IP)
+                && filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+                // 回环 / 私有 / 保留网段均视为本地访问。
+                return true;
+            }
+        }
+
+        // 无法识别主机名时按本地处理，避免在开发环境误发云端请求。
+        return $resolved === false;
     }
 
     /**
@@ -1660,6 +1711,11 @@ class InstallService extends BaseService
                 DB::query($line);
             }
         }
+
+        MetadataService::instance()->deleteByModule($cloudId);
+        $metadataTranslations = new MetadataTranslationStore();
+        $metadataTranslations->deleteByModule($cloudId);
+        MetadataValues::purgeByModule($cloudId);
 
         $this->changeSystemConfig($cloudId, 'DELL');
         $this->changeNav($cloudId, null, true);

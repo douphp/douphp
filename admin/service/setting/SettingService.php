@@ -15,6 +15,7 @@
 namespace Dou\Admin\Service\Setting;
 
 use Dou\Admin\Model\Setting\Setting;
+use Dou\Admin\Service\Menu\AdminTabResolver;
 use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Exception\RedirectException;
@@ -27,7 +28,7 @@ if (!defined('IN_DOUCO')) {
 }
 
 /**
- * 后台系统参数维护（站点主配置、客户/展示/SEO、自定义与邮件等多 Tab）。
+ * 后台系统参数维护（站点主配置、客户/展示/SEO、邮件等多 Tab）。
  *
  * 职责：
  * - 组装设置首页 Tab 与每组 config、parameter(system/customer) 列表。
@@ -36,8 +37,12 @@ if (!defined('IN_DOUCO')) {
  */
 class SettingService extends BaseService
 {
-    public function __construct()
+    /** @var RewriteRuleService */
+    private $rewriteRuleService;
+
+    public function __construct(RewriteRuleService $rewriteRuleService)
     {
+        $this->rewriteRuleService = $rewriteRuleService;
     }
 
     /**
@@ -78,23 +83,18 @@ class SettingService extends BaseService
      */
     public function buildSettingIndexData($douParam)
     {
-        if ($douParam !== null) {
-            $tab_list = array('developer');
-        } else {
-            $tab_list = array('main', 'customer', 'display', 'seo', 'defined', 'mail');
-        }
+        $tab_list = $this->settingTabList($douParam !== null);
 
         $config_list = array();
         foreach ($tab_list as $tab) {
             $config_list[] = array(
                 'name' => $tab,
-                'lang' => lang('config_setting_' . $tab, lang('setting_' . $tab)),
                 'list' => $this->buildConfigList($tab),
             );
         }
 
-        $parameter_system_list = DB::fnQuery("SELECT * FROM " . DB::tableName('parameter') . " WHERE `group` = 'system' ORDER BY sort ASC, id ASC");
-        $parameter_customer_list = DB::fnQuery("SELECT * FROM " . DB::tableName('parameter') . " WHERE `group` = 'customer' ORDER BY sort ASC, id ASC");
+        $parameter_system_list = $this->buildParameterList('system');
+        $parameter_customer_list = $this->buildParameterList('customer');
 
         return array(
             'tab_list' => $tab_list,
@@ -109,10 +109,57 @@ class SettingService extends BaseService
     }
 
     /**
+     * 设置体系 Tab 导航上下文：供复用设置 Tab 的关联页（扩展字段、语言设置）装配 $tabs。
+     *
+     * Tab 结构由 admin/menu/tab/setting.php 一处声明，这里只补数据型项
+     * （系统参数行 / 语言包）；设置分组不再从数据反推。
+     *
+     * @return array parameter_system_list / lang_list
+     */
+    public function buildTabNavContext()
+    {
+        return array(
+            'parameter_system_list' => $this->buildParameterList('system'),
+            'lang_list' => language()->buildLangList(),
+        );
+    }
+
+    /**
+     * 设置页 config 分组清单：以 setting.php 的 config_group 项为唯一信源。
+     *
+     * @param bool $developerOnly 开发者入口仅展示 developer 分组
+     * @return array
+     */
+    private function settingTabList($developerOnly)
+    {
+        if ($developerOnly) {
+            return array('developer');
+        }
+
+        $tabs = AdminTabResolver::configGroupKeys('setting');
+
+        // 声明缺失时兜底，避免设置页正文整页空白
+        return !empty($tabs) ? $tabs : array('main', 'customer', 'display', 'seo', 'mail');
+    }
+
+    /**
+     * 系统 / 客户自定义参数行。
+     *
+     * @param string $group system|customer，其余值按 system 处理
+     * @return array
+     */
+    private function buildParameterList($group)
+    {
+        $group = $group === 'customer' ? 'customer' : 'system';
+
+        return DB::fnQuery("SELECT * FROM " . DB::tableName('parameter') . " WHERE `group` = '" . $group . "' ORDER BY sort ASC, id ASC");
+    }
+
+    /**
      * 保存系统表单：写入 config 与 _parameter_* 参数行（入参须已通过 SettingFormRequest）。
      *
      * @param array $validated validated() 结果（可含控制器合并的文件名字段）
-     * @return void
+     * @return array 伪静态写入结果（state、file、plan）；未开启 rewrite 时 state=skipped
      */
     public function persistSettingConfig(array $validated)
     {
@@ -124,6 +171,18 @@ class SettingService extends BaseService
         Setting::persistFromValidated($data);
 
         audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::UPDATE, 1, 'setting');
+
+        if (!isset($data['rewrite']) || (string) $data['rewrite'] !== '1') {
+            return array('state' => 'skipped', 'file' => '', 'plan' => array());
+        }
+
+        $webServer = isset($_SERVER['SERVER_SOFTWARE']) ? $_SERVER['SERVER_SOFTWARE'] : '';
+
+        return $this->rewriteRuleService->ensure(
+            $webServer,
+            ROOT_PATH,
+            isset($_SERVER['IIS_UrlRewriteModule'])
+        );
     }
 
     /**
@@ -242,29 +301,23 @@ class SettingService extends BaseService
             $cue = lang($cueKey, lang($row['name'] . '_cue'));
 
             if ($row['name'] == 'rewrite') {
-                $rewrite_file = '';
-                // 根据 Web 服务器信息 判断伪静态文件
-                if (stristr($_SERVER['SERVER_SOFTWARE'], "Apache")) {
-                    $rewrite_file = ".htaccess";
-                } elseif (stristr($_SERVER['SERVER_SOFTWARE'], "IIS")) {
-                    $iis_exp = explode("/", $_SERVER['SERVER_SOFTWARE']);
-                    $iis_ver = isset($iis_exp[1]) ? $iis_exp[1] : '';
+                $webServer = isset($_SERVER['SERVER_SOFTWARE']) ? $_SERVER['SERVER_SOFTWARE'] : '';
+                $rewriteInfo = $this->rewriteRuleService->describe(
+                    $webServer,
+                    ROOT_PATH,
+                    isset($_SERVER['IIS_UrlRewriteModule'])
+                );
 
-                    if ($iis_ver >= 7.0) {
-                        $rewrite_file = "web.config";
-                    } else {
-                        $rewrite_file = "httpd.ini";
-                    }
-                }
-
-                if (stristr($_SERVER['SERVER_SOFTWARE'], "nginx")) {
-                    $nginxKey = 'config_' . $row['name'] . '_cue_nginx';
-                    $cue = lang($nginxKey, $cue);
-                } elseif ($rewrite_file) {
-                    $cue = preg_replace('/d%/Ums', $rewrite_file, $cue);
+                if ($rewriteInfo['key'] === 'nginx') {
+                    $cue = $this->rewriteRuleService->buildNginxCue();
+                } elseif ($rewriteInfo['key'] === 'other') {
+                    $cue = lang('config_rewrite_cue_other', $cue);
                 } else {
-                    $otherKey = 'config_' . $row['name'] . '_cue_other';
-                    $cue = lang($otherKey, $cue);
+                    $rewriteCueKey = $rewriteInfo['key'] === 'auto'
+                        ? 'config_rewrite_cue'
+                        : 'config_rewrite_cue_' . $rewriteInfo['key'];
+                    $cue = lang($rewriteCueKey, $cue);
+                    $cue = str_replace('d%', $rewriteInfo['file'], $cue);
                 }
             }
 

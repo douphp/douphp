@@ -1,0 +1,207 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="csrf-token" content="{$csrf_token}">
+<title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+<meta name="copyright" content="DouCo Co.,Ltd." />
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+<link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+<link href="css/common.css" rel="stylesheet" type="text/css">
+{include file="inc/javascript.tpl"}
+</head>
+<body>
+<div id="dou"> {include file="inc/header.tpl"}
+ {include file="inc/sidebar.tpl"}
+ <div id="dou-content"> {include file="inc/toolbar.tpl"}
+  <div class="dou-main">
+   <div class="dou-page">
+   {include file="inc/page_header.tpl"}
+   <!-- 设置体系 Tab 组（admin/menu/tab/setting.php 一处声明）：列表 / 新增 / 编辑共用 -->
+   <div class="tab" id="setting-tabs">
+    {include file="inc/tab_nav.tpl"}
+   </div>
+   <!-- {if $rec eq 'default'} 扩展字段总览：全部模块按分组混排 -->
+   <div id="list" class="page-scroll-position mt-20">
+    <table class="table">
+     <thead>
+      <tr>
+       <th class="text-left" width="220">{$lang.metadata_label}</th>
+       <th class="text-left">{$lang.metadata_slug}</th>
+       <th class="text-center" width="100">{$lang.metadata_type}</th>
+       <th class="text-center" width="70">{$lang.metadata_required}</th>
+       <th class="text-center" width="80">{$lang.metadata_limit}</th>
+       <th class="text-center" width="70">{$lang.metadata_sort}</th>
+       <th class="text-center" width="70">{$lang.metadata_status}</th>
+       <th class="text-center" width="110">{$lang.handler}</th>
+      </tr>
+     </thead>
+     <!-- {foreach from=$groups item=group} -->
+     <tbody id="{$group.group_id}">
+      <tr class="table-group">
+       <td colspan="8">
+        <span class="table-group-title">{$group.label|escape}</span>
+        <em class="table-group-key">{$group.module}</em>
+        <span class="table-group-count">{$group.count} {$lang.metadata_field_unit}</span>
+        <a class="table-group-add" href="{url link='admin.metadata.create' module=$group.module}">+ {$lang.metadata_create}</a>
+       </td>
+      </tr>
+      <!-- {if $group.fields} -->
+      <!-- {foreach from=$group.fields item=row} -->
+      <tr>
+       <td class="text-left">{$row.label|escape}</td>
+       <td>{$row.slug|escape}</td>
+       <td class="text-center">{$row.type_label|escape}</td>
+       <td class="text-center">{$row.required_label|escape}</td>
+       <td class="text-center">{$row.limit}</td>
+       <td class="text-center">{$row.sort}</td>
+       <td class="text-center">{$row.status_label|escape}</td>
+       <td class="text-center">
+        <a href="{url link='admin.metadata.edit' id=$row.id}">{$lang.edit}</a>
+        |
+        <a href="javascript:;" class="js-delete" data-url="{url link='admin.metadata.destroy' id=$row.id}" data-confirm="{$lang.metadata_delete_confirm}">{$lang.del}</a>
+       </td>
+      </tr>
+      <!-- {/foreach} -->
+      <!-- {else} -->
+      <tr>
+       <td class="text-center cue" colspan="8">{$lang.metadata_list_empty}</td>
+      </tr>
+      <!-- {/if} -->
+     </tbody>
+     <!-- {/foreach} -->
+    </table>
+    <p class="cue">{$lang.metadata_sort_tip}</p>
+   </div>
+   <!-- {else} 扩展字段新增 / 编辑 -->
+   <form class="mt-20" action="{$form_action}" method="post">
+    <!-- {if $form_method} --><input type="hidden" name="_method" value="{$form_method}" /><!-- {/if} -->
+    {include file="inc/metadata_definition_drafts.tpl"}
+    <div class="form">
+     <div class="group-title">{$lang.metadata_section_basic}</div>
+     <div class="form-item">
+      <div class="form-label">{$lang.metadata_module}</div>
+      <div class="input-block">
+       <input type="text" value="{$module_label|escape}" size="24" class="input" readonly="readonly" />
+       <input type="hidden" name="module" value="{$field.module|escape}" />
+       <p class="cue">{$lang.metadata_module_locked}</p>
+      </div>
+     </div>
+     <div class="form-item">
+      <div class="form-label">{$lang.metadata_label}</div>
+      <div class="input-block">
+       <input type="text" name="label" value="{$field.label|escape}" size="28" class="input" />
+       <!-- {if $btn_lang.label} --><span class="action" data-field="label">{$btn_lang.label nofilter}</span><!-- {/if} -->
+      </div>
+     </div>
+     <div class="form-item">
+      <div class="form-label">{$lang.metadata_slug}</div>
+      <div class="input-block">
+       <!-- {if $is_edit} -->
+       <input type="text" value="{$field.slug|escape}" size="24" class="input" readonly="readonly" />
+       <input type="hidden" name="slug" value="{$field.slug|escape}" />
+       <!-- {else} -->
+       <input type="text" name="slug" value="{$field.slug|escape}" size="24" class="input" placeholder="cert_no" />
+       <!-- {/if} -->
+       <p class="cue">{$lang.metadata_slug_tip}</p>
+      </div>
+     </div>
+     <div class="group-title">{$lang.metadata_section_control}</div>
+     <div class="form-item">
+      <div class="form-label">{$lang.metadata_type}</div>
+      <div class="input-block">
+       <!-- {if $is_edit} -->
+       <input type="hidden" name="type" value="{$field.type|escape}" />
+       <input type="text" value="{$type_label|escape}" size="20" class="input" readonly="readonly" />
+       <p class="cue">{$lang.metadata_type_locked}</p>
+       <!-- {else} -->
+       <select class="select" name="type">
+        <!-- {foreach from=$type_options item=option} -->
+        <option value="{$option.value}"{if $option.cur} selected="selected"{/if}>{$option.label|escape}</option>
+        <!-- {/foreach} -->
+       </select>
+       <p class="cue">{$lang.metadata_type_switch_tip}</p>
+       <!-- {/if} -->
+      </div>
+     </div>
+     <div class="form-item" data-metadata-for="select radio checkbox">
+      <div class="form-label">{$lang.metadata_options}</div>
+      <div class="input-block">
+       <textarea name="options" cols="60" rows="4" class="textarea" style="width:100%;" placeholder="{$lang.metadata_options_tip}">{$field.options_text|escape}</textarea>
+       <!-- {if $btn_lang.options} --><p class="action" data-field="options">{$btn_lang.options nofilter}</p><!-- {/if} -->
+       <p class="cue">{$lang.metadata_options_tip}</p>
+      </div>
+     </div>
+     <div class="form-item" data-metadata-for="file">
+      <div class="form-label">{$lang.metadata_extensions}</div>
+      <div class="input-block">
+       <input type="text" name="extensions" value="{$field.extensions|escape}" size="48" class="input" placeholder="jpg,png,pdf" />
+       <p class="cue">{$lang.metadata_extensions_tip}<br />{$lang.metadata_extensions_baseline}：{$extensions_baseline|escape}</p>
+      </div>
+     </div>
+     <div class="form-item" data-metadata-for="file">
+      <div class="form-label">{$lang.metadata_max_kb}</div>
+      <div class="input-block">
+       <input type="text" name="max_kb" value="{$field.max_kb|escape}" size="8" class="input" />
+       <p class="cue">{$lang.metadata_max_kb_tip}</p>
+      </div>
+     </div>
+     <div class="form-item" data-metadata-for="gallery checkbox">
+      <div class="form-label">{$lang.metadata_limit}</div>
+      <div class="input-block">
+       <input type="text" name="limit" value="{$field.limit|escape}" size="6" class="input" />
+       <p class="cue">{$lang.metadata_limit_tip}</p>
+      </div>
+     </div>
+     <div class="group-title">{$lang.metadata_section_display}</div>
+     <div class="form-item">
+      <div class="form-label">{$lang.metadata_tip}</div>
+      <div class="input-block">
+       <input type="text" name="tip" value="{$field.tip|escape}" size="60" class="input" />
+      </div>
+     </div>
+     <div class="form-item">
+      <div class="form-field-inline">
+       <div class="form-label">{$lang.metadata_sort}</div>
+       <div class="input-block">
+        <input type="text" name="sort" value="{$field.sort|escape}" size="6" class="input" />
+       </div>
+      </div>
+      <div class="form-field-inline">
+       <div class="form-label">{$lang.metadata_required}</div>
+       <div class="input-block">
+        <select class="select" name="required">
+         <option value="0"{if $field.required eq 0} selected="selected"{/if}>{$lang.no}</option>
+         <option value="1"{if $field.required eq 1} selected="selected"{/if}>{$lang.yes}</option>
+        </select>
+       </div>
+      </div>
+     </div>
+     <div class="form-item">
+      <div class="form-label">{$lang.metadata_status}</div>
+      <div class="input-block">
+       <select class="select" name="status">
+        <option value="1"{if $field.status eq 1} selected="selected"{/if}>{$lang.metadata_status_on}</option>
+        <option value="0"{if $field.status eq 0} selected="selected"{/if}>{$lang.metadata_status_off}</option>
+       </select>
+      </div>
+     </div>
+     <div class="form-item">
+      <a href="{$back_url}" class="btn-secondary">{$lang.cancel}</a>
+      <!-- {if $is_edit} -->
+      <input type="hidden" name="id" value="{$field.id}" />
+      <!-- {/if} -->
+      <input type="hidden" name="token" value="{$token}" />
+      <input class="btn" type="submit" value="{$lang.btn_submit}" />
+     </div>
+    </div>
+   </form>
+   <!-- {/if} -->
+  </div>
+ </div>
+  </div>
+ {include file="inc/footer.tpl"} </div>
+<script type="text/javascript" src="js/metadata.js"></script>
+</body>
+</html>

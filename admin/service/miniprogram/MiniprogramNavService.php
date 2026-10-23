@@ -16,6 +16,7 @@ namespace Dou\Admin\Service\Miniprogram;
 
 use Dou\Admin\Model\Miniprogram\MiniprogramNav;
 use Dou\Admin\Service\Nav\NavService;
+use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Service\Admin\AdminLogAction;
 use Dou\Core\Service\Attachment\AttachmentUploadOptions;
@@ -161,16 +162,29 @@ class MiniprogramNavService extends BaseService
             'type' => $type,
             'sort' => isset($data['sort']) ? Num::toIntOrZero($data['sort']) : 0,
         );
-        $model = MiniprogramNav::create($row);
-        $auto_id = (int) $model->getKey();
+        $adminId = (int) auth('admin')->id();
+        $icon = attachment()->reserve('nav', UploadedFile::fromGlobals('icon'), 'admin', $adminId, 'main', AttachmentUploadOptions::create());
+        $row['icon'] = $icon;
 
-        $icon = attachment()->store('nav', $auto_id, UploadedFile::fromGlobals('icon'), 'main', AttachmentUploadOptions::create()->withUploader('admin', (int) auth('admin')->id()));
-        if ($icon !== '') {
-            MiniprogramNav::whereKey($auto_id)->update(array('icon' => $icon));
-        }
+        $auto_id = (int) DB::transaction(function () use ($row, $icon, $adminId) {
+            $model = MiniprogramNav::create($row);
+            if (!$model) {
+                throw new DomainException(lang('operation_failed'));
+            }
+            $auto_id = (int) $model->getKey();
+            if ($auto_id <= 0) {
+                throw new DomainException(lang('operation_failed'));
+            }
+
+            if ($icon !== '' && attachment()->adopt('nav', $icon, $auto_id, 'admin', $adminId) < 1) {
+                throw new DomainException(lang('file_claim_failed'));
+            }
+
+            return $auto_id;
+        });
 
         $this->miniprogramService->syncMiniprogramConfig();
-        audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::CREATE, 1, (string) $data['name'], 'miniprogram_nav');
+        audit()->writeAdminLog($adminId, AdminLogAction::CREATE, 1, (string) $data['name'], 'miniprogram_nav');
 
         return $auto_id;
     }

@@ -27,10 +27,11 @@ if (!defined('IN_DOUCO')) {
  * 匹配规则（路由名通配）/ 可见条件。模板不再比较任何模块名字符串，活跃态由
  * {@see AdminNavResolver} 按当前命中路由统一计算为布尔值。
  *
- * 可选模块的子菜单族不在此硬编码：各模块包自带 admin/submenu/<module>.php 声明文件
+ * 可选模块的子菜单族不在此硬编码：各模块包自带 admin/menu/submenu/<module>.php 声明文件
  * （纯 return 族数组，族名 = 文件名，随安装就位 / 卸载删除），{@see self::submenus()}
  * 启动装配时 glob 合并——未安装模块的族自然不存在。侧栏节点只由本文件的
  * sidebarNodes / passWhen 与 config 模块清单决定，不再存在跨域归属声明文件。
+ * 旧目录不再读取，模块包随发行同步改为新路径。
  *
  * 声明里出现的字符串一律是「路由别名」（路由名去掉 admin. 前缀，如 book.rule_slot），
  * 不手写 admin. 前缀与 .* 通配；匹配模式由 {@see AdminNavResolver::expandAliases()}
@@ -87,7 +88,7 @@ class AdminMenuRegistry
     private static $submenus = null;
 
     /**
-     * 子菜单族装配：核心族 + 模块声明文件（admin/submenu/<module>.php）。
+     * 子菜单族装配：核心族 + 模块声明文件（admin/menu/submenu/<module>.php）。
      *
      * 模块声明文件返回族定义数组（title / icon / items），族名取文件名；
      * 目录不存在或无文件（模块未安装）时对应族自然缺失。平局 specificity
@@ -154,7 +155,7 @@ class AdminMenuRegistry
         // 已安装模块的族声明文件（随模块包安装 / 卸载生命周期，未安装则文件不存在）
         // 后台目录名取自 ADMIN_DIR（可被 storage/state/admin_dir.php 改写），须用 ADMIN_PATH 拼接，
         // 不能硬编码 'admin'，否则改名后台（如 ..c）时 glob 落空、模块族（user/ai 等）全部丢失。
-        $submenuDir = ADMIN_PATH . 'submenu/';
+        $submenuDir = ADMIN_PATH . 'menu/submenu/';
         foreach ((array) glob($submenuDir . '*.php') as $file) {
             $declared = include $file;
             if (is_array($declared) && isset($declared['title'], $declared['items'])) {
@@ -186,9 +187,12 @@ class AdminMenuRegistry
                 ),
             ),
             'main' => array(
+                // 扩展字段（metadata）并入设置体系：侧栏不再单独成项，
+                // 由设置页 Tab 进入，并让该页仍高亮「设置」
                 'setting' => array(
                     'id' => 'setting', 'name' => 'setting', 'icon' => 'setting',
                     'link' => 'admin.setting', 'permission' => 'setting',
+                    'match' => array('metadata'),
                 ),
                 // 小程序签名下「导航」节点改指小程序导航（与 bot 的 miniprogram 节点互斥高亮）
                 'miniprogram_nav' => array(

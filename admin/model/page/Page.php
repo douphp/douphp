@@ -14,6 +14,7 @@
 
 namespace Dou\Admin\Model\Page;
 
+use Dou\Admin\Model\Concerns\PurgesRelatedOnDelete;
 use Dou\Core\Facade\DB;
 use Dou\Core\Model\Concerns\HasPageTree;
 use Dou\Core\Orm\Model;
@@ -30,6 +31,7 @@ if (!defined('IN_DOUCO')) {
 class Page extends Model
 {
     use HasPageTree;
+    use PurgesRelatedOnDelete;
 
     /**
      * @var string
@@ -48,6 +50,7 @@ class Page extends Model
         'content',
         'keywords',
         'description',
+        'metadata',
         'editor_code',
         'mode',
     );

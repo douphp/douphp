@@ -22,79 +22,83 @@
     {include file="inc/submenu.tpl"}
     <div class="dou-page">
      {include file="inc/page_header.tpl"}
-      <div class="split-layout is-wide">
-       <div class="split-side">
-        <div class="title">{$lang.show_create}</div>
-        <div class="form-box">
-         <form action="{$form_action}" {if $rec eq 'edit'} class="form-edit" {/if} method="post" enctype="multipart/form-data"><!-- {if $form_method} --><input type="hidden" name="_method" value="{$form_method}" /><!-- {/if} -->
-          <div class="form">
-           <div class="form-item">
-            <div class="form-label">{$lang.show_name}</div>
-            <div class="input-block">
-             <input type="text" name="name" value="{$show.name}" size="40" class="input" />
-             <span class="action" data-field="name">{$btn_lang.name nofilter}</span>
+      <div class="split-layout">
+       <div class="split-pane col-6">
+        <div class="split-header">{$lang.show_create}</div>
+        <div class="split-body">
+         <div class="form-box">
+          <form action="{$form_action}" {if $rec eq 'edit'}class="form-edit" {/if} method="post" enctype="multipart/form-data"><!-- {if $form_method} --><input type="hidden" name="_method" value="{$form_method}" /><!-- {/if} -->
+           <div class="form">
+            <div class="form-item">
+             <div class="form-label">{$lang.show_name}</div>
+             <div class="input-block">
+              <input type="text" name="name" value="{$show.name}" size="40" class="input" />
+              <span class="action" data-field="name">{$btn_lang.name nofilter}</span>
+             </div>
+            </div>
+            <div class="form-item">
+             <div class="form-label">{$lang.show_img}</div>
+             <div class="input-block">
+              {include file="inc/file_image.tpl" name="image" value=$show.image file_number=$show.file_number crop_ratio=$setting.theme.banner_img_crop}
+              <p class="cue">{$setting.theme.banner_img_size}</p>
+              <p class="action" data-field="image">{$btn_lang.image nofilter}</p>
+             </div>
+            </div>
+            <div class="form-item">
+             <div class="form-label">{$lang.show_link}</div>
+             <div class="input-block">
+              <input type="text" name="link" value="{$show.link}" size="40" class="input" />
+              <span class="action" data-field="link">{$btn_lang.link nofilter}</span>
+             </div>
+            </div>
+            <div class="form-item">
+             <div class="form-label">{$lang.show_text}</div>
+             <div class="input-block">
+              <textarea name="text" cols="50" rows="4" class="textarea">{$show.text}</textarea>
+              <p class="action" data-field="text">{$btn_lang.text nofilter}</p>
+             </div>
+            </div>
+            <div class="form-item">
+             <div class="form-label">{$lang.sort}</div>
+             <div class="input-block">
+              <input type="text" name="sort" value="{if $show.sort}{$show.sort}{else}50{/if}" size="20" class="input" />
+             </div>
+            </div>
+            <div class="form-item">
+             <!-- {if $rec eq 'edit'} -->
+             <a href="{url link='admin.show'}" class="btn-secondary">{$lang.cancel}</a>
+             <input type="hidden" name="id" value="{$show.id}">
+             <!-- {/if} -->
+             <input type="hidden" name="token" value="{$token}" />
+             <input class="btn" type="submit" value="{$lang.btn_submit}" />
             </div>
            </div>
-           <div class="form-item">
-            <div class="form-label">{$lang.show_img}</div>
-            <div class="input-block">
-             {include file="inc/file_input.tpl" name="image" value=$show.image file_number=$show.file_number crop_ratio=$setting.theme.banner_img_crop}
-             <p class="cue">{$setting.theme.banner_img_size}</p>
-             <p class="action" data-field="image">{$btn_lang.image nofilter}</p>
-            </div>
-           </div>
-           <div class="form-item">
-            <div class="form-label">{$lang.show_link}</div>
-            <div class="input-block">
-             <input type="text" name="link" value="{$show.link}" size="40" class="input" />
-             <span class="action" data-field="link">{$btn_lang.link nofilter}</span>
-            </div>
-           </div>
-           <div class="form-item">
-            <div class="form-label">{$lang.show_text}</div>
-            <div class="input-block">
-             <textarea name="text" cols="50" rows="4" class="textarea">{$show.text}</textarea>
-             <p class="action" data-field="text">{$btn_lang.text nofilter}</p>
-            </div>
-           </div>
-           <div class="form-item">
-            <div class="form-label">{$lang.sort}</div>
-            <div class="input-block">
-             <input type="text" name="sort" value="{if $show.sort}{$show.sort}{else}50{/if}" size="20" class="input" />
-            </div>
-           </div>
-           <div class="form-item">
-            <!-- {if $rec eq 'edit'} -->
-            <a href="{url link='admin.show'}" class="btn-secondary">{$lang.cancel}</a>
-            <input type="hidden" name="id" value="{$show.id}">
-            <!-- {/if} -->
-            <input type="hidden" name="token" value="{$token}" />
-            <input class="btn" type="submit" value="{$lang.btn_submit}" />
-           </div>
-          </div>
-         </form>
+          </form>
+         </div>
         </div>
        </div>
-       <div class="split-main">
-        <div class="title">{$lang.show_list}</div>
-        <table class="table">
-         <tr>
-          <td width="100"><b>{$lang.show_name}</b></td>
-          <td class="m-none"></td>
-          <td width="50" class="text-center"><b>{$lang.sort}</b></td>
-          <td width="80" class="text-center"><b>{$lang.handler}</b></td>
-         </tr>
-         <!-- {foreach from=$show_list item=item} -->
-
-         <tr{if $item.id eq $id} class="active" {/if}>
-
-          <td><a href="{$item.image}" target="_blank"><img src="{$item.image}" width="100" /></a></td>
-          <td class="m-none">{$item.name}</td>
-          <td class="text-center">{$item.sort}</td>
-          <td class="text-center"><a href="{url link='admin.show.edit' id=$item.id}">{$lang.edit}</a> | <a href="javascript:;" class="js-delete" data-url="{url link='admin.show.destroy' id=$item.id}">{$lang.del}</a></td>
+       <div class="split-pane col-6">
+        <div class="split-header">{$lang.show_list}</div>
+        <div class="split-body">
+         <table class="table">
+          <tr>
+           <td width="100"><b>{$lang.show_name}</b></td>
+           <td class="m-none"></td>
+           <td width="50" class="text-center"><b>{$lang.sort}</b></td>
+           <td width="80" class="text-center"><b>{$lang.handler}</b></td>
           </tr>
-          <!-- {/foreach} -->
-        </table>
+          <!-- {foreach from=$show_list item=item} -->
+
+          <tr{if $item.id eq $id} class="active" {/if}>
+
+           <td><a href="{$item.image}" target="_blank"><img src="{$item.image}" width="100" /></a></td>
+           <td class="m-none">{$item.name}</td>
+           <td class="text-center">{$item.sort}</td>
+           <td class="text-center"><a href="{url link='admin.show.edit' id=$item.id}">{$lang.edit}</a> | <a href="javascript:;" class="js-delete" data-url="{url link='admin.show.destroy' id=$item.id}">{$lang.del}</a></td>
+           </tr>
+           <!-- {/foreach} -->
+         </table>
+        </div>
        </div>
       </div>
      </div>

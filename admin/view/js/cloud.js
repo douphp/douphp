@@ -294,7 +294,7 @@
         meta.mode = String(data.mode);
       }
       pushLogs(data.logs || [], data.ok ? 'info' : 'error');
-      // 快照等步骤携带真实进度（0-99 整数）时更新进行中行
+      // 快照等步骤携带真实进度（0-100 整数，完成态为 100）时更新进行中行
       if (typeof data.progress === 'number') {
         setActivePercent(data.progress);
       }

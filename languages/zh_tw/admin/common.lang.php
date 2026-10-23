@@ -269,7 +269,6 @@ $_LANG['config_setting_main'] = '常規設定';
 $_LANG['config_setting_customer'] = '線上客服';
 $_LANG['config_setting_display'] = '顯示設定';
 $_LANG['config_setting_seo'] = 'SEO 最佳化';
-$_LANG['config_setting_defined'] = '自訂';
 $_LANG['config_setting_mail'] = '郵件伺服器';
 $_LANG['config_setting_developer'] = '開發者設定';
 $_LANG['config_site_name'] = '站點名稱';
@@ -364,40 +363,16 @@ $_LANG['config_module_version'] = '模組版本';
 $_LANG['config_douphp_version'] = '系統版本';
 
 // 系統設定提示
-$_LANG['config_rewrite_cue'] = '需要 Rewrite 支援，啟用前請重新命名根目錄下 "d%.txt" 檔案為 "d%"，如果不存在請手動下載偽靜態規則<a class="btn-outline" href="http://down.douphp.com/rewrite.rar" target="_blank">點擊下載</a>';
-$_LANG['config_rewrite_cue_nginx'] = 'URL 重寫需要 Rewrite 支援，請將偽靜態規則新增至您的 Nginx 伺服器（以寶塔面板為例，在「站點->設定->偽靜態」裡新增）<a href="javascript:;" data-dou-toggle="modal" data-dou-modal="message" data-title="Nginx 偽靜態規則" data-html=\'<textarea row="10" cols="80" class="text-area-auto" style="width:100%;height:210px">location / {
-    # 真實目錄缺尾斜線時 301 補上，避免目錄內相對路徑資源錯亂
-    if (-d $request_filename) {
-        rewrite ^(.*[^/])$ $1/ permanent;
-    }
-    # $uri/ 讓真實目錄走目錄索引，而不是落進偽靜態兜底
-    try_files $uri $uri/ @rewrites;
-}
-
-location @rewrites {
-    if ($uri ~ \.php$) {
-        return 404;
-    }
-
-    # 靜態入口
-    rewrite ^/index\.html$  /index.php last;
-    rewrite ^/sitemap\.xml$ /sitemap.php last;
-
-    # API
-    rewrite ^/api/(.+)$ /api/index.php?route=$1 last;
-    rewrite ^/api/?$    /api/index.php last;
-
-    # 後台
-    rewrite ^/admin/(.+)$ /admin/index.php?route=$1 last;
-    rewrite ^/admin/?$    /admin/index.php last;
-
-    # 前台
-    rewrite ^/(.+)$ /index.php?route=$1 last;
-    rewrite ^/?$    /index.php last;
-
-    return 404;
-}</textarea>\' data-placement="center">點擊取得 Nginx 偽靜態規則</a>';
+$_LANG['config_rewrite_cue'] = '需要 Rewrite 支援，開啟後儲存將自動寫入根目錄下的 "d%" 檔案';
+$_LANG['config_rewrite_cue_exists'] = '需要 Rewrite 支援，根目錄下已存在 "d%"（隨安裝包提供或此前已產生），儲存時不會覆蓋；若為 .txt 檔案，請手動去掉 .txt 副檔名；否則如偽靜態未生效，請確認伺服器已啟用 Rewrite，或將缺失的規則手動合併到該檔案';
+$_LANG['config_rewrite_cue_manual'] = '需要 Rewrite 支援，目前環境無法確認是否已啟用重寫，儲存後將寫入 "d%"，請確認伺服器支援後手動去掉 .txt 副檔名';
+$_LANG['config_rewrite_cue_nginx'] = 'URL 重寫需要 Rewrite 支援，請將偽靜態規則新增至您的 Nginx 伺服器（以寶塔面板為例，在「站點->設定->偽靜態」裡新增）';
 $_LANG['config_rewrite_cue_other'] = '暫無與您的伺服器匹配的偽靜態規則，請至 DouPHP 問答回饋';
+$_LANG['config_rewrite_nginx_title'] = 'Nginx 偽靜態規則';
+$_LANG['config_rewrite_nginx_link'] = '點擊取得 Nginx 偽靜態規則';
+$_LANG['config_rewrite_write_failed'] = '偽靜態規則寫入失敗，請檢查站點根目錄寫入權限後重試';
+$_LANG['config_rewrite_write_manual'] = '目前環境無法確認是否支援重寫，已將偽靜態規則寫入 %s，請確認伺服器支援後手動去掉 .txt 副檔名';
+$_LANG['config_rewrite_source_missing'] = '偽靜態規則來源檔案缺失（core/resources/rewrite/%s），請確認安裝包完整';
 $_LANG['config_stock_cue'] = '開啟後商品可以設定庫存，配合訂單模組使用，下單付款後減少庫存';
 $_LANG['config_qq_cue'] = '多個客服的 QQ 號碼請以半形逗號（,）分隔，如果需要設定暱稱則在號碼後跟 /暱稱。';
 $_LANG['config_price_decimal_cue'] = '將以四捨五入形式保留小數';
@@ -684,6 +659,8 @@ $_LANG['file_btn'] = '點擊上傳';
 $_LANG['file_bigfile_btn'] = '上傳檔案';
 $_LANG['file_insert_media'] = '插入音影片';
 $_LANG['file_remote_image_local'] = '遠端圖片本地化';
+$_LANG['attach_download'] = '附件下載';
+$_LANG['attach_cue'] = '支援 pdf/doc/xls/ppt/txt/csv/zip/rar/7z，單個檔案不超過 20MB';
 
 // 圖片裁剪
 $_LANG['crop_title'] = '圖片裁剪';

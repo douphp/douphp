@@ -21,6 +21,7 @@ use Dou\Core\Foundation\Extension\Module;
 use Dou\Core\Service\Attribute\AttributeService;
 use Dou\Core\Service\BaseService;
 use Dou\Core\Service\Content\MarkdownRenderer;
+use Dou\Core\Service\Metadata\MetadataValues;
 use Dou\Core\Service\Pricing\PricingService;
 use Dou\Core\Support\Str;
 use Dou\Core\Support\Util;
@@ -166,6 +167,7 @@ class ProductService extends BaseService
                 'created_at' => $row['created_at'],
                 'keywords' => $row['keywords'],
                 'description' => $description,
+                'metadata' => isset($row['metadata']) ? $row['metadata'] : '',
                 'favorites' => $favorites,
                 'url' => $url,
                 'cate_info' => array(
@@ -182,6 +184,8 @@ class ProductService extends BaseService
                 $productList[count($productList) - 1]['sales_percentage'] = $total > 0 ? intval(($row['sales'] / $total) * 100) : 0;
             }
         }
+
+        MetadataValues::decorateRows('product', $productList);
 
         $brandRow = null;
         if ($brandId && Config::get('features.brand', false)) {
@@ -234,6 +238,7 @@ class ProductService extends BaseService
 
         $product['sale_price'] = $this->pricingService->salePrice('product', $productId, $uid);
         $product['gallery_list'] = attachment()->gallery('product', $productId, 'gallery', true);
+        $product['attach_list'] = attachment()->attachList('product', $productId, 'attach', true);
         $favorites = Module::make('favorites');
         $product['favorites'] = $favorites ? $favorites->getFavoritesState('product', $productId, $uid) : null;
         $product['brand'] = array();
@@ -252,6 +257,8 @@ class ProductService extends BaseService
             // 这里走 parseDefinedPairs 重归一化：未翻译时（数组）幂等返回，翻译命中时再解析。
             $product['defined'] = Util::parseDefinedPairs(isset($product['defined']) ? $product['defined'] : '');
         }
+
+        MetadataValues::decorateRow('product', $product);
 
         $product['content'] = $this->markdown->toHtml($product['content']);
 

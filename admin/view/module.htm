@@ -23,10 +23,10 @@
    <div id="module" class="dou-page">
    {include file="inc/page_header.tpl"}
    <div class="tab" id="module-tabs">
-    <ul class="tab-title">
-     <li{if $rec eq 'default'} class="active"{/if}><a href="{url link='admin.module'}">{$lang.module_install_cloud}</a></li>
-     <li{if $rec eq 'install_local'} class="active"{/if}><a href="{url link='admin.module.install_local'}">{$lang.module_install_local}</a></li>
-     <li{if $rec eq 'uninstall'} class="active"{/if}><a href="{url link='admin.module.uninstall'}">{$lang.module_uninstall}</a></li>
+    <ul class="tab-nav">
+     <li class="nav-item"><a class="nav-link{if $rec eq 'default'} active{/if}" href="{url link='admin.module'}">{$lang.module_install_cloud}</a></li>
+     <li class="nav-item"><a class="nav-link{if $rec eq 'install_local'} active{/if}" href="{url link='admin.module.install_local'}">{$lang.module_install_local}</a></li>
+     <li class="nav-item"><a class="nav-link{if $rec eq 'uninstall'} active{/if}" href="{url link='admin.module.uninstall'}">{$lang.module_uninstall}</a></li>
     </ul>
    </div>
    <!-- {if $rec eq 'default'} 模块扩展 -->

@@ -125,8 +125,6 @@ $_LANG['cloud_account_clean_success'] = '清空雲端帳戶成功';
 $_LANG['cloud_copyright'] = '去版權';
 $_LANG['cloud_copyright_success'] = '前台版權去除成功！';
 $_LANG['cloud_copyright_no_vip'] = '該帳號或者該網域名稱沒有開通VIP會員！';
-$_LANG['cloud_copyright_auto_success'] = '升級完成，已自動重新整理授權憑證（前台版權已去除）';
-$_LANG['cloud_copyright_auto_failed'] = '升級完成，自動重新整理授權憑證失敗（不影響站點運行），可稍後在更新主頁點「去版權」重試';
 
 // 雲端擴充列表（inc/cloud_extend_list.tpl）
 $_LANG['cloud_extend_filter_all'] = '全部';

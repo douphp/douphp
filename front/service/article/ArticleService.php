@@ -16,6 +16,7 @@ namespace Dou\Front\Service\Article;
 
 use Dou\Core\Service\BaseService;
 use Dou\Core\Service\Content\MarkdownRenderer;
+use Dou\Core\Service\Metadata\MetadataValues;
 use Dou\Core\Support\Str;
 use Dou\Front\Model\Article\Article;
 use Dou\Front\Model\Article\ArticleCategory;
@@ -84,6 +85,7 @@ class ArticleService extends BaseService
                 'time' => $row['time'],
                 'click' => $row['click'],
                 'description' => Str::excerpt($row['description'], 200, false),
+                'metadata' => isset($row['metadata']) ? $row['metadata'] : '',
                 'url' => route('article.show', ['id' => $row['id']]),
                 'cate_info' => array(
                     'category_id' => $row['category_id'],
@@ -92,6 +94,8 @@ class ArticleService extends BaseService
                 ),
             );
         }
+
+        MetadataValues::decorateRows('article', $articleList);
 
         return array(
             'article_list' => $articleList,
@@ -119,7 +123,9 @@ class ArticleService extends BaseService
 
         // AR：casts(image/created_at/defined)、appends(time)、translatable(title/content/keywords/description) 已在 toArray 承接
         $data = $article->toArray();
+        MetadataValues::decorateRow('article', $data);
         $data['content'] = $this->markdown->toHtml($data['content']);
+        $data['attach_list'] = attachment()->attachList('article', $id, 'attach', true);
 
         return $data;
     }

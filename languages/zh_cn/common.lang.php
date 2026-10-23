@@ -172,9 +172,12 @@ $_LANG['file_support'] = '上传文件类型仅支持';
 $_LANG['file_support_no'] = '不支持';
 $_LANG['file_out_size'] = '上传文件超过';
 $_LANG['file_wrong'] = '上传文件失败，请确认你的上传文件不超过 d% KB 或上传时间超时';
+$_LANG['operation_failed'] = '操作失败，请重试';
+$_LANG['file_claim_failed'] = '附件认领失败，请重试';
 $_LANG['upload_failed'] = '上传失败，请重试';
 $_LANG['file_insert_image'] = '插入图片';
 $_LANG['file_btn'] = '点击上传';
+$_LANG['attach_download'] = '附件下载';
 
 // 验证器通用消息
 $_LANG['validator_required'] = ':field不能为空';

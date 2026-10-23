@@ -14,6 +14,7 @@
 
 namespace Dou\Admin\Request\Page;
 
+use Dou\Admin\Request\Concerns\HasMetadataRules;
 use Dou\Core\Web\Http\FormRequest;
 
 if (!defined('IN_DOUCO')) {
@@ -27,6 +28,8 @@ if (!defined('IN_DOUCO')) {
  */
 class PageFormRequest extends FormRequest
 {
+    use HasMetadataRules;
+
     /**
      * 提供校验数据源（在父类 POST 数据基础上按场景补充字段）。
      *
@@ -71,6 +74,6 @@ class PageFormRequest extends FormRequest
             $rules['slug'] = 'required|alpha_dash|unique:page,slug,id';
         }
 
-        return $rules;
+        return array_merge($rules, $this->metadataRules());
     }
 }

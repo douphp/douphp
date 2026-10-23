@@ -14,6 +14,10 @@ RewriteEngine On
 RewriteCond %{HTTP:Authorization} .
 RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
+# images 目录禁止执行脚本：该目录只允许图片等静态资源，远程图导入等支路落下的
+# 脚本在此双保险拦截（含 x.php.jpg 这类多扩展名变体），防止被 PHP 解析执行
+RewriteRule ^images/.*\.(php[0-9]?|phtml|phar|pht|cgi|pl|py|asp|aspx|jsp|shtml)($|\.) - [F,L,NC]
+
 # 静态入口文件
 RewriteRule ^index\.html$  index.php  [L]
 

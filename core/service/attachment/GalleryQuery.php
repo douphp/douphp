@@ -142,9 +142,9 @@ class GalleryQuery
         return '<li class="' . $class . '" data-number="' . $number . '">'
             . '<img src="' . $src . '" alt="" />'
             . '<div class="file-item-mask" style="display:none">'
-            . '<button type="button" class="file-input-action file-input-action-replace bi-arrow-repeat" title="' . $replaceTitle . '"></button>'
-            . '<button type="button" class="file-input-action file-input-action-crop bi-scissors" title="' . $cropTitle . '"></button>'
-            . '<button type="button" class="file-input-action file-input-remove bi-x" title="' . $delTitle . '"></button>'
+            . '<button type="button" class="file-action file-action-replace bi-arrow-repeat" title="' . $replaceTitle . '"></button>'
+            . '<button type="button" class="file-action file-action-crop bi-scissors" title="' . $cropTitle . '"></button>'
+            . '<button type="button" class="file-action file-action-remove bi-x" title="' . $delTitle . '"></button>'
             . '</div>'
             . '<span onclick="fileDel(\'' . $number . '\', \'' . $listId . '\');" class="del">X</span>'
             . '</li>';

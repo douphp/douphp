@@ -89,9 +89,9 @@
      {include file="inc/page_header.tpl"}
       <!-- {if $act eq 'default'} 导航列表 -->
       <div class="tab" id="miniprogram-nav-tabs">
-       <ul class="tab-title">
-        <li{if $type eq 'miniprogram_top'} class="active"{/if}><a href="{url link='admin.miniprogram.nav'}">{$lang.miniprogram_nav_miniprogram_top}</a></li>
-        <li{if $type eq 'miniprogram_tabbar'} class="active"{/if}><a href="{url link='admin.miniprogram.nav' type=miniprogram_tabbar}">{$lang.miniprogram_nav_miniprogram_tabbar}</a></li>
+       <ul class="tab-nav">
+        <li class="nav-item"><a class="nav-link{if $type eq 'miniprogram_top'} active{/if}" href="{url link='admin.miniprogram.nav'}">{$lang.miniprogram_nav_miniprogram_top}</a></li>
+        <li class="nav-item"><a class="nav-link{if $type eq 'miniprogram_tabbar'} active{/if}" href="{url link='admin.miniprogram.nav' type=miniprogram_tabbar}">{$lang.miniprogram_nav_miniprogram_tabbar}</a></li>
        </ul>
       </div>
       <table class="table">
@@ -139,7 +139,7 @@
         <div class="form-item">
          <div class="form-label">{$lang.icon}</div>
          <div class="input-block">
-          {include file="inc/file_input.tpl" name="icon" value=$nav_info.icon file_number=$nav_info.file_number}</div>
+          {include file="inc/file_image.tpl" name="icon" value=$nav_info.icon file_number=$nav_info.file_number}</div>
         </div>
         <!-- {/if} -->
         <div class="form-item">
@@ -186,7 +186,7 @@
         <div class="form-item">
          <div class="form-label">{$lang.icon}</div>
          <div class="input-block">
-          {include file="inc/file_input.tpl" name="icon" value=$nav_info.icon file_number=$nav_info.file_number}</div>
+          {include file="inc/file_image.tpl" name="icon" value=$nav_info.icon file_number=$nav_info.file_number}</div>
         </div>
         <!-- {/if} -->
         <div class="form-item">
@@ -230,59 +230,63 @@
      <!-- {if $rec eq 'show'} 幻灯图片 开始 -->
      {include file="inc/page_header.tpl"}
      <div class="split-layout">
-      <div class="split-side">
-       <div class="title">{$lang.show_create}</div>
-       <div class="form-box">
-        <form action="{if $show.id}{url link='admin.miniprogram.show.update' id=$show.id}{else}{url link='admin.miniprogram.show.store'}{/if}"{if $show.id} class="form-edit"{/if} method="post" enctype="multipart/form-data"><!-- {if $show.id} --><input type="hidden" name="_method" value="PUT" /><!-- {/if} -->
-         <div class="form">
-          <div class="form-item">
-           <div class="form-label">{$lang.show_name}</div>
-           <div class="input-block"><input type="text" name="name" value="{$show.name}" size="20" class="input" /><span class="action" data-field="name"></span></div>
+      <div class="split-pane col-4">
+       <div class="split-header">{$lang.show_create}</div>
+       <div class="split-body">
+        <div class="form-box">
+         <form action="{if $show.id}{url link='admin.miniprogram.show.update' id=$show.id}{else}{url link='admin.miniprogram.show.store'}{/if}"{if $show.id} class="form-edit"{/if} method="post" enctype="multipart/form-data"><!-- {if $show.id} --><input type="hidden" name="_method" value="PUT" /><!-- {/if} -->
+          <div class="form">
+           <div class="form-item">
+            <div class="form-label">{$lang.show_name}</div>
+            <div class="input-block"><input type="text" name="name" value="{$show.name}" size="20" class="input" /><span class="action" data-field="name"></span></div>
+           </div>
+           <div class="form-item">
+            <div class="form-label">{$lang.show_img}</div>
+            <div class="input-block">{include file="inc/file_image.tpl" name="image" value=$show.image file_number=$show.file_number}</div>
+           </div>
+           <div class="form-item">
+            <div class="form-label">{$lang.show_link}</div>
+            <div class="input-block"><input type="text" name="link" value="{$show.link}" size="40" class="input" /><span class="action" data-field="link"></span></div>
+           </div>
+           <div class="form-item">
+            <div class="form-label">{$lang.sort}</div>
+            <div class="input-block"><input type="text" name="sort" value="{if $show.sort}{$show.sort}{else}50{/if}" size="20" class="input" /></div>
+           </div>
+           <div class="form-item">
+            <!-- {if $show.id} -->
+            <a href="{url link='admin.miniprogram.show'}" class="btn-secondary">{$lang.cancel}</a>
+            <input type="hidden" name="id" value="{$show.id}">
+            <!-- {/if} -->
+            <input type="hidden" name="token" value="{$token}" />
+            <input class="btn" type="submit" value="{$lang.btn_submit}" />
+           </div>
           </div>
-          <div class="form-item">
-           <div class="form-label">{$lang.show_img}</div>
-           <div class="input-block">{include file="inc/file_input.tpl" name="image" value=$show.image file_number=$show.file_number}</div>
-          </div>
-          <div class="form-item">
-           <div class="form-label">{$lang.show_link}</div>
-           <div class="input-block"><input type="text" name="link" value="{$show.link}" size="40" class="input" /><span class="action" data-field="link"></span></div>
-          </div>
-          <div class="form-item">
-           <div class="form-label">{$lang.sort}</div>
-           <div class="input-block"><input type="text" name="sort" value="{if $show.sort}{$show.sort}{else}50{/if}" size="20" class="input" /></div>
-          </div>
-          <div class="form-item">
-           <!-- {if $show.id} -->
-           <a href="{url link='admin.miniprogram.show'}" class="btn-secondary">{$lang.cancel}</a>
-           <input type="hidden" name="id" value="{$show.id}">
-           <!-- {/if} -->
-           <input type="hidden" name="token" value="{$token}" />
-           <input class="btn" type="submit" value="{$lang.btn_submit}" />
-          </div>
-         </div>
-        </form>
+         </form>
+        </div>
        </div>
       </div>
-      <div class="split-main">
-       <div class="title">{$lang.show_list}</div>
-       <table class="table">
-        <tr>
-         <td width="100">{$lang.show_name}</td>
-         <td></td>
-         <td width="50" class="text-center">{$lang.sort}</td>
-         <td width="80" class="text-center">{$lang.handler}</td>
-        </tr>
-        <!-- {foreach from=$show_list item=item} -->
+      <div class="split-pane col-8">
+       <div class="split-header">{$lang.show_list}</div>
+       <div class="split-body">
+        <table class="table">
+         <tr>
+          <td width="100">{$lang.show_name}</td>
+          <td></td>
+          <td width="50" class="text-center">{$lang.sort}</td>
+          <td width="80" class="text-center">{$lang.handler}</td>
+         </tr>
+         <!-- {foreach from=$show_list item=item} -->
 
-        <tr{if $item.id eq $id} class="active"{/if}>
+         <tr{if $item.id eq $id} class="active"{/if}>
 
-        <td><a href="{$item.image}" target="_blank"><img src="{$item.image}" width="100" /></a></td>
-         <td>{$item.name}</td>
-         <td class="text-center">{$item.sort}</td>
-         <td class="text-center"><a href="{url link='admin.miniprogram.show.edit' id=$item.id}">{$lang.edit}</a> | <a href="javascript:;" class="js-delete" data-url="{url link='admin.miniprogram.show.destroy' id=$item.id}">{$lang.del}</a></td>
-        </tr>
-        <!-- {/foreach} -->
-       </table>
+         <td><a href="{$item.image}" target="_blank"><img src="{$item.image}" width="100" /></a></td>
+          <td>{$item.name}</td>
+          <td class="text-center">{$item.sort}</td>
+          <td class="text-center"><a href="{url link='admin.miniprogram.show.edit' id=$item.id}">{$lang.edit}</a> | <a href="javascript:;" class="js-delete" data-url="{url link='admin.miniprogram.show.destroy' id=$item.id}">{$lang.del}</a></td>
+         </tr>
+         <!-- {/foreach} -->
+        </table>
+       </div>
       </div>
      </div>
      <!-- {/if} 幻灯图片 结束 -->

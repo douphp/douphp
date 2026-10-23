@@ -22,10 +22,10 @@
    <!-- {if $rec eq 'default'} 导航列表 -->
    <div class="navList">
     <div class="tab" id="nav-type-tabs">
-     <ul class="tab-title">
-      <li{if $type eq 'middle'} class="active"{/if}><a href="{url link='admin.nav'}">{$lang.nav_type_middle}</a></li>
-      <li{if $type eq 'top'} class="active"{/if}><a href="{url link='admin.nav' type=top}">{$lang.nav_type_top}</a></li>
-      <li{if $type eq 'bottom'} class="active"{/if}><a href="{url link='admin.nav' type=bottom}">{$lang.nav_type_bottom}</a></li>
+     <ul class="tab-nav">
+      <li class="nav-item"><a class="nav-link{if $type eq 'middle'} active{/if}" href="{url link='admin.nav'}">{$lang.nav_type_middle}</a></li>
+      <li class="nav-item"><a class="nav-link{if $type eq 'top'} active{/if}" href="{url link='admin.nav' type=top}">{$lang.nav_type_top}</a></li>
+      <li class="nav-item"><a class="nav-link{if $type eq 'bottom'} active{/if}" href="{url link='admin.nav' type=bottom}">{$lang.nav_type_bottom}</a></li>
      </ul>
     </div>
     <table class="table">
@@ -58,9 +58,9 @@
    <!-- {/if} -->
    <!-- {if $rec eq 'create'} 导航添加 -->
    <div class="tab" id="nav-create-tabs">
-    <ul class="tab-title">
-     <li class="active"><a href="#nav-add" data-toggle="tab">{$lang.nav_inside}</a></li>
-     <li><a href="#nav-defined" data-toggle="tab">{$lang.nav_defined}</a></li>
+    <ul class="tab-nav">
+     <li class="nav-item"><a class="nav-link active" href="#nav-add" data-toggle="tab">{$lang.nav_inside}</a></li>
+     <li class="nav-item"><a class="nav-link" href="#nav-defined" data-toggle="tab">{$lang.nav_defined}</a></li>
     </ul>
     <div class="items tab-content">
      <div class="tab-pane active" id="nav-add">
@@ -90,7 +90,7 @@
          <div class="form-label">{$lang.icon}</div>
          <div class="input-block">
           <!-- {if $site.open_icon eq 'image'} -->
-          {include file="inc/file_input.tpl" name="icon" value=$nav_info.icon file_number=$nav_info.file_number}
+          {include file="inc/file_image.tpl" name="icon" value=$nav_info.icon file_number=$nav_info.file_number}
           <!-- {else} -->
           <input type="text" name="icon" value="" size="30" class="input" />
           <p class="cue">{$lang.icon_text_cue}</p>
@@ -152,7 +152,7 @@
          <div class="form-label">{$lang.icon}</div>
          <div class="input-block">
           <!-- {if $site.open_icon eq 'image'} -->
-          {include file="inc/file_input.tpl" name="icon" value=$nav_info.icon file_number=$nav_info.file_number}
+          {include file="inc/file_image.tpl" name="icon" value=$nav_info.icon file_number=$nav_info.file_number}
           <!-- {else} -->
           <input type="text" name="icon" value="" size="30" class="input" />
           <p class="cue">{$lang.icon_text_cue}</p>
@@ -238,7 +238,7 @@
       <div class="form-label">{$lang.icon}</div>
       <div class="input-block">
        <!-- {if $site.open_icon eq 'image'} -->
-       {include file="inc/file_input.tpl" name="icon" value=$nav_info.icon file_number=$nav_info.file_number}
+       {include file="inc/file_image.tpl" name="icon" value=$nav_info.icon file_number=$nav_info.file_number}
        <!-- {else} -->
        <input type="text" name="icon" value="{$nav_info.icon}" size="30" class="input" />
        <p class="cue">{$lang.icon_text_cue}</p>

@@ -16,12 +16,14 @@ namespace Dou\Admin\Service\Module;
 
 use Dou\Admin\Facade\Cloud;
 use Dou\Admin\Model\Module\Module;
+use Dou\Core\Facade\DB;
 use Dou\Core\Facade\Session;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Service\Admin\AdminLogAction;
 use Dou\Core\Service\BaseService;
 use Dou\Core\Support\Check;
+use Dou\Core\Support\FileHelper;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
@@ -152,11 +154,34 @@ class ModuleService extends BaseService
         }
 
         $this->cloud->clearModule($extendId);
+        $this->purgeModuleData($extendId);
         $this->cloud->changeUpdateDate('module', $extendId, true);
         @unlink($moduleInstalledFile);
 
         if (audit()) {
             audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::UNINSTALL, 1, (string) $extendId);
+        }
+    }
+
+    /**
+     * 清理模块在参数表与默认运行期状态目录中的残留。
+     *
+     * 仅在真正卸载时调用；安装/更新失败回滚走 clearModule()，不会触发本方法。
+     *
+     * @param string $extendId
+     * @return void
+     */
+    private function purgeModuleData($extendId)
+    {
+        try {
+            DB::table('parameter')->where('group', $extendId)->delete();
+        } catch (\Exception $e) {
+            error_log('module parameter cleanup failed: ' . $extendId . ' ' . $e->getMessage());
+        }
+
+        $stateDir = STORAGE_PATH . 'state/' . $extendId;
+        if (is_dir($stateDir)) {
+            FileHelper::delDir($stateDir);
         }
     }
 

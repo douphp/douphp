@@ -16,6 +16,7 @@ namespace Dou\Core\Facade;
 
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Module\ModuleModelResolver;
+use Dou\Core\Service\Metadata\MetadataValues;
 use Dou\Core\Support\CategoryIds;
 use Dou\Core\Support\Str;
 use Dou\Front\Model\Link\Link;
@@ -318,7 +319,10 @@ class Portal
             $query->limit((int) $limit);
         }
 
-        return self::applyDescriptionExcerpt($query->get()->toArray(), $excerptLength);
+        $rows = $query->get()->toArray();
+        MetadataValues::decorateRows($module, $rows);
+
+        return self::applyDescriptionExcerpt($rows, $excerptLength);
     }
 
     /**
@@ -356,7 +360,10 @@ class Portal
             $query->limit((int) $limit);
         }
 
-        return self::applyDescriptionExcerpt($query->get()->toArray(), $excerptLength);
+        $rows = $query->get()->toArray();
+        MetadataValues::decorateRows($module, $rows);
+
+        return self::applyDescriptionExcerpt($rows, $excerptLength);
     }
 
     /**
@@ -426,6 +433,7 @@ class Portal
         }
 
         $tree = $cls::withItems((int) $itemNumber, 0, (bool) $includeChildren, 0);
+        MetadataValues::decorateTree($module, $tree);
 
         return self::applyDescriptionExcerptToTree($tree, $excerptLength);
     }

@@ -55,8 +55,10 @@
          <li>{$lang.coupon}：<div class="coupon-get-list"><!-- {foreach from=$coupon_list item=coupon} --><span class="get-coupon{$coupon.class}" title="{$coupon.brief}" data-id="{$coupon.id}"><em class="n">{$coupon.name}</em><em class="t">{$coupon.status.format}</em></span><!-- {/foreach} --></div>
          </li>
          <!-- {/if} -->
-         <!-- {foreach from=$defined name=defined item=defined} -->
-         <li>{$defined.arr}：{$defined.value}</li>
+         <!-- {foreach from=$product.metadata_list name=metadata item=meta} -->
+         <!-- {if $meta.value !== '' && $meta.type neq 'image' && $meta.type neq 'gallery' && $meta.type neq 'file' && $meta.type neq 'editor'} -->
+         <li>{$meta.label}：{$meta.value}</li>
+         <!-- {/if} -->
          <!-- {/foreach} -->
          <!-- {if $product.model_list && !$features.attribute} -->
          <li> {$lang.product_model}：
@@ -115,6 +117,16 @@
         {$product.content nofilter}
        </ul>
       </div>
+      <!-- {if $product.attach_list} -->
+      <div class="attach">
+       <h3><i class="bi bi-paperclip" aria-hidden="true"></i>{$lang.attach_download}</h3>
+       <ul>
+        <!-- {foreach from=$product.attach_list item=attach} -->
+        <li><a href="{$attach.file}" target="_blank" rel="noopener" download="{$attach.name}"><i class="bi {$attach.icon}"></i><span class="attach-name">{$attach.name}</span><em class="attach-size">{$attach.size_format}</em></a></li>
+        <!-- {/foreach} -->
+       </ul>
+      </div>
+      <!-- {/if} -->
      </div>
      <!-- {if $features.comment} -->
      {include file="inc/comment.tpl"}

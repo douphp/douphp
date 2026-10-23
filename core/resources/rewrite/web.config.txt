@@ -4,6 +4,12 @@
     <system.webServer>
       <rewrite>
         <rules>
+          <!-- images/ 目录禁止执行脚本：须置于 dead-end-php 之前，否则 .php 请求会先被终止放行 -->
+          <rule name="deny-images-script" stopProcessing="true">
+            <match url="^images/.*\.(php[0-9]?|phtml|phar|pht|cgi|pl|py|asp|aspx|jsp|shtml)($|\.)" ignoreCase="true" />
+            <action type="CustomResponse" statusCode="403" statusReason="Forbidden" statusDescription="Forbidden" />
+          </rule>
+
           <!-- 防循环：URL 已是 .php 结尾就终止，避免内部重写循环（文件不存在时 IIS 自然返回 404） -->
           <rule name="dead-end-php" stopProcessing="true">
             <match url="\.php$" ignoreCase="true" />

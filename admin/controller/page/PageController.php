@@ -17,6 +17,7 @@ namespace Dou\Admin\Controller\Page;
 use Dou\Admin\Controller\BaseController;
 use Dou\Admin\Model\Page\Page;
 use Dou\Admin\Request\Page\PageFormRequest;
+use Dou\Admin\Service\Metadata\MetadataFormBuilder;
 use Dou\Admin\Service\Page\PageService;
 use Dou\Core\Foundation\Api\ApiCodes;
 use Dou\Core\Foundation\Exception\DomainException;
@@ -43,12 +44,17 @@ class PageController extends BaseController
     /** @var PageService */
     private $pageService;
 
+    /** @var MetadataFormBuilder */
+    private $metadataFormBuilder;
+
     /**
      * @param PageService $pageService
+     * @param MetadataFormBuilder $metadataFormBuilder
      */
-    public function __construct(PageService $pageService)
+    public function __construct(PageService $pageService, MetadataFormBuilder $metadataFormBuilder)
     {
         $this->pageService = $pageService;
+        $this->metadataFormBuilder = $metadataFormBuilder;
     }
 
     /**
@@ -95,6 +101,7 @@ class PageController extends BaseController
             'page' => $bundle['page'],
             'item_content' => $bundle['item_content'],
             'download' => $this->pageService->buildPageDownloadData(0),
+            'metadata_form' => $this->metadataFormBuilder->build('page', '', 0),
             'btn_lang' => language()->buildLangButtons('page', '', 'name, content, keywords, description'),
         ]);
     }
@@ -159,6 +166,7 @@ class PageController extends BaseController
             'item_content' => $page['item_content'],
             'page' => $page,
             'download' => $this->pageService->buildPageDownloadData($id),
+            'metadata_form' => $this->metadataFormBuilder->build('page', isset($page['metadata']) ? $page['metadata'] : '', $id),
             'btn_lang' => language()->buildLangButtons('page', $id, 'name, content, keywords, description'),
             'data_list' => $dataList,
         ]);

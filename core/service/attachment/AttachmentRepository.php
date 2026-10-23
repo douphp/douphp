@@ -141,19 +141,7 @@ class AttachmentRepository
         if (!is_array($file) || empty($file)) {
             return;
         }
-        $rel = isset($file['file']) ? $file['file'] : '';
-        if ($rel !== '') {
-            @unlink(PathNormalizer::absoluteFromSiteRoot($rel));
-            if (!empty($file['thumb_size'])) {
-                $parts = explode('.', $rel);
-                if (count($parts) >= 2) {
-                    $ext = $parts[count($parts) - 1];
-                    $base = substr($rel, 0, strlen($rel) - strlen($ext) - 1);
-                    $thumbRel = $base . '_thumb.' . $ext;
-                    @unlink(PathNormalizer::absoluteFromSiteRoot($thumbRel));
-                }
-            }
-        }
+        $this->unlinkStoredFiles($file);
         $db->table('file')->where('number', $number)->delete();
 
         $module = isset($file['module']) ? $file['module'] : '';
@@ -165,6 +153,116 @@ class AttachmentRepository
             $currentImage = $db->table($module)->where('id', intval($itemId))->value('image');
             if (is_string($currentImage) && $currentImage === $number) {
                 $db->table($module)->where('id', intval($itemId))->update(array('image' => ''));
+            }
+        }
+    }
+
+    /**
+     * 按 number 条件认领一条 draft：归属、模块、状态四重校验，返回实际更新行数。
+     *
+     * 与 claimByToken() 的差异：按主键式 number 定位并返回 affected rows，供调用方做
+     * CAS 断言；主图认领必须用它，不能依赖 claimByToken() 的 SELECT 命中列表。
+     *
+     * @param string $module
+     * @param string $number
+     * @param string $itemId 业务主键（按字符串写入 dou_file.item_id）
+     * @param string $uploaderType admin / user / work
+     * @param int $uploaderId
+     * @return int 实际更新行数（0=不存在/已认领/归属不符）
+     */
+    public function claimDraftByNumber($module, $number, $itemId, $uploaderType, $uploaderId)
+    {
+        $number = (string) $number;
+        $uploaderId = (int) $uploaderId;
+        if ($number === '' || $uploaderId <= 0) {
+            return 0;
+        }
+
+        return (int) DB::table('file')
+            ->where('module', $module)
+            ->where('number', $number)
+            ->where('uploader_type', $uploaderType)
+            ->where('uploader_id', $uploaderId)
+            ->where('status', 'draft')
+            ->data(array(
+                'item_id' => (string) $itemId,
+                'status' => 'owned',
+                'draft_token' => '',
+                'draft_expire_at' => null,
+                'last_used_at' => date('Y-m-d H:i:s'),
+            ))
+            ->update();
+    }
+
+    /**
+     * 按 number 条件删除一条 draft：仅命中「本模块 + 本上传者 + 仍为 draft」时
+     * 才删行并 unlink 物理文件/缩略图，返回实际删除行数。
+     *
+     * 禁止用 deleteByNumber() 做占位回收：后者无条件删行，且可能清空业务主图。
+     *
+     * @param string $module
+     * @param string $number
+     * @param string $uploaderType
+     * @param int $uploaderId
+     * @return int
+     */
+    public function deleteDraftByNumber($module, $number, $uploaderType, $uploaderId)
+    {
+        $number = (string) $number;
+        $uploaderId = (int) $uploaderId;
+        if ($number === '' || $uploaderId <= 0) {
+            return 0;
+        }
+
+        $db = DB::getFacadeRoot();
+        $row = $db->table('file')
+            ->where('module', $module)
+            ->where('number', $number)
+            ->where('uploader_type', $uploaderType)
+            ->where('uploader_id', $uploaderId)
+            ->where('status', 'draft')
+            ->find();
+        if (!is_array($row) || empty($row)) {
+            return 0;
+        }
+
+        $deleted = $db->table('file')
+            ->where('module', $module)
+            ->where('number', $number)
+            ->where('uploader_type', $uploaderType)
+            ->where('uploader_id', $uploaderId)
+            ->where('status', 'draft')
+            ->delete();
+        if ((int) $deleted !== 1) {
+            return 0;
+        }
+
+        $this->unlinkStoredFiles($row);
+
+        return 1;
+    }
+
+    /**
+     * 删除 dou_file 行对应的主文件与 `*_thumb` 缩略图。
+     *
+     * @param array $row dou_file 行
+     * @return void
+     */
+    private function unlinkStoredFiles(array $row)
+    {
+        $rel = isset($row['file']) ? (string) $row['file'] : '';
+        if ($rel === '') {
+            return;
+        }
+
+        @unlink(PathNormalizer::absoluteFromSiteRoot($rel));
+        if (!empty($row['thumb_size'])) {
+            $parts = explode('.', $rel);
+            if (count($parts) >= 2) {
+                $ext = $parts[count($parts) - 1];
+                $base = substr($rel, 0, strlen($rel) - strlen($ext) - 1);
+                $thumbRel = $base . '_thumb.' . $ext;
+                @unlink(PathNormalizer::absoluteFromSiteRoot($thumbRel));
             }
         }
     }
@@ -320,8 +418,10 @@ class AttachmentRepository
             ->select();
         $count = 0;
         foreach ((array) $rows as $row) {
-            $this->deleteByNumber($row['number']);
-            $count++;
+            // 条件删除：SELECT 与 DELETE 之间若被 claim，则本次删除 0 行、不误删已归属附件
+            if ($this->deleteDraftByNumber($module, $row['number'], $uploaderType, $uploaderId) > 0) {
+                $count++;
+            }
         }
 
         return $count;

@@ -17,6 +17,7 @@ namespace Dou\Admin\Service\Miniprogram;
 use Dou\Admin\Model\Miniprogram\MiniprogramShow;
 use Dou\Admin\Model\Show\Show;
 use Dou\Core\Filesystem\Storage;
+use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Service\Admin\AdminLogAction;
 use Dou\Core\Service\Attachment\AttachmentUploadOptions;
@@ -100,17 +101,29 @@ class MiniprogramShowService extends BaseService
             'type' => 'miniprogram',
             'sort' => isset($data['sort']) ? Num::toIntOrZero($data['sort']) : 0,
         );
-        $model = MiniprogramShow::create($row);
-        $newId = (int) $model->getKey();
+        $adminId = (int) auth('admin')->id();
+        $file = !empty($_FILES['image']['name']) ? UploadedFile::fromGlobals('image') : null;
+        $image = attachment()->reserve('show', $file, 'admin', $adminId, 'main', AttachmentUploadOptions::create());
+        $row['image'] = $image;
 
-        if (!empty($_FILES['image']['name'])) {
-            $image = attachment()->store('show', $newId, UploadedFile::fromGlobals('image'), 'main', AttachmentUploadOptions::create()->withUploader('admin', (int) auth('admin')->id()));
-            if ($image !== '') {
-                MiniprogramShow::whereKey($newId)->update(array('image' => $image));
+        $newId = (int) DB::transaction(function () use ($row, $image, $adminId) {
+            $model = MiniprogramShow::create($row);
+            if (!$model) {
+                throw new DomainException(lang('operation_failed'));
             }
-        }
+            $newId = (int) $model->getKey();
+            if ($newId <= 0) {
+                throw new DomainException(lang('operation_failed'));
+            }
 
-        audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::CREATE, 1, (string) $data['name'], 'miniprogram_show');
+            if ($image !== '' && attachment()->adopt('show', $image, $newId, 'admin', $adminId) < 1) {
+                throw new DomainException(lang('file_claim_failed'));
+            }
+
+            return $newId;
+        });
+
+        audit()->writeAdminLog($adminId, AdminLogAction::CREATE, 1, (string) $data['name'], 'miniprogram_show');
 
         return $newId;
     }

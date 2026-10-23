@@ -224,16 +224,25 @@ class BackupService extends BaseService
             ? $req['showname']
             : $filename . ($act === 'asset' ? '.zip' : '.sql');
 
-        if ($volid == 1 && $tables) {
-            if (!is_array($tables)) {
+        if ($volid == 1) {
+            // 首卷必须由请求显式给出表清单：未勾选任何表时直接回落到备份页提示，
+            // 不能落进「读缓存续传」分支——缓存只在本分支校验通过后才写出，此时必然不存在
+            if (!is_array($tables) || !$tables) {
                 throw new DomainException(lang('backup_no_select'), route('admin.backup'));
             }
             $cache_file = STORAGE_PATH . 'backup/tables.php';
             $content = "<?php\r\n\$data = " . var_export($tables, true) . ";\r\n?>";
             file_put_contents($cache_file, $content, LOCK_EX);
         } else {
-            include STORAGE_PATH . 'backup/tables.php';
-            $tables = $data;
+            // 续传卷依赖首卷写下的表清单缓存：缓存缺失或损坏（被清理、手工删除、旧分卷 URL）
+            // 时按「没有选择数据表」提示回落，避免 include 打入不存在的文件抛出致命错误
+            $cache_file = STORAGE_PATH . 'backup/tables.php';
+            if (!is_file($cache_file)) {
+                throw new DomainException(lang('backup_no_select'), route('admin.backup'));
+            }
+            $data = null;
+            include $cache_file;
+            $tables = is_array($data) ? $data : array();
             if (!$tables) {
                 throw new DomainException(lang('backup_no_select'), route('admin.backup'));
             }

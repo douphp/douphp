@@ -15,6 +15,7 @@
 namespace Dou\Admin\Service\Show;
 
 use Dou\Admin\Model\Show\Show;
+use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Service\Admin\AdminLogAction;
 use Dou\Core\Service\Attachment\AttachmentUploadOptions;
@@ -103,17 +104,29 @@ class ShowService extends BaseService
             'type' => $type,
         );
 
-        $model = Show::create($row);
-        $id = (int) $model->getKey();
+        $adminId = (int) auth('admin')->id();
+        $file = (isset($_FILES['image']['name']) && $_FILES['image']['name'] != '') ? UploadedFile::fromGlobals('image') : null;
+        $image = attachment()->reserve('show', $file, 'admin', $adminId, 'main', AttachmentUploadOptions::create());
+        $row['image'] = $image;
 
-        if (isset($_FILES['image']['name']) && $_FILES['image']['name'] != '') {
-            $image = attachment()->store('show', $id, UploadedFile::fromGlobals('image'), 'main', AttachmentUploadOptions::create()->withUploader('admin', (int) auth('admin')->id()));
-            if ($image !== '') {
-                Show::whereKey($id)->update(array('image' => $image));
+        $id = (int) DB::transaction(function () use ($row, $image, $adminId) {
+            $model = Show::create($row);
+            if (!$model) {
+                throw new DomainException(lang('operation_failed'));
             }
-        }
+            $id = (int) $model->getKey();
+            if ($id <= 0) {
+                throw new DomainException(lang('operation_failed'));
+            }
 
-        audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::CREATE, 1, (string) $data['name']);
+            if ($image !== '' && attachment()->adopt('show', $image, $id, 'admin', $adminId) < 1) {
+                throw new DomainException(lang('file_claim_failed'));
+            }
+
+            return $id;
+        });
+
+        audit()->writeAdminLog($adminId, AdminLogAction::CREATE, 1, (string) $data['name']);
 
         return $id;
     }

@@ -92,6 +92,7 @@ if (!defined('IN_DOUCO')) {
  * @method static void beginTransaction()
  * @method static void commit()
  * @method static void rollback()
+ * @method static mixed transaction(callable $callback)
  * @method static mixed stmtExecute(string $sql, array $params = [], string $types = '')
  * @method static Connection fetchSql(bool $fetch = true)
  * @method static string lastSql()

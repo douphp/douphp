@@ -16,6 +16,7 @@ namespace Dou\Front\Service\Page;
 
 use Dou\Core\Service\BaseService;
 use Dou\Core\Service\Content\MarkdownRenderer;
+use Dou\Core\Service\Metadata\MetadataValues;
 use Dou\Core\Support\Check;
 use Dou\Front\Model\Page\Page;
 
@@ -59,8 +60,9 @@ class PageService extends BaseService
             return null;
         }
 
-        // 多语言与正文
+        // 多语言、扩展字段与正文
         $page = language()->langBox($page, 'page', 'name, content, keywords, description');
+        MetadataValues::decorateRow('page', $page);
         $page['content'] = $this->markdown->toHtml($page['content']);
 
         // 顶级单页（侧栏/面包屑）
@@ -114,6 +116,7 @@ class PageService extends BaseService
         $page['click'] = $oldClick + 1;
 
         $page = language()->langBox($page, 'page', 'name, content, keywords, description');
+        MetadataValues::decorateRow('page', $page);
         $page['content'] = $this->markdown->toHtml($page['content']);
 
         $title = isset($page['name']) ? $page['name'] : '';

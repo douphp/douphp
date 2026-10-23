@@ -210,6 +210,7 @@ class Init
 
         $engine->assign('site', Config::get('site', array()));
         $engine->assign('admin_url', defined('ADMIN_URL') ? ADMIN_URL : '');
+        $engine->assign('upload_max_kb', attachment()->effectiveUploadMaxKb());
         // param 在 loadModules 中 Config::set 后再次 assign，避免模板读到过时参数
     }
 

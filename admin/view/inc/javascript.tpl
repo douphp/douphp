@@ -1,5 +1,6 @@
 <script>var admin_url = "{$admin_url}";</script>
 <script>var dou_crop_max_edge = {if $site.image_width}{$site.image_width}{else}1000{/if};</script>
+<script>var dou_upload_max_kb = {$upload_max_kb};</script>
 <script>window.__douRouteConfig = {$js_route_config_json nofilter};</script>
 <script type="text/javascript" src="js/jquery.min.js"></script>
 <script type="text/javascript" src="js/dou.csrf.js"></script>

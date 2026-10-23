@@ -15,6 +15,8 @@
 namespace Dou\Admin\Model\Concerns;
 
 use Dou\Core\Foundation\Configuration\Config;
+use Dou\Core\Service\Metadata\MetadataTranslationStore;
+use Dou\Core\Service\Metadata\MetadataValues;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
@@ -54,7 +56,29 @@ trait PurgesRelatedOnDelete
     protected function purgeRelatedOnDelete()
     {
         $this->purgeAttachmentOnDelete();
+        $this->purgeMetadataOnDelete();
         $this->purgeLanguageOnDelete();
+    }
+
+    /**
+     * 清理扩展字段附件与 metadata 翻译行。
+     *
+     * 与 shouldPurgeLanguage() 无关：store 等模块关闭通用语言清理时，
+     * 仍必须清掉 field='metadata' 的覆盖行，避免残留。
+     *
+     * @return void
+     */
+    protected function purgeMetadataOnDelete()
+    {
+        $module = $this->getTable();
+        $itemId = (int) $this->getKey();
+        if ($module === '' || $itemId <= 0) {
+            return;
+        }
+
+        $translations = new MetadataTranslationStore();
+        $translations->delete($module, $itemId);
+        MetadataValues::purgeByModule($module, $itemId);
     }
 
     /**

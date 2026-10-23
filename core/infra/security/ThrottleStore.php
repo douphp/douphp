@@ -43,21 +43,59 @@ class ThrottleStore
     /**
      * 当前窗口内自增一次并返回计数；窗口到期则重开窗口。
      *
+     * 读改写全程持有排他锁，避免并发首次请求同时读到空文件而绕过 nonce 去重。
+     *
      * @param string $key
      * @param int $window 窗口秒数
      * @return int 自增后的命中数
      */
     public function hit($key, $window)
     {
-        $now = time();
-        $data = $this->read($key);
-        if ($data === null || !isset($data['reset']) || $now >= (int) $data['reset']) {
-            $data = array('count' => 0, 'reset' => $now + (int) $window);
-        }
-        $data['count'] = (int) $data['count'] + 1;
-        $this->write($key, $data);
+        $window = max(1, (int) $window);
+        $result = $this->withLock($key, function ($data) use ($window) {
+            $now = time();
+            if (!is_array($data) || !isset($data['count'], $data['reset']) || $now >= (int) $data['reset']) {
+                $data = array('count' => 0, 'reset' => $now + $window);
+            }
+            $data['count'] = (int) $data['count'] + 1;
 
-        return (int) $data['count'];
+            return array($data, (int) $data['count']);
+        });
+
+        return $result === null ? 1 : (int) $result;
+    }
+
+    /**
+     * 原子计数：未达到上限则自增并返回 true；达到上限返回 false（不自增）。
+     *
+     * 供分钟限流使用，替代 tooMany() + hit() 的非原子组合。
+     *
+     * @param string $key
+     * @param int $max
+     * @param int $window
+     * @return bool
+     */
+    public function attempt($key, $max, $window)
+    {
+        $max = (int) $max;
+        if ($max <= 0) {
+            return true;
+        }
+        $window = max(1, (int) $window);
+        $result = $this->withLock($key, function ($data) use ($max, $window) {
+            $now = time();
+            if (!is_array($data) || !isset($data['count'], $data['reset']) || $now >= (int) $data['reset']) {
+                $data = array('count' => 0, 'reset' => $now + $window);
+            }
+            if ((int) $data['count'] >= $max) {
+                return array($data, false);
+            }
+            $data['count'] = (int) $data['count'] + 1;
+
+            return array($data, true);
+        });
+
+        return $result === null ? true : (bool) $result;
     }
 
     /**
@@ -166,15 +204,55 @@ class ThrottleStore
     }
 
     /**
+     * 在文件排他锁内执行读改写。
+     *
+     * 回调返回 array($newData, $result)；$newData 为数组时写回文件。
+     * 打开/加锁失败返回 null，由调用方保持原有 fail-open 语义。
+     *
      * @param string $key
-     * @param array $data
-     * @return void
+     * @param callable $callback
+     * @return mixed|null
      */
-    private function write($key, array $data)
+    private function withLock($key, $callback)
     {
         if (!is_dir($this->dir)) {
             @mkdir($this->dir, 0777, true);
         }
-        @file_put_contents($this->file($key), json_encode($data), LOCK_EX);
+        $handle = @fopen($this->file($key), 'c+');
+        if ($handle === false) {
+            return null;
+        }
+
+        try {
+            if (!flock($handle, LOCK_EX)) {
+                return null;
+            }
+            rewind($handle);
+            $raw = stream_get_contents($handle);
+            $data = null;
+            if ($raw !== false && $raw !== '') {
+                $decoded = json_decode($raw, true);
+                if (is_array($decoded)) {
+                    $data = $decoded;
+                }
+            }
+
+            $out = $callback($data);
+            $newData = (is_array($out) && array_key_exists(0, $out)) ? $out[0] : null;
+            $result = (is_array($out) && array_key_exists(1, $out)) ? $out[1] : null;
+
+            if (is_array($newData)) {
+                $payload = json_encode($newData);
+                ftruncate($handle, 0);
+                rewind($handle);
+                fwrite($handle, $payload === false ? '' : $payload);
+                fflush($handle);
+            }
+
+            return $result;
+        } finally {
+            @flock($handle, LOCK_UN);
+            @fclose($handle);
+        }
     }
 }

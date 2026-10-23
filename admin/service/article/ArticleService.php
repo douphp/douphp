@@ -15,7 +15,9 @@
 namespace Dou\Admin\Service\Article;
 
 use Dou\Admin\Model\Article\Article;
-use Dou\Core\Foundation\Configuration\Config;
+use Dou\Admin\Service\Concerns\DecoratesAdminMetadata;
+use Dou\Admin\Service\Concerns\SavesMetadata;
+use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Service\Admin\AdminLogAction;
 use Dou\Core\Service\Attachment\AttachmentUploadOptions;
@@ -41,6 +43,8 @@ if (!defined('IN_DOUCO')) {
  */
 class ArticleService extends BaseService
 {
+    use SavesMetadata;
+    use DecoratesAdminMetadata;
     /** @var MarkdownRenderer */
     private $markdown;
 
@@ -74,7 +78,7 @@ class ArticleService extends BaseService
         $result = Article::with('category')
             ->filterByCategory($catId)
             ->filterByKeyword($keyword)
-            ->field('id, title, category_id, image, sort, status, created_at')
+            ->field('id, title, category_id, image, sort, status, created_at, metadata')
             ->applyDefaultOrder()
             ->paginate(15, $page, Util::normalizeQueryString($pageUrl));
 
@@ -90,17 +94,21 @@ class ArticleService extends BaseService
                 'sort' => $row['sort'],
                 'status' => $row['status'],
                 'created_at' => $row['created_at'],
+                'metadata' => isset($row['metadata']) ? $row['metadata'] : '',
             );
         }
+
+        $metadataSchema = $this->decorateAdminMetadataRows('article', $articleList);
 
         return array(
             'list' => $articleList,
             'pager' => $result['pager'],
+            'metadata_schema' => $metadataSchema,
         );
     }
 
     /**
-     * 新增页默认数据：初始化 created_at 与自定义参数模板。
+     * 新增页默认数据：初始化 created_at。
      *
      * @return array
      */
@@ -114,14 +122,10 @@ class ArticleService extends BaseService
             'keywords' => '',
             'description' => '',
             'image' => '',
+            'attach_list_html' => '',
             'sort' => '50',
             'created_at' => date('Y-m-d H:i', time()),
-            'defined' => '',
         );
-
-        if (Config::get('defined.article')) {
-            $article['defined'] = str_replace(',', "\n", Config::get('defined.article'));
-        }
 
         return $article;
     }
@@ -154,19 +158,33 @@ class ArticleService extends BaseService
         $data['operator_type'] = 'admin';
         $data['operator_id'] = $adminId;
 
-        $article = Article::create($data);
-        if (!$article) {
-            throw new DomainException(lang('article_add_wrong'), route('admin.article'));
-        }
-        $newId = (int) $article->getKey();
-
-        $imageNumber = attachment()->store('article', $newId, UploadedFile::fromGlobals('image'), 'main', AttachmentUploadOptions::create()->withUploader('admin', $adminId));
-        if ($imageNumber !== '') {
-            Article::whereKey($newId)->update(array('image' => $imageNumber));
+        $image = attachment()->reserve('article', UploadedFile::fromGlobals('image'), 'admin', $adminId, 'main', AttachmentUploadOptions::create());
+        $data['image'] = $image;
+        $metadataPlan = $this->metadataBegin('article', $data, 0, '', $adminId);
+        if ($metadataPlan !== null) {
+            $data['metadata'] = $metadataPlan['json'];
         }
 
-        attachment()->claimByToken('article', $draftToken, $newId, 'admin', $adminId);
+        $newId = (int) DB::transaction(function () use ($data, $image, $draftToken, $adminId, $metadataPlan) {
+            $article = Article::create($data);
+            if (!$article) {
+                throw new DomainException(lang('article_add_wrong'), route('admin.article'));
+            }
+            $newId = (int) $article->getKey();
+            if ($newId <= 0) {
+                throw new DomainException(lang('operation_failed'));
+            }
 
+            attachment()->claimByToken('article', $draftToken, $newId, 'admin', $adminId);
+            $this->metadataCommit($metadataPlan, $newId, $adminId);
+            if ($image !== '' && attachment()->adopt('article', $image, $newId, 'admin', $adminId) < 1) {
+                throw new DomainException(lang('file_claim_failed'));
+            }
+
+            return $newId;
+        });
+
+        $this->metadataPurge($metadataPlan, $newId);
         audit()->writeAdminLog($adminId, AdminLogAction::CREATE, 1, (string) $data['title']);
 
         return $newId;
@@ -189,12 +207,9 @@ class ArticleService extends BaseService
         $article = $model->getAttributes();
         $article['file_number'] = $article['image'];
         $article['image'] = attachment()->url($article['image']);
+        $article['attach_list_html'] = attachment()->attachList('article', (int) $id, 'attach');
         $article['created_at'] = date('Y-m-d H:i', strtotime($article['created_at']));
         $article['item_content'] = $this->markdown->toHtml($article['content']);
-        $definedRaw = isset($article['defined']) ? $article['defined'] : '';
-        $article['defined'] = ($definedRaw !== '' && $definedRaw !== null)
-            ? str_replace(',', "\n", (string) $definedRaw)
-            : '';
 
         return $article;
     }
@@ -223,6 +238,7 @@ class ArticleService extends BaseService
             throw new DomainException(lang('article_not_exist'), route('admin.article'));
         }
 
+        $metadataPlan = $this->metadataBegin('article', $data, $id, $this->metadataExistingRaw($article), $adminId);
         $image = attachment()->store('article', $id, UploadedFile::fromGlobals('image'), 'main', AttachmentUploadOptions::create()->withUploader('admin', $adminId));
         $content = '';
         if (isset($data['content'])) {
@@ -236,8 +252,21 @@ class ArticleService extends BaseService
         if ($image) {
             $data['image'] = $image;
         }
+        if ($metadataPlan !== null) {
+            $data['metadata'] = $metadataPlan['json'];
+        }
 
-        $article->fill($data, 'update')->save();
+        try {
+            DB::transaction(function () use ($article, $data, $metadataPlan, $id, $adminId) {
+                $article->fill($data, 'update')->save();
+                $this->metadataCommit($metadataPlan, $id, $adminId);
+            });
+        } catch (\Exception $e) {
+            $this->metadataAbort($metadataPlan);
+            throw $e;
+        }
+
+        $this->metadataPurge($metadataPlan, $id);
 
         audit()->writeAdminLog($adminId, AdminLogAction::UPDATE, 1, (string) $data['title']);
     }

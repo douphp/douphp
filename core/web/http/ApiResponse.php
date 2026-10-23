@@ -91,7 +91,7 @@ class ApiResponse
      */
     public static function success(array $data = array(), $message = '')
     {
-        return new JsonResponse(self::payload(ApiCodes::OK, $message, $data, array()), 200);
+        return new JsonResponse(self::payload(ApiCodes::OK, $message, self::stripContentMetadata($data), array()), 200);
     }
 
     /**
@@ -141,6 +141,30 @@ class ApiResponse
     public static function throwError($code, $message = '', array $errors = array(), $httpStatus = 422, array $data = array())
     {
         throw new HttpResponseException(self::error($code, $message, $errors, $httpStatus, $data));
+    }
+
+    /**
+     * 递归裁剪内容模块扩展字段装饰键（metadata / metadata_fields / metadata_list）。
+     *
+     * 内容模块 service 统一构建完整数据（主题与 API 共用同一份），这三个键面向主题模板，
+     * 不属于 API 对外契约，统一在响应出口剥离。仅当行内出现 metadata_fields / metadata_list
+     * （MetadataValues::decorateRows 的产出组合）时才裁剪，避免误删聊天消息等业务自带的 metadata。
+     *
+     * @param array $data
+     * @return array
+     */
+    private static function stripContentMetadata(array $data)
+    {
+        if (isset($data['metadata_fields']) || isset($data['metadata_list'])) {
+            unset($data['metadata'], $data['metadata_fields'], $data['metadata_list']);
+        }
+        foreach ($data as $key => $value) {
+            if (is_array($value)) {
+                $data[$key] = self::stripContentMetadata($value);
+            }
+        }
+
+        return $data;
     }
 
     /**

@@ -15,6 +15,9 @@
 namespace Dou\Admin\Service\Product;
 
 use Dou\Admin\Model\Product\Product;
+use Dou\Admin\Service\Concerns\DecoratesAdminMetadata;
+use Dou\Admin\Service\Concerns\SavesMetadata;
+use Dou\Admin\Service\Language\LanguageDraftService;
 use Dou\Core\Facade\DB;
 use Dou\Core\Facade\Image;
 use Dou\Core\Filesystem\Storage;
@@ -45,6 +48,8 @@ if (!defined('IN_DOUCO')) {
  */
 class ProductService extends BaseService
 {
+    use SavesMetadata;
+    use DecoratesAdminMetadata;
     /** @var \Dou\Core\Filesystem\Disk */
     private $disk;
 
@@ -54,15 +59,20 @@ class ProductService extends BaseService
     /** @var MarkdownRenderer */
     private $markdown;
 
+    /** @var LanguageDraftService */
+    private $languageDraft;
+
     /**
      * @param PricingService $pricingService
      * @param MarkdownRenderer $markdown
+     * @param LanguageDraftService $languageDraft
      */
-    public function __construct(PricingService $pricingService, MarkdownRenderer $markdown)
+    public function __construct(PricingService $pricingService, MarkdownRenderer $markdown, LanguageDraftService $languageDraft)
     {
         $this->disk = Storage::disk('product');
         $this->pricingService = $pricingService;
         $this->markdown = $markdown;
+        $this->languageDraft = $languageDraft;
     }
 
     /**
@@ -87,7 +97,7 @@ class ProductService extends BaseService
         $result = Product::with('category')
             ->filterByCategory($catId)
             ->filterByKeyword($keyword)
-            ->field('id, title, price, level_price, promote_price, image, category_id, stock, point, sort, status, created_at')
+            ->field('id, title, price, level_price, promote_price, image, category_id, stock, point, sort, status, created_at, metadata')
             ->applyDefaultOrder()
             ->paginate(30, $page, Util::normalizeQueryString($pageUrl));
         $userLevelOption = Module::make('user.user_level_option_builder');
@@ -109,17 +119,21 @@ class ProductService extends BaseService
                 'sort' => $row['sort'],
                 'status' => $row['status'],
                 'created_at' => $row['created_at'],
+                'metadata' => isset($row['metadata']) ? $row['metadata'] : '',
             );
         }
+
+        $metadataSchema = $this->decorateAdminMetadataRows('product', $productList);
 
         return array(
             'list' => $productList,
             'pager' => $result['pager'],
+            'metadata_schema' => $metadataSchema,
         );
     }
 
     /**
-     * 新增页默认数据：初始化自定义参数模板与图库列表 HTML。
+     * 新增页默认数据：初始化表单字段默认值与图库列表 HTML。
      *
      * 分类、品牌、会员价等周边数据由 Controller 另行 assign。
      *
@@ -142,19 +156,10 @@ class ProductService extends BaseService
             'brand_id' => '',
             'stock' => '100',
             'point' => '0',
-            'defined' => '',
             'model_list' => '',
             'img_list_html' => attachment()->gallery('product', $itemId, 'gallery'),
+            'attach_list_html' => '',
         );
-
-        if (!empty(Config::get('defined.product'))) {
-            $defined = explode(',', Config::get('defined.product'));
-            $definedProduct = '';
-            foreach ($defined as $row) {
-                $definedProduct .= $row . ":\n";
-            }
-            $product['defined'] = trim($definedProduct);
-        }
 
         return $product;
     }
@@ -194,22 +199,50 @@ class ProductService extends BaseService
         $data['operator_type'] = 'admin';
         $data['operator_id'] = $adminId;
 
-        $product = Product::create($data);
-        if (!$product) {
-            throw new DomainException(lang('illegal'), route('admin.product'));
+        $image = attachment()->reserve('product', UploadedFile::fromGlobals('image'), 'admin', $adminId, 'main', AttachmentUploadOptions::create()->withThumbnail(Config::get('site.thumb_width', 0), Config::get('site.thumb_height', 0)));
+        $data['image'] = $image;
+        $metadataPlan = $this->metadataBegin('product', $data, 0, '', $adminId);
+        if ($metadataPlan !== null) {
+            $data['metadata'] = $metadataPlan['json'];
         }
-        $newId = (int) $product->getKey();
+        $languageDrafts = $this->languageDraft->drafts($data, array('title', 'content', 'keywords', 'description'));
+        unset($data['language_draft']);
 
-        $image = attachment()->store('product', $newId, UploadedFile::fromGlobals('image'), 'main', AttachmentUploadOptions::create()->withThumbnail(Config::get('site.thumb_width', 0), Config::get('site.thumb_height', 0))->withUploader('admin', $adminId));
-        if ($image !== '') {
-            Product::whereKey($newId)->update(array('image' => $image));
-        }
+        $newId = (int) DB::transaction(function () use ($data, $image, $draftToken, $adminId, $metadataPlan, $languageDrafts) {
+            $product = Product::create($data);
+            if (!$product) {
+                throw new DomainException(lang('illegal'), route('admin.product'));
+            }
+            $newId = (int) $product->getKey();
+            if ($newId <= 0) {
+                throw new DomainException(lang('operation_failed'));
+            }
 
-        attachment()->claimByToken('product', $draftToken, $newId, 'admin', $adminId);
+            $this->languageDraft->save('product', $newId, $languageDrafts);
+            attachment()->claimByToken('product', $draftToken, $newId, 'admin', $adminId);
+            $this->metadataCommit($metadataPlan, $newId, $adminId);
+            if ($image !== '' && attachment()->adopt('product', $image, $newId, 'admin', $adminId) < 1) {
+                throw new DomainException(lang('file_claim_failed'));
+            }
 
+            return $newId;
+        });
+
+        $this->metadataPurge($metadataPlan, $newId);
         audit()->writeAdminLog($adminId, AdminLogAction::CREATE, 1, (string) $data['title']);
 
         return $newId;
+    }
+
+    /**
+     * 编辑页原生字段多语言草稿初值（供 hidden 渲染）。
+     *
+     * @param int $id
+     * @return array
+     */
+    public function buildProductLanguageDrafts($id)
+    {
+        return $this->languageDraft->load('product', (int) $id, array('title', 'content', 'keywords', 'description'));
     }
 
     /**
@@ -231,17 +264,9 @@ class ProductService extends BaseService
         $product['file_number'] = $product['image'];
         $product['image'] = attachment()->url($product['image']);
         $product['img_list_html'] = attachment()->gallery('product', $id, 'gallery');
+        $product['attach_list_html'] = attachment()->attachList('product', $id, 'attach');
         $product['model_list'] = $this->buildProductModelHtml($product['model'], $id);
         $product['item_content'] = $this->markdown->toHtml($product['content']);
-
-        if (!empty(Config::get('defined.product')) || !empty($product['defined'])) {
-            $defined = !empty(Config::get('defined.product')) ? explode(',', Config::get('defined.product')) : array();
-            $defined_product = '';
-            foreach ($defined as $row) {
-                $defined_product .= $row . ":\n";
-            }
-            $product['defined'] = $product['defined'] ? str_replace(',', "\n", $product['defined']) : trim($defined_product);
-        }
 
         return $product;
     }
@@ -274,6 +299,9 @@ class ProductService extends BaseService
             throw new DomainException(lang('item_not_exist'), route('admin.product'));
         }
 
+        $metadataPlan = $this->metadataBegin('product', $data, $id, $this->metadataExistingRaw($product), $adminId);
+        $languageDrafts = $this->languageDraft->drafts($data, array('title', 'content', 'keywords', 'description'));
+        unset($data['language_draft']);
         $image = attachment()->store('product', $id, UploadedFile::fromGlobals('image'), 'main', AttachmentUploadOptions::create()->withThumbnail(Config::get('site.thumb_width', 0), Config::get('site.thumb_height', 0))->withUploader('admin', $adminId));
         $dou_user = (Config::get('features.user', false) && user()) ? user() : null;
         if (!empty($data['level_price']) && $dou_user) {
@@ -288,8 +316,22 @@ class ProductService extends BaseService
         if ($image) {
             $data['image'] = $image;
         }
+        if ($metadataPlan !== null) {
+            $data['metadata'] = $metadataPlan['json'];
+        }
 
-        $product->fill($data, 'update')->save();
+        try {
+            DB::transaction(function () use ($product, $data, $metadataPlan, $id, $adminId, $languageDrafts) {
+                $product->fill($data, 'update')->save();
+                $this->languageDraft->save('product', $id, $languageDrafts);
+                $this->metadataCommit($metadataPlan, $id, $adminId);
+            });
+        } catch (\Exception $e) {
+            $this->metadataAbort($metadataPlan);
+            throw $e;
+        }
+
+        $this->metadataPurge($metadataPlan, $id);
         audit()->writeAdminLog($adminId, AdminLogAction::UPDATE, 1, (string) $data['title']);
     }
 

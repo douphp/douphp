@@ -65,7 +65,7 @@ trait HasCategoryTree
     }
 
     /**
-     * 表内全部分类行（进程内静态缓存，按表名）；预热 name / description 多语言。
+     * 表内全部分类行（进程内静态缓存，按表名）；预热 name / description / keywords 多语言。
      *
      * @param string $table
      * @return array
@@ -78,7 +78,7 @@ trait HasCategoryTree
                 ->field('*')
                 ->order('sort ASC, id ASC')
                 ->select();
-            language()->warmup($table, array_column((array) $cache[$table], 'id'), 'name, description');
+            language()->warmup($table, array_column((array) $cache[$table], 'id'), 'name, description, keywords');
 
             // 批量预热分类 icon 附件 URL，防止 categoryFlatWalk/categoryTreeWalk 中逐条查询
             $iconNumbers = array();
@@ -112,7 +112,7 @@ trait HasCategoryTree
             if (!is_array($value)) {
                 continue;
             }
-            $value = language()->langBox($value, $table, 'name, description');
+            $value = language()->langBox($value, $table, 'name, description, keywords');
 
             if ($value['parent_id'] == $parentId) {
                 $value['url'] = route($module . '.category', array('category_id' => $value['id']));

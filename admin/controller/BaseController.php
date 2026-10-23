@@ -16,6 +16,7 @@ namespace Dou\Admin\Controller;
 
 use Dou\Admin\Service\Ai\AiToolbarBuilder;
 use Dou\Admin\Service\Menu\AdminNavResolver;
+use Dou\Admin\Service\Menu\AdminTabResolver;
 use Dou\Core\Controller\BaseController as CoreBaseController;
 use Dou\Core\Facade\Session;
 use Dou\Core\Foundation\Configuration\Config;
@@ -59,12 +60,13 @@ abstract class BaseController extends CoreBaseController
      */
     protected function view($template, array $data = array(), $statusCode = 200)
     {
-        $vars = $data + $this->layoutVars() + $this->navFallbackVars();
+        $vars = $this->injectAiToolbar($data + $this->layoutVars() + $this->navFallbackVars());
+        $vars['tabs'] = $this->resolveTabs($vars);
 
         return new \Dou\Core\Web\Http\ViewResponse(
             app(\Dou\Core\Web\Template\TemplateRendererInterface::class),
             $template,
-            $this->absolutizeActionUrls($this->injectAiToolbar($vars)),
+            $this->absolutizeActionUrls($vars),
             (int) $statusCode
         );
     }
@@ -87,6 +89,26 @@ abstract class BaseController extends CoreBaseController
         return array(
             'nav' => AdminNavResolver::resolve((string) $entry->name),
         );
+    }
+
+    /**
+     * 页面 Tab 变量：按命中路由名解析 `$tabs`（页面顶部 Tab 组）。
+     *
+     * 声明文件位于 admin/menu/tab/，动态项数据源从本页视图变量读取
+     * （config_list / lang_list 等）。未派发或无声明组时返回 null，
+     * 模板 inc/tab_nav.tpl 安全跳过。
+     *
+     * @param array $vars 已合并的视图数据
+     * @return array|null
+     */
+    private function resolveTabs(array $vars)
+    {
+        $entry = request()->routeEntry();
+        if (!$entry instanceof \Dou\Core\Web\Routing\RouteEntry) {
+            return null;
+        }
+
+        return AdminTabResolver::resolve((string) $entry->name, $vars);
     }
 
     /**

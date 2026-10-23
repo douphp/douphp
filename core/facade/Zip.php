@@ -24,7 +24,10 @@ if (!defined('IN_DOUCO')) {
  * Zip 静态门面：底层为 {@see \Dou\Core\Support\Zip} 容器单例。
  *
  * @method static bool extract(string $zipPath, string $destinationDir, array $allowRules = array(), array $denyExtensions = array())
- * @method static bool create(string $zipPath, array $paths, string $removePath, string &$errorInfo = '')
+ * @method static array create(string $zipPath, array $paths, string $removePath)
+ * @method static array append(string $zipPath, array $absolutePaths, string $removePath)
+ * @method static array extractRange(string $zipPath, string $destinationDir, int $offset, int $limit)
+ * @method static int count(string $zipPath)
  */
 class Zip extends StaticFacade
 {

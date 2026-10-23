@@ -18,6 +18,7 @@ use Dou\Admin\Controller\BaseController;
 use Dou\Admin\Model\Article\ArticleCategory;
 use Dou\Admin\Request\Article\ArticleFormRequest;
 use Dou\Admin\Service\Article\ArticleService;
+use Dou\Admin\Service\Metadata\MetadataFormBuilder;
 use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Web\Http\Request;
 use Dou\Core\Web\Http\Response;
@@ -37,12 +38,17 @@ class ArticleController extends BaseController
     /** @var ArticleService */
     private $articleService;
 
+    /** @var MetadataFormBuilder */
+    private $metadataFormBuilder;
+
     /**
      * @param ArticleService $articleService
+     * @param MetadataFormBuilder $metadataFormBuilder
      */
-    public function __construct(ArticleService $articleService)
+    public function __construct(ArticleService $articleService, MetadataFormBuilder $metadataFormBuilder)
     {
         $this->articleService = $articleService;
+        $this->metadataFormBuilder = $metadataFormBuilder;
     }
 
     /**
@@ -71,6 +77,7 @@ class ArticleController extends BaseController
             'article_category' => ArticleCategory::flat(),
             'article_list' => $result['list'],
             'pager' => $result['pager'],
+            'metadata_schema' => $result['metadata_schema'],
         ]);
     }
 
@@ -100,7 +107,8 @@ class ArticleController extends BaseController
             'draft_token' => $draftToken,
             'item_content' => '',
             'article' => $article,
-            'btn_lang' => language()->buildLangButtons('article', '', 'title, content, keywords, description, defined'),
+            'metadata_form' => $this->metadataFormBuilder->build('article', '', 0),
+            'btn_lang' => language()->buildLangButtons('article', '', 'title, content, keywords, description'),
         ]);
     }
 
@@ -155,7 +163,8 @@ class ArticleController extends BaseController
             'draft_token' => '',
             'item_content' => $article['item_content'],
             'article' => $article,
-            'btn_lang' => language()->buildLangButtons('article', $id, 'title, content, keywords, description, defined'),
+            'metadata_form' => $this->metadataFormBuilder->build('article', isset($article['metadata']) ? $article['metadata'] : '', $id),
+            'btn_lang' => language()->buildLangButtons('article', $id, 'title, content, keywords, description'),
         ]);
     }
 

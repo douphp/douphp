@@ -85,6 +85,7 @@ class Product extends Model
         'point',
         'keywords',
         'description',
+        'metadata',
         'sort',
         'created_at',
     );
@@ -268,7 +269,10 @@ class Product extends Model
     }
 
     /**
-     * 删除商品前：清理图库附件与多语言记录（覆写默认主图清理）。
+     * 删除商品前：清理本条目全部文件记录（主图 / 图库 / 附件）与多语言记录。
+     *
+     * 默认钩子只删 image 主图，图库与附件会变成孤儿文件；这里按 module + item_id
+     * 遍历 dou_file 全量删除（type 不限）。
      *
      * @return void
      */
@@ -277,11 +281,12 @@ class Product extends Model
         foreach ((array) self::getGalleryFileNumberRows($this->getKey()) as $row) {
             attachment()->delete($row['number']);
         }
+        $this->purgeMetadataOnDelete();
         $this->purgeLanguageOnDelete();
     }
 
     /**
-     * 删除前：商品图库 file 表记录（仅取 number 字段）
+     * 删除前：商品在 dou_file 中的全部文件记录（仅取 number 字段，type 不限，含图库与附件）
      *
      * @param string|int $productId
      * @return array

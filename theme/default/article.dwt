@@ -32,6 +32,16 @@
        <!-- {/if} -->
       </div>
       <div class="content"> {$article.content nofilter} </div>
+      <!-- {if $article.attach_list} -->
+      <div class="attach">
+       <h3><i class="bi bi-paperclip" aria-hidden="true"></i>{$lang.attach_download}</h3>
+       <ul>
+        <!-- {foreach from=$article.attach_list item=attach} -->
+        <li><a href="{$attach.file}" target="_blank" rel="noopener" download="{$attach.name}"><i class="bi {$attach.icon}"></i><span class="attach-name">{$attach.name}</span><em class="attach-size">{$attach.size_format}</em></a></li>
+        <!-- {/foreach} -->
+       </ul>
+      </div>
+      <!-- {/if} -->
       <div class="lift">
        <!-- {if $lift.previous} -->
        <span>{$lang.article_previous}：<a href="{$lift.previous.url}">{$lift.previous.title}</a></span>

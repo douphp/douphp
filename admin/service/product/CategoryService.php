@@ -129,20 +129,27 @@ class CategoryService extends BaseService
         }
 
         $iconMode = Config::get('site.open_icon', '');
-        $data['icon'] = $iconMode === 'text' ? Arr::get($data, 'icon', '') : '';
+        $textIcon = $iconMode === 'text' ? Arr::get($data, 'icon', '') : '';
+        $iconFile = $iconMode === 'image' ? UploadedFile::fromGlobals('icon') : null;
+        $icon = attachment()->reserve('product_category', $iconFile, 'admin', $adminId, 'main', AttachmentUploadOptions::create());
+        $data['icon'] = $iconMode === 'image' ? $icon : $textIcon;
 
-        $category = ProductCategory::create($data);
-        if (!$category) {
-            throw new DomainException(lang('illegal'), route('admin.product.category'));
-        }
-        $newCatId = (int) $category->getKey();
-
-        if ($iconMode === 'image') {
-            $icon = attachment()->store('product_category', $newCatId, UploadedFile::fromGlobals('icon'), 'main', AttachmentUploadOptions::create()->withPrimaryKey('id')->withBusinessField('icon')->withUploader('admin', $adminId));
-            if ($icon !== '') {
-                ProductCategory::whereKey($newCatId)->update(array('icon' => $icon));
+        $newCatId = (int) DB::transaction(function () use ($data, $icon, $adminId) {
+            $category = ProductCategory::create($data);
+            if (!$category) {
+                throw new DomainException(lang('illegal'), route('admin.product.category'));
             }
-        }
+            $newCatId = (int) $category->getKey();
+            if ($newCatId <= 0) {
+                throw new DomainException(lang('operation_failed'));
+            }
+
+            if ($icon !== '' && attachment()->adopt('product_category', $icon, $newCatId, 'admin', $adminId) < 1) {
+                throw new DomainException(lang('file_claim_failed'));
+            }
+
+            return $newCatId;
+        });
 
         if (isset($data['sync_to_nav']) && (int) $data['sync_to_nav'] === 1) {
             $this->navCategorySync->syncForCategory('product_category', $newCatId);

@@ -269,7 +269,6 @@ $_LANG['config_setting_main'] = '常规设置';
 $_LANG['config_setting_customer'] = '在线客服';
 $_LANG['config_setting_display'] = '显示设置';
 $_LANG['config_setting_seo'] = 'SEO优化';
-$_LANG['config_setting_defined'] = '自定义';
 $_LANG['config_setting_mail'] = '邮件服务器';
 $_LANG['config_setting_developer'] = '开发者设置';
 $_LANG['config_site_name'] = '站点名称';
@@ -364,40 +363,16 @@ $_LANG['config_module_version'] = '模块版本';
 $_LANG['config_douphp_version'] = '系统版本';
 
 // 设置提示
-$_LANG['config_rewrite_cue'] = '需要Rewrite支持，启用前请重命名根目录下 "d%.txt" 文件为 "d%"，如果不存在请手动下载伪静态规则<a class="btn-outline" href="http://down.douphp.com/rewrite.rar" target="_blank">点击下载</a>';
-$_LANG['config_rewrite_cue_nginx'] = 'URL重写需要Rewrite支持，请将伪静态规则添加至您的Nginx服务器（以宝塔面板为例，在"站点->设置->伪静态"里添加）<a href="javascript:;" data-dou-toggle="modal" data-dou-modal="message" data-title="Nginx伪静态规则" data-html=\'<textarea row="10" cols="80" class="text-area-auto" style="width:100%;height:210px">location / {
-    # 真实目录缺尾斜杠时 301 补上，避免目录内相对路径资源错乱
-    if (-d $request_filename) {
-        rewrite ^(.*[^/])$ $1/ permanent;
-    }
-    # $uri/ 让真实目录走目录索引，而不是落进伪静态兜底
-    try_files $uri $uri/ @rewrites;
-}
-
-location @rewrites {
-    if ($uri ~ \.php$) {
-        return 404;
-    }
-
-    # 静态入口
-    rewrite ^/index\.html$  /index.php last;
-    rewrite ^/sitemap\.xml$ /sitemap.php last;
-
-    # API
-    rewrite ^/api/(.+)$ /api/index.php?route=$1 last;
-    rewrite ^/api/?$    /api/index.php last;
-
-    # 后台
-    rewrite ^/admin/(.+)$ /admin/index.php?route=$1 last;
-    rewrite ^/admin/?$    /admin/index.php last;
-
-    # 前台
-    rewrite ^/(.+)$ /index.php?route=$1 last;
-    rewrite ^/?$    /index.php last;
-
-    return 404;
-}</textarea>\' data-placement="center">点击获取Nginx伪静态规则</a>';
-$_LANG['config_rewrite_cue_other'] = '暂无与您的服务器匹配的伪静态规则，请至DouPHP问答反馈';
+$_LANG['config_rewrite_cue'] = '需要 Rewrite 支持，开启后保存将自动写入根目录下的 "d%" 文件';
+$_LANG['config_rewrite_cue_exists'] = '需要 Rewrite 支持，根目录下已存在 "d%"（随安装包提供或此前已生成），保存时不会覆盖；若为 .txt 文件，请手动去掉 .txt 后缀；否则如伪静态未生效，请确认服务器已启用 Rewrite，或将缺失的规则手动合并到该文件';
+$_LANG['config_rewrite_cue_manual'] = '需要 Rewrite 支持，当前环境无法确认是否已启用重写，保存后将写入 "d%"，请确认服务器支持后手动去掉 .txt 后缀';
+$_LANG['config_rewrite_cue_nginx'] = 'URL 重写需要 Rewrite 支持，请将伪静态规则添加至您的 Nginx 服务器（以宝塔面板为例，在"站点->设置->伪静态"里添加）';
+$_LANG['config_rewrite_cue_other'] = '暂无与您的服务器匹配的伪静态规则，请至 DouPHP 问答反馈';
+$_LANG['config_rewrite_nginx_title'] = 'Nginx 伪静态规则';
+$_LANG['config_rewrite_nginx_link'] = '点击获取 Nginx 伪静态规则';
+$_LANG['config_rewrite_write_failed'] = '伪静态规则写入失败，请检查站点根目录写权限后重试';
+$_LANG['config_rewrite_write_manual'] = '当前环境无法确认是否支持重写，已将伪静态规则写入 %s，请确认服务器支持后手动去掉 .txt 后缀';
+$_LANG['config_rewrite_source_missing'] = '伪静态规则源文件缺失（core/resources/rewrite/%s），请确认安装包完整';
 $_LANG['config_stock_cue'] = '开启后商品可以设置库存，配合订单模块使用，下单付款后减少库存';
 $_LANG['config_qq_cue'] = '多个客服的QQ号码请以半角逗号（,）分隔，如果需要设定昵称则在号码后跟 /昵称。';
 $_LANG['config_price_decimal_cue'] = '将以四舍五入形式保留小数';
@@ -683,6 +658,8 @@ $_LANG['file_btn'] = '点击上传';
 $_LANG['file_bigfile_btn'] = '上传文件';
 $_LANG['file_insert_media'] = '插入音视频';
 $_LANG['file_remote_image_local'] = '远程图片本地化';
+$_LANG['attach_download'] = '附件下载';
+$_LANG['attach_cue'] = '支持 pdf/doc/xls/ppt/txt/csv/zip/rar/7z，单个文件不超过 20MB';
 
 // 图片裁剪
 $_LANG['crop_title'] = '图片裁剪';

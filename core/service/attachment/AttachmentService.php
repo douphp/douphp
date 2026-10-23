@@ -43,12 +43,14 @@ if (!defined('IN_DOUCO')) {
  *
  * 公开方法分组：
  *   - 上传（owned）：store / storeToDirectory / chunkedStore
+ *   - 新建三步：reserve / adopt / release（主图占位 → 业务入库 → 条件认领/回收）
  *   - 上传（draft）：storeDraft / storeDraftContentImages
  *   - 内容拉图：storeContentImages / storeFromUrl
  *   - 草稿认领：claimByToken / cleanupUserDrafts / newDraftToken
  *   - 元数据：delete / renameStoredFile / moveStoredFileToDirectory
  *   - URL：url / urlBatch / cacheTag
  *   - 画廊：gallery / galleryFirst / galleryFirstMap
+ *   - 附件（type=attach）：attachList / attachListByDraft
  *
  * 身份模型：
  *   - $identityKind ∈ {'admin', 'user', 'work'}，分别对应 dou_admin / dou_user / dou_work；
@@ -76,11 +78,20 @@ class AttachmentService
     /** @var GalleryQuery */
     private $gallery;
 
+    /** @var AttachQuery */
+    private $attach;
+
     /** @var ContentImageImporter */
     private $contentImporter;
 
     /** @var ChunkedUploadHandler */
     private $chunkedHandler;
+
+    /** @var array number => array(module, uploaderType, uploaderId)：请求级主图占位登记 */
+    private $reservedUploads = array();
+
+    /** @var bool 请求结束兜底清理是否已注册 */
+    private $shutdownRegistered = false;
 
     /**
      * @param FilesystemManager $storage
@@ -93,6 +104,7 @@ class AttachmentService
         $this->repository = new AttachmentRepository();
         $this->urls = new UrlResolver();
         $this->gallery = new GalleryQuery();
+        $this->attach = new AttachQuery();
         $downloader = new RemoteImageDownloader($images);
         $this->contentImporter = new ContentImageImporter($downloader, $this->repository);
         $this->chunkedHandler = new ChunkedUploadHandler($this->repository);
@@ -187,6 +199,10 @@ class AttachmentService
             return $this->fail($type, lang('file_out_size') . $maxKb . 'KB');
         }
 
+        // 原始文件名 / MIME 需在 move 之前取值：move 后临时文件不复存在，finfo 探测会失败
+        $originalName = (string) $file->getClientOriginalName();
+        $mimeType = (string) $file->getMimeType();
+
         $finalFileName = $basename . '.' . $extension;
         $relativePathInDisk = $directoryRelative . $finalFileName;
         $absoluteTarget = $disk->path($relativePathInDisk);
@@ -241,6 +257,8 @@ class AttachmentService
                 'type' => $type,
                 'size' => $size,
                 'thumb_size' => $thumbSize,
+                'original_name' => $originalName,
+                'mime_type' => $mimeType,
                 'last_used_at' => $now,
                 'created_at' => $now,
                 'uploader_type' => $uploaderType,
@@ -252,12 +270,171 @@ class AttachmentService
                 'file' => $relativeToSite,
                 'size' => $size,
                 'thumb_size' => $thumbSize,
+                'original_name' => $originalName,
+                'mime_type' => $mimeType,
                 'last_used_at' => $now,
             ));
             $this->repository->touchUpdateTime();
         }
 
         return $number;
+    }
+
+    /**
+     * 新建占位：校验并落盘一张主图，写 draft 行并登记请求级占位，返回 number。
+     *
+     * 调用约束：
+     *   - 必须放在唯一性 / 权限等只读校验之后、业务 INSERT 之前；
+     *   - 未选择文件返回 ''（业务照常入库）；
+     *   - 已选择但非法（超限 / 扩展名 / 目录权限 / 移动失败）在此抛异常，业务行不会产生；
+     *   - 主图使用独立内部 draft_token，与表单内容图 token 完全隔离；
+     *   - 占位在 adopt() 成功后注销；请求结束仍未注销的由 shutdown 兜底条件回收。
+     *
+     * @param mixed $module
+     * @param UploadedFile|null $file
+     * @param string $identityKind 'admin' / 'user' / 'work'
+     * @param int $identityId
+     * @param string $type
+     * @param AttachmentUploadOptions|null $options
+     * @return string 主图 number；未选择文件返回 ''
+     */
+    public function reserve($module, $file = null, $identityKind = '', $identityId = 0, $type = 'main', $options = null)
+    {
+        $options = ($options instanceof AttachmentUploadOptions) ? $options : AttachmentUploadOptions::create();
+        $identityId = (int) $identityId;
+        $uploaderType = $this->resolveUploaderType($identityKind);
+        if ($identityId <= 0) {
+            throw new DomainException('identityId is required for reserve');
+        }
+
+        if (!($file instanceof UploadedFile) || !$file->isValid()) {
+            $this->rejectInvalidUpload($file, $type);
+
+            return '';
+        }
+
+        // 无表单 token 的模块没有 create action 的懒 GC，提交前顺手清理本模块过期占位
+        $this->cleanupUserDrafts($identityKind, $identityId, $module);
+
+        $draftToken = $this->newDraftToken($identityKind, $identityId);
+        $number = $this->storeDraft($module, $file, $identityKind, $identityId, $draftToken, $type, $options);
+        $this->registerReservation($number, $module, $uploaderType, $identityId);
+
+        return $number;
+    }
+
+    /**
+     * 认领主图占位：按 number 做四重条件 UPDATE，返回实际更新行数。
+     *
+     * 调用约束：业务 INSERT 成功且拿到 >0 的新主键后调用；放在事务闭包内，
+     * 且必须是最后一个可能抛错的写操作（成功后即注销占位）。
+     *
+     * @param mixed $module
+     * @param string $number
+     * @param mixed $itemId
+     * @param string $identityKind
+     * @param int $identityId
+     * @return int affected rows；0 表示不存在 / 已认领 / 归属不符
+     */
+    public function adopt($module, $number, $itemId, $identityKind = '', $identityId = 0)
+    {
+        $number = (string) $number;
+        $itemId = (string) $itemId;
+        $uploaderType = $this->resolveUploaderType($identityKind);
+        if ($number === '' || $itemId === '' || $itemId === '0') {
+            return 0;
+        }
+
+        $affected = $this->repository->claimDraftByNumber($module, $number, $itemId, $uploaderType, (int) $identityId);
+        if ($affected > 0) {
+            $this->unregisterReservation($number);
+        }
+
+        return $affected;
+    }
+
+    /**
+     * 回收主图占位：按 number 条件删除 draft 行 / 物理文件 / 缩略图，幂等。
+     *
+     * @param mixed $module
+     * @param string $number
+     * @param string $identityKind
+     * @param int $identityId
+     * @return int 实际删除行数
+     */
+    public function release($module, $number, $identityKind = '', $identityId = 0)
+    {
+        $number = (string) $number;
+        $uploaderType = $this->resolveUploaderType($identityKind);
+        if ($number === '') {
+            return 0;
+        }
+
+        $deleted = $this->repository->deleteDraftByNumber($module, $number, $uploaderType, (int) $identityId);
+        $this->unregisterReservation($number);
+
+        return $deleted;
+    }
+
+    /**
+     * 请求结束兜底：回收本轮仍未 adopt 的主图占位（含 exit / 未捕获异常 / PHP Error）。
+     *
+     * 由 register_shutdown_function 调用；逐个释放并吞掉异常，避免影响响应收尾。
+     *
+     * @internal
+     * @return void
+     */
+    public function flushReservedUploads()
+    {
+        if (empty($this->reservedUploads)) {
+            return;
+        }
+
+        $reserved = $this->reservedUploads;
+        $this->reservedUploads = array();
+        foreach ($reserved as $number => $meta) {
+            try {
+                $this->repository->deleteDraftByNumber($meta[0], (string) $number, $meta[1], (int) $meta[2]);
+            } catch (\Exception $e) {
+                error_log('[DouPHP attachment] reserved upload cleanup failed: ' . $e->getMessage());
+            } catch (\Throwable $e) {
+                error_log('[DouPHP attachment] reserved upload cleanup failed: ' . $e->getMessage());
+            }
+        }
+    }
+
+    /**
+     * 登记请求级占位并确保 shutdown 清理只注册一次。
+     *
+     * @param string $number
+     * @param mixed $module
+     * @param string $uploaderType
+     * @param int $uploaderId
+     * @return void
+     */
+    private function registerReservation($number, $module, $uploaderType, $uploaderId)
+    {
+        $number = (string) $number;
+        if ($number === '') {
+            return;
+        }
+
+        $this->reservedUploads[$number] = array($module, $uploaderType, (int) $uploaderId);
+        if (!$this->shutdownRegistered) {
+            $this->shutdownRegistered = true;
+            register_shutdown_function(array($this, 'flushReservedUploads'));
+        }
+    }
+
+    /**
+     * 注销已认领/已回收的占位。
+     *
+     * @param string $number
+     * @return void
+     */
+    private function unregisterReservation($number)
+    {
+        unset($this->reservedUploads[(string) $number]);
     }
 
     /**
@@ -638,6 +815,10 @@ class AttachmentService
             return $this->fail($type, lang('file_out_size') . $maxKb . 'KB');
         }
 
+        // 原始文件名 / MIME 需在 move 之前取值：move 后临时文件不复存在，finfo 探测会失败
+        $originalName = (string) $file->getClientOriginalName();
+        $mimeType = (string) $file->getMimeType();
+
         $finalFileName = $basename . '.' . $extension;
         $relativePathInDisk = $directoryRelative . $finalFileName;
         $absoluteTarget = $disk->path($relativePathInDisk);
@@ -690,6 +871,8 @@ class AttachmentService
             'type' => $type,
             'size' => $size,
             'thumb_size' => $thumbSize,
+            'original_name' => $originalName,
+            'mime_type' => $mimeType,
             'last_used_at' => $now,
             'created_at' => $now,
             'uploader_type' => $uploaderType,
@@ -925,7 +1108,7 @@ class AttachmentService
     /**
      * 新建场景画廊：按当前身份 + draft_token 列出 draft 缩略图。
      *
-     * 与 {@see gallery()} 平行接口；用于 FileController::box 的 fileBox 单图上传后
+     * 与 {@see gallery()} 平行接口；用于 FileController::box 的 fileUpload 单图上传后
      * 返回前端可见的 gallery li 列表，但只暴露「当前 admin/user/work 自己」上传的部分。
      *
      * @param string $module
@@ -968,6 +1151,41 @@ class AttachmentService
     }
 
     /**
+     * 附件列表（type=attach）。
+     *
+     * 与 {@see gallery()} 平行：$arrayMode=false 返回后台 li HTML（fileUpload 删除按钮 + data-number），
+     * true 返回前台消费数组（name / file URL / size_format / ext）。
+     *
+     * @param mixed $module
+     * @param mixed $itemId
+     * @param mixed $type
+     * @param bool $arrayMode
+     * @return mixed
+     */
+    public function attachList($module, $itemId, $type, $arrayMode = false)
+    {
+        return $this->attach->listByItem($module, $itemId, $type, $arrayMode);
+    }
+
+    /**
+     * 新建场景附件列表：按当前身份 + draft_token 列出 draft 附件。
+     *
+     * @param mixed $module
+     * @param string $draftToken
+     * @param string $identityKind 'admin' / 'user' / 'work'
+     * @param int $identityId
+     * @param mixed $type
+     * @param bool $arrayMode
+     * @return mixed
+     */
+    public function attachListByDraft($module, $draftToken, $identityKind, $identityId, $type, $arrayMode = false)
+    {
+        $uploaderType = $this->resolveUploaderType($identityKind);
+
+        return $this->attach->listByDraft($module, (string) $draftToken, $uploaderType, (int) $identityId, $type, $arrayMode);
+    }
+
+    /**
      * 暴露 repository 给少量需要直接 CRUD 的调用方（不鼓励常规使用）。
      *
      * @return AttachmentRepository
@@ -998,24 +1216,21 @@ class AttachmentService
     /**
      * 解析允许扩展名（options → disk → 默认）。
      *
+     * 委托 {@see AttachmentPolicy}，与远程图转存支路共用同一解析。
+     *
      * @param Disk $disk
      * @param AttachmentUploadOptions $options
      * @return string
      */
     private function resolveAllowExtensions(Disk $disk, AttachmentUploadOptions $options)
     {
-        if ($options->getAllowExtensions() !== '') {
-            return $options->getAllowExtensions();
-        }
-        $cfg = (string) $disk->getConfig('allow_extensions', '');
-
-        // 默认白名单不含 svg：SVG 可内嵌 <script>/onload，作为图片直链访问会触发存储型 XSS。
-        // 确需 svg 的磁盘可在 filesystems.disks.{name}.allow_extensions 显式开启。
-        return $cfg !== '' ? $cfg : 'jpg,jpeg,gif,png,webp,ico';
+        return AttachmentPolicy::allowExtensions($disk, $options);
     }
 
     /**
      * 解析上传 KB 上限。
+     *
+     * 委托 {@see AttachmentPolicy}，与远程图转存支路共用同一解析。
      *
      * @param Disk $disk
      * @param AttachmentUploadOptions $options
@@ -1023,12 +1238,7 @@ class AttachmentService
      */
     private function resolveUploadMaxKb(Disk $disk, AttachmentUploadOptions $options)
     {
-        if ($options->getUploadMaxKb() > 0) {
-            return $options->getUploadMaxKb();
-        }
-        $cfg = (int) $disk->getConfig('upload_max_kb', 0);
-
-        return $cfg > 0 ? $cfg : 2048;
+        return AttachmentPolicy::maxKb($disk, $options);
     }
 
     /**
@@ -1097,19 +1307,15 @@ class AttachmentService
     /**
      * 校验扩展名是否在允许清单中。
      *
+     * 委托 {@see AttachmentPolicy}，与远程图转存支路共用同一校验。
+     *
      * @param string $extension
      * @param string $allow
      * @return bool
      */
     private function extensionAllowed($extension, $allow)
     {
-        $extension = strtolower((string) $extension);
-        if ($extension === '') {
-            return false;
-        }
-        $allowList = array_map('trim', explode(',', strtolower((string) $allow)));
-
-        return in_array($extension, $allowList, true);
+        return AttachmentPolicy::extensionAllowed($extension, $allow);
     }
 
     /**

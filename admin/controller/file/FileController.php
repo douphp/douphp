@@ -53,6 +53,10 @@ class FileController extends BaseController
 
         $item_id = $request->integer('item_id', 0);
         $type = $request->alpha('type');
+        // 前端组件名统一用 attachment；存储/查询层沿用历史 type=attach
+        if ($type === 'attachment') {
+            $type = 'attach';
+        }
         $target = $request->basicString('target');
         // img_width 未传时的兜底按类型区分：编辑器插图(content)用 editor_image_width，
         // 其余（相册 gallery 等主图类）用 image_width，避免两处配置混淆
@@ -103,26 +107,55 @@ class FileController extends BaseController
                 $html .= '<img src="' . attachment()->url($image) . '" data-file="' . $image . '" /><br/><br/>';
             }
         } else {
-            $opts = AttachmentUploadOptions::create()
-                ->withImageWidth($img_width)
-                ->withWatermark(Config::get('site.watermark', false))
-                ->withBusinessField($field)
-                ->withUploader('admin', $admin_id);
+            if ($type === 'attach') {
+                // 通用附件：不做图片缩放/水印，独占 images/{module}/attach/ 目录；
+                // 白名单与上限走 config/file.php 的 attach_uploads（缺失时用代码内兜底值）
+                $attach = (array) Config::get('filesystems.attach_uploads', array());
+                $opts = AttachmentUploadOptions::create()
+                    ->withDirectory('attach')
+                    ->withAllowExtensions(isset($attach['allow_extensions']) ? (string) $attach['allow_extensions'] : 'pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv,zip,rar,7z')
+                    ->withUploadMaxKb(isset($attach['upload_max_kb']) ? (int) $attach['upload_max_kb'] : 20480)
+                    ->withBusinessField($field)
+                    ->withUploader('admin', $admin_id);
+            } else {
+                $opts = AttachmentUploadOptions::create()
+                    ->withImageWidth($img_width)
+                    ->withWatermark(Config::get('site.watermark', false))
+                    ->withBusinessField($field)
+                    ->withUploader('admin', $admin_id);
+            }
 
             // 前端 input 带 multiple：展开多文件数组逐张入库（旧逻辑只取首张导致其余静默丢弃）
             $files = UploadedFile::allFromGlobals($field);
+            $uploadErrors = array();
             foreach ($files as $uploaded) {
-                if ($useDraft) {
+                if ($type === 'attach') {
+                    // 附件多选为主路径：单个文件被拒（扩展名/大小/目录）时不能中断整批，
+                    // 否则已入库的文件不回显（新建页还会因重新生成 draft_token 而丢失入口），故逐件捕获。
+                    try {
+                        if ($useDraft) {
+                            attachment()->storeDraft($module, $uploaded, 'admin', $admin_id, $draft_token, $type, $opts);
+                        } else {
+                            attachment()->store($module, $item_id, $uploaded, $type, $opts);
+                        }
+                    } catch (\Exception $e) {
+                        $uploadErrors[] = $e->getMessage();
+                    } catch (\Throwable $e) {
+                        $uploadErrors[] = $e->getMessage();
+                    }
+                } elseif ($useDraft) {
                     attachment()->storeDraft($module, $uploaded, 'admin', $admin_id, $draft_token, $type, $opts);
                 } else {
                     attachment()->store($module, $item_id, $uploaded, $type, $opts);
                 }
             }
 
-            if ($useDraft) {
-                $html = attachment()->galleryByDraft($module, $draft_token, 'admin', $admin_id, $type);
-            } else {
-                $html = attachment()->gallery($module, $item_id, $type);
+            $draftCtx = $useDraft
+                ? array('token' => $draft_token, 'uploader_type' => 'admin', 'uploader_id' => $admin_id)
+                : null;
+            $html = $this->renderFileListHtml($module, $item_id, $type, $draftCtx);
+            if (!empty($uploadErrors)) {
+                $html = $this->renderUploadErrors($uploadErrors) . $html;
             }
         }
 
@@ -201,7 +234,11 @@ class FileController extends BaseController
     {
         $numberRaw = (string) $request->input('number', '');
         $number = preg_match("/^[a-z0-9.]+$/", $numberRaw) ? $numberRaw : '';
-        $file_info = DB::table('file')->field('module, item_id, type')->where('number', $number)->find();
+        // 删除前取全量上下文：删除后行已不存在，draft 重查依赖这些字段
+        $file_info = DB::table('file')
+            ->field('module, item_id, type, status, draft_token, uploader_type, uploader_id')
+            ->where('number', $number)
+            ->find();
 
         if (empty($file_info) || !isset($file_info['module'])) {
             return $this->response('');
@@ -209,9 +246,83 @@ class FileController extends BaseController
 
         attachment()->delete($number);
 
-        $html = attachment()->gallery($file_info['module'], $file_info['item_id'], $file_info['type']);
+        // draft 行（新建页未保存）改按 token + 上传者重查；owned 行按 item_id 重查。
+        // 旧逻辑固定走 gallery 的 owned 查询，导致新建页删除草稿图片后列表被清空。
+        $draftCtx = null;
+        if (isset($file_info['status']) && $file_info['status'] === 'draft'
+            && isset($file_info['draft_token']) && (string) $file_info['draft_token'] !== ''
+            && isset($file_info['uploader_id']) && (int) $file_info['uploader_id'] > 0) {
+            $draftCtx = array(
+                'token' => (string) $file_info['draft_token'],
+                'uploader_type' => isset($file_info['uploader_type']) ? (string) $file_info['uploader_type'] : '',
+                'uploader_id' => (int) $file_info['uploader_id'],
+            );
+            // 仅回显删除者自己的草稿列表：否则删到他人 draft 行时会回传他人 token 名下的附件信息
+            if ($draftCtx['uploader_type'] !== 'admin' || $draftCtx['uploader_id'] !== (int) auth('admin')->id()) {
+                $draftCtx = null;
+            }
+        }
+
+        $html = $this->renderFileListHtml(
+            $file_info['module'],
+            (string) $file_info['item_id'],
+            (string) $file_info['type'],
+            $draftCtx
+        );
 
         return $this->response($html);
+    }
+
+    /**
+     * 上传失败提示行：作为列表首行插入（只对 attach 使用，view 不命中 .file-item 以免触发「已更新」徽标）。
+     *
+     * @param array $messages
+     * @return string
+     */
+    private function renderUploadErrors(array $messages)
+    {
+        $html = '';
+        foreach ($messages as $message) {
+            $html .= '<li class="file-item-error">'
+                . htmlspecialchars((string) $message, ENT_QUOTES, 'UTF-8')
+                . '</li>';
+        }
+
+        return $html;
+    }
+
+    /**
+     * 统一输出 fileUpload 列表 HTML：attach 走附件渲染，其余走相册渲染。
+     *
+     * draft 上下文（新建页未保存）按 token + 上传者重查，只暴露当前管理员自己上传的部分。
+     *
+     * @param string $module
+     * @param mixed $itemId
+     * @param string $type
+     * @param array|null $draftCtx array('token' => string, 'uploader_type' => string, 'uploader_id' => int)
+     * @return string
+     */
+    private function renderFileListHtml($module, $itemId, $type, $draftCtx = null)
+    {
+        $isAttach = ($type === 'attach');
+
+        if (is_array($draftCtx)
+            && isset($draftCtx['token']) && (string) $draftCtx['token'] !== ''
+            && isset($draftCtx['uploader_id']) && (int) $draftCtx['uploader_id'] > 0) {
+            $kind = isset($draftCtx['uploader_type']) ? (string) $draftCtx['uploader_type'] : '';
+            if (!in_array($kind, array('admin', 'user', 'work'), true)) {
+                $kind = 'admin';
+            }
+            $uploaderId = (int) $draftCtx['uploader_id'];
+
+            return $isAttach
+                ? attachment()->attachListByDraft($module, (string) $draftCtx['token'], $kind, $uploaderId, $type)
+                : attachment()->galleryByDraft($module, (string) $draftCtx['token'], $kind, $uploaderId, $type);
+        }
+
+        return $isAttach
+            ? attachment()->attachList($module, $itemId, $type)
+            : attachment()->gallery($module, $itemId, $type);
     }
 
     /**
@@ -243,6 +354,10 @@ class FileController extends BaseController
             return $this->response('');
         }
         $type = $request->alpha('type');
+        // 与 box() 保持一致：前端组件名 attachment 归一为历史存储值 attach
+        if ($type === 'attachment') {
+            $type = 'attach';
+        }
         if ($type === '') {
             return $this->response('');
         }

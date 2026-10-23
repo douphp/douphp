@@ -23,9 +23,9 @@
     <div id="theme" class="dou-page">
     {include file="inc/page_header.tpl"}
     <div class="tab" id="theme-tabs">
-     <ul class="tab-title">
-      <li{if $rec eq 'default' } class="active"{/if}><a href="{url link='admin.theme'}">{$lang.theme_list}</a></li>
-      <li{if $rec eq 'install' } class="active"{/if}><a href="{url link='admin.theme.install'}">{$lang.theme_install}{if
+     <ul class="tab-nav">
+      <li class="nav-item"><a class="nav-link{if $rec eq 'default' } active{/if}" href="{url link='admin.theme'}">{$lang.theme_list}</a></li>
+      <li class="nav-item"><a class="nav-link{if $rec eq 'install' } active{/if}" href="{url link='admin.theme.install'}">{$lang.theme_install}{if
         $unum.theme}<span class="badge"><span>{$unum.theme}</span></span>{/if}</a></li>
      </ul>
     </div>

@@ -1,8 +1,15 @@
-+-----------------------------------------------------------------------------
-| 复制以下代码到你的配置文件中对应主机里加入就可，一般加到PHP配置的那段上面
-| 注意：server 块须有包含 index.php 的 index 指令（如 index index.php index.html;），
-| 否则真实目录（如 doubak/）无法命中目录索引。
-+-----------------------------------------------------------------------------
+# DouPHP 伪静态规则：将以下规则合并到站点 server 块中（一般放在 PHP 配置段之前）。
+# 若已有 location /，请合并内容而不是重复添加，避免 nginx 报 duplicate location。
+# 注意：server 块须有包含 index.php 的 index 指令（如 index index.php index.html;），
+# 否则真实目录（如 doubak/）无法命中目录索引。
+
+# images 目录禁止执行脚本：该目录只输出静态资源，远程图导入等支路落下的脚本在此
+# 双保险拦截；^~ 前缀保证优先于 PHP 正则 location，与配置顺序无关
+location ^~ /images/ {
+    if ($uri ~* \.(php[0-9]?|phtml|phar|pht|cgi|pl|py|asp|aspx|jsp|shtml)$) {
+        return 403;
+    }
+}
 
 location / {
     # 真实目录缺尾斜杠时 301 补上，避免目录内相对路径资源错乱

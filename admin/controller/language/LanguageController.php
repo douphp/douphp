@@ -128,22 +128,13 @@ class LanguageController extends BaseController
     {
         $languagePack = $request->languagePack('language_pack');
         $languageId = DB::table('language')->where('language_pack', $languagePack)->value('id');
-        $tabList = array('main', 'customer', 'display', 'seo', 'defined', 'mail');
-        if (DB::table('config')->where('tab', 'system_param')->where('name', 'core')->value('value')) {
-            array_splice($tabList, 1, 0, array('system_param'));
-        }
-        $cfg = array();
-        foreach ($tabList as $tab) {
-            $cfg[] = array(
-                'name' => $tab,
-                'lang' => lang('config_setting_' . $tab, lang('setting_' . $tab)),
-                'list' => $this->settingService->buildConfigList($tab),
-            );
-        }
-        $parameterList = DB::table('parameter')->where('group', 'system')->order('`group` DESC, sort ASC, id ASC')->select();
         $language = DB::table('language')->where('id', intval($languageId))->find();
         $language['language_id'] = (int) $language['id'];
         $language['site_logo'] = 'theme/' . Config::get('site.site_theme', '') . '/images/' . $this->languageService->siteLogoForLang($language['language_pack']);
+
+        // 数据源与主设置页同源（admin/menu/tab/setting.php 一组声明），语言包列表高亮当前语言
+        $tabContext = $this->settingService->buildTabNavContext();
+        $tabContext['lang_list'] = language()->buildLangList($languagePack);
 
         return $this->view('language.htm', [
             'ur_here' => lang('language_edit'),
@@ -154,14 +145,10 @@ class LanguageController extends BaseController
             // system 页不属于 resource 的 create/edit 动作，AdminResolver 不会自动装配表单目标，需在此显式指定
             'form_action' => route('admin.language.update', array('id' => $languageId)),
             'form_method' => 'PUT',
-            'cfg' => $cfg,
-            'parameter_list' => $parameterList,
-            'lang_list' => language()->buildLangList($languagePack),
             'language_pack' => $this->languageService->getLanguagePack($language['language_pack']),
             'item_id' => $languageId,
             'language' => $language,
-            'sms_tab' => (bool) Config::get('features.sms', false),
-        ]);
+        ] + $tabContext);
     }
 
     /**

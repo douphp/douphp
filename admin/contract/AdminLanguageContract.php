@@ -36,7 +36,7 @@ interface AdminLanguageContract extends LanguageContract
      * @param string $fieldList 逗号分隔字段名
      * @return array|bool
      */
-    public function buildLangButtons($module, $itemId = '', $fieldList = '');
+    public function buildLangButtons($module, $itemId = '', $fieldList = '', array $options = array());
 
     /**
      * 构建语言列表（用于设置页 Tab、语言管理「设置」切换项）。

@@ -65,12 +65,15 @@ class LanguageValueService extends BaseService
         }
 
         $disk = Storage::build('images/' . $module . '/');
-        if ($type === 'file') {
+        if ($type === 'file' || $type === 'image') {
             $value = attachment()->store($module, $itemId, UploadedFile::fromGlobals('value'), 'main', AttachmentUploadOptions::create()->withBusinessField('value')->withUploader('admin', (int) auth('admin')->id()));
+        } elseif ($type === 'checkbox') {
+            $checked = isset($data['value']) && is_array($data['value']) ? array_values(array_filter($data['value'], 'is_scalar')) : array();
+            $value = empty($checked) ? '' : json_encode(array_map('strval', $checked), JSON_UNESCAPED_UNICODE);
         } else {
             $value = isset($data['value']) ? (string) $data['value'] : '';
         }
-        if (!$value) {
+        if ($value === '' || $value === null) {
             throw new DomainException(lang('language_empty'));
         }
         if ($type === 'content') {
@@ -90,7 +93,9 @@ class LanguageValueService extends BaseService
             ->order('id DESC')
             ->value('value');
 
-        $rawInput = isset($data['value']) ? (string) $data['value'] : '';
+        $rawInput = isset($data['value'])
+            ? (is_array($data['value']) ? json_encode($data['value'], JSON_UNESCAPED_UNICODE) : (string) $data['value'])
+            : '';
         if ($haveValue) {
             DB::table('language_value')
                 ->where('language_pack', $languagePack)
@@ -148,7 +153,10 @@ class LanguageValueService extends BaseService
             ->where('type', $type)
             ->order('id DESC')
             ->value('value');
-        if ($field === 'file' || $field === 'image' || $field === 'show_img') {
+        if ($type === 'checkbox') {
+            $decoded = $value !== '' ? json_decode((string) $value, true) : array();
+            $value = is_array($decoded) ? array_values($decoded) : array();
+        } elseif ($type === 'file' || $type === 'image' || $field === 'file' || $field === 'image' || $field === 'show_img') {
             $value = attachment()->url($value);
         }
         if ($type === 'content') {

@@ -17,6 +17,7 @@ namespace Dou\Admin\Service\Nav;
 use Dou\Admin\Model\Nav\Nav;
 use Dou\Admin\Model\Page\Page;
 use Dou\Core\Foundation\Configuration\Config;
+use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Foundation\Module\ModuleModelResolver;
 use Dou\Core\Service\Admin\AdminLogAction;
@@ -182,17 +183,29 @@ class NavService extends BaseService
             'sort' => isset($data['sort']) ? (int) $data['sort'] : 0,
         );
 
-        $model = Nav::create($row);
-        $id = (int) $model->getKey();
+        $adminId = (int) auth('admin')->id();
+        $iconFile = $openIcon === 'image' ? UploadedFile::fromGlobals('icon') : null;
+        $icon = attachment()->reserve('nav', $iconFile, 'admin', $adminId, 'main', AttachmentUploadOptions::create());
+        $row['icon'] = $openIcon === 'image' ? $icon : $iconText;
 
-        if ($openIcon === 'image') {
-            $icon = attachment()->store('nav', $id, UploadedFile::fromGlobals('icon'), 'main', AttachmentUploadOptions::create()->withUploader('admin', (int) auth('admin')->id()));
-            if ($icon !== '') {
-                Nav::whereKey($id)->update(array('icon' => $icon));
+        $id = (int) DB::transaction(function () use ($row, $icon, $adminId) {
+            $model = Nav::create($row);
+            if (!$model) {
+                throw new DomainException(lang('operation_failed'));
             }
-        }
+            $id = (int) $model->getKey();
+            if ($id <= 0) {
+                throw new DomainException(lang('operation_failed'));
+            }
 
-        audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::CREATE, 1, (string) $row['name']);
+            if ($icon !== '' && attachment()->adopt('nav', $icon, $id, 'admin', $adminId) < 1) {
+                throw new DomainException(lang('file_claim_failed'));
+            }
+
+            return $id;
+        });
+
+        audit()->writeAdminLog($adminId, AdminLogAction::CREATE, 1, (string) $row['name']);
 
         return $id;
     }

@@ -46,20 +46,7 @@
     {include file="inc/page_header.tpl"}
     <!-- {if $rec eq 'system'} -->
     <div class="tab" id="language-setting-tabs">
-     <ul class="tab-title">
-      <!-- {foreach from=$cfg item=tab} -->
-      <li><a href="{url link='admin.setting'}#{$tab.name}">{$tab.lang}</a></li>
-      <!-- {/foreach} -->
-      <!-- {if $parameter_list} -->
-      <li><a href="{url link='admin.setting'}#parameter">{$lang.parameter}</a></li>
-      <!-- {/if} -->
-      <!-- {if $sms_tab} -->
-      <li><a href="{url link='admin.sms'}">{$lang.sms}</a></li>
-      <!-- {/if} -->
-      <!-- {foreach from=$lang_list item=item} -->
-      <li{if $item.cur} class="active"{/if}><a href="{url link='admin.language.system' language_pack=$item.language_pack}">{$item.name}{$lang.language_setting}</a></li>
-      <!-- {/foreach} -->
-     </ul>
+     {include file="inc/tab_nav.tpl"}
     </div>
     <!-- {/if} -->
     <div class="form-box mt-20">

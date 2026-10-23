@@ -19,7 +19,7 @@ if (!defined('IN_DOUCO')) {
 }
 
 /**
- * 环境与目录权限检测，并根据 Web 服务器类型复制对应的伪静态规则文件到站点根。
+ * 环境与目录权限检测。
  */
 class EnvironmentCheckService
 {
@@ -166,38 +166,6 @@ class EnvironmentCheckService
         sort($dirs);
 
         return $dirs;
-    }
-
-    /**
-     * 根据 SERVER_SOFTWARE 选择并复制伪静态规则到站点根。
-     *
-     * @param string $webServer SERVER_SOFTWARE 字符串
-     * @return string 实际复制的源文件名（空串表示未匹配到）
-     */
-    public function copyRewriteRule($webServer)
-    {
-        $rewrite_file = '';
-        if (strpos($webServer, 'Apache') !== false) {
-            $rewrite_file = '.htaccess.txt';
-        } elseif (strpos($webServer, 'nginx') !== false) {
-            $rewrite_file = 'nginx.txt';
-        } elseif (strpos($webServer, 'IIS') !== false) {
-            $iis_exp = explode('/', $webServer);
-            $iis_ver = isset($iis_exp[1]) ? $iis_exp[1] : '';
-            if ((float) $iis_ver >= 7.0) {
-                $rewrite_file = 'web.config.txt';
-            } else {
-                $rewrite_file = 'httpd.ini.txt';
-            }
-        }
-
-        if ($rewrite_file !== '') {
-            $source = INSTALL_PATH . 'data/rewrite/' . $rewrite_file;
-            $destination = ROOT_PATH . $rewrite_file;
-            @copy($source, $destination);
-        }
-
-        return $rewrite_file;
     }
 
     /**

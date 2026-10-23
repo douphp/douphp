@@ -22,21 +22,8 @@
    <div id="setting" class="dou-page">
     {include file="inc/page_header.tpl"}
     <div class="tab" id="setting-tabs">
-     <ul class="tab-title">
-      <!-- {foreach from=$config_list item=tab} -->
-      <li><a href="#{$tab.name}" data-toggle="tab">{$tab.lang}</a></li>
-      <!-- {/foreach} -->
-      <!-- {if $parameter_system_list} -->
-      <li><a href="#parameter" data-toggle="tab">{$lang.parameter}</a></li>
-      <!-- {/if} -->
-      <!-- {if $sms_tab} -->
-      <li><a href="{url link='admin.sms'}">{$lang.sms}</a></li>
-      <!-- {/if} -->
-      <!-- {foreach from=$lang_list item=item} -->
-      <li><a href="{url link='admin.language.system' language_pack=$item.language_pack}">{$item.name}{$lang.language_setting}</a></li>
-      <!-- {/foreach} -->
-     </ul>
-     <div class="form-box mt-20">
+     {include file="inc/tab_nav.tpl"}
+     <div class="tab-content">
       <form action="{url link='admin.setting.update'}" method="post" enctype="multipart/form-data">
        <!-- {foreach from=$config_list item=cfg} -->
        <div class="tab-pane" id="{$cfg.name}">
@@ -73,19 +60,19 @@
            <input type="file" name="{$cfg_list.name}" size="18" />
            {if $cfg_list.value}<a href="../{$cfg_list.value}" target="_blank"><img src="images/icon_yes.png"></a>{else}<img src="images/icon_no.png">{/if}
            {else}
-           <div class="file-input{if $cfg_list.value} file-input-filled{/if}" data-initial-src="{if $cfg_list.value}../{$cfg_list.value}{/if}" data-crop-ratio="{if $cfg_list.name eq 'site_logo' || $cfg_list.name eq 'site_logo_other' || $cfg_list.name eq 'site_logo_miniprogram'}{$setting.theme.logo_img_crop}{/if}" data-local-crop="1">
-            <div class="file-input-stage">
-             <label for="{$cfg_list.name}" class="file-input-label"><i class="file-input-placeholder bi-plus-lg"></i><!-- {if $cfg_list.value} --><img class="file-input-preview" src="../{$cfg_list.value}" alt="" /><!-- {else} --><img class="file-input-preview" alt="" /><!-- {/if} --><input type="file" id="{$cfg_list.name}" name="{$cfg_list.name}" accept="image/*" /></label>
-             <div class="file-input-mask">
-              <button type="button" class="file-input-action file-input-action-upload bi-upload" title="{$lang.file_btn}" tabindex="-1"></button>
-              <button type="button" class="file-input-action file-input-action-replace bi-arrow-repeat" title="{$lang.replace}" tabindex="-1"></button>
-              <button type="button" class="file-input-action file-input-action-crop bi-scissors" title="{$lang.crop_title}"></button>
-              <button type="button" class="file-input-action file-input-remove bi-x" title="{$lang.del}"></button>
+           <div class="file-image{if $cfg_list.value} file-image-filled{/if}" data-initial-src="{if $cfg_list.value}../{$cfg_list.value}{/if}" data-crop-ratio="{if $cfg_list.name eq 'site_logo' || $cfg_list.name eq 'site_logo_other' || $cfg_list.name eq 'site_logo_miniprogram'}{$setting.theme.logo_img_crop}{/if}" data-local-crop="1">
+            <div class="file-image-stage">
+             <label for="{$cfg_list.name}" class="file-image-label"><i class="file-placeholder bi-plus-lg"></i><!-- {if $cfg_list.value} --><img class="file-image-preview" src="../{$cfg_list.value}" alt="" /><!-- {else} --><img class="file-image-preview" alt="" /><!-- {/if} --><input type="file" id="{$cfg_list.name}" name="{$cfg_list.name}" accept="image/*" /></label>
+             <div class="file-image-mask">
+              <button type="button" class="file-action file-action-upload bi-upload" title="{$lang.file_btn}" tabindex="-1"></button>
+              <button type="button" class="file-action file-action-replace bi-arrow-repeat" title="{$lang.replace}" tabindex="-1"></button>
+              <button type="button" class="file-action file-action-crop bi-scissors" title="{$lang.crop_title}"></button>
+              <button type="button" class="file-action file-action-remove bi-x" title="{$lang.del}"></button>
              </div>
             </div>
-            <div class="file-input-rail">
-             <i class="file-input-rail-icon bi-scissors" aria-hidden="true"></i>
-             <label class="file-input-crop-check" title="{$lang.crop_on_upload}"><input type="checkbox" class="file-input-crop-pref" data-crop-scope="setting"{if $setting_crop} checked="checked"{/if} /></label>
+            <div class="file-rail">
+             <i class="file-rail-icon bi-scissors" aria-hidden="true"></i>
+             <label class="file-crop-check" title="{$lang.crop_on_upload}"><input type="checkbox" class="file-crop-pref" data-crop-scope="setting"{if $setting_crop} checked="checked"{/if} /></label>
             </div>
            </div>
            {/if}

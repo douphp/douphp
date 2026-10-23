@@ -15,6 +15,7 @@
 namespace Dou\Admin\Request\Article;
 
 use Dou\Core\Foundation\Configuration\Config;
+use Dou\Admin\Request\Concerns\HasMetadataRules;
 use Dou\Core\Web\Http\FormRequest;
 
 if (!defined('IN_DOUCO')) {
@@ -26,6 +27,7 @@ if (!defined('IN_DOUCO')) {
  */
 class ArticleFormRequest extends FormRequest
 {
+    use HasMetadataRules;
     /**
      * 提供校验数据源（在父类 POST 数据基础上按场景补充字段）。
      *
@@ -65,7 +67,6 @@ class ArticleFormRequest extends FormRequest
             'category_id' => 'required|integer',
             'title' => 'required|max:150',
             'slug' => '',
-            'defined' => '',
             'content' => '',
             'keywords' => '',
             'description' => '',
@@ -92,6 +93,6 @@ class ArticleFormRequest extends FormRequest
                 : 'required|slug|unique:article,slug';
         }
 
-        return $rules;
+        return array_merge($rules, $this->metadataRules());
     }
 }

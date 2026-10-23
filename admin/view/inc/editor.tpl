@@ -19,7 +19,8 @@
     <span class="btn-file">{$lang.insert_paid_use_line}</span>
    </div>
    <!-- {/if} -->
-   <div id="{$name}File" class="editor-btn" onclick="fileBox('content', '{$name}', '{$cur}', '{$item_id}', '{$draft_token}', '', cur_editor);">
+   <!-- {if $hide_upload neq 1} -->
+   <div id="{$name}File" class="editor-btn" onclick="fileUpload('content', '{$name}', '{$cur}', '{$item_id}', '{$draft_token}', '', cur_editor);">
     <span class="btn-file">{$lang.file_insert_image}</span>
     <span class="file-status" style="display:none"><img src="images/loader.gif" alt="uploading"/></span>
    </div>
@@ -27,13 +28,16 @@
     <input type="file" class="field">
     <span class="btn-file">{$lang.file_insert_media}<em class="percent"></em></span>
    </div>
+   <!-- {/if} -->
   </div>
   <div class="editor-bar-right">
+   <!-- {if $hide_upload neq 1} -->
    <span class="editor-text">
     <label>
      <input name="content_remote_image_local" type="checkbox"> {$lang.file_remote_image_local}</label>
    </span>
    <a class="editor-text js-post" href="{url link='admin.tool.editor'}">{if $site.editor eq 'vditor'}切换为传统编辑器{else}切换为markdown编辑器{/if}</a>
+   <!-- {/if} -->
    <span class="editor-text btn-fullscreen" onclick="btnFullscreen('{$name}')"><em class="yes">{$lang.fullscreen}</em><em class="no">{$lang.fullscreen_exit}</em></span>
   </div>
  </div>
@@ -41,8 +45,16 @@
  <div class="editor-content">
   <div id="{$name}" class="editor-class"></div>
  </div>
+ <!-- {if $input_name} -->
+ <textarea id="{$name}Textarea" name="{$input_name}" style="display: none;">{$value nofilter}</textarea>
+ <!-- {else} -->
  <textarea id="{$name}Textarea" name="{$name}" style="display: none;">{$value nofilter}</textarea>
+ <!-- {/if} -->
+ <!-- {else} -->
+ <!-- {if $input_name} -->
+ <script id="{$name}" name="{$input_name}" type="text/plain" class="editor-class">{$value nofilter}</script>
  <!-- {else} -->
  <script id="{$name}" name="{$name}" type="text/plain" class="editor-class">{$value nofilter}</script>
+ <!-- {/if} -->
  <!-- {/if} -->
 </div>

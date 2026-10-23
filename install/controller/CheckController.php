@@ -22,7 +22,7 @@ if (!defined('IN_DOUCO')) {
 }
 
 /**
- * 环境检测：列出系统信息与目录可写性，并按 Web 服务器复制对应伪静态规则。
+ * 环境检测：列出系统信息与目录可写性。
  */
 class CheckController
 {
@@ -43,7 +43,6 @@ class CheckController
 
         $sys_info = $service->collectSystemInfo();
         $info = $service->collectWriteableInfo();
-        $service->copyRewriteRule($sys_info['web_server']);
 
         $php_ok = !empty($sys_info['php_ok']);
         $block_next = !empty($info['no_write']) || !$php_ok;

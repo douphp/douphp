@@ -162,9 +162,11 @@ class NullLanguageService extends BaseService implements AdminLanguageContract
      * @param string $fieldList
      * @return array
      */
-    public function buildLangButtons($module, $itemId = '', $fieldList = '')
+    public function buildLangButtons($module, $itemId = '', $fieldList = '', array $options = array())
     {
-        return self::emptyLangButtonFields($fieldList);
+        $fields = is_array($fieldList) ? implode(',', $fieldList) : $fieldList;
+
+        return self::emptyLangButtonFields($fields);
     }
 
     /**

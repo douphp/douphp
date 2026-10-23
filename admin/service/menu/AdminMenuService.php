@@ -72,6 +72,8 @@ class AdminMenuService extends BaseService
         return array(
             'show' => 'site_home',
             'data' => 'site_home',
+            // 扩展字段（metadata）不再单列权限项，勾选「设置」即覆盖其管理页
+            'metadata' => 'setting',
         );
     }
 

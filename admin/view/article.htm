@@ -58,6 +58,9 @@
          <!-- {/if} -->
          <th class="m-none text-center" width="80">{$lang.status}</th>
          <th class="m-none text-center" width="80">{$lang.created_at}</th>
+         <!-- {foreach from=$metadata_schema item=meta_field} -->
+         <th class="text-center">{$meta_field.label|escape}</th>
+         <!-- {/foreach} -->
          <th width="80" class="text-center">{$lang.handler}</th>
         </tr>
         <!-- {foreach from=$article_list item=article} -->
@@ -75,6 +78,9 @@
          data-on-class="ai-status ai-status-on" data-off-class="ai-status ai-status-off"
          data-text-on="{$lang.status_1}" data-text-off="{$lang.status_0}"><span class="js-toggle-state">{$article.status.format}</span><span class="js-toggle-action">{if $article.status.value}{$lang.status_0}{else}{$lang.status_1}{/if}</span></em></td>
          <td class="m-none text-center">{$article.created_at}</td>
+         <!-- {foreach from=$article.metadata_list item=meta} -->
+         <td class="text-center">{include file="inc/metadata_cell.tpl" field=$meta}</td>
+         <!-- {/foreach} -->
          <td class="text-center"><a href="{url link='admin.article.edit' id=$article.id}">{$lang.edit}</a> | <a href="javascript:;" class="js-delete" data-url="{url link='admin.article.destroy' id=$article.id}">{$lang.del}</a></td>
         </tr>
         <!-- {/foreach} -->
@@ -129,14 +135,6 @@
          </select>
         </div>
        </div>
-       <!-- {if $article.defined} -->
-       <div class="form-item">
-        <div class="form-label">{$lang.article_defined}</div>
-        <div class="input-block"> <textarea name="defined" cols="50" class="textarea-auto auto-textarea">{$article.defined}</textarea>
-         <p class="action" data-field="defined">{$btn_lang.defined nofilter}</p>
-        </div>
-       </div>
-       <!-- {/if} -->
        <div class="form-item">
         <div class="form-label">{$lang.article_content}</div>
         <div class="input-block">
@@ -148,10 +146,11 @@
        <div class="form-item">
         <div class="form-label">{$lang.thumb}</div>
         <div class="input-block">
-         {include file="inc/file_input.tpl" name="image" value=$article.image file_number=$article.file_number crop_ratio=$setting.theme.article_img_crop}
+         {include file="inc/file_image.tpl" name="image" value=$article.image file_number=$article.file_number crop_ratio=$setting.theme.article_img_crop}
          <p class="cue">{$setting.theme.article_img_size}</p>
         </div>
        </div>
+       {include file="inc/metadata_fields.tpl" metadata_form=$metadata_form}
        <!-- {if $features.sort} -->
        <div class="form-item">
         <div class="form-label">{$lang.sort}</div>
@@ -176,6 +175,13 @@
         <div class="input-block">
          <textarea name="description" cols="115" rows="3" class="textarea">{$article.description}</textarea>
          <p class="action" data-field="description">{$btn_lang.description nofilter}</p>
+        </div>
+       </div>
+       <div class="form-item">
+        <div class="form-label">{$lang.attach_download}</div>
+        <div class="input-block">
+         {include file="inc/file_attachment.tpl" list_html=$article.attach_list_html}
+         <p class="cue">{$lang.attach_cue}</p>
         </div>
        </div>
        <div class="form-item">

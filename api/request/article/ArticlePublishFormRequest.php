@@ -93,7 +93,7 @@ class ArticlePublishFormRequest extends FormRequest
     }
 
     /**
-     * content_format 允许值来自 config/open.php（open 未装时取内置默认 html,markdown）。
+     * content_format 允许值来自 open 平台设置（dou_parameter group=open；open 未装时取内置默认 html,markdown）。
      *
      * @return string
      */

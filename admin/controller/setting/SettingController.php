@@ -159,9 +159,21 @@ class SettingController extends BaseController
             $data['weixin_img'] = attachment()->storeToDirectory(UploadedFile::fromGlobals('weixin_img'), $this->uploadDisk, '', 'weixin', 'main');
         }
 
-        $this->settingService->persistSettingConfig($data);
+        $rewriteResult = $this->settingService->persistSettingConfig($data);
 
-        return redirect(route('admin.setting'))->with('success', lang('edit_succes'));
+        $response = redirect(route('admin.setting'))->with('success', lang('edit_succes'));
+
+        if (is_array($rewriteResult)) {
+            if ($rewriteResult['state'] === 'manual') {
+                $response->with('warning', sprintf(lang('config_rewrite_write_manual'), $rewriteResult['file']));
+            } elseif ($rewriteResult['state'] === 'failed') {
+                $response->with('error', lang('config_rewrite_write_failed'));
+            } elseif ($rewriteResult['state'] === 'missing_source') {
+                $response->with('error', sprintf(lang('config_rewrite_source_missing'), $rewriteResult['file']));
+            }
+        }
+
+        return $response;
     }
 
     /**

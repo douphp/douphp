@@ -506,13 +506,38 @@ class Connection
         }
         $this->transDepth--;
         if ($this->transDepth === 0) {
-            // 最外层提交
-            $this->query("RELEASE SAVEPOINT sp0"); // 清理全部 savepoint
+            // 最外层提交：savepoint 由 MySQL 在 COMMIT 时自动释放，不能再 RELEASE 不存在的 sp0
             if (!mysqli_commit($this->dou_link)) {
                 $this->error('Failed to commit transaction: ' . mysqli_error($this->dou_link));
             }
             mysqli_autocommit($this->dou_link, true);
             $this->inTransaction = false;
+        }
+    }
+
+    /**
+     * 在事务中执行闭包：成功提交并返回结果，异常回滚后原样重抛。
+     *
+     * 支持嵌套（内层走 SAVEPOINT）；捕 \Exception 与 \Throwable，PHP 7 的 Error 也会回滚。
+     *
+     * @param callable $callback 接收 Connection 实例
+     * @return mixed
+     */
+    public function transaction(callable $callback)
+    {
+        $this->beginTransaction();
+        try {
+            $result = $callback($this);
+            $this->commit();
+
+            return $result;
+        } catch (\Exception $e) {
+            $this->rollback();
+            throw $e;
+        } catch (\Throwable $e) {
+            // PHP 5.6 无 \Throwable，本分支仅解析占位；PHP 7+ 承接 Error
+            $this->rollback();
+            throw $e;
         }
     }
 

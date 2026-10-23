@@ -29,6 +29,9 @@ if (!defined('IN_DOUCO')) {
  * 与 helper `attachment()` 等价。
  *
  * @method static string|false store(string $module, $itemId, UploadedFile $file, string $type = 'main', AttachmentUploadOptions $options = null)
+ * @method static string reserve(string $module, UploadedFile $file = null, string $identityKind = '', int $identityId = 0, string $type = 'main', AttachmentUploadOptions $options = null)
+ * @method static int adopt(string $module, string $number, $itemId, string $identityKind = '', int $identityId = 0)
+ * @method static int release(string $module, string $number, string $identityKind = '', int $identityId = 0)
  * @method static string|false storeToDirectory(UploadedFile $file, string $disk, string $directory = '', string $basename = '', string $type = 'main', AttachmentUploadOptions $options = null)
  * @method static array chunkedStore(string $module, $itemId, string $fileField = 'file', string $type = 'main', string $customFilename = '', string $allowFileType = 'zip,rar', $diskName = null, string $uploaderKind = '', int $uploaderId = 0, array $chunkInput = array())
  * @method static array chunkedStoreDraft(string $module, string $identityKind, int $identityId, string $draftToken, string $fileField = 'file', string $type = 'main', string $customFilename = '', string $allowFileType = 'zip,rar', $diskName = null, array $chunkInput = array())
@@ -41,8 +44,11 @@ if (!defined('IN_DOUCO')) {
  * @method static array urlBatch($numbers, bool $thumb = false)
  * @method static string cacheTag($fileUpdateTime = '')
  * @method static array|string gallery(string $module, $itemId, string $type, bool $arrayMode = false)
+ * @method static array|string galleryByDraft(string $module, string $draftToken, string $identityKind, int $identityId, string $type, bool $arrayMode = false)
  * @method static string galleryFirst(string $module, $itemId)
  * @method static array galleryFirstMap(string $module, array $ids)
+ * @method static array|string attachList(string $module, $itemId, string $type, bool $arrayMode = false)
+ * @method static array|string attachListByDraft(string $module, string $draftToken, string $identityKind, int $identityId, string $type, bool $arrayMode = false)
  * @method static mixed repository()
  */
 class Attachment extends StaticFacade

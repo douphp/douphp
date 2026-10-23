@@ -15,6 +15,7 @@
 namespace Dou\Admin\Service\Page;
 
 use Dou\Admin\Model\Page\Page;
+use Dou\Admin\Service\Concerns\SavesMetadata;
 use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Service\Admin\AdminLogAction;
@@ -37,6 +38,8 @@ if (!defined('IN_DOUCO')) {
  */
 class PageService extends BaseService
 {
+    use SavesMetadata;
+
     /** @var MarkdownRenderer */
     private $markdown;
 
@@ -75,6 +78,7 @@ class PageService extends BaseService
             'content' => '',
             'keywords' => '',
             'description' => '',
+            'metadata' => '',
             'mode' => 'editor',
             'editor_code' => '',
         );
@@ -167,23 +171,40 @@ class PageService extends BaseService
             }
         }
 
-        $page = Page::create(array(
-            'slug' => $data['slug'],
-            'parent_id' => Arr::get($data, 'parent_id', 0),
-            'name' => $data['name'],
-            'content' => $content,
-            'keywords' => Arr::get($data, 'keywords', ''),
-            'description' => Arr::get($data, 'description', ''),
-            'editor_code' => $editorCode,
-            'mode' => isset($data['mode']) ? $data['mode'] : 'editor',
-        ));
-        if (!$page) {
-            throw new DomainException(lang('illegal'), route('admin.page'));
+        $metadataPlan = $this->metadataBegin('page', $data, 0, '', $adminId);
+
+        try {
+            $newId = (int) DB::transaction(function () use ($data, $draftToken, $adminId, $editorCode, $content, $metadataPlan) {
+                $page = Page::create(array(
+                    'slug' => $data['slug'],
+                    'parent_id' => Arr::get($data, 'parent_id', 0),
+                    'name' => $data['name'],
+                    'content' => $content,
+                    'keywords' => Arr::get($data, 'keywords', ''),
+                    'description' => Arr::get($data, 'description', ''),
+                    'metadata' => $metadataPlan ? $metadataPlan['json'] : '',
+                    'editor_code' => $editorCode,
+                    'mode' => isset($data['mode']) ? $data['mode'] : 'editor',
+                ));
+                if (!$page) {
+                    throw new DomainException(lang('illegal'), route('admin.page'));
+                }
+                $newId = (int) $page->getKey();
+                if ($newId <= 0) {
+                    throw new DomainException(lang('operation_failed'));
+                }
+
+                attachment()->claimByToken('page', $draftToken, $newId, 'admin', $adminId);
+                $this->metadataCommit($metadataPlan, $newId, $adminId);
+
+                return $newId;
+            });
+        } catch (\Exception $e) {
+            $this->metadataAbort($metadataPlan);
+            throw $e;
         }
-        $newId = (int) $page->getKey();
 
-        attachment()->claimByToken('page', $draftToken, $newId, 'admin', $adminId);
-
+        $this->metadataPurge($metadataPlan, $newId);
         audit()->writeAdminLog($adminId, AdminLogAction::CREATE, 1, (string) $data['name']);
 
         return $newId;
@@ -213,6 +234,8 @@ class PageService extends BaseService
             throw new DomainException(lang('illegal'), route('admin.page'));
         }
 
+        $metadataPlan = $this->metadataBegin('page', $data, $id, $this->metadataExistingRaw($model), $adminId);
+
         $editorCode = '';
         if (isset($data['mode']) && $data['mode'] === 'visualize') {
             $editorCode = $this->getEditorCode($id);
@@ -227,7 +250,7 @@ class PageService extends BaseService
             }
         }
 
-        $model->fill(array(
+        $updateData = array(
             'slug' => $data['slug'],
             'parent_id' => Arr::get($data, 'parent_id', 0),
             'name' => $data['name'],
@@ -236,8 +259,22 @@ class PageService extends BaseService
             'description' => Arr::get($data, 'description', ''),
             'editor_code' => $editorCode,
             'mode' => isset($data['mode']) ? $data['mode'] : 'editor',
-        ), 'update')->save();
+        );
+        if ($metadataPlan !== null) {
+            $updateData['metadata'] = $metadataPlan['json'];
+        }
 
+        try {
+            DB::transaction(function () use ($model, $updateData, $metadataPlan, $id, $adminId) {
+                $model->fill($updateData, 'update')->save();
+                $this->metadataCommit($metadataPlan, $id, $adminId);
+            });
+        } catch (\Exception $e) {
+            $this->metadataAbort($metadataPlan);
+            throw $e;
+        }
+
+        $this->metadataPurge($metadataPlan, $id);
         audit()->writeAdminLog($adminId, AdminLogAction::UPDATE, 1, (string) $data['name']);
     }
 

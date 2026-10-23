@@ -181,7 +181,9 @@ class ArticlePublishService extends BaseService
             return false;
         }
 
-        Article::destroy((int) $id);
+        if (!Article::destroy((int) $id)) {
+            throw new DomainException(lang('open_publish_delete_failed'));
+        }
 
         return true;
     }

@@ -88,6 +88,72 @@ class DataService extends BaseService
     }
 
     /**
+     * 按父级 code 生成顺序子 code：{parent}_a、{parent}_b …（超过 z 后进位为 aa、ab …）。
+     *
+     * 仅统计当前主题下形如 {parent}_{字母} 的 code，取最大序号的下一个；
+     * 无同类记录时从 _a 开始。已删除的字母不复用，避免与历史链接/缓存冲突。
+     *
+     * @param string $parentCode 父级 code
+     * @return string
+     */
+    public function createChildCode($parentCode)
+    {
+        $parentCode = (string) $parentCode;
+        if ($parentCode === '') {
+            return $this->createCode();
+        }
+
+        $pattern = '/^' . preg_quote($parentCode, '/') . '_([a-z]+)$/i';
+        $max = 0;
+        foreach (Data::findAllCodesByTheme(Config::get('site.site_theme', '')) as $code => $id) {
+            if (preg_match($pattern, (string) $code, $matches)) {
+                $number = $this->alphaToNumber(strtolower($matches[1]));
+                if ($number > $max) {
+                    $max = $number;
+                }
+            }
+        }
+
+        return $parentCode . '_' . $this->numberToAlpha($max + 1);
+    }
+
+    /**
+     * 字母序号转数字（a=1、z=26、aa=27 …）。
+     *
+     * @param string $alpha 小写字母串
+     * @return int
+     */
+    private function alphaToNumber($alpha)
+    {
+        $number = 0;
+        $length = strlen($alpha);
+        for ($i = 0; $i < $length; $i++) {
+            $number = $number * 26 + (ord($alpha[$i]) - 96);
+        }
+
+        return $number;
+    }
+
+    /**
+     * 数字转字母序号（1=a、26=z、27=aa …）。
+     *
+     * @param int $number
+     * @return string
+     */
+    private function numberToAlpha($number)
+    {
+        $alpha = '';
+        $number = (int) $number;
+        while ($number > 0) {
+            $number--;
+            $alpha = chr(97 + $number % 26) . $alpha;
+            $number = (int) ($number / 26);
+        }
+
+        return $alpha;
+    }
+
+    /**
      * 后台编辑页「返回」链接（按 data_group / data_item 推导）。
      *
      * 输出路径式路由（与 admin/init/route.php、Router 约定一致）。
@@ -187,7 +253,7 @@ class DataService extends BaseService
             );
         }
 
-        $newCode = $this->createCode();
+        $newCode = $parentCode ? $this->createChildCode($parentCode) : $this->createCode();
         $lang = lang_all();
         $langArray = array('name', 'code', 'image', 'text', 'link', 'class');
         foreach ($langArray as $value) {
@@ -252,15 +318,22 @@ class DataService extends BaseService
             'is_class' => Arr::get($post, 'is_class', '0'),
         );
 
-        $newId = (int) Data::insertData($insertData);
+        $adminId = (int) auth('admin')->id();
+        $image = attachment()->reserve('data', UploadedFile::fromGlobals('image'), 'admin', $adminId, 'main', AttachmentUploadOptions::create()->withBasename($code)->withDirectory(Config::get('site.site_theme', '')));
+        $insertData['image'] = $image;
 
-        $image = attachment()->store('data', $newId, UploadedFile::fromGlobals('image'), 'main', AttachmentUploadOptions::create()->withBasename($code)->withDirectory(Config::get('site.site_theme', ''))->withUploader('admin', (int) auth('admin')->id()));
-        if ($image !== '') {
-            Data::updateById($newId, array('image' => $image));
-        }
+        DB::transaction(function () use ($insertData, $image, $adminId) {
+            $newId = (int) Data::insertData($insertData);
+            if ($newId <= 0) {
+                throw new DomainException(lang('operation_failed'));
+            }
+            if ($image !== '' && attachment()->adopt('data', $image, $newId, 'admin', $adminId) < 1) {
+                throw new DomainException(lang('file_claim_failed'));
+            }
+        });
 
         $backUrl = $this->backUrl(Arr::get($post, 'data_group', ''), Arr::get($post, 'data_item', ''));
-        audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::CREATE, 1, (string) $name);
+        audit()->writeAdminLog($adminId, AdminLogAction::CREATE, 1, (string) $name);
         return $backUrl;
     }
 

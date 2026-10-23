@@ -171,9 +171,12 @@ $_LANG['file_support'] = 'Only the following file types are supported:';
 $_LANG['file_support_no'] = 'Not supported';
 $_LANG['file_out_size'] = 'The uploaded file exceeds';
 $_LANG['file_wrong'] = 'File upload failed. Please make sure the file size does not exceed d% KB and the upload has not timed out';
+$_LANG['operation_failed'] = 'Operation failed. Please try again';
+$_LANG['file_claim_failed'] = 'Failed to claim the attachment. Please try again';
 $_LANG['upload_failed'] = 'Upload failed. Please try again.';
 $_LANG['file_insert_image'] = 'Insert Image';
 $_LANG['file_btn'] = 'Click to Upload';
+$_LANG['attach_download'] = 'Attachments';
 
 // Validator Messages
 $_LANG['validator_required'] = 'The :field field is required.';

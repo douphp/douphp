@@ -163,6 +163,9 @@ p.cue {
 .mt-20 {
   margin-top: 20px;
 }
+.mt-30 {
+  margin-top: 20px;
+}
 .mb-30 {
   margin-bottom: 30px;
 }
@@ -870,6 +873,9 @@ p.cue {
 .page-header .notice.notice-error {
   border-left-color: #d63638;
 }
+.page-header .notice.notice-warning {
+  border-left-color: #dba617;
+}
 .page-header .notice-dismiss {
   position: absolute;
   top: 0;
@@ -946,50 +952,94 @@ p.cue {
   font-weight: bold;
 }
 
-/* Page — split layout */
+/* Page — split layout：分栏框架 */
 .split-layout {
-  zoom: 1;
+  display: flex;
+  align-items: stretch;
   overflow: hidden;
+  border: 1px dotted #ccc;
+  background-color: #f9f9f9;
+  color: #666;
 }
-.split-layout .title {
-  border-bottom: 1px solid #ddd;
+.split-layout .split-header {
+  background-color: #eee;
+  border-bottom: 1px dotted #ccc;
   color: #333;
-  font-size: 16px;
-  padding: 10px 7px;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 8px;
 }
-.split-layout .split-side {
-  width: 400px;
-  float: left;
+
+/* Split — 分栏子项：col-1 ~ col-12 为 12 等分占比（1/12 ~ 12/12） */
+.split-layout .split-pane {
+  flex: 1 1 auto;
+  min-width: 0;
+  box-sizing: border-box;
 }
-.split-layout.is-wide .split-side {
-  width: 650px;
+.split-layout .split-pane + .split-pane {
+  border-left: 1px dotted #ccc;
 }
-.split-layout .split-main {
-  margin-left: 400px;
+.split-layout .col-1 {
+  flex: 0 0 8.3333%;
 }
-.split-layout.is-wide .split-main {
-  margin-left: 650px;
+.split-layout .col-2 {
+  flex: 0 0 16.6667%;
 }
-.split-layout .form-box {
-  margin: 8px 20px 0 0;
+.split-layout .col-3 {
+  flex: 0 0 25%;
 }
-.split-layout form {
-  padding: 0 7px;
+.split-layout .col-4 {
+  flex: 0 0 33.3333%;
 }
+.split-layout .col-5 {
+  flex: 0 0 41.6667%;
+}
+.split-layout .col-6 {
+  flex: 0 0 50%;
+}
+.split-layout .col-7 {
+  flex: 0 0 58.3333%;
+}
+.split-layout .col-8 {
+  flex: 0 0 66.6667%;
+}
+.split-layout .col-9 {
+  flex: 0 0 75%;
+}
+.split-layout .col-10 {
+  flex: 0 0 83.3333%;
+}
+.split-layout .col-11 {
+  flex: 0 0 91.6667%;
+}
+.split-layout .col-12 {
+  flex: 0 0 100%;
+}
+
+/* Split — 内容区：统一内边距 */
+.split-layout .split-body {
+  padding: 15px;
+}
+
+/* Split — 分组标题 */
+.split-layout .group-title {
+  font-size: 14px;
+  padding: 10px 8px;
+  color: #60bbff;
+  font-weight: bold;
+}
+
 @media (max-width: 768px) {
-  .split-layout .split-side,
-  .split-layout.is-wide .split-side {
-    width: auto;
-    float: none;
-    margin-bottom: 50px;
+  .split-layout {
+    display: block;
   }
-  .split-layout .split-main,
-  .split-layout.is-wide .split-main {
-    margin-left: 0;
+  .split-layout .split-pane + .split-pane {
+    border-left: 0;
+    margin-top: 50px;
   }
 }
 .split-layout .form-edit {
-  border: 4px solid #9fd7ff;
+  outline: 4px solid #9fd7ff;
   padding:15px;
 }
 .split-layout .active td {
@@ -1002,7 +1052,7 @@ p.cue {
 
 /* Page — item list */
 .split-layout .item-list {
-  margin: 10px;
+  margin: 0;
   display: flex;
   flex-wrap: wrap;
   gap: 15px;
@@ -1304,58 +1354,70 @@ select option.selected {
 }
 
 /* 13. Tab — 选项卡 */
-.tab-title {
+.tab .tab-nav {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  white-space: nowrap;
   border-bottom: 1px solid #19b4ea;
   font-weight: bold;
   font-size: 14px;
-  display: flex;
-  overflow-x: auto;
-  white-space: nowrap;
 }
-.tab-title li {
+.tab .tab-nav > .nav-item {
   line-height: 45px;
   height: 45px;
 }
-.tab-title a {
+.tab .tab-nav > .nav-item > .nav-link {
   display: block;
-  background-color: #f9f9f9;
   padding: 0 44px;
-  text-decoration: none;
+  background-color: #f9f9f9;
   color: #999;
+  text-decoration: none;
   cursor: pointer;
 }
-.tab-title li.active a {
+.tab .tab-nav > .nav-item > .nav-link.active {
   background-color: #19b4ea;
   color: #fff;
 }
-.tab-content {
+.tab .tab-pills {
+  margin-bottom: 15px;
+}
+.tab .tab-pills > .nav-item {
+  display: inline-block;
+}
+.tab .tab-pills > .nav-link,
+.tab .tab-pills > .nav-item > .nav-link {
+  display: inline-block;
+  padding: 5px 10px;
+  background-color: #ddd;
+  color: #777;
+}
+.tab .tab-pills > .nav-link.active,
+.tab .tab-pills > .nav-item > .nav-link.active {
+  background-color: #19b4ea;
+  color: #fff;
+}
+.tab .tab-content {
   margin-top: 20px;
 }
-.tab-pane {
+.tab .tab-pane {
   display: none;
 }
-.tab-pane.active {
+.tab .tab-pane.active {
   display: block;
 }
 @media (max-width: 768px) {
-  .tab-title {
-    border-bottom: 1px solid #19b4ea;
+  .tab .tab-nav {
+    flex-wrap: wrap;
+    overflow-x: visible;
     font-size: 12px;
-    zoom: 1;
-    overflow: hidden;
-    height: auto;
   }
-  .tab-title li {
-    float: left;
+  .tab .tab-nav > .nav-item {
     line-height: 35px;
     height: 35px;
   }
-  .tab-title a {
+  .tab .tab-nav > .nav-item > .nav-link {
     padding: 0 10px;
-  }
-  .tab-title li.active a {
-    background-color: #19b4ea;
-    color: #fff;
   }
 }
 
@@ -1365,6 +1427,10 @@ select option.selected {
   border: 0;
   border-collapse: collapse;
   color: #666666;
+}
+/* 固定表格布局：列宽均分，内置控件不会撑破容器（用于窄栏内的表单表格） */
+.table-fixed {
+  table-layout: fixed;
 }
 .table select {
   color: #555;
@@ -1408,8 +1474,63 @@ select option.selected {
   height: 25px;
   border-bottom: 1px solid #ddd;
 }
+/* 表格内的字段标签：块级显示，控件另起一行 */
+.table label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
 .table tr:hover td {
   background-color: #e9e9e9;
+}
+/* 可选：加 no-hover 关闭行悬停底色 */
+.table.no-hover tr:hover td {
+  background-color: transparent;
+}
+/* 表格 — 模块分组行：跨模块混排列表（扩展字段总览）的小标题 */
+.table tr.table-group td {
+  height: auto;
+  padding: 9px 10px;
+  background-color: #f1f4f8;
+  border-top: 1px solid #ddd;
+  border-bottom: 1px solid #ddd;
+  color: #333;
+  font-weight: bold;
+}
+.table tr.table-group:hover td {
+  background-color: #f1f4f8;
+}
+.table .table-group-title {
+  font-size: 13px;
+}
+.table .table-group-key {
+  margin-left: 6px;
+  color: #999;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: normal;
+}
+.table .table-group-count {
+  margin-left: 8px;
+  color: #888;
+  font-size: 12px;
+  font-weight: normal;
+}
+.table .table-group-add {
+  margin-left: 10px;
+  font-size: 12px;
+  font-weight: normal;
+}
+.table .table-group-cue {
+  margin-left: 8px;
+  color: #b45309;
+  font-size: 12px;
+  font-weight: normal;
+}
+/* 定位高亮：保存 / 删除后携带 #module-<name> 回到列表 */
+.table tbody:target tr.table-group td {
+  background-color: #fff7d6;
+  border-color: #e6d290;
 }
 .table a {
   color: #0072c6;
@@ -1431,6 +1552,14 @@ select option.selected {
 }
 .form .select {
   color: #555;
+}
+
+/* Form — 分组标题 */
+.form .group-title {
+  font-size: 14px;
+  padding: 10px 0;
+  color: #60bbff;
+  font-weight: bold;
 }
 
 /* Form — gray variant */
@@ -1567,6 +1696,22 @@ select option.selected {
   border: 1px solid #0072c6;
   background-color: #0072c6;
   color: #fff;
+}
+
+/* Form — 扩展字段（inc/metadata_fields.tpl） */
+.form .metadata-field .metadata-action-inline {
+  display: inline-block;
+  margin: 0 0 0 8px;
+  vertical-align: middle;
+}
+.form .metadata-field .metadata-control .input-number {
+  width: 120px;
+}
+@media (max-width: 768px) {
+  .form .metadata-field .metadata-action-inline {
+    display: block;
+    margin: 5px 0 0;
+  }
 }
 
 /* Form — radio-group */
@@ -2476,50 +2621,53 @@ select option.selected {
 }
 
 /* 21. Upload — 文件上传 */
-/* File input — preview, crop pref, hover mask, form submit */
-.file-input {
-  --file-input-rail-width: 40px;
-  --file-input-height: 88px;
-  --file-input-stage-width: 100px;
+/* File image — preview, crop pref, hover mask, form submit */
+.file-image {
+  --file-rail-width: 40px;
+  --file-image-height: 88px;
+  --file-image-stage-width: 100px;
   position: relative;
   display: inline-flex;
   vertical-align: top;
   box-sizing: border-box;
   width: auto;
-  height: var(--file-input-height);
+  max-width: 100%;
+  height: var(--file-image-height);
   border: 1px dotted #cccccc;
   overflow: hidden;
   background-color: #F4F4F4;
 }
-.file-input .file-input-stage {
+.file-image .file-image-stage {
   position: relative;
-  flex: 0 0 auto;
-  width: var(--file-input-stage-width);
+  flex: 0 1 auto;
+  width: var(--file-image-stage-width);
   min-width: 100px;
   height: 100%;
 }
-.file-input .file-input-label {
+.file-image .file-image-label {
   display: block;
   width: 100%;
   height: 100%;
   cursor: pointer;
 }
-.file-input input[type="file"] {
+.file-image input[type="file"] {
   display: none;
 }
-.file-input .file-input-preview {
+.file-image .file-image-preview {
   display: none;
   position: absolute;
   left: 0;
   top: 0;
   width: 100%;
   height: 100%;
+  max-width: 100%;
+  max-height: 100%;
   object-fit: cover;
 }
-.file-input.file-input-filled .file-input-preview {
+.file-image.file-image-filled .file-image-preview {
   display: block;
 }
-.file-input .file-input-placeholder {
+.file-image .file-placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2530,16 +2678,16 @@ select option.selected {
   color: #777;
   cursor: pointer;
 }
-.file-input.file-input-filled .file-input-placeholder {
+.file-image.file-image-filled .file-placeholder {
   display: none;
 }
-.file-input .file-input-mask {
+.file-image .file-image-mask {
   display: none;
   position: absolute;
   top: 0;
   left: 0;
   bottom: 0;
-  width: calc(100% + var(--file-input-rail-width));
+  width: calc(100% + var(--file-rail-width));
   align-items: center;
   justify-content: center;
   gap: 6px;
@@ -2547,11 +2695,11 @@ select option.selected {
   pointer-events: none;
   z-index: 2;
 }
-.file-input .file-input-stage:hover .file-input-mask {
+.file-image .file-image-stage:hover .file-image-mask {
   display: flex;
 }
-/* 上传/替换/裁剪成功后：短暂释放悬停蒙板，用「已更新」徽标提示替换成功，避免新图被蒙板挡住无法确认 */
-.file-input .file-input-flash {
+/* 预览刷新（选择/替换/裁剪）时短暂释放悬停蒙板，避免新图被蒙板挡住无法确认；「已更新」徽标仅服务端写入后显示 */
+.file-image .file-image-flash {
   display: none;
   position: absolute;
   top: 0;
@@ -2563,14 +2711,26 @@ select option.selected {
   pointer-events: none;
   z-index: 3;
 }
-.file-input.file-input-flashing .file-input-flash {
+.file-image.file-image-flashing .file-image-flash {
   display: flex;
 }
-.file-input.file-input-flashing .file-input-mask {
+.file-image.file-image-flashing .file-image-mask {
   display: none !important;
 }
-.file-input .file-input-flash-badge,
-.file-box .file-item-flash-badge {
+/* 操作已反映到预览：预览淡入作为视觉确认，不做完成态宣告 */
+.file-image.file-image-flashing .file-image-preview {
+  animation: filePreviewFadeIn 0.4s ease;
+}
+@keyframes filePreviewFadeIn {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.file-image .file-image-flash-badge,
+.file-upload .file-item-flash-badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -2605,8 +2765,8 @@ select option.selected {
     transform: scale(1);
   }
 }
-.file-input .file-input-action,
-.file-box .file-item .file-input-action {
+.file-image .file-action,
+.file-upload .file-item .file-action {
   pointer-events: auto;
   box-sizing: border-box;
   width: 28px;
@@ -2622,20 +2782,20 @@ select option.selected {
   cursor: pointer;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
 }
-.file-input .file-input-action:hover,
-.file-box .file-item .file-input-action:hover {
+.file-image .file-action:hover,
+.file-upload .file-item .file-action:hover {
   border-color: #bbb;
   color: #445;
 }
-.file-input.file-input-filled .file-input-action-upload,
-.file-input:not(.file-input-filled) .file-input-action-replace,
-.file-input:not(.file-input-filled) .file-input-action-crop,
-.file-input:not(.file-input-filled) .file-input-remove,
-.file-input.file-input-filled:not(.file-input-croppable) .file-input-action-crop {
+.file-image.file-image-filled .file-action-upload,
+.file-image:not(.file-image-filled) .file-action-replace,
+.file-image:not(.file-image-filled) .file-action-crop,
+.file-image:not(.file-image-filled) .file-action-remove,
+.file-image.file-image-filled:not(.file-image-croppable) .file-action-crop {
   display: none;
 }
-.file-input .file-input-rail,
-.file-box .file-input-rail {
+.file-image .file-rail,
+.file-upload .file-rail {
   position: relative;
   z-index: 1;
   display: flex;
@@ -2644,28 +2804,28 @@ select option.selected {
   justify-content: center;
   flex-shrink: 0;
   box-sizing: border-box;
-  width: var(--file-input-rail-width);
+  width: var(--file-rail-width);
   height: 100%;
   border-left: 1px solid #e5e7eb;
   background-color: #EEE;
 }
-.file-input .file-input-rail-icon,
-.file-box .file-input-rail-icon {
+.file-image .file-rail-icon,
+.file-upload .file-rail-icon {
   font-size: 14px;
   color: #c0c0c0;
   line-height: 1;
   margin-bottom: 12px;
 }
-.file-input .file-input-crop-check,
-.file-box .file-input-crop-check {
+.file-image .file-crop-check,
+.file-upload .file-crop-check {
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0;
   cursor: pointer;
 }
-.file-input .file-input-crop-pref,
-.file-box .file-input-crop-pref {
+.file-image .file-crop-pref,
+.file-upload .file-crop-pref {
   width: 14px;
   height: 14px;
   margin: 0;
@@ -2680,34 +2840,34 @@ select option.selected {
   background-position: center;
   background-size: 10px 10px;
 }
-.file-input .file-input-crop-pref:checked,
-.file-box .file-input-crop-pref:checked {
+.file-image .file-crop-pref:checked,
+.file-upload .file-crop-pref:checked {
   border-color: #c8c8c8;
   background-color: transparent;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill='none' stroke='%23999' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' d='M2.2 6.2 4.8 8.8 9.8 3.2'/%3E%3C/svg%3E");
 }
-.file-input.file-input-no-reader .file-input-placeholder {
+.file-image.file-image-no-reader .file-placeholder {
   color: #28b779;
 }
 
-/* File box */
-.file-box {
-  --file-input-rail-width: 40px;
-  --file-box-tile-width: 100px;
-  --file-box-tile-height: 88px;
-  --file-box-add-width: 140px;
+/* File upload — 多图 / 多附件共享列表 */
+.file-upload {
+  --file-rail-width: 40px;
+  --file-upload-tile-width: 100px;
+  --file-upload-tile-height: 88px;
+  --file-upload-add-width: 140px;
   zoom: 1;
   overflow: hidden;
 }
-.file-box .file-add {
+.file-upload .file-add {
   float: left;
 }
-.file-box .file-add li.btn-file {
+.file-upload .file-add li.btn-file {
   display: inline-flex;
   align-items: stretch;
   box-sizing: border-box;
   width: auto;
-  height: var(--file-box-tile-height);
+  height: var(--file-upload-tile-height);
   padding: 0;
   border: 1px dotted #cccccc;
   overflow: hidden;
@@ -2715,61 +2875,61 @@ select option.selected {
   cursor: default;
   font-size: 14px;
 }
-.file-box .file-box-stage {
+.file-upload .file-upload-stage {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  width: var(--file-box-tile-width);
-  min-width: var(--file-box-tile-width);
+  width: var(--file-upload-tile-width);
+  min-width: var(--file-upload-tile-width);
   height: 100%;
   cursor: pointer;
 }
-.file-box .file-add li.file-status {
+.file-upload .file-add li.file-status {
   display: flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  width: var(--file-box-tile-width);
-  height: var(--file-box-tile-height);
+  width: var(--file-upload-tile-width);
+  height: var(--file-upload-tile-height);
   border: 1px dotted #cccccc;
   background-color: #f4f4f4;
   cursor: default;
 }
-.file-box .file-add li .file-input-placeholder {
+.file-upload .file-add li .file-placeholder {
   color: #777;
   font-size: 20px;
   font-weight: 300;
 }
-.file-box .file-add li img {
+.file-upload .file-add li img {
   margin: 0;
 }
-.file-box .file-list {
-  margin-left: var(--file-box-add-width);
+.file-upload .file-list {
+  margin-left: var(--file-upload-add-width);
   zoom: 1;
   overflow: hidden;
 }
-.file-box .file-list li {
+.file-upload .file-list li {
   float: left;
   box-sizing: border-box;
-  width: var(--file-box-tile-width);
-  height: var(--file-box-tile-height);
+  width: var(--file-upload-tile-width);
+  height: var(--file-upload-tile-height);
   border: 1px dotted #cccccc;
   overflow: hidden;
   margin-left: 10px;
   position: relative;
 }
-.file-box .file-list li img {
+.file-upload .file-list li img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-.file-box .file-list li span {
+.file-upload .file-list li > span.del {
   display: none !important;
 }
-.file-box .file-item-mask {
+.file-upload .file-item-mask {
   display: none;
   position: absolute;
   top: 0;
@@ -2783,11 +2943,11 @@ select option.selected {
   pointer-events: none;
   z-index: 2;
 }
-.file-box .file-item:hover .file-item-mask {
+.file-upload .file-item:hover .file-item-mask {
   display: flex !important;
 }
 /* 相册项替换/裁剪成功后：闪「已更新」徽标并短暂释放悬停蒙板（覆盖上面的 :hover 规则） */
-.file-box .file-item-flash {
+.file-upload .file-item-flash {
   display: none;
   position: absolute;
   top: 0;
@@ -2799,21 +2959,85 @@ select option.selected {
   pointer-events: none;
   z-index: 3;
 }
-.file-box .file-item-flashing .file-item-flash {
+.file-upload .file-item-flashing .file-item-flash {
   display: flex;
 }
-.file-box .file-item-flashing:hover .file-item-mask {
+.file-upload .file-item-flashing:hover .file-item-mask {
   display: none !important;
 }
-.file-box .file-item .file-input-action {
+.file-upload .file-item .file-action {
   width: 22px;
   height: 22px;
   font-size: 11px;
   line-height: 22px;
 }
-.file-box .file-item:not(.file-item-croppable) .file-input-action-replace,
-.file-box .file-item:not(.file-item-croppable) .file-input-action-crop {
+.file-upload .file-item:not(.file-item-croppable) .file-action-replace,
+.file-upload .file-item:not(.file-item-croppable) .file-action-crop {
   display: none;
+}
+
+/* File attachment — 扁平行条目替代相册瓦片 */
+.file-attachment {
+  --file-upload-tile-width: 88px;
+  --file-upload-tile-height: 40px;
+  --file-upload-add-width: 98px;
+}
+.file-attachment .file-add li .file-placeholder {
+  font-size: 16px;
+}
+.file-attachment .file-list li.file-item {
+  float: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: auto;
+  height: 40px;
+  margin: 0 0 8px 10px;
+  padding: 0 10px;
+  border: 1px solid #e5e7eb;
+  background-color: #fff;
+}
+.file-attachment .file-item .file-attachment-icon {
+  flex: 0 0 auto;
+  font-size: 16px;
+  line-height: 1;
+  color: #28b779;
+}
+.file-attachment .file-item .file-attachment-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: #333;
+  text-decoration: none;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.file-attachment .file-item .file-attachment-name:hover {
+  color: #28b779;
+  text-decoration: underline;
+}
+.file-attachment .file-item .file-attachment-size {
+  flex: 0 0 auto;
+  color: #999;
+  font-size: 12px;
+  font-style: normal;
+}
+.file-attachment .file-item .file-action-remove {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+/* 多选上传中的单个文件被拒：作为列表首行给出可读原因，已成功的附件照常展示 */
+.file-attachment .file-list li.file-item-error {
+  float: none;
+  width: auto;
+  height: auto;
+  margin: 0 0 8px 10px;
+  padding: 6px 10px;
+  border: 1px solid #f0c8c8;
+  background-color: #fdf3f3;
+  color: #c0392b;
+  font-size: 12px;
+  line-height: 18px;
 }
 
 /* File big */
@@ -3002,4 +3226,22 @@ select option.selected {
 .js-toggle:hover .js-toggle-action {
   display: inline;
   color: #fff;
+}
+
+/* 27. 语言抽屉：本地草稿控件 */
+.draft-file-control {
+  margin-top: 8px;
+}
+.draft-file-preview {
+  margin-top: 8px;
+  color: #666;
+  word-break: break-all;
+}
+.draft-file-preview img {
+  display: block;
+  max-width: 180px;
+  max-height: 120px;
+}
+.is-lang-draft .form-item {
+  margin-bottom: 12px;
 }

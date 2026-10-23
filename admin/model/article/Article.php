@@ -15,6 +15,7 @@
 namespace Dou\Admin\Model\Article;
 
 use Dou\Admin\Model\Concerns\PurgesRelatedOnDelete;
+use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Model\Concerns\ContentMutators;
 use Dou\Core\Model\Concerns\HasCategoryFilter;
@@ -75,6 +76,7 @@ class Article extends Model
         'content',
         'keywords',
         'description',
+        'metadata',
         'sort',
         'status',
         'created_at',
@@ -119,5 +121,38 @@ class Article extends Model
         $sort = Config::get('features.sort', false) ? 'sort ASC, id DESC' : 'id DESC';
 
         return $query->order($sort);
+    }
+
+    /**
+     * 删除文章前：清理本条目全部附件（主图 / 正文图 / 附件）与多语言记录。
+     *
+     * 默认钩子只删 image 主图，正文图与附件会变成孤儿文件；这里按 module + item_id
+     * 遍历 dou_file 全量删除（type 不限）。
+     *
+     * @return void
+     */
+    protected function purgeRelatedOnDelete()
+    {
+        foreach ((array) self::getFileNumberRows($this->getKey()) as $row) {
+            attachment()->delete($row['number']);
+        }
+        $this->purgeMetadataOnDelete();
+        $this->purgeLanguageOnDelete();
+    }
+
+    /**
+     * 当前文章在 dou_file 中的全部附件行（仅取 number 字段）。
+     *
+     * @param string|int $articleId
+     * @return array
+     */
+    public static function getFileNumberRows($articleId)
+    {
+        return DB::table('file')
+            ->field('number')
+            ->where('module', 'article')
+            ->where('item_id', $articleId)
+            ->order('id ASC')
+            ->select();
     }
 }

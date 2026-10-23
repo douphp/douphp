@@ -17,6 +17,7 @@ namespace Dou\Front\Model\Page;
 use Dou\Core\Model\Concerns\HasPageTree;
 use Dou\Core\Orm\Model;
 use Dou\Core\Service\Content\MarkdownRenderer;
+use Dou\Core\Service\Metadata\MetadataValues;
 use Dou\Core\Support\Str;
 
 if (!defined('IN_DOUCO')) {
@@ -64,6 +65,7 @@ class Page extends Model
         }
 
         $about = language()->langBox($about, 'page', 'name, content, description');
+        MetadataValues::decorateRow('page', $about);
 
         $rendered = app(MarkdownRenderer::class)->toHtml($about['content']);
         $about['content'] = $about['description'] ? $about['description'] : Str::excerpt($rendered, 300, false);

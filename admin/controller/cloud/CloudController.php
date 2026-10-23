@@ -433,7 +433,7 @@ class CloudController extends BaseController
             $response['ok'] = true;
             $response['logs'] = $logs;
             $response['next'] = $next;
-            // 快照步骤的真实进度（0-99 整数或 null）透传，前端用于更新进行中行
+            // 快照步骤的真实进度（0-100 整数或 null）透传，前端用于更新进行中行
             $response['progress'] = isset($outcome['progress']) ? $outcome['progress'] : null;
 
             if ($step === InstallService::STEP_FINALIZE) {

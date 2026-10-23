@@ -36,48 +36,152 @@ class LanguageAdminService extends CoreLanguageService implements AdminLanguageC
     /**
      * 后台多语言按钮渲染数据：按字段 + 语言包枚举生成 a 标签列表。
      *
+     * draft 模式用于“本地草稿”：按钮不再即时 AJAX 保存，而是携带目标控件描述，
+     * 由抽屉在关闭时把值写回主表单/隐藏 pane。
+     *
      * @param string $module
      * @param string|int $itemId
-     * @param string $fieldList 逗号分隔字段名
+     * @param string|array $fieldList 逗号分隔字段名，或字段名数组
+     * @param array $options draft / targets / labels / has_value / default_pack / exclude_pack / draft_create
      * @return array
      */
-    public function buildLangButtons($module, $itemId = '', $fieldList = '')
+    public function buildLangButtons($module, $itemId = '', $fieldList = '', array $options = array())
     {
+        $fields = is_array($fieldList)
+            ? array_values($fieldList)
+            : explode(',', str_replace(' ', '', (string) $fieldList));
+        $fields = array_values(array_filter(array_map('strval', $fields), 'strlen'));
+
         if (!Config::get('features.language', false)) {
-            return NullLanguageService::emptyLangButtonFields($fieldList);
+            return NullLanguageService::emptyLangButtonFields(implode(',', $fields));
         }
+
+        $draft = !empty($options['draft']);
+        $draftCreate = !empty($options['draft_create']);
+        $targets = isset($options['targets']) && is_array($options['targets']) ? $options['targets'] : array();
+        $labels = isset($options['labels']) && is_array($options['labels']) ? $options['labels'] : array();
+        $hasValue = isset($options['has_value']) && is_array($options['has_value']) ? $options['has_value'] : array();
+        $defaultPack = isset($options['default_pack'])
+            ? (string) $options['default_pack']
+            : (string) Config::get('site.language', 'zh_cn');
+        $excludePack = isset($options['exclude_pack']) ? (string) $options['exclude_pack'] : '';
+        $uploadUrl = isset($options['upload_url']) ? (string) $options['upload_url'] : '';
+        $releaseUrl = isset($options['release_url']) ? (string) $options['release_url'] : '';
 
         $token = csrf()->token();
         $_LANG = lang_all();
-        $fieldList = explode(',', str_replace(' ', '', $fieldList));
         $languageList = DB::table('language')
             ->field('name, language_pack')
             ->order('sort ASC, id DESC')
             ->select();
 
         $btnLang = array();
-        foreach ($fieldList as $field) {
+        foreach ($fields as $field) {
             $btnLang[$field] = '';
+            $desc = isset($targets[$field]) && is_array($targets[$field]) ? $targets[$field] : array();
+            $kind = isset($desc['kind']) ? (string) $desc['kind'] : $this->langFieldType($field);
+            $prefixedFieldKey = $module . '_' . $field;
+            $title = !empty($labels[$field])
+                ? (string) $labels[$field]
+                : (!empty($_LANG[$prefixedFieldKey]) ? $_LANG[$prefixedFieldKey] : (!empty($_LANG[$field]) ? $_LANG[$field] : $field));
+
             foreach ((array) $languageList as $lang) {
+                $pack = (string) $lang['language_pack'];
+                if ($excludePack !== '' && $pack === $excludePack) {
+                    continue;
+                }
+
+                if ($draft) {
+                    if (!$itemId && !$draftCreate) {
+                        $btnLang[$field] .= '<a href="javascript:;" data-dou-toggle="modal" data-dou-modal="message" data-title="' . $this->attr($_LANG['language_cue_title']) . '" data-html="' . $this->attr($_LANG['language_cue_content']) . '">' . $this->attr($lang['name']) . '</a>';
+                        continue;
+                    }
+
+                    $target = isset($desc['target']) ? str_replace('%s', $pack, (string) $desc['target']) : 'language_draft[' . $pack . '][' . $field . ']';
+                    $source = isset($desc['source']) ? str_replace('%s', $defaultPack, (string) $desc['source']) : $field;
+                    $inherit = isset($desc['inherit']) ? str_replace('%s', $pack, (string) $desc['inherit']) : '';
+                    $triggerId = isset($desc['trigger_id']) ? (string) $desc['trigger_id'] : ($pack . '_' . $field);
+
+                    if (isset($hasValue[$field]) && is_array($hasValue[$field]) && array_key_exists($pack, $hasValue[$field])) {
+                        $cur = !empty($hasValue[$field][$pack]);
+                    } else {
+                        $cur = $itemId ? (bool) DB::table('language_value')
+                            ->where('field', $field)
+                            ->where('language_pack', $pack)
+                            ->where('module', $module)
+                            ->where('item_id', $itemId)
+                            ->find() : false;
+                    }
+
+                    $attrs = ' data-draft="1"'
+                        . ' data-draft-kind="' . $this->attr($kind) . '"'
+                        . ' data-draft-target="' . $this->attr($target) . '"'
+                        . ' data-draft-source="' . $this->attr($source) . '"'
+                        . ' data-trigger-id="' . $this->attr($triggerId) . '"'
+                        . ' data-field-type="' . $this->attr($kind) . '"';
+                    if (!empty($desc['target_type'])) {
+                        $attrs .= ' data-draft-target-type="' . $this->attr($desc['target_type']) . '"';
+                    }
+                    if ($inherit !== '') {
+                        $attrs .= ' data-draft-inherit="' . $this->attr($inherit) . '"';
+                    }
+                    if (!empty($desc['preview'])) {
+                        $attrs .= ' data-draft-preview="' . $this->attr($desc['preview']) . '"';
+                    }
+                    if (!empty($desc['options'])) {
+                        $attrs .= ' data-draft-options="' . $this->attr(json_encode($desc['options'], JSON_UNESCAPED_UNICODE)) . '"';
+                    }
+                    if (!empty($desc['accept'])) {
+                        $attrs .= ' data-draft-accept="' . $this->attr($desc['accept']) . '"';
+                    }
+                    if (!empty($desc['ai_field'])) {
+                        $attrs .= ' data-draft-ai-field="' . $this->attr($desc['ai_field']) . '"'
+                            . ' data-draft-ai-type="' . $this->attr(isset($desc['ai_type']) ? $desc['ai_type'] : 'text') . '"';
+                    }
+                    if ($uploadUrl !== '') {
+                        $attrs .= ' data-draft-upload-url="' . $this->attr($uploadUrl) . '"';
+                    }
+                    if ($releaseUrl !== '') {
+                        $attrs .= ' data-draft-release-url="' . $this->attr($releaseUrl) . '"';
+                    }
+                    $attrs .= ' data-draft-module="' . $this->attr($module) . '"'
+                        . ' data-draft-slug="' . $this->attr($field) . '"'
+                        . ' data-token="' . $this->attr($token) . '"';
+
+                    $class = $cur ? ' class="cur"' : '';
+                    $btnLang[$field] .= '<a href="javascript:;"' . $class . ' data-dou-toggle="modal" data-dou-modal="lang" data-lang="' . $this->attr($pack) . '" data-title="' . $this->attr($title) . '"' . $attrs . '>' . $this->attr($lang['name']) . '</a>';
+                    continue;
+                }
+
                 if ($itemId) {
-                    if (DB::table('language_value')->where('field', $field)->where('language_pack', $lang['language_pack'])->where('module', $module)->where('item_id', $itemId)->find()) {
+                    if (DB::table('language_value')->where('field', $field)->where('language_pack', $pack)->where('module', $module)->where('item_id', $itemId)->find()) {
                         $class = ' class="cur"';
                     } else {
                         $class = '';
                     }
 
-                    $prefixedFieldKey = $module . '_' . $field;
-                    $title = !empty($_LANG[$prefixedFieldKey]) ? $_LANG[$prefixedFieldKey] : (!empty($_LANG[$field]) ? $_LANG[$field] : $field);
-                    $type = $this->langFieldType($field);
-
-                    $btnLang[$field] .= '<a href="javascript:;"' . $class . ' data-dou-toggle="modal" data-dou-modal="lang" data-lang="' . $lang['language_pack'] . '" data-module="' . $module . '" data-item-id="' . $itemId . '" data-field="' . $field . '" data-title="' . $title . '" data-token="' . $token . '" data-type="' . $type . '">' . $lang['name'] . '</a>';
+                    $optionsAttr = !empty($desc['options'])
+                        ? ' data-options="' . $this->attr(json_encode($desc['options'], JSON_UNESCAPED_UNICODE)) . '"'
+                        : '';
+                    $btnLang[$field] .= '<a href="javascript:;"' . $class . ' data-dou-toggle="modal" data-dou-modal="lang" data-lang="' . $this->attr($pack) . '" data-module="' . $this->attr($module) . '" data-item-id="' . $this->attr($itemId) . '" data-field="' . $this->attr($field) . '" data-title="' . $this->attr($title) . '" data-token="' . $this->attr($token) . '" data-type="' . $this->attr($kind) . '"' . $optionsAttr . '>' . $this->attr($lang['name']) . '</a>';
                 } else {
-                    $btnLang[$field] .= '<a href="javascript:;" data-dou-toggle="modal" data-dou-modal="message" data-title="' . $_LANG['language_cue_title'] . '" data-html="' . $_LANG['language_cue_content'] . '">' . $lang['name'] . '</a>';
+                    $btnLang[$field] .= '<a href="javascript:;" data-dou-toggle="modal" data-dou-modal="message" data-title="' . $this->attr($_LANG['language_cue_title']) . '" data-html="' . $this->attr($_LANG['language_cue_content']) . '">' . $this->attr($lang['name']) . '</a>';
                 }
             }
         }
 
         return $btnLang;
+    }
+
+    /**
+     * HTML 属性转义。
+     *
+     * @param mixed $value
+     * @return string
+     */
+    private function attr($value)
+    {
+        return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
     }
 
     /**

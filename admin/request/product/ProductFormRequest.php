@@ -15,6 +15,7 @@
 namespace Dou\Admin\Request\Product;
 
 use Dou\Core\Foundation\Configuration\Config;
+use Dou\Admin\Request\Concerns\HasMetadataRules;
 use Dou\Core\Web\Http\FormRequest;
 
 if (!defined('IN_DOUCO')) {
@@ -26,6 +27,8 @@ if (!defined('IN_DOUCO')) {
  */
 class ProductFormRequest extends FormRequest
 {
+    use HasMetadataRules;
+
     /**
      * 提供校验数据源（在父类 POST 数据基础上按场景补充字段）。
      *
@@ -70,7 +73,6 @@ class ProductFormRequest extends FormRequest
             'level_price' => '',
             'promote_price' => 'price',
             'stock' => 'integer',
-            'defined' => '',
             'content' => '',
             'point' => 'integer',
             'keywords' => '',
@@ -79,6 +81,7 @@ class ProductFormRequest extends FormRequest
             // 仅用于处理内容中远程图片本地化的行为开关，不是 product 表字段
             'content_remote_image_local' => 'boolean',
             'draft_token' => '',
+            'language_draft' => '',
         );
 
         if ($this->scene === 'store') {
@@ -95,6 +98,6 @@ class ProductFormRequest extends FormRequest
                 : 'required|slug|unique:product,slug';
         }
 
-        return $rules;
+        return array_merge($rules, $this->metadataRules());
     }
 }

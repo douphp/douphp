@@ -137,11 +137,11 @@ $(function () {
     }
   }
 
-  // 单图 file input：本地预览、回显、清除，随表单提交
-  $(document).on("change", ".file-input-crop-pref", function () {
+  // 单图 file image：本地预览、回显、清除，随表单提交（选图只做视觉反馈，不显示「已更新」完成态文案）
+  $(document).on("change", ".file-crop-pref", function () {
     var $el = $(this);
     var on = $el.prop("checked") ? 1 : 0;
-    var scope = $el.attr("data-crop-scope") || ($el.closest(".file-box").length ? "gallery" : "thumb");
+    var scope = $el.attr("data-crop-scope") || ($el.closest(".file-upload").length ? "gallery" : "thumb");
     var token = $("#dou-post-form input[name=token]").val() || "";
     $.ajax({
       type: "POST",
@@ -151,15 +151,17 @@ $(function () {
     });
   });
 
-  $(".file-input").each(function () {
+  $(".file-image").each(function () {
     var box = $(this);
     var fileInput = box.find('input[type="file"]');
-    var preview = box.find(".file-input-preview");
-    var clearBtn = box.find(".file-input-remove");
-    var cropBtn = box.find(".file-input-action-crop");
+    var preview = box.find(".file-image-preview");
+    var clearBtn = box.find(".file-action-remove");
+    var cropBtn = box.find(".file-action-crop");
     var initialSrc = box.data("initial-src") || "";
     var initialNumber = box.data("initial-number") || "";
     var hasLocalFile = false;
+    var numberInput = box.find(".file-number");
+    var deferDelete = String(box.data("defer-delete")) === "1";
 
     // 已保存图才显示蒙板「裁剪」：有附件号走服务端原路径覆盖；
     // data-local-crop 场景（站点设置等无附件号的字段）裁剪产物回写本地 file input 随表单提交
@@ -167,13 +169,13 @@ $(function () {
       var src = String(initialSrc || "");
       var canEdit = window.douCrop && window.douCrop.editableExt(src);
       var show = canEdit && !hasLocalFile && (!!initialNumber || !!box.data("local-crop"));
-      box.toggleClass("file-input-croppable", show);
+      box.toggleClass("file-image-croppable", show);
     }
 
     // 高度固定 88px，只按图片宽高比改 stage 宽度（jQuery 1.10 不能写 CSS 变量）
     function setStageWidth(px) {
       var width = Math.max(100, parseInt(px, 10) || 100) + "px";
-      var stageEl = box.find(".file-input-stage")[0];
+      var stageEl = box.find(".file-image-stage")[0];
       if (stageEl) {
         stageEl.style.width = width;
       }
@@ -183,7 +185,7 @@ $(function () {
       var img = preview[0];
       var height = 88;
 
-      if (!box.hasClass("file-input-filled") || !img || !preview.attr("src")) {
+      if (!box.hasClass("file-image-filled") || !img || !preview.attr("src")) {
         setStageWidth(100);
         return;
       }
@@ -220,24 +222,24 @@ $(function () {
         return;
       }
 
-      preview.one("load.fileInputStage", function () {
+      preview.one("load.fileImageStage", function () {
         syncStageWidth();
-      }).one("error.fileInputStage", function () {
+      }).one("error.fileImageStage", function () {
         setStageWidth(100);
       });
     }
 
     function showPreview(src) {
-      preview.off("load.fileInputStage error.fileInputStage");
-      box.addClass("file-input-filled").removeClass("file-input-no-reader");
+      preview.off("load.fileImageStage error.fileImageStage");
+      box.addClass("file-image-filled").removeClass("file-image-no-reader");
       preview.attr("src", src).show();
       syncStageWidthWhenReady();
     }
 
     function showEmpty() {
-      preview.off("load.fileInputStage");
+      preview.off("load.fileImageStage");
       preview.attr("src", "").hide();
-      box.removeClass("file-input-filled file-input-no-reader file-input-croppable");
+      box.removeClass("file-image-filled file-image-no-reader file-image-croppable");
       setStageWidth(100);
     }
 
@@ -247,6 +249,9 @@ $(function () {
         showPreview(initialSrc);
       } else {
         showEmpty();
+      }
+      if (numberInput.length) {
+        numberInput.val(initialNumber);
       }
       refreshCropAction();
     }
@@ -259,14 +264,40 @@ $(function () {
         };
         reader.readAsDataURL(file);
       } else {
-        box.addClass("file-input-filled file-input-no-reader");
+        box.addClass("file-image-filled file-image-no-reader");
       }
     }
 
     function applyLocalFile(file) {
       hasLocalFile = true;
+      if (numberInput.length) {
+        numberInput.val("");
+      }
       refreshCropAction();
       previewFile(file);
+    }
+
+    function uploadMaxKb() {
+      var maxKb = parseInt(window.dou_upload_max_kb, 10);
+      return maxKb > 0 ? maxKb : 0;
+    }
+
+    function exceedsUploadMax(file) {
+      var maxKb = uploadMaxKb();
+      return maxKb > 0 && file && typeof file.size === "number" && file.size > maxKb * 1024;
+    }
+
+    // 前端粗筛：全局 min(PHP ini, upload_defaults)；per-module 上限仍由服务端 reserve() 兜底
+    function rejectOversize(file) {
+      if (!exceedsUploadMax(file)) {
+        return false;
+      }
+      if (window.dou && window.dou.toast) {
+        window.dou.toast.error((typeof lang === "function" ? lang("file_out_size", "上传文件超过") : "上传文件超过") + uploadMaxKb() + "KB");
+      }
+      fileInput.val("");
+      restoreInitial();
+      return true;
     }
 
     fileInput.on("change", function () {
@@ -274,8 +305,11 @@ $(function () {
       if (!file) {
         return;
       }
+      if (rejectOversize(file)) {
+        return;
+      }
 
-      var cropOn = box.find(".file-input-crop-pref").prop("checked");
+      var cropOn = box.find(".file-crop-pref").prop("checked");
       var canCropFile = cropOn && window.douCrop && window.douCrop.editableFile && window.douCrop.editableFile(file);
       if (canCropFile) {
         window.douCrop.editFile(file, box.data("crop-ratio"), function (blob) {
@@ -284,22 +318,25 @@ $(function () {
             restoreInitial();
             return;
           }
+          if (rejectOversize(blob)) {
+            return;
+          }
           if (!replaceInputFile(fileInput[0], blob, file.name)) {
             fileInput.val("");
             restoreInitial();
             return;
           }
           applyLocalFile(fileInput[0].files[0] || file);
-          flashUpdated(box);
+          flashPreview(box);
         });
         return;
       }
 
       applyLocalFile(file);
-      flashUpdated(box);
+      flashPreview(box);
     });
 
-    box.find(".file-input-action-upload, .file-input-action-replace").on("click", function (e) {
+    box.find(".file-action-upload, .file-action-replace").on("click", function (e) {
       e.preventDefault();
       e.stopPropagation();
       fileInput.trigger("click");
@@ -315,11 +352,14 @@ $(function () {
           if (!blob) {
             return;
           }
+          if (rejectOversize(blob)) {
+            return;
+          }
           if (!replaceInputFile(fileInput[0], blob, baseName)) {
             return;
           }
           applyLocalFile(fileInput[0].files[0]);
-          flashUpdated(box);
+          flashPreview(box);
         });
         return;
       }
@@ -346,31 +386,36 @@ $(function () {
       }
 
       if (initialNumber) {
-        fileDel(initialNumber);
+        if (!deferDelete) {
+          fileDel(initialNumber);
+        }
         initialSrc = "";
         initialNumber = "";
         box.data("initial-src", "");
         box.data("initial-number", "");
+        if (numberInput.length) {
+          numberInput.val("");
+        }
       }
 
       showEmpty();
       refreshCropAction();
     });
 
-    if (box.hasClass("file-input-filled")) {
+    if (box.hasClass("file-image-filled")) {
       syncStageWidthWhenReady();
     }
 
     refreshCropAction();
   });
 
-  $(document).on("click", ".file-box .file-list .file-input-action-crop", function (e) {
+  $(document).on("click", ".file-upload .file-list .file-action-crop", function (e) {
     e.preventDefault();
     e.stopPropagation();
     var $li = $(this).closest(".file-item");
     var img = $li.find("img")[0];
     var number = $li.attr("data-number") || "";
-    var ratio = $li.closest(".file-box").attr("data-crop-ratio") || "";
+    var ratio = $li.closest(".file-upload").attr("data-crop-ratio") || "";
     if (!number || !img) {
       return;
     }
@@ -382,20 +427,20 @@ $(function () {
     });
   });
 
-  $(document).on("click", ".file-box .file-list .file-input-action-replace", function (e) {
+  $(document).on("click", ".file-upload .file-list .file-action-replace", function (e) {
     e.preventDefault();
     e.stopPropagation();
     var $li = $(this).closest(".file-item");
     var img = $li.find("img")[0];
     var number = $li.attr("data-number") || "";
-    var ratio = $li.closest(".file-box").attr("data-crop-ratio") || "";
+    var ratio = $li.closest(".file-upload").attr("data-crop-ratio") || "";
     if (!number || !img) {
       return;
     }
     fileReplace(number, img, ratio);
   });
 
-  $(document).on("click", ".file-box .file-list .file-input-remove", function (e) {
+  $(document).on("click", ".file-upload .file-list .file-action-remove", function (e) {
     e.preventDefault();
     e.stopPropagation();
     var $li = $(this).closest(".file-item");
@@ -882,12 +927,12 @@ function douAction() {
 
 /**
  +----------------------------------------------------------
- * 文件盒子.上传失败的可读错误文本
+ * 文件上传.上传失败的可读错误文本
  +----------------------------------------------------------
  * JSON envelope（{code, message}）取 message；HTML 错误页（如 413 / 500）
  * 剥掉标签后截取前 100 字符；均无法解析时回退通用上传失败文案。
  */
-function fileBoxErrorText(xhr) {
+function fileUploadErrorText(xhr) {
   if (xhr && xhr.responseText) {
     try {
       var json = $.parseJSON(xhr.responseText);
@@ -908,10 +953,10 @@ function fileBoxErrorText(xhr) {
 
 /**
  +----------------------------------------------------------
- * 文件盒子.文件上传
+ * 文件上传.打开上传器
  +----------------------------------------------------------
  */
-function fileBox(type, target, module, item_id, draft_token, img_width, editor, boxTarget) {
+function fileUpload(type, target, module, item_id, draft_token, img_width, editor, boxTarget) {
   img_width = img_width || "";
   editor = editor || "";
   boxTarget = boxTarget || (target + "File");
@@ -944,7 +989,7 @@ function fileBox(type, target, module, item_id, draft_token, img_width, editor, 
         // 不能塞进上传列表容器：提取 <h2> 提示文本弹窗
         if (/<html[\s>]|<!DOCTYPE/i.test(html)) {
           var msgMatch = String(html).match(/<h2[^>]*>([\s\S]*?)<\/h2>/i);
-          alert(msgMatch ? msgMatch[1].replace(/<[^>]*>/g, "").trim() : fileBoxErrorText(null));
+          alert(msgMatch ? msgMatch[1].replace(/<[^>]*>/g, "").trim() : fileUploadErrorText(null));
           return;
         }
         if (type == "content") {
@@ -967,7 +1012,7 @@ function fileBox(type, target, module, item_id, draft_token, img_width, editor, 
         }
       },
       error: function (xhr) {
-        alert(fileBoxErrorText(xhr));
+        alert(fileUploadErrorText(xhr));
       },
       complete: function () {
         status.hide();
@@ -987,7 +1032,7 @@ function fileBox(type, target, module, item_id, draft_token, img_width, editor, 
     if ($(this).val() == "") {
       return;
     }
-    var cropOn = type != "content" && $("#" + boxTarget + " .file-input-crop-pref").prop("checked");
+    var cropOn = type != "content" && $("#" + boxTarget + " .file-crop-pref").prop("checked");
     var nativeFiles = field[0].files;
     if (!cropOn || !nativeFiles || !nativeFiles.length || !window.douCrop) {
       form.submit();
@@ -998,7 +1043,7 @@ function fileBox(type, target, module, item_id, draft_token, img_width, editor, 
       files.push(nativeFiles[i]);
     }
     var ratio = $("#" + boxTarget).attr("data-crop-ratio") || "";
-    cropGalleryFiles(field[0], files, ratio, function (ok) {
+    cropUploadFiles(field[0], files, ratio, function (ok) {
       if (ok) {
         form.submit();
       } else {
@@ -1008,9 +1053,12 @@ function fileBox(type, target, module, item_id, draft_token, img_width, editor, 
   });
 }
 
+// 兼容旧模板 / 旧模块包中的 onclick="fileBox(...)" 调用
+window.fileBox = fileUpload;
+
 /**
  +----------------------------------------------------------
- * 相册多图：勾选「上传时裁剪」后逐张弹窗，确认的写回 file input
+ * 多图/附件：勾选「上传时裁剪」后逐张弹窗，确认的写回 file image 控件
  +----------------------------------------------------------
  */
 function blobToNamedFile(blob, origName) {
@@ -1032,7 +1080,7 @@ function blobToNamedFile(blob, origName) {
   }
 }
 
-function cropGalleryFiles(input, files, ratio, done) {
+function cropUploadFiles(input, files, ratio, done) {
   var kept = [];
   var index = 0;
 
@@ -1258,38 +1306,27 @@ function fileToBlobAsExt(file, ext, done) {
 
 /**
  +----------------------------------------------------------
- * 上传/替换/裁剪成功后：短暂释放悬停蒙板，闪「已更新」徽标
- * 解决新图被悬停蒙板挡住、用户无法确认是否替换成功的问题。
- * $host：单图 .file-input 或相册 .file-item 的 jQuery 对象
+ * 预览已刷新：短暂释放悬停蒙板 + 预览淡入
+ * 仅表示本次选择/裁剪已反映到预览，不代表服务端已保存；
+ * 解决新图被悬停蒙板挡住、用户无法确认是否换了图的问题。
+ * $host：单图 .file-image 或相册 .file-item 的 jQuery 对象
  +----------------------------------------------------------
  */
-function flashUpdated($host) {
+function flashPreview($host) {
   if (!$host || !$host.length) {
     return;
   }
   var isItem = $host.hasClass("file-item");
-  var flashCls = isItem ? "file-item-flashing" : "file-input-flashing";
-  var flashSel = isItem ? ".file-item-flash" : ".file-input-flash";
-  var badgeSel = isItem ? ".file-item-flash-badge" : ".file-input-flash-badge";
+  var flashCls = isItem ? "file-item-flashing" : "file-image-flashing";
 
-  if (!$host.hasClass(flashCls)) {
-    if (!$host.find(flashSel).length) {
-      $host.append(
-        '<div class="' + (isItem ? "file-item-flash" : "file-input-flash") + '">' +
-        '<span class="' + (isItem ? "file-item-flash-badge" : "file-input-flash-badge") + '">' +
-        '<i class="bi-check-lg"></i>' + lang("image_updated", "Updated") +
-        "</span></div>"
-      );
-    }
-    $host.addClass(flashCls);
-  }
+  $host.addClass(flashCls);
 
-  // 重启动画（连续操作时也重新闪一次）
-  var badge = $host.find(badgeSel);
-  if (badge.length) {
-    badge[0].style.animation = "none";
-    void badge[0].offsetWidth; // 强制回流
-    badge[0].style.animation = "";
+  // 重启预览淡入（连续选择时也重新淡入一次）
+  var preview = $host.find(".file-image-preview")[0];
+  if (preview) {
+    preview.style.animation = "none";
+    void preview.offsetWidth; // 强制回流
+    preview.style.animation = "";
   }
 
   clearTimeout($host.data("flashTimer"));
@@ -1299,6 +1336,40 @@ function flashUpdated($host) {
       $host.removeClass(flashCls);
     }, 1200)
   );
+}
+
+/**
+ +----------------------------------------------------------
+ * 服务端已写入（即时上传/原路径覆盖）：预览反馈 + 闪「已更新」徽标
+ * $host：单图 .file-image 或相册 .file-item 的 jQuery 对象
+ +----------------------------------------------------------
+ */
+function flashUpdated($host) {
+  if (!$host || !$host.length) {
+    return;
+  }
+  var isItem = $host.hasClass("file-item");
+  var flashSel = isItem ? ".file-item-flash" : ".file-image-flash";
+  var badgeSel = isItem ? ".file-item-flash-badge" : ".file-image-flash-badge";
+
+  flashPreview($host);
+
+  if (!$host.find(flashSel).length) {
+    $host.append(
+      '<div class="' + (isItem ? "file-item-flash" : "file-image-flash") + '">' +
+      '<span class="' + (isItem ? "file-item-flash-badge" : "file-image-flash-badge") + '">' +
+      '<i class="bi-check-lg"></i>' + lang("image_updated", "Updated") +
+      "</span></div>"
+    );
+  }
+
+  // 重启徽标动画（连续操作时也重新闪一次）
+  var badge = $host.find(badgeSel);
+  if (badge.length) {
+    badge[0].style.animation = "none";
+    void badge[0].offsetWidth; // 强制回流
+    badge[0].style.animation = "";
+  }
 }
 
 /**
@@ -1326,7 +1397,7 @@ function fileReplace(number, imgEl, ratio) {
         return;
       }
       var origExt = srcFileExt(imgEl.src);
-      var cropOn = $(imgEl).closest(".file-box").find(".file-input-crop-pref").prop("checked");
+      var cropOn = $(imgEl).closest(".file-upload").find(".file-crop-pref").prop("checked");
       var canCropFile = cropOn && window.douCrop && window.douCrop.editableFile && window.douCrop.editableFile(file);
       if (canCropFile) {
         window.douCrop.editFile(
@@ -1652,6 +1723,7 @@ function fileBig(type, target, module, item_id, editor = "ueditor", draft_token 
  +----------------------------------------------------------
  * Tab 组件（Bootstrap data-api 风格）
  * 触发器标记 data-toggle="tab"，目标用 href="#id" 或 data-target="#id" 显式配对，
+ * 导航条为 .tab .tab-nav（块状）或 .tab .tab-pills（胶囊），激活态落在 .nav-link，
  * 加载即生效、零使用处初始化；同页多实例以 .tab 容器隔离。
  +----------------------------------------------------------
  */
@@ -1674,9 +1746,11 @@ function ownTabPanes($root) {
 // 归属当前 .tab 容器的切换触发器
 function ownTabTriggers($root) {
   var root = $root.get(0);
-  return $root.find(".tab-title [data-toggle='tab']").filter(function () {
-    return $(this).closest(".tab").get(0) === root;
-  });
+  return $root
+    .find(".tab-nav [data-toggle='tab'], .tab-pills [data-toggle='tab']")
+    .filter(function () {
+      return $(this).closest(".tab").get(0) === root;
+    });
 }
 
 // 在指定 .tab 容器内按 id 激活面板（容器内定位，绝不全局查找）
@@ -1685,12 +1759,11 @@ function activateTab($root, selector) {
   var $panel = $panes.filter(selector);
   if (!$panel.length) return;
   var $triggers = ownTabTriggers($root);
-  $triggers.closest("li").removeClass("active");
+  $triggers.removeClass("active");
   $triggers
     .filter(function () {
       return resolveTabTarget($(this)) === selector;
     })
-    .closest("li")
     .addClass("active");
   $panes.removeClass("active");
   $panel.addClass("active");
@@ -1703,7 +1776,7 @@ function applyTabDefaults(context) {
     var $panes = ownTabPanes($root);
     if (!$panes.length) return; // 纯导航条：仅 CSS + 服务端高亮
     var $triggers = ownTabTriggers($root);
-    if ($triggers.closest("li").filter(".active").length && $panes.filter(".active").length) return;
+    if ($triggers.filter(".active").length && $panes.filter(".active").length) return;
     var selector = $root.attr("data-tab-default");
     if (!selector) {
       var $first = $triggers.first();
@@ -1714,7 +1787,7 @@ function applyTabDefaults(context) {
 }
 
 // data-api：document 级委托，加载即生效，动态注入的 Tab 也能点
-$(document).on("click", ".tab .tab-title [data-toggle='tab']", function (e) {
+$(document).on("click", ".tab .tab-nav [data-toggle='tab'], .tab .tab-pills [data-toggle='tab']", function (e) {
   var $trigger = $(this);
   var $root = $trigger.closest(".tab");
   var selector = resolveTabTarget($trigger);
@@ -1927,8 +2000,16 @@ window.douTab = {
     $(document).off("keydown.douModal", onEscKey);
     $(document).on("keydown.douModal", onEscKey);
 
-    $modal.off("click.douModalBackdrop").on("click.douModalBackdrop", function (e) {
-      if (e.target === $modal[0]) {
+    $modal.off("mousedown.douModalBackdrop touchstart.douModalBackdrop click.douModalBackdrop");
+    $modal.on("mousedown.douModalBackdrop touchstart.douModalBackdrop", function (e) {
+      var target = e.target || (e.originalEvent && e.originalEvent.target);
+      $modal.data("douBackdropDown", target === $modal[0]);
+    });
+    $modal.on("click.douModalBackdrop", function (e) {
+      var startedOnBackdrop = $modal.data("douBackdropDown") === true;
+      var closeOnOverlay = $modal.data("douCloseOnOverlay") !== false;
+      $modal.data("douBackdropDown", false);
+      if (closeOnOverlay && e.target === $modal[0] && startedOnBackdrop) {
         hide($modal);
       }
     });
@@ -1981,15 +2062,8 @@ window.douTab = {
     var $modal = shell.$modal;
 
     $modal.appendTo("body");
+    $modal.data("douCloseOnOverlay", options.closeOnOverlay !== false);
     bindModalActions($modal, shell, options);
-
-    if (options.closeOnOverlay !== false) {
-      $modal.on("click.douModalBackdrop", function (e) {
-        if (e.target === $modal[0]) {
-          hide($modal);
-        }
-      });
-    }
 
     show($modal);
 
@@ -2110,6 +2184,11 @@ window.douTab = {
   }
 
   function openLangBox($trigger) {
+    if ($trigger.attr("data-draft") === "1") {
+      openDraftLangBox($trigger);
+      return;
+    }
+
     var languagePack = $trigger.attr("data-lang");
     var module = $trigger.attr("data-module");
     var itemId = $trigger.attr("data-item-id");
@@ -2117,6 +2196,15 @@ window.douTab = {
     var token = $trigger.attr("data-token");
     var type = $trigger.attr("data-type");
     var title = $trigger.attr("data-title") || "";
+    var options = [];
+    var rawOptions = $trigger.attr("data-options") || "";
+    if (rawOptions) {
+      try {
+        options = JSON.parse(rawOptions);
+      } catch (e) {
+        options = [];
+      }
+    }
 
     $trigger.attr("id", languagePack + "_" + field);
 
@@ -2146,6 +2234,7 @@ window.douTab = {
               field: field,
               token: token,
               type: type,
+              options: options,
             }));
             $footer.html(
               '<div class="dou-modal-actions">' +
@@ -2174,6 +2263,7 @@ window.douTab = {
   function buildLangForm(data, ctx) {
     var option = "";
     var popupEditorId;
+    var options = ctx.options || [];
 
     if (ctx.type === "content") {
       popupEditorId = ctx.module + "ContentID" + Date.parse(new Date());
@@ -2206,7 +2296,7 @@ window.douTab = {
         'Editor" class="editor">' +
         '<div class="editor-bar">' +
         '<div class="editor-bar-left">' +
-        '<div class="file-box">' +
+        '<div class="file-upload">' +
         (data.paid_use
           ? '<div class="editor-btn" onClick="editorInsert(\'' +
             popupEditorId +
@@ -2216,7 +2306,7 @@ window.douTab = {
           : "") +
         '<div id="' +
         popupEditorId +
-        'File" class="editor-btn" onclick="fileBox(\'content\', \'' +
+        'File" class="editor-btn" onclick="fileUpload(\'content\', \'' +
         popupEditorId +
         "', '" +
         ctx.module +
@@ -2254,8 +2344,9 @@ window.douTab = {
         "</em></span></div></div>" +
         option +
         "</div>";
-    } else if (ctx.type === "file") {
-      option = '<input type="file" name="value" size="38" class="input-file" />';
+    } else if (ctx.type === "file" || ctx.type === "image") {
+      option = '<input type="file" name="value" size="38" class="input-file"' +
+        (ctx.type === "image" ? ' accept="image/*"' : "") + " />";
       if (data.value) {
         option +=
           '<a href="' +
@@ -2264,6 +2355,55 @@ window.douTab = {
       } else {
         option += '<img class="icon" src="images/icon_no.png">';
       }
+    } else if (ctx.type === "select") {
+      var selectedValue = data.value === null || typeof data.value === "undefined" ? "" : String(data.value);
+      option = '<select name="value" class="select">';
+      for (var si = 0; si < options.length; si++) {
+        var optionValue = String(options[si]);
+        option +=
+          '<option value="' + escapeHtml(optionValue) + '"' +
+          (optionValue === selectedValue ? ' selected="selected"' : "") + ">" +
+          escapeHtml(optionValue) + "</option>";
+      }
+      option += "</select>";
+    } else if (ctx.type === "radio") {
+      var checkedValue = data.value === null || typeof data.value === "undefined" ? "" : String(data.value);
+      for (var ri = 0; ri < options.length; ri++) {
+        var radioValue = String(options[ri]);
+        option +=
+          '<label class="radio"><input type="radio" name="value" value="' + escapeHtml(radioValue) + '"' +
+          (radioValue === checkedValue ? ' checked="checked"' : "") + " /> " + escapeHtml(radioValue) + "</label>";
+      }
+    } else if (ctx.type === "checkbox") {
+      var checkedOptions = data.value;
+      if (typeof checkedOptions === "string") {
+        try {
+          checkedOptions = JSON.parse(checkedOptions);
+        } catch (e) {
+          checkedOptions = [];
+        }
+      }
+      if (!Array.isArray(checkedOptions)) {
+        checkedOptions = [];
+      }
+      for (var ci = 0; ci < options.length; ci++) {
+        var checkValue = String(options[ci]);
+        option +=
+          '<label class="checkbox"><input type="checkbox" name="value[]" value="' + escapeHtml(checkValue) + '"' +
+          (checkedOptions.indexOf(checkValue) !== -1 ? ' checked="checked"' : "") + " /> " + escapeHtml(checkValue) + "</label>";
+      }
+    } else if (ctx.type === "switch") {
+      var switchValue = String(data.value) === "1" ? "1" : "0";
+      option =
+        '<select name="value" class="select">' +
+        '<option value="0"' + (switchValue === "0" ? ' selected="selected"' : "") + ">" +
+        escapeHtml(typeof lang === "function" ? lang("no") : "No") + "</option>" +
+        '<option value="1"' + (switchValue === "1" ? ' selected="selected"' : "") + ">" +
+        escapeHtml(typeof lang === "function" ? lang("yes") : "Yes") + "</option></select>";
+    } else if (ctx.type === "number" || ctx.type === "date") {
+      option =
+        '<input type="' + ctx.type + '" name="value" class="input" value="' +
+        escapeHtml(data.value) + '" />';
     } else if (ctx.type === "textarea") {
       option =
         '<textarea name="value" cols="115" rows="3" class="textarea">' +
@@ -2359,6 +2499,14 @@ window.douTab = {
       }
     }
 
+    if (type === "checkbox") {
+      $modal.find('.dou-modal-lang-form [name="value[]"]').prop("checked", false);
+      return;
+    }
+    if (type === "radio") {
+      $modal.find('.dou-modal-lang-form [name="value"]').prop("checked", false);
+      return;
+    }
     $modal.find('.dou-modal-lang-form [name="value"]').first().val("").trigger("change");
   }
 
@@ -2389,6 +2537,707 @@ window.douTab = {
 
     $modal.find(".dou-modal-lang-submit").off("click.douModal").on("click.douModal", function () {
       $form.submit();
+    });
+  }
+
+  function draftHasAiTranslate() {
+    var el = document.getElementById("ai-config");
+    if (!el) {
+      return false;
+    }
+    try {
+      var config = JSON.parse(el.textContent || el.innerHTML);
+      return !!(config && config.translate && config.translate.length);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function draftElements(name) {
+    if (!name) {
+      return $();
+    }
+    return $(document.getElementsByName(name));
+  }
+
+  function draftReadName(name) {
+    var elems = document.getElementsByName(name);
+    if (!elems.length) {
+      return "";
+    }
+    var first = elems[0];
+    if (first.type === "checkbox") {
+      var values = [];
+      $(elems).filter(":checked").each(function () {
+        values.push($(this).val());
+      });
+      return values;
+    }
+    if (first.type === "radio") {
+      var $checked = $(elems).filter(":checked");
+      return $checked.length ? $checked.val() : "";
+    }
+    return $(first).val();
+  }
+
+  function draftHasOverride($trigger) {
+    var inheritName = $trigger.attr("data-draft-inherit");
+    if (inheritName) {
+      var $inherit = draftElements(inheritName);
+      return $inherit.length ? !$inherit.prop("checked") : false;
+    }
+    return $trigger.hasClass("cur") || $trigger.attr("data-cur") === "1";
+  }
+
+  function draftEnableMetadata($trigger) {
+    var inheritName = $trigger.attr("data-draft-inherit");
+    if (!inheritName) {
+      return;
+    }
+    var $inherit = draftElements(inheritName);
+    if ($inherit.length && $inherit.prop("checked")) {
+      $inherit.prop("checked", false).trigger("change");
+    }
+  }
+
+  function draftDisableMetadata($trigger) {
+    var inheritName = $trigger.attr("data-draft-inherit");
+    if (!inheritName) {
+      return;
+    }
+    var $inherit = draftElements(inheritName);
+    if ($inherit.length && !$inherit.prop("checked")) {
+      $inherit.prop("checked", true).trigger("change");
+    }
+  }
+
+  function draftFilePreview(name) {
+    var $file = draftElements(name).closest(".file-image");
+    var src = $file.find(".file-image-preview").attr("src") || "";
+    if (!src) {
+      src = draftElements(name).closest(".metadata-file").find("a").attr("href") || "";
+    }
+    return src;
+  }
+
+  function draftReadEditor(id) {
+    if (!id) {
+      return "";
+    }
+    if (window.douEditor && window.douEditor[id]) {
+      var editor = window.douEditor[id];
+      if (typeof editor.getValue === "function") {
+        return editor.getValue();
+      }
+      if (typeof editor.getContent === "function") {
+        return editor.getContent();
+      }
+    }
+    var shadow = document.getElementById(id + "Textarea");
+    if (shadow) {
+      return $(shadow).val();
+    }
+    var node = document.getElementById(id);
+    return node && node.value ? node.value : "";
+  }
+
+  function draftWriteEditor(id, value) {
+    if (!id) {
+      return;
+    }
+    if (window.douEditor && window.douEditor[id]) {
+      var editor = window.douEditor[id];
+      if (typeof editor.setValue === "function") {
+        editor.setValue(value || "");
+      } else if (typeof editor.setContent === "function") {
+        editor.setContent(value || "");
+      }
+    }
+    var shadow = document.getElementById(id + "Textarea");
+    if (shadow) {
+      $(shadow).val(value || "");
+    }
+  }
+
+  function draftReadSwitch(name) {
+    var elems = document.getElementsByName(name);
+    var checked = $(elems).filter(":checkbox:checked");
+    if (checked.length) {
+      return "1";
+    }
+    var $hidden = $(elems).filter(":hidden");
+    return $hidden.length ? $hidden.first().val() : "0";
+  }
+
+  function draftReadValue($trigger) {
+    var kind = $trigger.attr("data-draft-kind") || "text";
+    var target = $trigger.attr("data-draft-target") || "";
+    var source = $trigger.attr("data-draft-source") || "";
+    var override = draftHasOverride($trigger);
+
+    if (kind === "editor") {
+      var targetType = $trigger.attr("data-draft-target-type") || "input";
+      if (targetType === "editor") {
+        if (!override) {
+          var sourceEditorValue = draftReadEditor(source);
+          return sourceEditorValue || draftReadEditor(target);
+        }
+        return draftReadEditor(target);
+      }
+      if (!override) {
+        var sourceEditorValue = draftReadEditor(source);
+        return sourceEditorValue || draftReadName(target);
+      }
+      return draftReadName(target);
+    }
+
+    if (kind === "image" || kind === "file") {
+      var number = override ? draftReadName(target) : draftReadName(source);
+      var preview = override ? draftFilePreview(target) : draftFilePreview(source);
+      if (!override && !number) {
+        number = draftReadName(target);
+      }
+      if (!override && !preview) {
+        preview = draftFilePreview(target);
+      }
+      if (!preview) {
+        preview = $trigger.attr("data-draft-preview") || "";
+      }
+      return {
+        number: number || "",
+        url: preview || "",
+      };
+    }
+
+    if (kind === "switch") {
+      var switchValue = override ? draftReadSwitch(target) : draftReadSwitch(source);
+      if (!override && (switchValue === "" || switchValue === null || typeof switchValue === "undefined")) {
+        switchValue = draftReadSwitch(target);
+      }
+      return switchValue;
+    }
+
+    if (kind === "checkbox") {
+      var checkedValues = override ? draftReadName(target) : draftReadName(source);
+      if (!override && (!checkedValues || !checkedValues.length)) {
+        checkedValues = draftReadName(target);
+      }
+      return checkedValues || [];
+    }
+
+    if (kind === "options") {
+      var raw = draftReadName(target);
+      if (!raw) {
+        return {};
+      }
+      try {
+        return JSON.parse(raw);
+      } catch (e) {
+        return {};
+      }
+    }
+
+    var value = override ? draftReadName(target) : draftReadName(source);
+    if (!override && (value === "" || value === null || typeof value === "undefined")) {
+      value = draftReadName(target);
+    }
+    return value;
+  }
+
+  function draftEnsureTarget($trigger, name) {
+    if (!name) {
+      return $();
+    }
+    var $target = draftElements(name);
+    if ($target.length) {
+      return $target;
+    }
+    var input = document.createElement("input");
+    input.type = "hidden";
+    input.name = name;
+    input.value = "";
+    var $form = $trigger.closest("form");
+    if ($form.length) {
+      $form.append(input);
+    } else {
+      document.body.appendChild(input);
+    }
+    return $(input);
+  }
+
+  function draftWriteName($trigger, name, value) {
+    var $targets = draftEnsureTarget($trigger, name);
+    if (!$targets.length) {
+      return;
+    }
+    var first = $targets.get(0);
+    if (first && first.type === "checkbox") {
+      var values = Array.isArray(value) ? value : (value === "" || value === null ? [] : [String(value)]);
+      $targets.each(function () {
+        $(this).prop("checked", values.indexOf($(this).val()) !== -1);
+      });
+      return;
+    }
+    if (first && first.type === "radio") {
+      $targets.each(function () {
+        $(this).prop("checked", String($(this).val()) === String(value));
+      });
+      return;
+    }
+    $targets.first().val(value === null || typeof value === "undefined" ? "" : value);
+  }
+
+  function draftWriteSwitch($trigger, value) {
+    var $targets = draftEnsureTarget($trigger, $trigger.attr("data-draft-target"));
+    var $checkboxes = $targets.filter(":checkbox");
+    var $hidden = $targets.filter(":hidden");
+    if ($hidden.length) {
+      $hidden.val("0");
+    }
+    if ($checkboxes.length) {
+      $checkboxes.prop("checked", String(value) === "1");
+    } else {
+      $targets.first().val(String(value) === "1" ? "1" : "0");
+    }
+  }
+
+  function draftWriteValue($trigger, value, $modal) {
+    var kind = $trigger.attr("data-draft-kind") || "text";
+    var target = $trigger.attr("data-draft-target") || "";
+    var override = draftHasOverride($trigger);
+
+    if (kind === "image" || kind === "file") {
+      var number = value && typeof value === "object" ? value.number : value;
+      if (!number) {
+        draftClearOverride($trigger, $modal);
+        return;
+      }
+      draftEnableMetadata($trigger);
+      var clearName = target.replace(/^metadata\[/, "metadata_clear[");
+      if (clearName !== target) {
+        draftElements(clearName).prop("checked", false);
+      }
+      draftWriteName($trigger, target, number);
+      var $targetFile = draftElements(target).closest(".file-image");
+      if ($targetFile.length && $modal && $modal.data("draft-url")) {
+        $targetFile.attr("data-initial-src", $modal.data("draft-url")).attr("data-initial-number", number);
+        $targetFile.find(".file-image-preview").attr("src", $modal.data("draft-url"));
+      }
+      $trigger.addClass("cur");
+      return;
+    }
+
+    if (kind === "editor") {
+      draftEnableMetadata($trigger);
+      var targetType = $trigger.attr("data-draft-target-type") || "input";
+      if (targetType === "editor") {
+        draftWriteEditor(target, value);
+      } else {
+        draftWriteName($trigger, target, value);
+      }
+      if (value !== "") {
+        $trigger.addClass("cur");
+      } else {
+        draftClearOverride($trigger, $modal);
+      }
+      return;
+    }
+
+    if (kind === "switch") {
+      if (value === "" || value === null || typeof value === "undefined") {
+        draftClearOverride($trigger, $modal);
+        return;
+      }
+      draftEnableMetadata($trigger);
+      draftWriteSwitch($trigger, value);
+      $trigger.addClass("cur");
+      return;
+    }
+
+    if (kind === "checkbox") {
+      var values = Array.isArray(value) ? value : [];
+      if (!values.length) {
+        draftClearOverride($trigger, $modal);
+        return;
+      }
+      draftEnableMetadata($trigger);
+      draftWriteName($trigger, target, values);
+      $trigger.addClass("cur");
+      return;
+    }
+
+    if (kind === "options") {
+      var map = value && typeof value === "object" ? value : {};
+      var hasOption = false;
+      for (var key in map) {
+        if (Object.prototype.hasOwnProperty.call(map, key) && map[key] !== "") {
+          hasOption = true;
+          break;
+        }
+      }
+      if (!hasOption) {
+        draftClearOverride($trigger, $modal);
+        return;
+      }
+      draftWriteName($trigger, target, JSON.stringify(map));
+      $trigger.addClass("cur");
+      return;
+    }
+
+    if (value === "" || value === null || typeof value === "undefined") {
+      draftClearOverride($trigger, $modal);
+      return;
+    }
+
+    draftEnableMetadata($trigger);
+    draftWriteName($trigger, target, value);
+    $trigger.addClass("cur");
+  }
+
+  function draftClearOverride($trigger, $modal) {
+    var kind = $trigger.attr("data-draft-kind") || "text";
+    var target = $trigger.attr("data-draft-target") || "";
+
+    if ($modal && (kind === "image" || kind === "file") && $modal.data("draft-file-changed")) {
+      var releaseUrl = $trigger.attr("data-draft-release-url") || route("admin.metadata.draft.release");
+      var number = $modal.data("draft-number");
+      if (number) {
+        $.ajax({
+          type: "POST",
+          url: releaseUrl,
+          data: {
+            module: $trigger.attr("data-draft-module") || "",
+            number: number,
+            token: $trigger.attr("data-token") || "",
+          },
+          dataType: "json",
+        });
+      }
+      $modal.data("draft-file-changed", false).data("draft-number", "");
+    }
+
+    if (kind === "editor") {
+      var targetType = $trigger.attr("data-draft-target-type") || "input";
+      if (targetType === "editor") {
+        draftWriteEditor(target, "");
+      } else {
+        draftWriteName($trigger, target, "");
+      }
+    } else if (kind === "checkbox") {
+      draftWriteName($trigger, target, []);
+    } else if (kind === "switch") {
+      draftWriteSwitch($trigger, "0");
+    } else {
+      draftWriteName($trigger, target, "");
+    }
+
+    if ($trigger.attr("data-draft-inherit")) {
+      draftDisableMetadata($trigger);
+      var $field = draftElements($trigger.attr("data-draft-inherit")).closest(".metadata-field");
+      $field.find(".metadata-control").find("input, select, textarea").val("");
+      $field.find(".metadata-control").find("input[type=checkbox], input[type=radio]").prop("checked", false);
+      $field.find(".metadata-control").find("input[type=hidden]").val("");
+    }
+    $trigger.removeClass("cur");
+  }
+
+  function draftValuesEqual(a, b) {
+    try {
+      return JSON.stringify(a) === JSON.stringify(b);
+    } catch (e) {
+      return a === b;
+    }
+  }
+
+  function draftReadFormValue($modal, $trigger) {
+    var kind = $trigger.attr("data-draft-kind") || "text";
+    var $form = $modal.find(".dou-modal-lang-form");
+
+    if (kind === "editor") {
+      return draftReadEditor($form.attr("data-draft-editor-id"));
+    }
+    if (kind === "image" || kind === "file") {
+      return {
+        number: $modal.data("draft-number") || "",
+      };
+    }
+    if (kind === "options") {
+      var map = {};
+      $form.find(".draft-option-input").each(function () {
+        var option = $(this).attr("data-option");
+        var label = $(this).val();
+        if (option && label !== "") {
+          map[option] = label;
+        }
+      });
+      return map;
+    }
+    if (kind === "checkbox") {
+      var values = [];
+      $form.find('[name="value[]"]:checked').each(function () {
+        values.push($(this).val());
+      });
+      return values;
+    }
+    if (kind === "radio") {
+      var $checked = $form.find('[name="value"]:checked');
+      return $checked.length ? $checked.val() : "";
+    }
+    return $form.find('[name="value"]').first().val();
+  }
+
+  function draftOptionRows($trigger, current) {
+    var source = $trigger.attr("data-draft-source") || "";
+    var $source = draftElements(source).filter("textarea").first();
+    var lines = $source.length ? String($source.val() || "").split(/\r?\n/) : [];
+    var seen = {};
+    var html = "";
+    for (var i = 0; i < lines.length; i++) {
+      var option = $.trim(lines[i]);
+      if (!option || seen[option]) {
+        continue;
+      }
+      seen[option] = true;
+      var value = current && current[option] ? current[option] : "";
+      html +=
+        '<div class="form-item">' +
+        '<div class="form-label">' + escapeHtml(option) + "</div>" +
+        '<div class="input-block"><input type="text" class="input draft-option-input" data-option="' +
+        escapeHtml(option) + '" value="' + escapeHtml(value) + '" /></div>' +
+        "</div>";
+    }
+    return html;
+  }
+
+  function buildDraftLangForm($trigger, initial) {
+    var kind = $trigger.attr("data-draft-kind") || "text";
+    var source = $trigger.attr("data-draft-source") || "";
+    var html = "";
+
+    if (kind === "editor") {
+      var editorId = "draftLangEditor" + Date.parse(new Date());
+      var editorValue = typeof initial === "string" ? initial : "";
+      if (typeof cur_editor !== "undefined" && cur_editor === "vditor") {
+        html =
+          '<div class="editor-content low"><div id="' + editorId + '" class="editor-class"></div>' +
+          '<textarea id="' + editorId + 'Textarea" style="display:none">' + escapeHtml(editorValue) + "</textarea>" +
+          "<script type=\"text/javascript\">initEditor('" + editorId + "')</script></div>";
+      } else {
+        html =
+          '<script id="' + editorId + '" type="text/plain" class="editor-class">' + editorValue + "</script>" +
+          "<script type=\"text/javascript\">initEditor('" + editorId + "', '200')</script>";
+      }
+      return (
+        '<form class="dou-modal-lang-form dou-modal-lang-draft" data-draft-editor-id="' + editorId + '">' +
+        '<div class="form"><div class="form-item"><div class="input-block">' + html + "</div></div></div></form>"
+      );
+    }
+
+    if (kind === "image" || kind === "file") {
+      var accept = $trigger.attr("data-draft-accept") || (kind === "image" ? "image/*" : "");
+      var previewUrl = initial && initial.url ? initial.url : ($trigger.attr("data-draft-preview") || "");
+      var number = initial && initial.number ? initial.number : "";
+      var previewHtml = "";
+      if (previewUrl) {
+        previewHtml = kind === "image"
+          ? '<img src="' + escapeHtml(previewUrl) + '" alt="" />'
+          : '<a href="' + escapeHtml(previewUrl) + '" target="_blank" rel="noopener">' + escapeHtml(previewUrl) + "</a>";
+      }
+      html =
+        '<div class="draft-file-control">' +
+        '<input type="file" class="draft-file-input" accept="' + escapeHtml(accept) + '" />' +
+        '<input type="hidden" name="draft_number" value="' + escapeHtml(number) + '" />' +
+        '<div class="draft-file-preview">' + previewHtml + "</div></div>";
+      return '<form class="dou-modal-lang-form dou-modal-lang-draft">' + html + "</form>";
+    }
+
+    if (kind === "options") {
+      html = draftOptionRows($trigger, initial || {});
+      return '<form class="dou-modal-lang-form dou-modal-lang-draft">' + html + "</form>";
+    }
+
+    if (kind === "select") {
+      var $select = draftElements(source).filter("select").first();
+      var optionsHtml = "";
+      var selected = initial === null || typeof initial === "undefined" ? "" : String(initial);
+      if ($select.length) {
+        $select.find("option").each(function () {
+          var value = $(this).val();
+          optionsHtml +=
+            '<option value="' + escapeHtml(value) + '"' +
+            (String(value) === selected ? ' selected="selected"' : "") + ">" +
+            escapeHtml($(this).text()) + "</option>";
+        });
+      } else {
+        var dataOptions = $trigger.attr("data-draft-options");
+        if (dataOptions) {
+          try {
+            var parsed = JSON.parse(dataOptions);
+            for (var i = 0; i < parsed.length; i++) {
+              optionsHtml +=
+                '<option value="' + escapeHtml(parsed[i]) + '"' +
+                (String(parsed[i]) === selected ? ' selected="selected"' : "") + ">" +
+                escapeHtml(parsed[i]) + "</option>";
+            }
+          } catch (e) {}
+        }
+      }
+      html = '<select name="value" class="select">' + optionsHtml + "</select>";
+    } else if (kind === "radio" || kind === "checkbox") {
+      var $source = draftElements(source);
+      var currentValues = Array.isArray(initial) ? initial : (initial === "" || initial === null ? [] : [String(initial)]);
+      $source.each(function () {
+        var value = $(this).val();
+        var label = $(this).closest("label").clone().children("input").remove().end().text();
+        label = $.trim(label) || value;
+        var checked = currentValues.indexOf(String(value)) !== -1;
+        html +=
+          '<label class="' + kind + '"><input type="' + (kind === "radio" ? "radio" : "checkbox") +
+          '" name="' + (kind === "radio" ? "value" : "value[]") + '" value="' + escapeHtml(value) + '"' +
+          (checked ? ' checked="checked"' : "") + " /> " + escapeHtml(label) + "</label>";
+      });
+    } else if (kind === "switch") {
+      html =
+        '<select name="value" class="select">' +
+        '<option value="0"' + (String(initial) === "0" ? ' selected="selected"' : "") + ">" +
+        escapeHtml(typeof lang === "function" ? lang("no") : "No") + "</option>" +
+        '<option value="1"' + (String(initial) === "1" ? ' selected="selected"' : "") + ">" +
+        escapeHtml(typeof lang === "function" ? lang("yes") : "Yes") + "</option>" +
+        "</select>";
+    } else if (kind === "textarea") {
+      html = '<textarea name="value" cols="115" rows="6" class="textarea">' + escapeHtml(initial || "") + "</textarea>";
+    } else if (kind === "number" || kind === "date") {
+      html = '<input type="' + kind + '" name="value" class="input" value="' + escapeHtml(initial || "") + '" />';
+    } else {
+      html = '<input type="text" name="value" class="input" value="' + escapeHtml(initial || "") + '" />';
+    }
+
+    return (
+      '<form class="dou-modal-lang-form dou-modal-lang-draft">' +
+      '<div class="form"><div class="form-item"><div class="input-block">' + html + "</div></div></div>" +
+      "</form>"
+    );
+  }
+
+  function bindDraftFileUpload($modal, $trigger) {
+    var uploadUrl = $trigger.attr("data-draft-upload-url") || "";
+    if (!uploadUrl) {
+      return;
+    }
+    $modal.find(".draft-file-input").off("change.draftFile").on("change.draftFile", function () {
+      var input = this;
+      if (!input.files || !input.files.length) {
+        return;
+      }
+      var formData = new FormData();
+      formData.append("file", input.files[0]);
+      formData.append("module", $trigger.attr("data-draft-module") || "");
+      formData.append("slug", $trigger.attr("data-draft-slug") || "");
+      formData.append("token", $trigger.attr("data-token") || "");
+
+      $modal.find(".draft-file-preview").html('<span class="cue">uploading...</span>');
+      $.ajax({
+        type: "POST",
+        url: uploadUrl,
+        data: formData,
+        processData: false,
+        contentType: false,
+        dataType: "json",
+        success: function (resp) {
+          if (!resp || !resp.ok || !resp.number) {
+            alert(resp && resp.message ? resp.message : "操作失败");
+            return;
+          }
+          var previousNumber = $modal.data("draft-number");
+          if (previousNumber && previousNumber !== resp.number) {
+            $.ajax({
+              type: "POST",
+              url: $trigger.attr("data-draft-release-url") || route("admin.metadata.draft.release"),
+              data: {
+                module: $trigger.attr("data-draft-module") || "",
+                number: previousNumber,
+                token: $trigger.attr("data-token") || "",
+              },
+              dataType: "json",
+            });
+          }
+          $modal.data("draft-number", resp.number).data("draft-file-changed", true).data("draft-url", resp.url || "");
+          $modal.find('[name="draft_number"]').val(resp.number);
+          var kind = $trigger.attr("data-draft-kind") || "file";
+          var preview = resp.url
+            ? (kind === "image"
+              ? '<img src="' + escapeHtml(resp.url) + '" alt="" />'
+              : '<a href="' + escapeHtml(resp.url) + '" target="_blank" rel="noopener">' + escapeHtml(resp.url) + "</a>")
+            : '<span class="cue">' + escapeHtml(resp.number) + "</span>";
+          $modal.find(".draft-file-preview").html(preview);
+        },
+        error: function () {
+          alert("操作失败");
+        },
+      });
+    });
+  }
+
+  function bindDraftLangSubmit($modal, $trigger) {
+    $modal.find(".dou-modal-lang-submit").off("click.draftLang").on("click.draftLang", function (e) {
+      e.preventDefault();
+      var kind = $trigger.attr("data-draft-kind") || "text";
+      var initial = $modal.data("draft-initial");
+      var value = draftReadFormValue($modal, $trigger);
+
+      if ((kind === "image" || kind === "file") && !$modal.data("draft-file-changed")) {
+        close();
+        return;
+      }
+      if (kind !== "image" && kind !== "file" &&
+          !draftHasOverride($trigger) && draftValuesEqual(value, initial)) {
+        close();
+        return;
+      }
+
+      draftWriteValue($trigger, value, $modal);
+      close();
+    });
+  }
+
+  function openDraftLangBox($trigger) {
+    var triggerId = $trigger.attr("data-trigger-id") || "";
+    if (triggerId) {
+      $trigger.attr("id", triggerId);
+    }
+    var initial = draftReadValue($trigger);
+    var aiField = $trigger.attr("data-draft-ai-field") || "";
+    var aiType = $trigger.attr("data-draft-ai-type") || "text";
+    var hasAi = aiField !== "" && draftHasAiTranslate();
+
+    open({
+      title: $trigger.attr("data-title") || "",
+      placement: "right",
+      size: "lg",
+      className: "is-lang is-lang-draft",
+      load: function ($modal, $body, $footer) {
+        $modal.data("draft-initial", initial);
+        var toolbar = hasAi
+          ? '<div class="dou-modal-lang-toolbar"><span class="action ai-lang-translate"></span></div>'
+          : "";
+        $body.html(toolbar + buildDraftLangForm($trigger, initial));
+        $footer.html(
+          '<div class="dou-modal-actions">' +
+          '<a href="javascript:;" class="btn dou-modal-lang-submit">' +
+          escapeHtml(typeof lang === "function" ? lang("btn_submit") : "提交") +
+          "</a></div>"
+        );
+        bindDraftFileUpload($modal, $trigger);
+        bindDraftLangSubmit($modal, $trigger);
+        if (hasAi) {
+          $(document).trigger("douLangFormReady", {
+            $modal: $modal,
+            $trigger: $trigger,
+            field: aiField,
+            type: aiType,
+          });
+        }
+      },
     });
   }
 
@@ -3275,5 +4124,29 @@ function initTransfer(elem) {
 $(function () {
   $(".transfer").each(function () {
     initTransfer(this);
+  });
+});
+
+/**
+ * 扩展字段：语言面板切换 + 非默认语言「继承默认」时禁用控件。
+ */
+$(function () {
+  function syncMetadataInherit($field) {
+    var $switch = $field.find(".metadata-inherit");
+    if (!$switch.length) {
+      return;
+    }
+    var inherited = $switch.prop("checked");
+    $field.toggleClass("metadata-inherited", inherited);
+    $field.find(".metadata-control").find("input, select, textarea, button").prop("disabled", inherited);
+    $field.find(".metadata-control").find(".editor-class").attr("contenteditable", inherited ? "false" : "true");
+  }
+
+  $(".metadata-fields .metadata-field").each(function () {
+    syncMetadataInherit($(this));
+  });
+
+  $(document).on("change", ".metadata-inherit", function () {
+    syncMetadataInherit($(this).closest(".metadata-field"));
   });
 });

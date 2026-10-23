@@ -45,13 +45,13 @@
           <div class="form-label">{$lang.data_code}</div>
           <div class="input-block">
            <input type="text" name="code" value="{$data.code}" size="40" class="input" {if $data.is_locked}readonly{/if} />
-           <p class="cue">{$lang.data_code_cue}</p>
+           <p class="cue">{$lang.data_code_cue nofilter}</p>
           </div>
          </div>
          <div class="form-item">
           <div class="form-label">{$lang.data_image}</div>
           <div class="input-block">
-           {include file="inc/file_input.tpl" name="image" value=$data.image file_number=$data.file_number}
+           {include file="inc/file_image.tpl" name="image" value=$data.image file_number=$data.file_number}
            <p class="action" data-field="image">{$btn_lang.image nofilter}</p>
            <p class="cue">{$lang.data_image_cue nofilter}</p>
           </div>
