@@ -73,12 +73,12 @@ class Product extends Model
     protected $appends = array('thumb', 'image_other', 'add_time_short', 'time', 'name', 'description', 'url', 'favorites', 'cate_info');
 
     /** @var array name/title/content/description 随当前语言覆写 */
-    protected $translatable = array('name', 'title', 'content', 'description');
+    protected $translatable = array('name', 'title', 'content', 'description', 'image');
 
     /** @var array 列表批量预热：url 构建缓存、多语言、附件全图与缩略图、相册首图 */
     protected $prefetchers = array(
         'url' => true,
-        'language' => 'name,title,content,description',
+        'language' => 'name,title,content,description,image',
         'attachment' => 'image',
         'attachment_thumb' => 'image',
         'gallery_first' => true,
@@ -143,7 +143,7 @@ class Product extends Model
      */
     public function getThumbAttribute()
     {
-        $image = (string) $this->getRawAttribute('image');
+        $image = $this->translatedRaw('image');
 
         return attachment()->url($image, true);
     }
@@ -234,15 +234,20 @@ class Product extends Model
      * @param int|string $catId
      * @param int $number
      * @param int $userId 当前会员 ID（0 = 未登录）
+     * @param int $excludeId 需排除的记录 ID（详情页传当前商品 id；0 = 不排除）
      * @return array
      */
-    public static function related($catId, $number = 4, $userId = 0)
+    public static function related($catId, $number = 4, $userId = 0, $excludeId = 0)
     {
-        return static::published()
+        $query = static::published()
             ->with('category')
             ->forUser((int) $userId)
-            ->filterByCategory($catId)
-            ->order('RAND()')
+            ->filterByCategory($catId);
+        if ((int) $excludeId > 0) {
+            $query->where('id', '<>', (int) $excludeId);
+        }
+
+        return $query->order('RAND()')
             ->limit((int) $number)
             ->get()
             ->toArray();

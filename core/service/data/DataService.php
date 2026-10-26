@@ -137,7 +137,7 @@ class DataService extends BaseService implements DataServiceContract
         $result = $query->select();
 
         foreach ((array) $result as $row) {
-            $row = language()->langBox($row, 'data', 'name, text, link');
+            $row = language()->langBox($row, 'data', 'name, image, text, link');
 
             $text = (string) $row['text'];
             $textArray = $text === ''

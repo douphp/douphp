@@ -76,8 +76,12 @@ Page({
     }
   },
 
-  wxLogin(phone = '') {
+  wxLogin(phoneToken = '') {
     const that = this
+    // WXML 直接 bindtap="wxLogin" 时首参会是事件对象；只有 getPhoneNumber 传入的字符串才是有效 token
+    if (typeof phoneToken !== 'string') {
+      phoneToken = ''
+    }
 
     wx.login({
       success(res) {
@@ -85,7 +89,7 @@ Page({
           http
             .get(route('user.weixin.login'), {
               code: res.code,
-              phone,
+              phone_token: phoneToken,
               promotion_user_sn: getPromotionUserSn(),
             })
             .then(function (data) {
@@ -147,7 +151,7 @@ Page({
         code: e.detail.code,
       })
       .then(function (data) {
-        that.wxLogin(data.phone)
+        that.wxLogin(data.phone_token)
       })
       .catch(function (err) {
         wx.showToast({

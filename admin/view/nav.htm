@@ -65,6 +65,7 @@
     <div class="items tab-content">
      <div class="tab-pane active" id="nav-add">
       <form action="{$form_action}" method="post" enctype="multipart/form-data"><!-- {if $form_method} --><input type="hidden" name="_method" value="{$form_method}" /><!-- {/if} -->
+       {include file="inc/language_drafts.tpl" drafts=$lang_drafts}
        <div class="form">
         <div class="form-item">
          <div class="form-label">{$lang.nav_system}</div>
@@ -138,6 +139,7 @@
      </div>
      <div class="tab-pane" id="nav-defined">
       <form action="{$form_action}" method="post" enctype="multipart/form-data"><!-- {if $form_method} --><input type="hidden" name="_method" value="{$form_method}" /><!-- {/if} -->
+       {include file="inc/language_drafts.tpl" drafts=$lang_drafts}
        <div class="form">
         <div class="form-item">
          <div class="form-label">{$lang.nav_name}</div>
@@ -211,6 +213,7 @@
    <!-- {/if} -->
    <!-- {if $rec eq 'edit'} 导航编辑 -->
    <form action="{$form_action}" method="post" enctype="multipart/form-data"><!-- {if $form_method} --><input type="hidden" name="_method" value="{$form_method}" /><!-- {/if} -->
+    {include file="inc/language_drafts.tpl" drafts=$lang_drafts}
     <div class="form">
      <!-- {if $nav_info.module neq 'nav'} -->
      <div class="form-item">

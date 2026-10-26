@@ -87,6 +87,7 @@ class MiniprogramCatalogQuery extends BaseService
             $sales = isset($row['sales']) ? intval($row['sales']) : 0;
             $denominator = $stock + $sales;
             $createdAtTs = isset($row['created_at']) ? Util::toTimestamp($row['created_at']) : null;
+            $imageNumber = language()->langValue(isset($row['image']) ? $row['image'] : '', $module, isset($row['id']) ? (int) $row['id'] : 0, 'image');
 
             $list[] = array(
                 'id' => isset($row['id']) ? $row['id'] : 0,
@@ -100,8 +101,8 @@ class MiniprogramCatalogQuery extends BaseService
                 'sales_percentage' => $denominator > 0 ? intval(($sales / $denominator) * 100) : 0,
                 'created_at' => $createdAtTs !== null ? date('Y-m-d', $createdAtTs) : '',
                 'description' => !empty($row['description']) ? $row['description'] : Str::excerpt(isset($row['content']) ? $row['content'] : '', 320),
-                'image' => attachment()->url(isset($row['image']) ? $row['image'] : ''),
-                'thumb' => attachment()->url(isset($row['image']) ? $row['image'] : '', true),
+                'image' => attachment()->url($imageNumber),
+                'thumb' => attachment()->url($imageNumber, true),
                 'url' => Url::urlMini($module, isset($row['id']) ? $row['id'] : ''),
                 'bor' => $i % 2 == 0 ? ' noBor' : ''
             );

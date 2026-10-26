@@ -16,6 +16,7 @@ namespace Dou\Admin\Service\Product;
 
 use Dou\Admin\Model\Product\ProductCategory;
 use Dou\Admin\Service\Nav\NavCategorySyncService;
+use Dou\Admin\Service\Concerns\SavesLanguageDrafts;
 use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Exception\DomainException;
@@ -39,6 +40,8 @@ if (!defined('IN_DOUCO')) {
  */
 class CategoryService extends BaseService
 {
+    use SavesLanguageDrafts;
+
     /** @var NavCategorySyncService */
     private $navCategorySync;
 
@@ -134,7 +137,8 @@ class CategoryService extends BaseService
         $icon = attachment()->reserve('product_category', $iconFile, 'admin', $adminId, 'main', AttachmentUploadOptions::create());
         $data['icon'] = $iconMode === 'image' ? $icon : $textIcon;
 
-        $newCatId = (int) DB::transaction(function () use ($data, $icon, $adminId) {
+        $languagePlan = $this->languageDraftBegin('product_category', $data, 0, $adminId);
+        $newCatId = (int) DB::transaction(function () use ($data, $icon, $adminId, $languagePlan) {
             $category = ProductCategory::create($data);
             if (!$category) {
                 throw new DomainException(lang('illegal'), route('admin.product.category'));
@@ -144,12 +148,15 @@ class CategoryService extends BaseService
                 throw new DomainException(lang('operation_failed'));
             }
 
+            $this->languageDraftCommit($languagePlan, $newCatId, $adminId);
             if ($icon !== '' && attachment()->adopt('product_category', $icon, $newCatId, 'admin', $adminId) < 1) {
                 throw new DomainException(lang('file_claim_failed'));
             }
 
             return $newCatId;
         });
+
+        $this->languageDraftPurge($languagePlan, $newCatId);
 
         if (isset($data['sync_to_nav']) && (int) $data['sync_to_nav'] === 1) {
             $this->navCategorySync->syncForCategory('product_category', $newCatId);
@@ -196,7 +203,17 @@ class CategoryService extends BaseService
         }
         $data['icon'] = $icon;
 
-        $catOldModel->fill($data, 'update')->save();
+        $languagePlan = $this->languageDraftBegin('product_category', $data, $catId, $adminId);
+        try {
+            DB::transaction(function () use ($catOldModel, $data, $catId, $adminId, $languagePlan) {
+                $catOldModel->fill($data, 'update')->save();
+                $this->languageDraftCommit($languagePlan, $catId, $adminId);
+            });
+        } catch (\Exception $e) {
+            $this->languageDraftAbort($languagePlan);
+            throw $e;
+        }
+        $this->languageDraftPurge($languagePlan, $catId);
 
         if (isset($data['sync_to_nav']) && (int) $data['sync_to_nav'] === 1) {
             $this->navCategorySync->syncForCategory('product_category', $catId);

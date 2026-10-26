@@ -26,6 +26,7 @@ use Dou\Core\Foundation\Container\Container;
 use Dou\Core\Foundation\Extension\Module;
 use Dou\Core\Foundation\Provider\ProviderRegistry;
 use Dou\Core\Init\InitTrait;
+use Dou\Core\Service\Form\FormService as FormCore;
 use Dou\Core\Service\Nav\MiniprogramNavigationBuilder;
 use Dou\Core\Service\Theme\SiteThemePolicy;
 use Dou\Core\Support\Cdkey;
@@ -357,6 +358,13 @@ class Init
 
             // 兼容存量主题 {$box_list.xxx} 标签：由 data 分组行（box 已并入 index 组）组装旧 box 结构。
             $engine->assign('box_list', self::legacyBoxList());
+
+            // 表单定义（slug 索引，表单 meta 与字段平铺同层）：模板直接 {$form.quote.contact.name}。
+            // 受 features.form 门控，未装模块时注入空数组，保证 {$form.xxx} 始终可枚举。
+            $engine->assign(
+                'form',
+                Config::get('features.form', false) ? app(FormCore::class)->all() : array()
+            );
         }
 
         // 会员模块（核心实现类由云模块安装，未安装时跳过；通过 Module::make 解析以触发容器构造注入）
@@ -424,6 +432,17 @@ class Init
             $legacyGlobalUser['work'] = !empty($workDetail) ? $workDetail : null;
             $legacyGlobalUser['distribution'] = is_array($distributionDetail) ? $distributionDetail : false;
             app(DouView::class)->assign('global_user', $legacyGlobalUser);
+        }
+
+        // 上传组件的草稿令牌：仅登录会员生成（游客上传在路由层即被拒），不写库；
+        // file 模块按 md5(token + '_' + prefix) 派生字段级草稿键，一个 token 服务整页多个上传字段。
+        // 游客也必须赋空串：include 参数在调用点即求值，未定义会报 Undefined array key。
+        if ($container->has(DouView::class)) {
+            $draftUserId = (int) auth('front')->id();
+            app(DouView::class)->assign(
+                'draft_token',
+                $draftUserId > 0 ? attachment()->newDraftToken('user', $draftUserId) : ''
+            );
         }
 
         // 短信服务（仅在 core/library/sms 存在时给模板打开短信验证码开关，

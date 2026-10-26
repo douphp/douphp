@@ -15,6 +15,7 @@
 namespace Dou\Admin\Service\Data;
 
 use Dou\Admin\Model\Data\Data;
+use Dou\Admin\Service\Concerns\SavesLanguageDrafts;
 use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Exception\DomainException;
@@ -37,6 +38,8 @@ if (!defined('IN_DOUCO')) {
  */
 class DataService extends BaseService
 {
+    use SavesLanguageDrafts;
+
     /**
      * 不参与「站内页」判定的数据分组（横幅/公用/首页/小程序）。
      *
@@ -266,6 +269,8 @@ class DataService extends BaseService
             }
         }
 
+        $languageForm = $this->languageDraftService()->buildFormState('data', 0);
+
         return array(
             'ur_here' => lang('data_create'),
             'action_link' => array(
@@ -285,7 +290,8 @@ class DataService extends BaseService
                 'is_class' => '0',
                 'is_locked' => '0',
             ),
-            'btn_lang' => language()->buildLangButtons('data', '', 'name, image, text, link'),
+            'btn_lang' => $languageForm['btn_lang'],
+            'lang_drafts' => $languageForm['lang_drafts'],
             'lang' => $lang,
             'group' => $dataGroup,
             'in_page' => !in_array($dataGroup, $noInPageList, true),
@@ -321,17 +327,27 @@ class DataService extends BaseService
         $adminId = (int) auth('admin')->id();
         $image = attachment()->reserve('data', UploadedFile::fromGlobals('image'), 'admin', $adminId, 'main', AttachmentUploadOptions::create()->withBasename($code)->withDirectory(Config::get('site.site_theme', '')));
         $insertData['image'] = $image;
+        $languagePlan = $this->languageDraftBegin('data', $post, 0, $adminId);
 
-        DB::transaction(function () use ($insertData, $image, $adminId) {
-            $newId = (int) Data::insertData($insertData);
-            if ($newId <= 0) {
-                throw new DomainException(lang('operation_failed'));
-            }
-            if ($image !== '' && attachment()->adopt('data', $image, $newId, 'admin', $adminId) < 1) {
-                throw new DomainException(lang('file_claim_failed'));
-            }
-        });
+        try {
+            $newId = (int) DB::transaction(function () use ($insertData, $image, $adminId, $languagePlan) {
+                $newId = (int) Data::insertData($insertData);
+                if ($newId <= 0) {
+                    throw new DomainException(lang('operation_failed'));
+                }
+                $this->languageDraftCommit($languagePlan, $newId, $adminId);
+                if ($image !== '' && attachment()->adopt('data', $image, $newId, 'admin', $adminId) < 1) {
+                    throw new DomainException(lang('file_claim_failed'));
+                }
 
+                return $newId;
+            });
+        } catch (\Exception $e) {
+            $this->languageDraftAbort($languagePlan);
+            throw $e;
+        }
+
+        $this->languageDraftPurge($languagePlan, $newId);
         $backUrl = $this->backUrl(Arr::get($post, 'data_group', ''), Arr::get($post, 'data_item', ''));
         audit()->writeAdminLog($adminId, AdminLogAction::CREATE, 1, (string) $name);
         return $backUrl;
@@ -401,6 +417,8 @@ class DataService extends BaseService
             }
         }
 
+        $languageForm = $this->languageDraftService()->buildFormState('data', $id);
+
         return array(
             'ur_here' => lang('data_edit'),
             'action_link' => array(
@@ -412,7 +430,8 @@ class DataService extends BaseService
             'group' => $data['data_group'],
             'in_page' => !in_array($data['data_group'], $noInPageList, true),
             'cur' => $this->moduleCur($data['data_group']),
-            'btn_lang' => language()->buildLangButtons('data', $id, 'name, image, text, link'),
+            'btn_lang' => $languageForm['btn_lang'],
+            'lang_drafts' => $languageForm['lang_drafts'],
         );
     }
 
@@ -434,10 +453,12 @@ class DataService extends BaseService
             throw new DomainException(lang('illegal'), route('admin.data'));
         }
 
+        $adminId = (int) auth('admin')->id();
+        $languagePlan = $this->languageDraftBegin('data', $post, $id, $adminId);
         if ($code !== $row['code']) {
             attachment()->renameStoredFile($row['image'], $code);
         }
-        $image = attachment()->store('data', $id, UploadedFile::fromGlobals('image'), 'main', AttachmentUploadOptions::create()->withBasename($code)->withDirectory(Config::get('site.site_theme', ''))->withUploader('admin', (int) auth('admin')->id()));
+        $image = attachment()->store('data', $id, UploadedFile::fromGlobals('image'), 'main', AttachmentUploadOptions::create()->withBasename($code)->withDirectory(Config::get('site.site_theme', ''))->withUploader('admin', $adminId));
 
         $updateData = array(
             'name' => $name,
@@ -450,9 +471,19 @@ class DataService extends BaseService
             $updateData['image'] = $image;
         }
 
-        Data::updateById($id, $updateData);
+        try {
+            DB::transaction(function () use ($id, $updateData, $adminId, $languagePlan) {
+                Data::updateById($id, $updateData);
+                $this->languageDraftCommit($languagePlan, $id, $adminId);
+            });
+        } catch (\Exception $e) {
+            $this->languageDraftAbort($languagePlan);
+            throw $e;
+        }
+
+        $this->languageDraftPurge($languagePlan, $id);
         $backUrl = $this->backUrl($row['data_group'], $row['data_item']);
-        audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::UPDATE, 1, (string) $name);
+        audit()->writeAdminLog($adminId, AdminLogAction::UPDATE, 1, (string) $name);
         return $backUrl;
     }
 
@@ -481,6 +512,7 @@ class DataService extends BaseService
             throw new DomainException(lang('illegal'), route('admin.data'));
         }
         attachment()->delete($data['image']);
+        language()->deleteLang('data', (int) $id);
         $backUrl = $this->backUrl($data['data_group'], $data['data_item']);
         audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::DELETE, 1, (string) $data['name']);
         Data::deleteById((int) $id);

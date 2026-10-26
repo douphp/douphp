@@ -905,12 +905,61 @@ abstract class Model implements ArrayAccess, IteratorAggregate, Countable, JsonS
             return $result;
         }
         foreach ($this->translatable as $field) {
-            if (array_key_exists($field, $result)) {
-                $result[$field] = $language->langValue($result[$field], $module, $itemId, $field);
+            if (!array_key_exists($field, $result)) {
+                continue;
+            }
+            $raw = (string) $this->getRawAttribute($field);
+            $translated = $language->langValue($raw, $module, $itemId, $field);
+            if (isset($this->casts[$field])) {
+                $cast = (string) $this->casts[$field];
+                $base = strpos($cast, ':') === false ? $cast : substr($cast, 0, strpos($cast, ':'));
+                if ($base === 'attachment' || $base === 'attachment_thumb') {
+                    // 译文是附件号，必须重新走 cast 转成 URL
+                    $result[$field] = CastResolver::apply($cast, $translated, $this);
+                    continue;
+                }
+            }
+            if ($translated !== $raw) {
+                $result[$field] = $translated;
             }
         }
 
         return $result;
+    }
+
+    /**
+     * @return array
+     */
+    public function getTranslatable()
+    {
+        return (array) $this->translatable;
+    }
+
+    /**
+     * @return string
+     */
+    public function getTranslatableModule()
+    {
+        return $this->translatableModule !== '' ? (string) $this->translatableModule : (string) $this->getTable();
+    }
+
+    /**
+     * 读取当前语言下的原始值（附件字段返回附件号，不转 URL）。
+     *
+     * @param string $field
+     * @return string
+     */
+    public function translatedRaw($field)
+    {
+        $field = (string) $field;
+        $raw = (string) $this->getRawAttribute($field);
+        $language = language();
+        $itemId = (int) $this->getKey();
+        if ($language === null || $itemId <= 0) {
+            return $raw;
+        }
+
+        return (string) $language->langValue($raw, $this->getTranslatableModule(), $itemId, $field);
     }
 
     // -----------------------------------------------------------------

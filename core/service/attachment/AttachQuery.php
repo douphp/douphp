@@ -132,8 +132,8 @@ class AttachQuery
     /**
      * 后台附件行：图标 + 原始文件名 + 大小 + 删除按钮。
      *
-     * 删除按钮 class 与相册保持一致，复用 common.js 的
-     * ".file-upload .file-list .file-action-remove" 事件委托。
+     * 删除按钮 class 与相册保持一致，并带上 `data-file-del` / `data-number`：
+     * 由后台 `douFileUploader` 在 document 上统一委托，不再依赖内联 onclick。
      *
      * @param array $row
      * @return string
@@ -151,7 +151,7 @@ class AttachQuery
             . '<i class="bi ' . $icon . ' file-attachment-icon" aria-hidden="true"></i>'
             . '<a class="file-attachment-name" href="' . $src . '" title="' . $name . '" target="_blank" rel="noopener">' . $name . '</a>'
             . '<em class="file-attachment-size">' . $size . '</em>'
-            . '<button type="button" class="file-action file-action-remove bi-x" title="' . $delTitle . '"></button>'
+            . '<button type="button" class="file-action file-action-remove bi-x" data-file-del data-number="' . $number . '" title="' . $delTitle . '"></button>'
             . '</li>';
     }
 

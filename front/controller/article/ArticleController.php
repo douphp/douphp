@@ -225,7 +225,7 @@ class ArticleController extends BaseController
             'article_category' => ArticleCategory::tree($catId),
             'lift' => Article::lift($id, $catId),
             'article' => $article,
-            'related_article' => Article::related($catId, 4),
+            'related_article' => Article::related($catId, 4, (int) $id),
             'defined' => $article['defined'],
             'column_name' => $cateInfo['name'] ? $cateInfo['name'] : lang('article_category'),
         );

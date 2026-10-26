@@ -18,6 +18,7 @@ use Dou\Core\Contract\LanguageContract;
 use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Service\BaseService;
+use Dou\Core\Support\Check;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
@@ -99,11 +100,15 @@ class LanguageService extends BaseService implements LanguageContract
             ->where('module', $module)
             ->where('item_id', 'IN', $missIds)
             ->where('field', 'IN', $fields)
+            ->order('id DESC')
             ->select();
 
         foreach ((array) $rows as $r) {
             $rid = (int) $r['item_id'];
-            self::$valueCache[$cacheKey][$rid][$r['field']] = (string) $r['value'];
+            // 历史重复行以最新 id 为准，避免被较早行覆盖
+            if (!isset(self::$valueCache[$cacheKey][$rid][$r['field']])) {
+                self::$valueCache[$cacheKey][$rid][$r['field']] = (string) $r['value'];
+            }
         }
         foreach ($missIds as $id) {
             foreach ($fields as $f) {
@@ -176,6 +181,7 @@ class LanguageService extends BaseService implements LanguageContract
                 ->where('module', $module)
                 ->where('item_id', $item_id)
                 ->where('field', $field)
+                ->order('id DESC')
                 ->value('value');
             self::$valueCache[$cacheKey][$item_id][$field] = (string) $loadedVal;
             self::$loaded[$cacheKey][$item_id][$field] = true;
@@ -204,21 +210,32 @@ class LanguageService extends BaseService implements LanguageContract
             return;
         }
 
-        $langFiles = DB::table('language_value')
-            ->field('value')
+        $rows = DB::table('language_value')
+            ->field('value, field, type')
             ->where('module', $module)
             ->where('item_id', $item_id)
-            ->where('field', 'IN', array('image', 'show_img'))
             ->select();
 
-        foreach ((array) $langFiles as $row) {
-            attachment()->delete($row['value']);
+        $numbers = array();
+        foreach ((array) $rows as $row) {
+            $value = isset($row['value']) ? (string) $row['value'] : '';
+            $field = isset($row['field']) ? (string) $row['field'] : '';
+            $type = isset($row['type']) ? (string) $row['type'] : '';
+            if (!Check::fileNumber($value)) {
+                continue;
+            }
+            if (in_array($field, array('image', 'show_img'), true)
+                || in_array($type, array('image', 'file', 'language:image'), true)) {
+                $numbers[] = $value;
+            }
         }
 
         DB::table('language_value')
             ->where('module', $module)
             ->where('item_id', $item_id)
             ->delete();
+
+        LanguageImageCleaner::purge($module, (int) $item_id, $numbers);
     }
 
     /**

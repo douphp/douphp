@@ -318,6 +318,11 @@ class Init
         $engine->assign('cue_open_ssl', false);
         $engine->assign('data_list', array());
         $engine->assign('cloud_list_class', '');
+        // 模块扩展页分类分组 / 最低版本 / 筛选栏 / 安装状态开关：默认关闭，仅模块页注入，避免其他扩展列表页读到未定义变量
+        $engine->assign('cloud_extend_groups', array());
+        $engine->assign('cloud_extend_hide_min_version', false);
+        $engine->assign('cloud_extend_hide_filter', false);
+        $engine->assign('cloud_extend_show_state', false);
 
         // 主题路径：后台不应用授权降级（设置页等"看原值"场景），SiteConfigAssembler 已写好
         // site.theme_url；本端仅当 site.site_theme 非空时同步一次。

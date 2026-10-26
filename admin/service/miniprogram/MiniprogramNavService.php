@@ -15,6 +15,7 @@
 namespace Dou\Admin\Service\Miniprogram;
 
 use Dou\Admin\Model\Miniprogram\MiniprogramNav;
+use Dou\Admin\Service\Concerns\SavesLanguageDrafts;
 use Dou\Admin\Service\Nav\NavService;
 use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Exception\DomainException;
@@ -34,6 +35,8 @@ if (!defined('IN_DOUCO')) {
  */
 class MiniprogramNavService extends BaseService
 {
+    use SavesLanguageDrafts;
+
     /** @var NavService */
     private $navService;
 
@@ -165,8 +168,9 @@ class MiniprogramNavService extends BaseService
         $adminId = (int) auth('admin')->id();
         $icon = attachment()->reserve('nav', UploadedFile::fromGlobals('icon'), 'admin', $adminId, 'main', AttachmentUploadOptions::create());
         $row['icon'] = $icon;
+        $languagePlan = $this->languageDraftBegin('nav', $data, 0, $adminId);
 
-        $auto_id = (int) DB::transaction(function () use ($row, $icon, $adminId) {
+        $auto_id = (int) DB::transaction(function () use ($row, $icon, $adminId, $languagePlan) {
             $model = MiniprogramNav::create($row);
             if (!$model) {
                 throw new DomainException(lang('operation_failed'));
@@ -176,6 +180,7 @@ class MiniprogramNavService extends BaseService
                 throw new DomainException(lang('operation_failed'));
             }
 
+            $this->languageDraftCommit($languagePlan, $auto_id, $adminId);
             if ($icon !== '' && attachment()->adopt('nav', $icon, $auto_id, 'admin', $adminId) < 1) {
                 throw new DomainException(lang('file_claim_failed'));
             }
@@ -183,6 +188,7 @@ class MiniprogramNavService extends BaseService
             return $auto_id;
         });
 
+        $this->languageDraftPurge($languagePlan, $auto_id);
         $this->miniprogramService->syncMiniprogramConfig();
         audit()->writeAdminLog($adminId, AdminLogAction::CREATE, 1, (string) $data['name'], 'miniprogram_nav');
 
@@ -207,7 +213,9 @@ class MiniprogramNavService extends BaseService
         if (!in_array($type, array('miniprogram_top', 'miniprogram_tabbar'), true)) {
             throw new DomainException(lang('illegal'), route('admin.miniprogram.nav'));
         }
-        $new_icon = attachment()->store('nav', $id, UploadedFile::fromGlobals('icon'), 'main', AttachmentUploadOptions::create()->withUploader('admin', (int) auth('admin')->id()));
+        $adminId = (int) auth('admin')->id();
+        $languagePlan = $this->languageDraftBegin('nav', $data, $id, $adminId);
+        $new_icon = attachment()->store('nav', $id, UploadedFile::fromGlobals('icon'), 'main', AttachmentUploadOptions::create()->withUploader('admin', $adminId));
         $update_data = array(
             'name' => $data['name'],
             'status' => isset($data['status']) ? Num::toIntOrZero($data['status']) : 0,
@@ -230,9 +238,19 @@ class MiniprogramNavService extends BaseService
         if (!$model) {
             throw new DomainException(lang('illegal'), route('admin.miniprogram.nav'));
         }
-        $model->fill($update_data, 'update')->save();
+        try {
+            DB::transaction(function () use ($model, $update_data, $id, $adminId, $languagePlan) {
+                $model->fill($update_data, 'update')->save();
+                $this->languageDraftCommit($languagePlan, $id, $adminId);
+            });
+        } catch (\Exception $e) {
+            $this->languageDraftAbort($languagePlan);
+            throw $e;
+        }
+
+        $this->languageDraftPurge($languagePlan, $id);
         $this->miniprogramService->syncMiniprogramConfig();
-        audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::UPDATE, 1, (string) $data['name'], 'miniprogram_nav');
+        audit()->writeAdminLog($adminId, AdminLogAction::UPDATE, 1, (string) $data['name'], 'miniprogram_nav');
     }
 
     /**
@@ -254,6 +272,7 @@ class MiniprogramNavService extends BaseService
         }
         $back = route('admin.miniprogram.nav', array(), array('query' => array('type' => $nav['type'])));
         if (isset($post['confirm'])) {
+            language()->deleteLang('nav', $id);
             audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::DELETE, 1, (string) $nav['name'], 'miniprogram_nav');
             MiniprogramNav::destroy($id);
             $this->miniprogramService->syncMiniprogramConfig();

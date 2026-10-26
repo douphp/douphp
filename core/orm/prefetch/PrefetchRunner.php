@@ -51,6 +51,32 @@ class PrefetchRunner
         $table = $model->getTable();
         $pk = $model->getKeyName();
 
+        // 语言预热必须先于附件预热：附件收集需按当前语言的译文附件号批量解析。
+        foreach ($prefetchers as $key => $value) {
+            $name = is_int($key) ? $value : $key;
+            $arg = is_int($key) ? null : $value;
+            if ($name !== 'language') {
+                continue;
+            }
+            $language = language();
+            if ($language === null || $arg === null || $arg === '') {
+                continue;
+            }
+            $ids = array();
+            foreach ($rows as $row) {
+                if (isset($row[$pk]) && $row[$pk] !== '') {
+                    $ids[] = $row[$pk];
+                }
+            }
+            if (!empty($ids)) {
+                $language->warmup($table, $ids, $arg);
+            }
+        }
+
+        $translatable = $model->getTranslatable();
+        $language = language();
+        $languageModule = $model->getTranslatableModule();
+
         foreach ($prefetchers as $key => $value) {
             if (is_int($key)) {
                 $name = $value;
@@ -59,25 +85,13 @@ class PrefetchRunner
                 $name = $key;
                 $arg = $value;
             }
+            if ($name === 'language') {
+                continue;
+            }
 
             switch ($name) {
                 case 'url':
                     Url::warmupUrlCache($table, $rows);
-                    break;
-                case 'language':
-                    $language = language();
-                    if ($language === null || $arg === null || $arg === '') {
-                        break;
-                    }
-                    $ids = array();
-                    foreach ($rows as $row) {
-                        if (isset($row[$pk]) && $row[$pk] !== '') {
-                            $ids[] = $row[$pk];
-                        }
-                    }
-                    if (!empty($ids)) {
-                        $language->warmup($table, $ids, $arg);
-                    }
                     break;
                 case 'attachment':
                 case 'attachment_thumb':
@@ -87,9 +101,17 @@ class PrefetchRunner
                         if ($field === null || $field === '') {
                             continue;
                         }
+                        $isTranslatable = in_array($field, $translatable, true);
                         foreach ($rows as $row) {
-                            if (isset($row[$field]) && $row[$field] !== '') {
-                                $numbers[] = $row[$field];
+                            if (!isset($row[$field]) || $row[$field] === '') {
+                                continue;
+                            }
+                            $number = $row[$field];
+                            if ($isTranslatable && $language !== null && isset($row[$pk])) {
+                                $number = $language->langValue($number, $languageModule, (int) $row[$pk], $field);
+                            }
+                            if ($number !== '') {
+                                $numbers[] = $number;
                             }
                         }
                     }

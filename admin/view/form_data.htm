@@ -1,0 +1,149 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+ <meta name="copyright" content="DouCo Co.,Ltd." />
+ <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+ <meta name="csrf-token" content="{$csrf_token}">
+ <title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+ <link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+ <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+ <link href="css/common.css" rel="stylesheet" type="text/css">
+ <link href="css/form.css" rel="stylesheet" type="text/css">
+ {include file="inc/javascript.tpl"}
+</head>
+
+<body>
+ <div id="dou"> {include file="inc/header.tpl"}
+  {include file="inc/sidebar.tpl"}
+  <div id="dou-content"> {include file="inc/toolbar.tpl"}
+   <div class="dou-main has-subnav">
+    {include file="inc/form_submenu.tpl"}
+    <div id="form" class="dou-page">
+     <!-- {if $rec eq 'list'} 提交数据列表 -->
+     {include file="inc/page_header.tpl"}
+     <div class="filter">
+      <form action="{url link='admin.form.data'}" method="get" onsubmit="return hideEmpty(this)">
+       <select name="form_id" class="select">
+        <!-- {foreach from=$form_nav_list item=form_item} -->
+        <option value="{$form_item.form_id}"{if $form_id eq $form_item.form_id} selected="selected"{/if}>{$form_item.name}</option>
+        <!-- {/foreach} -->
+       </select>
+       <input name="keyword" type="text" class="input" value="{$keyword}" size="24" placeholder="{$lang.form_data_content}" />
+       <input class="btn-secondary" type="submit" value="{$lang.btn_filter}" />
+       <a class="btn-secondary" href="{url link='admin.form.data' form_id=$form_id}">{$lang.btn_reset}</a>
+      </form>
+      <span class="form-filter-action">
+       <a class="btn-secondary js-post" href="javascript:;" data-url="{url link='admin.form.data.mark_all' form_id=$form_id}" data-modal-confirm="{$mark_all_confirm}" data-modal-title="{$lang.form_data_mark_all_title}">{$lang.form_data_mark_all}</a>
+      </span>
+     </div>
+     <div id="list">
+      <table class="table">
+       <tr>
+        <th width="50" class="text-center">{$lang.record_id}</th>
+        <!-- {foreach from=$field_list item=field} -->
+        <th class="text-center">{$field.name|escape}</th>
+        <!-- {/foreach} -->
+        <th width="110" class="m-none text-center">{$lang.form_data_ip}</th>
+        <th width="70" class="text-center">{$lang.form_data_if_read}</th>
+        <th width="80" class="text-center">{$lang.form_data_status}</th>
+        <th width="130" class="m-none text-center">{$lang.form_data_created_at}</th>
+        <th width="80" class="text-center">{$lang.handler}</th>
+       </tr>
+       <!-- {foreach from=$form_data_list item=row} -->
+       <tr{if $row.if_read eq '0'} class="unread"{/if}>
+        <td class="text-center"><a href="{$row.url}">{$row.id}</a></td>
+        <!-- {foreach from=$row.cells item=cell} -->
+        <td class="text-center"><!-- {if $cell.display} --><span class="form-data-cell" title="{$cell.display|escape}">{$cell.display|escape}</span><!-- {else} --><span class="cue">-</span><!-- {/if} --></td>
+        <!-- {/foreach} -->
+        <td class="m-none text-center">{$row.ip}</td>
+        <td class="text-center">{if $row.if_read eq '1'}{$lang.form_data_if_read_1}{else}{$lang.form_data_if_read_0}{/if}</td>
+        <td class="text-center">{$row.status_text}</td>
+        <td class="m-none text-center">{$row.created_at}</td>
+        <td class="text-center">
+         <a href="{$row.url}">{$lang.view}</a>
+         |
+         <a href="javascript:;" class="js-delete" data-url="{$row.delete_url}">{$lang.del}</a>
+        </td>
+       </tr>
+       <!-- {/foreach} -->
+       <!-- {if !$form_data_list} -->
+       <tr>
+        <td class="text-center cue" colspan="{$col_count}">{$lang.form_data_empty}</td>
+       </tr>
+       <!-- {/if} -->
+      </table>
+     </div>
+     <div class="clear"></div>
+     {include file="inc/pager.tpl"}
+     <!-- {else} 提交详情 -->
+     {include file="inc/page_header.tpl"}
+     <div class="form">
+      <div class="form-item">
+       <div class="form-field-inline">
+        <div class="form-label">{$lang.form_data_form}</div>
+        <div class="input-block"><a href="{$form_data.form.data_url}">{$form_data.form.name}</a></div>
+       </div>
+       <div class="form-field-inline">
+        <div class="form-label">{$lang.form_data_status}</div>
+        <div class="input-block">
+         <a href="javascript:;" class="show-hidden" id="status" onclick="dou_callback('{url link='admin.form.data.check'}', 'id', {$form_data.id}, 'status')"><em class="{if $form_data.status}d{else}h{/if}"><b>{$lang.form_data_status_1}</b><s>{$lang.form_data_status_0}</s></em></a>
+        </div>
+       </div>
+       <div class="form-field-inline">
+        <div class="form-label">{$lang.form_data_if_read}</div>
+        <div class="input-block">{if $form_data.if_read eq '1'}{$lang.form_data_if_read_1}{else}{$lang.form_data_if_read_0}{/if}</div>
+       </div>
+      </div>
+      <div class="form-item">
+       <div class="form-field-inline">
+        <div class="form-label">{$lang.form_data_user}</div>
+        <div class="input-block">{if $form_data.user_id}{$form_data.user_id}{else}{$lang.form_data_user_guest}{/if}</div>
+       </div>
+       <div class="form-field-inline">
+        <div class="form-label">{$lang.form_data_ip}</div>
+        <div class="input-block">{$form_data.ip}</div>
+       </div>
+       <div class="form-field-inline">
+        <div class="form-label">{$lang.form_data_created_at}</div>
+        <div class="input-block">{$form_data.created_at}</div>
+       </div>
+      </div>
+      <div class="form-item">
+       <div class="form-label">{$lang.form_data_source_url}</div>
+       <div class="input-block form-value">{if $form_data.source_url}<a href="{$form_data.source_url}" target="_blank">{$form_data.source_url}</a>{else}<span class="cue">-</span>{/if}</div>
+      </div>
+      <div class="group-title">{$lang.form_data_content}</div>
+      <!-- {foreach from=$form_data.items item=item} -->
+      <div class="form-item">
+       <div class="form-label">{$item.name}{if $item.custom} <em class="cue">{$lang.form_field_custom}</em>{/if}</div>
+       <div class="input-block form-value">
+        <!-- {if $item.files} -->
+        <ul class="form-file-list">
+         <!-- {foreach from=$item.files item=file} -->
+         <li>
+          <!-- {if $file.is_image} -->
+          <a href="{$file.url}" target="_blank"><img src="{$file.url}" alt="{$file.name}" width="120" /></a>
+          <!-- {else} -->
+          <a href="{$file.url}" target="_blank">{$file.name}</a>
+          <!-- {/if} -->
+         </li>
+         <!-- {/foreach} -->
+        </ul>
+        <!-- {else} -->
+        {if $item.display}{$item.display}{else}<span class="cue">-</span>{/if}
+        <!-- {/if} -->
+       </div>
+      </div>
+      <!-- {/foreach} -->
+     </div>
+     <!-- {/if} -->
+    </div>
+   </div>
+  </div>
+  {include file="inc/footer.tpl"}
+ </div>
+</body>
+
+</html>

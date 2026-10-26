@@ -12,15 +12,16 @@
  * Release Date: 2026-09-08
  */
 
-return array(
-    'column_module' => array(
+return array (
+    'column_module' => array (
         'product',
         'article',
     ),
-    'single_module' => array(
+    'single_module' => array (
         'language',
+        'form',
     ),
-    'link_ai' => array(
+    'link_metadata' => array(
         'product',
         'article',
     ),

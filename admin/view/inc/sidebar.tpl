@@ -63,15 +63,11 @@
    <!-- {/foreach} -->
   </ul>
   <!-- {/if} -->
-  <!-- {if $workspace.menu_preinstall} 预置模块（标识文件驱动，未安装时一对一展示） -->
+  <!-- {if $workspace.menu_single || $workspace.menu_preinstall} -->
   <ul>
    <!-- {foreach from=$workspace.menu_preinstall item=menu} -->
    <li{if $menu.is_active} class="cur"{/if} data-id="{$menu.name}"><a href="{$menu.url}"><i class="{$menu.icon}"></i><em>{$menu.lang}</em></a></li>
    <!-- {/foreach} -->
-  </ul>
-  <!-- {/if} -->
-  <!-- {if $workspace.menu_single} -->
-  <ul>
    <!-- {foreach from=$workspace.menu_single item=menu} -->
    <!-- {if $menu.lang} -->
    <li{if $nav.sidebar[$menu.name].is_active} class="cur"{/if} data-id="{$menu.name}"><a href="{$menu.url}"><i class="{$menu.icon}"></i><em>{$menu.lang}<!-- {if $menu.name eq 'plugin'} -->{if $unum.plugin}<span class="badge"><span>{$unum.plugin}</span></span>{/if}<!-- {/if} --></em></a></li>

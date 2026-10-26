@@ -17,6 +17,7 @@ namespace Dou\Api\Controller\Captcha;
 use Dou\Api\Controller\BaseController;
 use Dou\Core\Foundation\Api\ApiCodes;
 use Dou\Core\Infra\Security\Captcha;
+use Dou\Core\Service\User\VerificationTokenService;
 use Dou\Core\Web\Http\ApiResponse;
 use Dou\Core\Web\Http\Request;
 use Dou\Core\Web\Http\Response;
@@ -91,6 +92,20 @@ class CaptchaController extends BaseController
             return ApiResponse::error(ApiCodes::BUSINESS_RULE_VIOLATION, $message, array(), 422);
         }
         $data = (isset($result['verification']) && is_array($result['verification'])) ? $result['verification'] : array();
-        return ApiResponse::success($data);
+        $data['type'] = (string) $request->post('type', '');
+
+        // 无 session 场景：把 account/ontime/code/type 签名为不透明 token，客户端原样回传
+        $tokenService = new VerificationTokenService();
+        $data['sig'] = $tokenService->issue(array(
+            'account' => isset($data['account']) ? (string) $data['account'] : '',
+            'ontime' => isset($data['ontime']) ? (int) $data['ontime'] : 0,
+            'code' => isset($data['code']) ? (string) $data['code'] : '',
+            'type' => $data['type'],
+        ));
+        if ($data['sig'] === '') {
+            return ApiResponse::error(ApiCodes::SERVER_ERROR, lang('operation_failed', '操作失败，请重试'), array(), 500);
+        }
+
+        return ApiResponse::success(array('verification' => $data));
     }
 }

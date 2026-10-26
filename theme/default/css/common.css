@@ -487,6 +487,55 @@ select option.selected {
 .fileBox .fileList li:hover span {
   display: block;
 }
+/* 附件列表（file 模块 inc/file_attachment.tpl）：图片的 80×80 栅格不适用于文本行 */
+.fileBox .file-list-attach li {
+  float: none;
+  height: auto;
+  line-height: 22px;
+  margin: 0 0 6px;
+  padding: 4px 26px 4px 10px;
+  border-style: solid;
+  border-color: #eee;
+  background-color: #fafafa;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fileBox .file-list-attach li span {
+  top: 50%;
+  bottom: auto;
+  margin-top: -10px;
+  right: 4px;
+}
+.fileBox .file-list-attach .file-attachment-icon {
+  margin-right: 6px;
+  color: #888;
+}
+.fileBox .file-list-attach .file-attachment-name {
+  color: #333;
+}
+.fileBox .file-list-attach .file-attachment-name:hover {
+  color: #e33;
+}
+.fileBox .file-list-attach .file-attachment-size {
+  margin-left: 8px;
+  color: #999;
+  font-style: normal;
+  font-size: 12px;
+}
+/* 多选上传中单个文件被拒：提示落在上传区下方，与所属字段左对齐，视觉对齐 .cue 的纯文字提示。
+ * clear 清掉左侧 80px 上传按钮的浮动；原实现放在列表首行，会被列表的
+ * margin-left: 80px 挤到按钮右侧，看不出属于哪个字段。 */
+.fileBox > .file-error {
+  clear: both;
+  margin: 3px 0 0;
+  color: #e33;
+  font-size: 12px;
+  line-height: 20px;
+  white-space: normal;
+  word-break: break-all;
+}
 
 /* 4d. Form Layout */
 .form .select {
@@ -779,7 +828,6 @@ select option.selected {
   float: left;
   line-height: 20px;
   color: #999999;
-  font-weight: bold;
 }
 @media (max-width: 992px) {
   .ur-here.product-category .here {
@@ -788,6 +836,11 @@ select option.selected {
 }
 .ur-here .here a {
   color: #999999;
+}
+.ur-here .here a i {
+  margin-right: 6px;
+  font-size: 15px;
+  vertical-align: -1px;
 }
 .ur-here .here b {
   margin: 0 8px;

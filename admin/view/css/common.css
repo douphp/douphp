@@ -720,6 +720,7 @@ p.cue {
   zoom: 1;
 }
 .dou-main.has-subnav > .subnav li a {
+  position: relative;
   display: block;
   line-height: 50px;
   height: 50px;
@@ -743,6 +744,76 @@ p.cue {
   .dou-main.has-subnav > .subnav li a.cur {
     border-bottom: 1px solid #19b4ea;
   }
+}
+
+/* Subnav — 表单族：名称省略、未读角标紧跟名称、固定加号 */
+.dou-main.has-subnav > .subnav li a .subnav-name {
+  display: inline-block;
+  max-width: calc(100% - 44px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.dou-main.has-subnav > .subnav li a .subnav-count {
+  display: inline-block;
+  margin-left: 5px;
+  padding: 0 5px;
+  height: 16px;
+  line-height: 16px;
+  font-size: 11px;
+  font-weight: normal;
+  color: #fff;
+  background-color: #d63638;
+  border-radius: 8px;
+  vertical-align: middle;
+}
+/* 新建入口：仅保留加号，水平垂直居中，浅底色与上方菜单项区分 */
+.dou-main.has-subnav > .subnav li.subnav-add a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: #999;
+  background-color: #DDD;
+}
+.dou-main.has-subnav > .subnav li.subnav-add a:hover {
+  background-color: #CCC;
+}
+.dou-main.has-subnav > .subnav li.subnav-add a i {
+  font-size: 18px;
+  line-height: 1;
+}
+/* 移动端：新建入口独占一行，不跟随 33.3% 栅格 */
+@media (max-width: 768px) {
+  .dou-main.has-subnav > .subnav li.subnav-add a {
+    float: none;
+    width: auto;
+    padding: 0;
+  }
+}
+.dou-main.has-subnav > .subnav li.subnav-empty {
+  padding: 14px 12px;
+  font-size: 12px;
+  color: #999;
+  line-height: 1.6;
+  border-bottom: 1px solid #ddd;
+  text-align: center;
+}
+@media (max-width: 768px) {
+  .dou-main.has-subnav > .subnav li a .subnav-name {
+    max-width: calc(100% - 40px);
+  }
+}
+
+/* 表单数据列表：字段列单行省略，避免长文本撑破表格 */
+.dou-page .form-data-cell {
+  display: inline-block;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
 }
 
 /* 8. Page — 页面 */
@@ -900,6 +971,9 @@ p.cue {
   justify-content: space-between;
 }
 @media (max-width: 768px) {
+  .dou-page .filter {
+    flex-wrap: wrap;
+  }
   .dou-page .filter .input {
     width: 120px;
   }
@@ -908,6 +982,12 @@ p.cue {
   }
   .dou-page .filter span {
     display: none;
+  }
+  /* 表单数据列表：「全部已处理」是页面唯一主操作，窄屏也要可达（折行单独占一行） */
+  .dou-page .filter span.form-filter-action {
+    display: block;
+    flex: 0 0 100%;
+    margin-top: 8px;
   }
 }
 .dou-page .filter .menu {
@@ -1604,6 +1684,20 @@ select option.selected {
 .form .form-item .cue {
   margin-top: 3px;
   margin-bottom: 10px;
+}
+
+/* Form — 提交详情：保留换行与长串折行、附件列表 */
+.form .form-value {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.form .form-file-list li {
+  margin-bottom: 8px;
+}
+.form .form-file-list img {
+  max-width: 160px;
+  height: auto;
+  vertical-align: middle;
 }
 .form .form-fields {
   display: flex;
@@ -3026,8 +3120,9 @@ select option.selected {
   flex: 0 0 auto;
   margin-left: auto;
 }
-/* 多选上传中的单个文件被拒：作为列表首行给出可读原因，已成功的附件照常展示 */
-.file-attachment .file-list li.file-item-error {
+/* 多选上传中的单个文件被拒：作为列表首行给出可读原因，已成功的文件照常展示。
+   选择器不能限定 .file-attachment，相册（.file-gallery）上传失败同样会插入该行 */
+.file-upload .file-list li.file-item-error {
   float: none;
   width: auto;
   height: auto;
@@ -3165,6 +3260,62 @@ select option.selected {
   .transfer-btn {
     margin: 8px;
   }
+}
+
+/* 23. Popover — 气泡提示（douPopover，点击触发器浮层） */
+.dou-popover {
+  position: fixed;
+  z-index: 1250;
+  display: none;
+  max-width: 320px;
+  padding: 8px 12px;
+  border: 1px solid #e5e9ef;
+  border-radius: 6px;
+  background-color: #fff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  font-size: 12px;
+  line-height: 1.7;
+  color: #333;
+  word-break: break-word;
+}
+.dou-popover.is-open {
+  display: block;
+}
+.dou-popover-title {
+  margin-bottom: 4px;
+  font-weight: bold;
+}
+.dou-popover-arrow {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background-color: #fff;
+  border: 1px solid #e5e9ef;
+  transform: rotate(45deg);
+}
+/* 气泡在触发元素下方：箭头贴顶，只保留上、左边框 */
+.dou-popover-bottom .dou-popover-arrow {
+  top: -5px;
+  border-right: 0;
+  border-bottom: 0;
+}
+/* 气泡在触发元素上方：箭头贴底，只保留下、右边框 */
+.dou-popover-top .dou-popover-arrow {
+  bottom: -5px;
+  border-top: 0;
+  border-left: 0;
+}
+/* 气泡在触发元素右侧：箭头贴左，只保留左、下边框 */
+.dou-popover-right .dou-popover-arrow {
+  left: -5px;
+  border-top: 0;
+  border-right: 0;
+}
+/* 气泡在触发元素左侧：箭头贴右，只保留上、右边框 */
+.dou-popover-left .dou-popover-arrow {
+  right: -5px;
+  border-bottom: 0;
+  border-left: 0;
 }
 
 /* 24. Toast — 通用轻提示（dou.toast.js，右上角浮层自动消失） */

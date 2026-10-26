@@ -77,6 +77,11 @@ class WalletService extends BaseService implements SceneHandler
             return false;
         }
 
+        $point = intval($point);
+        if ($point === 0) {
+            return false;
+        }
+
         $total = DB::table('point')
             ->where('user_id', $user_id)
             ->order('id DESC')

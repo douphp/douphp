@@ -185,13 +185,9 @@ class DatabaseInstallService
         $email = isset($post['email']) ? trim((string) $post['email']) : '';
         $test_data = isset($post['test_data']) ? (string) $post['test_data'] : 'yes';
 
-        // 本次安装版本：单一来源 install/version.php（不再依赖 SQL dump 内置版本串）。
-        // 在落盘 / 导库之前校验，缺失即 fail loud，避免装出半成品。
-        $meta = douphp_install_version_meta();
-        $douphp_version = isset($meta['version']) ? trim((string) $meta['version']) : '';
-        if ($douphp_version === '') {
-            throw new \Exception('安装包缺少版本信息：install/version.php 的 version 字段缺失或为空，请确认安装包完整。');
-        }
+        // 本次安装版本：唯一来源 install/data/backup/douphp.sql 的 dou_config.douphp_version。
+        // 在落盘 / 导库之前先解析校验，缺失即 fail loud，避免装出半成品。
+        $douphp_version = $this->readSqlDumpVersion();
 
         // 落盘 config/config.php
         $this->configWriter->write(array(
@@ -220,6 +216,28 @@ class DatabaseInstallService
     }
 
     /**
+     * 从 install/data/backup/douphp.sql 的 dou_config 默认行解析版本串。
+     *
+     * 安装版本以 SQL 默认数据为唯一来源（install/version.php 只保留 php_min / mysql_min）：
+     * 导库后 dou_config.douphp_version 已是该值，安装流程不再单独覆盖写入。
+     *
+     * @return string 形如 'v2.0 Release 20261025'
+     */
+    private function readSqlDumpVersion()
+    {
+        $file = INSTALL_PATH . 'data/backup/douphp.sql';
+        $sql = is_file($file) ? (string) file_get_contents($file) : '';
+        if ($sql !== '' && preg_match("/'douphp_version'\s*,\s*'([^']*)'/i", $sql, $match)) {
+            $version = trim((string) $match[1]);
+            if ($version !== '') {
+                return $version;
+            }
+        }
+
+        throw new \Exception('安装包缺少版本信息：install/data/backup/douphp.sql 中 dou_config 的 douphp_version 缺失或为空，请确认安装包完整。');
+    }
+
+    /**
      * 导入 install/data/backup/douphp.sql：替换表前缀后按 fnExecute 批量执行。
      *
      * @param string $prefix
@@ -236,14 +254,15 @@ class DatabaseInstallService
     }
 
     /**
-     * 写入站点初始 dou_config：douphp_version / hash_code / build_date / update_date / domain / cloud_account / rewrite。
+     * 写入站点初始 dou_config：hash_code / build_date / update_date / domain / cloud_account / rewrite。
+     * （douphp_version 沿用 douphp.sql 的导库结果，这里不再覆盖）
      *
      * @param string $dbhost
      * @param string $dbname
      * @param string $dbuser
      * @param string $dbpass
      * @param int $buildDate
-     * @param string $douphpVersion 本次安装版本（来自 install/version.php，单一来源）
+     * @param string $douphpVersion 本次安装版本（取自 install/data/backup/douphp.sql，仅用于推导 update_date）
      * @return void
      */
     private function initSiteConfig($dbhost, $dbname, $dbuser, $dbpass, $buildDate, $douphpVersion)
@@ -253,7 +272,9 @@ class DatabaseInstallService
 
         $douphp_version = trim((string) $douphpVersion);
         $version_date = substr($douphp_version, -8);
-        $update_date = 'a:3:{s:6:"system";a:2:{s:6:"update";s:8:"' . $version_date . '";s:5:"patch";s:8:"' . $version_date . '";}s:6:"module";a:3:{s:7:"article";s:8:"' . $version_date . '";s:7:"product";s:8:"' . $version_date . '";s:8:"language";s:8:"' . $version_date . '";}s:5:"theme";a:0:{}}';
+        // 默认模块账本：article / product / language / form
+        // （form 为开源安装包默认自带的表单模块，口径与安装包 config/module.php 的 single_module 保持一致）
+        $update_date = 'a:3:{s:6:"system";a:2:{s:6:"update";s:8:"' . $version_date . '";s:5:"patch";s:8:"' . $version_date . '";}s:6:"module";a:4:{s:7:"article";s:8:"' . $version_date . '";s:7:"product";s:8:"' . $version_date . '";s:8:"language";s:8:"' . $version_date . '";s:4:"form";s:8:"' . $version_date . '";}s:5:"theme";a:0:{}}';
 
         $configUpdates = array(
             'rewrite' => '0',
@@ -262,8 +283,6 @@ class DatabaseInstallService
             'update_date' => $update_date,
             'cloud_account' => '',
             'domain' => ROOT_URL,
-            // 版本串由 install/version.php 单一来源写入（SQL dump 不再内置固定版本）
-            'douphp_version' => $douphp_version,
         );
         foreach ($configUpdates as $name => $value) {
             DB::table('config')->where('name', $name)->update(array('value' => $value));

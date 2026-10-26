@@ -258,7 +258,8 @@ class SearchService extends BaseService
             ? $row['description']
             : Str::excerpt(isset($row['content']) ? $row['content'] : '', 150, false);
 
-        $thumb = attachment()->url(isset($row['image']) ? $row['image'] : '', true);
+        $imageNumber = language()->langValue(isset($row['image']) ? $row['image'] : '', $module, isset($row['id']) ? (int) $row['id'] : 0, 'image');
+        $thumb = attachment()->url($imageNumber, true);
         $priceRaw = isset($row['price']) ? $row['price'] : 0;
         $price = $priceRaw > 0
             ? Util::formatPrice($priceRaw)
@@ -288,7 +289,7 @@ class SearchService extends BaseService
             'name' => $highlightTitle,
             'title' => $highlightTitle,
             'price' => $price,
-            'image' => $module === 'product' ? $thumb : attachment()->url(isset($row['image']) ? $row['image'] : ''),
+            'image' => $module === 'product' ? $thumb : attachment()->url($imageNumber),
             'thumb' => $thumb,
             'created_at' => $addTimeStr,
             'add_time_short' => $addTimeShort,

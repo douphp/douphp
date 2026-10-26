@@ -16,7 +16,6 @@ namespace Dou\Admin\Controller\Preinstall;
 
 use Dou\Admin\Controller\BaseController;
 use Dou\Admin\Service\Preinstall\PreinstallService;
-use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Web\Http\Request;
 use Dou\Core\Web\Http\Response;
@@ -58,11 +57,8 @@ class PreinstallController extends BaseController
         $slug = (string) $request->route('slug', '');
         $detail = $this->preinstallService->detail($slug);
 
-        // 安装入口：走 cloud/install 容器页，携带当前系统版本号（douphp_version 末 8 位数字，
-        // 与 InstallService::install 内部对 clientVersionNumber 的解析口径保持一致）
-        $versionRaw = (string) Config::get('site.douphp_version', '');
-        $version = preg_match('/(\d{8})\s*$/', $versionRaw, $m) ? $m[1] : '';
-
+        // 安装入口：走 cloud/install 容器页；模块版本与最低系统版本由 install-resolve 实时解析，
+        // 预置页不再把当前系统版本当作 version 传入。
         // 自定义返回地址：安装成功后「进入模块」按钮指向模块真实页面（admin.<slug>）。
         // 注意：route() 对未注册的 admin.<x> 并不返回空串（会退化为前台形态 URL），
         // 因此必须用 RouteManifest 精确判断该后台路由是否真实存在，避免把无效地址带进安装会话；
@@ -75,7 +71,6 @@ class PreinstallController extends BaseController
         $installQuery = array(
             'type' => 'module',
             'cloud_id' => $slug,
-            'version' => $version,
         );
         if ($moduleLandingUrl !== '') {
             $installQuery['back_url'] = $moduleLandingUrl;

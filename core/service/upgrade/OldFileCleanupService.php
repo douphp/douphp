@@ -29,11 +29,12 @@ if (!defined('IN_DOUCO')) {
  * theme/、api/、languages/、storage/ 等），不会落在站点根或 admin 主目录；因此
  * 「根/admin 主目录仅留 index.php + 删除旧式目录」的规则天然兜住未知模块的旧残留。
  *
- * 分四组（对应需求一/二/三）：
+ * 分五组（对应需求一/二/三）：
  *   组一：站点根 *.php —— 除 index.php 外全删（旧式模块入口、llms.php、扩展模块残留入口）
  *   组二：admin 主目录 *.php —— 除 index.php（后台唯一路由入口）外全删（旧式扁平控制器）
  *   组三：admin/templates/ —— 旧后台模板整目录删除（新后台模板事实源为 admin/view/）
  *   组四：与新系统不重叠的旧目录 —— include/ data/ cache/ m/ 及 admin/{include,css,js,images}
+ *   组五：已废弃的旧版单文件（相对站点根）—— 如 config/metadata.php（白名单已迁入模块账本）
  *
  * 全程存在性判断 + 跳过软链接 + @ 容错，绝不因单个删除失败中断升级；重复执行幂等。
  *
@@ -71,6 +72,15 @@ class OldFileCleanupService
         'css',
         'js',
         'images',
+    );
+
+    /**
+     * @var string[] 已废弃的旧版单文件（相对站点根，含子目录）：新版已废弃，存在即删。
+     *               这些文件位于 protectedTopDirs 内的目录（如 config/），整目录不删，故逐文件精确清理。
+     */
+    private $legacyFiles = array(
+        // 扩展字段白名单已迁入 config/module.php 的 link_metadata 桶（读取侧恒定注入内置 page）
+        'config/metadata.php',
     );
 
     /**
@@ -113,6 +123,7 @@ class OldFileCleanupService
         $this->deleteDirScopedPhp($this->rootPath);
         $this->deleteAdminScopedPhp();
         $this->deleteLegacyDirs();
+        $this->deleteLegacyFiles();
     }
 
     /**
@@ -176,6 +187,22 @@ class OldFileCleanupService
         // 后台旧子目录（相对 adminPath）
         foreach ($this->adminLegacySubdirs as $name) {
             $this->removeDir($this->adminPath . $name);
+        }
+    }
+
+    /**
+     * 组五：删除已废弃的旧版单文件（相对站点根，仅精确到文件，不碰所在目录）。
+     *
+     * @return void
+     */
+    private function deleteLegacyFiles()
+    {
+        foreach ($this->legacyFiles as $relative) {
+            $path = $this->rootPath . ltrim(str_replace('\\', '/', $relative), '/');
+            if (is_link($path) || !is_file($path)) {
+                continue;
+            }
+            @unlink($path);
         }
     }
 

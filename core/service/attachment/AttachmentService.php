@@ -1098,11 +1098,12 @@ class AttachmentService
      * @param mixed $itemId
      * @param mixed $type
      * @param bool $arrayMode
+     * @param string|null $listId 删除回调指向的列表 id，null → `{type}List`
      * @return mixed
      */
-    public function gallery($module, $itemId, $type, $arrayMode = false)
+    public function gallery($module, $itemId, $type, $arrayMode = false, $listId = null)
     {
-        return $this->gallery->galleryList($module, $itemId, $type, $arrayMode);
+        return $this->gallery->galleryList($module, $itemId, $type, $arrayMode, $listId);
     }
 
     /**
@@ -1117,13 +1118,14 @@ class AttachmentService
      * @param int $identityId
      * @param string $type gallery / main / content
      * @param bool $arrayMode
+     * @param string|null $listId 删除回调指向的列表 id，null → `{type}List`
      * @return mixed
      */
-    public function galleryByDraft($module, $draftToken, $identityKind, $identityId, $type, $arrayMode = false)
+    public function galleryByDraft($module, $draftToken, $identityKind, $identityId, $type, $arrayMode = false, $listId = null)
     {
         $uploaderType = $this->resolveUploaderType($identityKind);
 
-        return $this->gallery->galleryListByDraft($module, (string) $draftToken, $uploaderType, (int) $identityId, $type, $arrayMode);
+        return $this->gallery->galleryListByDraft($module, (string) $draftToken, $uploaderType, (int) $identityId, $type, $arrayMode, $listId);
     }
 
     /**

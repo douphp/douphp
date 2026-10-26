@@ -1,4 +1,5 @@
 <div class="cloud">
+ <!-- {if !$cloud_extend_hide_filter} -->
  <div class="cloud-filter">
   <!-- {if $cloud_extend.meta.theme_filters} -->
   <div class="cloud-filter-tabs">
@@ -30,6 +31,7 @@
   </div>
   <!-- {/if} -->
  </div>
+ <!-- {/if} -->
 
  <div class="cloud-list{if $cloud_list_class} {$cloud_list_class}{/if}">
   <!-- {if $cloud_extend_error} -->
@@ -59,30 +61,26 @@
     <!-- {/foreach} -->
   </div>
   <!-- {else} -->
-  <div class="cloud-extend-list">
-   <!-- {foreach from=$cloud_extend.items item=item} -->
-   <div class="cloud-extend-box cloud-extend-box--col">
-    <div class="cloud-extend-item">
-     <div class="cloud-extend-head">
-      <div class="cloud-extend-count">{$lang.cloud_extend_download_count}{$item.count}</div>
-      <div class="cloud-extend-name">{$item.title}<!-- {if $item.miniprogram} --><em>{$lang.cloud_extend_miniprogram_badge}</em><!-- {/if} --></div>
-     </div>
-     <div class="cloud-extend-info">
-      <span>{$lang.cloud_extend_update_time_label}<b>{$item.update_time}</b></span>
-      <span>{$lang.cloud_extend_min_version_label}<b>{$item.mini_version_support}</b></span>
-     </div>
-     <div class="cloud-extend-desc" title="{$item.description}">{$item.description}</div>
-     <div class="cloud-extend-actions">
-      <div class="cloud-extend-price">{$item.price_display}</div>
-      {include file="inc/cloud_extend_action.tpl" action=$item.action}
-      <!-- {if $item.preview_frame_url} -->
-      <a href="javascript:void(0)" onclick="douFrame('{$item.title}', '{$item.preview_frame_url}', '{url link='admin.cloud.details'}')">{$lang.cloud_extend_detail}</a>
-      <!-- {/if} -->
-     </div>
+  <!-- {if $cloud_extend_groups} -->
+  <div class="cloud-extend-groups">
+   <!-- {foreach from=$cloud_extend_groups item=group} -->
+   <div class="cloud-extend-group">
+    <h3 class="cloud-extend-group-title" id="cloud-extend-group-{$group.slug}">{$group.name}<em>{$group.count}</em></h3>
+    <div class="cloud-extend-list">
+     <!-- {foreach from=$group.items item=item} -->
+     {include file="inc/cloud_extend_card.tpl" item=$item hide_min=$cloud_extend_hide_min_version show_state=$cloud_extend_show_state}
+     <!-- {/foreach} -->
     </div>
    </div>
    <!-- {/foreach} -->
   </div>
+  <!-- {else} -->
+  <div class="cloud-extend-list">
+   <!-- {foreach from=$cloud_extend.items item=item} -->
+   {include file="inc/cloud_extend_card.tpl" item=$item hide_min=$cloud_extend_hide_min_version show_state=$cloud_extend_show_state}
+   <!-- {/foreach} -->
+  </div>
+  <!-- {/if} -->
   <!-- {/if} -->
  </div>
 

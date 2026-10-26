@@ -29,6 +29,7 @@
       <!-- {if $rec eq 'create' || $rec eq 'edit'} 数据添加或编辑 -->
       <div class="form-box">
        <form action="{$form_action}" method="post" enctype="multipart/form-data"><input type="hidden" name="_method" value="{$form_method}" />
+        {include file="inc/language_drafts.tpl" drafts=$lang_drafts}
         <div class="form">
          <div class="form-item">
           <div class="input-block"><p class="cue">{$lang.data_theme}：{$site.site_theme}<!-- {if $data.parent} -->，{$lang.data_parent_code}：{$data.parent.name}<!-- {/if} --></p></div>

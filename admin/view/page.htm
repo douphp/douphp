@@ -36,6 +36,7 @@
     <!-- {if $rec eq 'create' || $rec eq 'edit'} 单页面添加或编辑 -->
    {include file="inc/page_header.tpl"}
     <form id="itemForm" action="{$form_action}" method="post"><input type="hidden" name="_method" value="{$form_method}" />
+     {include file="inc/language_drafts.tpl" drafts=$lang_drafts}
      <div class="form">
       <div class="form-item">
        <div class="form-label">{$lang.page_name}</div>

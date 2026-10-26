@@ -20,8 +20,14 @@
    </div>
    <!-- {/if} -->
    <!-- {if $hide_upload neq 1} -->
-   <div id="{$name}File" class="editor-btn" onclick="fileUpload('content', '{$name}', '{$cur}', '{$item_id}', '{$draft_token}', '', cur_editor);">
-    <span class="btn-file">{$lang.file_insert_image}</span>
+   <div id="{$name}File" class="editor-btn"
+    data-file-type="content"
+    data-file-prefix="{$name}"
+    data-file-module="{$cur}"
+    data-file-item-id="{$item_id}"
+    data-file-draft-token="{$draft_token}"
+    data-file-editor="cur_editor">
+    <span class="btn-file" data-file-pick>{$lang.file_insert_image}</span>
     <span class="file-status" style="display:none"><img src="images/loader.gif" alt="uploading"/></span>
    </div>
    <div id="{$name}BigFile" class="editor-btn" onChange="fileBig('content', '{$name}', '{$cur}', '{$item_id}', cur_editor, '{$draft_token}');">

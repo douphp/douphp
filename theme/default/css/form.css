@@ -1,0 +1,221 @@
+/* form 模块主题样式
+ * 职责：字段栅格（width 1-12）、字段间距、错误态、switch 开关、省市区、验证码
+ * 不含上传组件样式：上传 UI 的样式属全站公共契约，全部在 common.css
+----------------------------------------------- */
+
+/* detail
+----------------------------------------------- */
+#form .detail .head {
+  margin-top: 30px;
+  padding-bottom: 15px;
+  text-align: center;
+}
+#form .detail .head h1 {
+  font-size: 30px;
+  font-weight: bold;
+}
+#form .detail .head p {
+  color: #999;
+}
+#form .detail .formBox {
+  padding: 30px 0;
+  width: 800px;
+  margin: 0 auto;
+}
+
+/* 栅格：字段宽度由后台 width 列输出 col-md-{width}，小屏一律整行
+----------------------------------------------- */
+#form .form.row {
+  margin-left: -8px;
+  margin-right: -8px;
+}
+#form .form .form-item {
+  padding-left: 8px;
+  padding-right: 8px;
+  box-sizing: border-box;
+}
+#form .form .form-item .input-block {
+  color: #999;
+}
+#form .form .form-item .input {
+  width: 100%;
+}
+#form .form .form-item .textarea {
+  width: 100%;
+  resize: vertical;
+}
+#form .form .form-item .select {
+  height: 34px;
+  padding: 0 20px 0 6px;
+  border: 1px solid #e9e9e9;
+  background-color: #fff;
+  color: #666;
+}
+#form .form .form-item .checkbox-group label {
+  display: inline-block;
+  margin: 0 15px 5px 0;
+  color: #666;
+  line-height: 34px;
+}
+#form .form .form-item .checkbox-group label input {
+  margin-right: 3px;
+  vertical-align: middle;
+}
+
+/* 字段说明 / 单位 / 错误提示
+----------------------------------------------- */
+#form .form .form-tip {
+  margin: 4px 0 0;
+  color: #999;
+  font-size: 12px;
+}
+#form .form .form-unit {
+  display: inline-block;
+  margin-left: 6px;
+  color: #999;
+}
+#form .form .form-item .cue {
+  min-height: 16px;
+  margin: 3px 0 0;
+  color: #e33;
+  font-size: 12px;
+}
+#form .form .cueGray {
+  margin: 10px 0;
+  color: #999;
+}
+
+/* 仅登录会员可提交
+----------------------------------------------- */
+#form .detail .form-login-tip {
+  margin-top: 30px;
+  padding: 20px;
+  background-color: #f7f7f7;
+  color: #666;
+  text-align: center;
+}
+#form .detail .form-login-tip a {
+  margin-left: 10px;
+  color: #0072c6;
+}
+
+/* switch 开关
+ * label 只当 46x24 的定位容器：轨道与滑块全部绝对定位，
+ * 避开 Bootstrap 的 label{margin-bottom:8px} 与公共
+ * .form .input-block label{line-height:34px} 的继承行高影响；
+ * 否则标签间的空白文本节点会撑出行盒，把轨道顶出容器底部。
+ * 上下各 5px 让 24px 的开关与 34px 高的输入框视觉重心一致。
+----------------------------------------------- */
+#form .form .form-switch {
+  display: inline-block;
+  position: relative;
+  width: 46px;
+  height: 24px;
+  margin: 5px 0;
+  padding: 0;
+  font-size: 0;
+  line-height: 0;
+  vertical-align: middle;
+  cursor: pointer;
+}
+#form .form .form-switch input {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+#form .form .form-switch .form-switch-box {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 46px;
+  height: 24px;
+  border-radius: 12px;
+  background-color: #ccc;
+  transition: background-color 0.2s;
+}
+#form .form .form-switch .form-switch-box::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: #fff;
+  transition: transform 0.2s;
+}
+#form .form .form-switch input:checked + .form-switch-box {
+  background-color: #19b4ea;
+}
+#form .form .form-switch input:checked + .form-switch-box::after {
+  transform: translateX(22px);
+}
+
+/* 省市区三级联动
+----------------------------------------------- */
+#form .form .form-area .select {
+  margin-right: 6px;
+  max-width: 32%;
+}
+#form .form .form-area .select:last-child {
+  margin-right: 0;
+}
+
+/* 验证码
+----------------------------------------------- */
+#form .form .form-captcha .input {
+  width: 120px;
+  vertical-align: middle;
+}
+#form .form .form-captcha img {
+  height: 34px;
+  margin-left: 10px;
+  vertical-align: middle;
+  cursor: pointer;
+  border: 1px solid #e9e9e9;
+}
+
+/* 提交
+----------------------------------------------- */
+#form .form .form-item.submit .btn[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 提交成功提示页（form_success.dwt）
+----------------------------------------------- */
+#form .form-success {
+  margin: 60px auto;
+  padding: 60px 20px;
+  width: 800px;
+  max-width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+}
+#form .form-success i {
+  display: block;
+  margin-bottom: 20px;
+  color: #46b777;
+  font-size: 64px;
+  line-height: 1;
+}
+#form .form-success .form-name {
+  color: #999;
+  font-size: 14px;
+}
+#form .form-success h1 {
+  margin: 10px 0 15px;
+  font-size: 26px;
+  font-weight: bold;
+}
+#form .form-success .action {
+  margin-top: 30px;
+}
+#form .form-success .action .btn-secondary {
+  margin-left: 10px;
+}

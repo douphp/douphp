@@ -17,6 +17,7 @@ namespace Dou\Admin\Service\Cloud;
 use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Service\BaseService;
+use Dou\Core\Service\Upgrade\ModuleVersionStore;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
@@ -136,29 +137,8 @@ class UpdateStateService extends BaseService
      */
     public function recordModuleVersion($moduleId, $version)
     {
-        $moduleId = (string) $moduleId;
-        $version = (string) $version;
-        if ($moduleId === '' || $version === '') {
-            return;
-        }
-
-        $raw = DB::table('config')->where('name', 'module_version')->value('value');
-        $map = (is_string($raw) && $raw !== '') ? @unserialize($raw) : array();
-        if (!is_array($map)) {
-            $map = array();
-        }
-        $map[$moduleId] = $version;
-
-        if (!is_string($raw) || $raw === '') {
-            // 行不存在（老站首跳）：INSERT
-            DB::query('INSERT INTO `' . DB::getPrefix() . "config` (`value`, `name`, `type`, `box`, `tab`)"
-                . " VALUES ('" . DB::escapeString(serialize($map)) . "', 'module_version', 'hidden', '', '')");
-            return;
-        }
-
-        DB::table('config')
-            ->where('name', 'module_version')
-            ->update(array('value' => serialize($map)));
+        $store = new ModuleVersionStore();
+        $store->record($moduleId, $version);
     }
 
     /**
@@ -169,21 +149,8 @@ class UpdateStateService extends BaseService
      */
     public function removeModuleVersion($moduleId)
     {
-        $moduleId = (string) $moduleId;
-        if ($moduleId === '') {
-            return;
-        }
-
-        $raw = DB::table('config')->where('name', 'module_version')->value('value');
-        $map = (is_string($raw) && $raw !== '') ? @unserialize($raw) : array();
-        if (!is_array($map) || !isset($map[$moduleId])) {
-            return;
-        }
-        unset($map[$moduleId]);
-
-        DB::table('config')
-            ->where('name', 'module_version')
-            ->update(array('value' => serialize($map)));
+        $store = new ModuleVersionStore();
+        $store->remove($moduleId);
     }
 
     /**
@@ -207,11 +174,8 @@ class UpdateStateService extends BaseService
             'update_date' => '',
         );
 
-        $raw = DB::table('config')->where('name', 'module_version')->value('value');
-        $map = (is_string($raw) && $raw !== '') ? @unserialize($raw) : array();
-        if (is_array($map) && $moduleId !== '' && isset($map[$moduleId])) {
-            $state['version'] = (string) $map[$moduleId];
-        }
+        $store = new ModuleVersionStore();
+        $state['version'] = $store->get($moduleId);
 
         $raw = DB::table('config')->where('name', 'update_date')->value('value');
         $map = (is_string($raw) && $raw !== '') ? @unserialize($raw) : array();
@@ -240,26 +204,11 @@ class UpdateStateService extends BaseService
         $updateDate = isset($state['update_date']) ? (string) $state['update_date'] : '';
 
         if ($moduleId !== '') {
-            $raw = DB::table('config')->where('name', 'module_version')->value('value');
-            if (!is_string($raw) || $raw === '') {
-                // 账本行不存在：仅当历史版本非空时补建，避免为老站凭空写入空 map
-                if ($version !== '') {
-                    $this->recordModuleVersion($moduleId, $version);
-                }
+            $store = new ModuleVersionStore();
+            if ($version === '') {
+                $store->remove($moduleId);
             } else {
-                $map = @unserialize($raw);
-                if (!is_array($map)) {
-                    $map = array();
-                }
-                if ($version === '') {
-                    unset($map[$moduleId]);
-                } else {
-                    $map[$moduleId] = $version;
-                }
-
-                DB::table('config')
-                    ->where('name', 'module_version')
-                    ->update(array('value' => serialize($map)));
+                $store->record($moduleId, $version);
             }
         }
 

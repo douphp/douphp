@@ -10,7 +10,6 @@
   border: 1px solid #eaeef3;
   padding: 28px 32px;
   margin-bottom: 28px;
-  border-radius: 6px;
   position: relative;
   overflow: hidden;
 }
@@ -33,7 +32,6 @@
   justify-content: center;
   background: linear-gradient(135deg, #eef4ff 0%, #e6f5fd 100%);
   border: 1px solid #dbe7f5;
-  border-radius: 14px;
   position: relative;
   z-index: 1;
 }
@@ -75,14 +73,13 @@
   border: 1px solid #dfe3e8;
   font-size: 14px;
   font-weight: bold;
-  border-radius: 4px;
   transition: all 0.2s ease;
   white-space: nowrap;
 }
 #preinstall .preinstall-btn-primary:hover {
-  background: #19b4ea;
+  background: #0072c6;
   color: #fff;
-  border-color: #19b4ea;
+  border-color: #0072c6;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(25, 180, 234, 0.25);
   text-decoration: none;
@@ -125,18 +122,15 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  background: #fff;
-  border: 1px solid #eaeef3;
+  border: 1px solid #ddd;
+  background-color: #f7f9fc;
   padding: 20px 20px 22px 20px;
   box-sizing: border-box;
-  border-radius: 6px;
   transition: all 0.2s ease;
   min-height: 160px;
 }
 #preinstall .preinstall-features li:hover {
-  border-color: #b9e4f5;
-  box-shadow: 0 6px 18px rgba(25, 180, 234, 0.08);
-  transform: translateY(-2px);
+  border-color: #19b4ea;
 }
 #preinstall .preinstall-feature-num {
   flex-shrink: 0;
@@ -182,7 +176,6 @@
   padding: 14px 18px;
   background: #f7f9fc;
   border: 1px solid #eaeef3;
-  border-radius: 4px;
   font-size: 13px;
   color: #888;
   line-height: 1.6;

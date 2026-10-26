@@ -66,6 +66,124 @@ class ModuleService extends BaseService
     }
 
     /**
+     * 按模块子分类为在线安装列表追加分组数据（仅模块页使用）。
+     *
+     * 分组名称与顺序优先取自云端 meta.categories（接口新增字段），其次退回
+     * items[] 内的 category_name / category_slug；组内保持接口原始顺序（下载量倒序）。
+     * 未分类模块（无分类归属，或直接挂在根分类如 module 上）不参与展示，items 同步
+     * 收敛为可见集合，避免平铺分支又把未分类条目带出来。
+     * 每条 item 追加 state（installed|update|install），供卡片做安装状态差异化。
+     *
+     * @param array<string, mixed>|null $cloudExtend fetchExtendList() 返回值
+     * @return array<string, mixed>|null 追加 groups 后的同一结构
+     */
+    public function attachExtendGroups($cloudExtend)
+    {
+        if (!is_array($cloudExtend)) {
+            return $cloudExtend;
+        }
+
+        $items = isset($cloudExtend['items']) && is_array($cloudExtend['items']) ? $cloudExtend['items'] : array();
+        if (empty($items)) {
+            $cloudExtend['groups'] = array();
+            return $cloudExtend;
+        }
+
+        // 分类字典：slug => 名称；顺序来自 meta.categories，未列出的分类按首次出现顺序追加
+        $names = array();
+        $order = array();
+        if (isset($cloudExtend['meta']['categories']) && is_array($cloudExtend['meta']['categories'])) {
+            foreach ($cloudExtend['meta']['categories'] as $category) {
+                if (!is_array($category) || !isset($category['slug'])) {
+                    continue;
+                }
+                $slug = trim((string) $category['slug']);
+                if ($slug === '') {
+                    continue;
+                }
+                $order[] = $slug;
+                $names[$slug] = isset($category['name']) ? trim((string) $category['name']) : '';
+            }
+        }
+
+        $rootSlug = isset($cloudExtend['meta']['root']) ? trim((string) $cloudExtend['meta']['root']) : '';
+
+        $buckets = array();
+        $visible = array();
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $slug = isset($item['category_slug']) ? trim((string) $item['category_slug']) : '';
+            $categoryId = isset($item['category_id']) ? (int) $item['category_id'] : 0;
+
+            // 未分类：无分类归属、分类标识缺失，或直接挂在根分类（父级，如 module）上
+            if ($categoryId <= 0 || $slug === '' || ($rootSlug !== '' && $slug === $rootSlug)) {
+                continue;
+            }
+
+            $item['state'] = $this->resolveExtendState($item);
+            $visible[] = $item;
+            if (!isset($buckets[$slug])) {
+                $buckets[$slug] = array();
+                if (!in_array($slug, $order, true)) {
+                    $order[] = $slug;
+                }
+                if (!isset($names[$slug]) || $names[$slug] === '') {
+                    $names[$slug] = isset($item['category_name']) ? trim((string) $item['category_name']) : '';
+                }
+            }
+            $buckets[$slug][] = $item;
+        }
+
+        $groups = array();
+        foreach ($order as $slug) {
+            if (empty($buckets[$slug])) {
+                continue;
+            }
+            $name = isset($names[$slug]) && $names[$slug] !== '' ? $names[$slug] : $slug;
+            $groups[] = array(
+                'slug' => $slug,
+                'name' => $name,
+                'count' => count($buckets[$slug]),
+                'items' => $buckets[$slug],
+            );
+        }
+
+        $cloudExtend['groups'] = $groups;
+        $cloudExtend['items'] = $visible;
+
+        return $cloudExtend;
+    }
+
+    /**
+     * 推导单条模块在本站的安装状态（仅模块页展示用）。
+     *
+     * 依据云端 action.kind：installed 为已装且最新，update / buy_then_update 为已装待更新；
+     * vip_renew / vip_buy 同一 kind 兼用于「续费后更新」与「续费后安装」，据文案是否含「更新」区分。
+     *
+     * @param array<string, mixed> $item
+     * @return string installed|update|install
+     */
+    private function resolveExtendState($item)
+    {
+        $kind = isset($item['action']['kind']) ? (string) $item['action']['kind'] : '';
+        $label = isset($item['action']['label']) ? (string) $item['action']['label'] : '';
+
+        if ($kind === 'installed') {
+            return 'installed';
+        }
+        if ($kind === 'update' || $kind === 'buy_then_update') {
+            return 'update';
+        }
+        if ($kind === 'vip_renew' || $kind === 'vip_buy') {
+            return (strpos($label, '更新') !== false) ? 'update' : 'install';
+        }
+
+        return 'install';
+    }
+
+    /**
      * 本地安装页：storage/install/package 下待装 zip 列表。
      *
      * @return array token、install_list
@@ -89,13 +207,41 @@ class ModuleService extends BaseService
     /**
      * 卸载列表页数据。
      *
+     * 列表项按「模块标识 + 后台语言包名称」输出，模板只消费这两个字段：名称取
+     * `$_LANG[<module>]`（如 solution => 解决方案），缺失时回退模块标识（第三方模块
+     * 未带模块名键时不至于空白）；与后台菜单 / 审计日志对模块名的取值口径一致。
+     *
      * @return array token、uninstall_list
      */
     public function buildModuleUninstallData()
     {
+        $uninstallList = array();
+        foreach ($this->buildUninstallIdList() as $moduleId) {
+            $uninstallList[] = array(
+                'id' => $moduleId,
+                'name' => $this->moduleLabel($moduleId),
+            );
+        }
+
         return array(
-            'uninstall_list' => $this->buildUninstallIdList(),
+            'uninstall_list' => $uninstallList,
         );
+    }
+
+    /**
+     * 模块标识的中文名称（后台语言包 `$_LANG[<module>]`），缺失时回退标识本身。
+     *
+     * @param string $moduleId 模块标识
+     * @return string
+     */
+    private function moduleLabel($moduleId)
+    {
+        $moduleId = (string) $moduleId;
+        if ($moduleId === '') {
+            return '';
+        }
+
+        return lang($moduleId, $moduleId);
     }
 
     /**
@@ -113,7 +259,7 @@ class ModuleService extends BaseService
         }
 
         $msg = lang('module_uninstall_check');
-        $msg = preg_replace('/d%/Ums', $extendId, $msg);
+        $msg = preg_replace('/d%/Ums', $this->moduleLabel($extendId), $msg);
 
         $confirmUrl = route('admin.module.destroy', array('token' => rawurlencode($token), 'extend_id' => rawurlencode($extendId)));
 

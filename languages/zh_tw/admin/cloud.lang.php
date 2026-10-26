@@ -82,6 +82,11 @@ $_LANG['cloud_systemfile_wrong'] = '無法修改系統設定檔案';
 $_LANG['cloud_files_wrong'] = '檔案複製失敗：d%（請檢查目錄寫入權限後重試）';
 $_LANG['cloud_files_wrong_count'] = '共 d% 個檔案複製失敗（僅顯示前 10 筆，詳見伺服器錯誤日誌）';
 
+// 模組 manifest / 版本來源（模組版本連結化）
+$_LANG['cloud_module_version_missing'] = '缺少模組版本資訊，請從官網後台重新取得安裝/升級連結';
+$_LANG['cloud_module_manifest_missing'] = '模組包缺少 _action/manifest.php，請重新打包';
+$_LANG['cloud_module_mini_version_missing_log'] = '未提供最低系統版本，跳過版本門檻校驗';
+
 // 線上安裝多步流程（cloud/install）
 $_LANG['cloud_install_retry'] = '重新安裝';
 $_LANG['cloud_install_session_missing'] = '安裝會話已過期或不存在，請返回安裝入口重新發起';
@@ -135,6 +140,8 @@ $_LANG['cloud_extend_need_module_label'] = '支援模組：';
 $_LANG['cloud_extend_preview_theme'] = '預覽模板';
 $_LANG['cloud_extend_download_count'] = '下載量：';
 $_LANG['cloud_extend_miniprogram_badge'] = '適配小程式';
+$_LANG['cloud_extend_state_installed'] = '已安裝';
+$_LANG['cloud_extend_state_install'] = '未安裝';
 $_LANG['cloud_extend_update_time_label'] = '更新時間：';
 $_LANG['cloud_extend_min_version_label'] = '最低版本要求：';
 $_LANG['cloud_extend_detail'] = '詳細資訊';

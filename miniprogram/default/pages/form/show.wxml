@@ -1,0 +1,64 @@
+ <!--pages/form/show.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="form-detail" wx:if="{{!success}}">
+   <view class="head">
+    <view class="h1">{{form.name}}</view>
+    <view class="p">{{form.content}}</view>
+   </view>
+   <view class="formBox">
+    <view class="form-view">
+     <form bindsubmit="formSubmit">
+      <view class="dl" wx:for="{{form.elements_list}}" wx:key="index" wx:for-item="elements">
+       <view class="dt">{{elements.name}}</view>
+       <view class="dd"> 
+        <block wx:if="{{elements.type == 'select'}}">
+         <picker class="select" data-name="{{elements.slug}}" bindchange="selectChange" value="{{pickerIndexes[elements.slug]}}" data-option="{{elements.option}}" range="{{elements.option}}">
+          <text>{{elements.option[pickerIndexes[elements.slug]]}}</text>
+         </picker>
+        </block>
+        <block wx:elif="{{elements.type == 'textarea'}}">
+         <textarea name="{{elements.slug}}" cols="83" rows="8" class="text-area"></textarea>
+        </block>
+        <block wx:elif="{{elements.type == 'radio'}}">
+         <radio-group data-name="{{elements.slug}}" bindchange="radioChange">
+          <label wx:for="{{elements.option}}" wx:key="index" wx:for-item="value">
+           <radio value="{{value}}" checked="{{index == 0 ? true : false}}" />{{value}}
+          </label>
+         </radio-group>
+        </block>
+        <block wx:else>
+         <input type="text" name="{{elements.slug}}" size="60" class="text-input" />
+        </block>
+       </view>
+      </view>
+      <view class="submit">
+       <input hidden="true" name="form_id" value="{{form.form_id}}" />
+       <button class="btn" formType="submit">{{lang.btn_submit}}</button>
+      </view>
+     </form>
+    </view>
+   </view>
+  </view>
+  <view class="form-success" wx:else>
+   <view class="weui-msg">
+    <view class="weui-msg__icon-area"><text class="weui-icon-success weui-icon_msg"></text></view>
+    <view class="weui-msg__text-area">
+     <view class="weui-msg__title">表单提交成功</view>
+     <view class="weui-msg__desc">感谢您的参与，如有任何问题，可以返回首页与我们的在线客服取得联系<view class="weui-wa-hotarea weui-link" bindtap="douNavigateTo" data-url="/pages/form/form">返回表单</view></view>
+    </view>
+    <view class="weui-msg__opr-area">
+     <view class="weui-btn-area">
+      <view class="weui-btn weui-btn_primary" bindtap="douSwitchTab" data-url="/pages/index/index">返回首页</view>
+     </view>
+    </view>
+    <view class="weui-msg__extra-area">
+     <view class="weui-footer">
+      <view class="weui-footer__text" wx:if="{{lang.powered_by}}">{{lang.powered_by}}</view>
+     </view>
+    </view>
+   </view>
+  </view>
+ </view>
+</view>

@@ -104,12 +104,12 @@ class WxPayService
     private function buildNotifyUrl()
     {
         if (defined('ROOT_URL')) {
-            return rtrim(ROOT_URL, '/') . '/api/wxpay_notify.php';
+            return rtrim(ROOT_URL, '/') . '/api/index.php?route=pay/wxpay_notify';
         }
 
         $host = Container::getInstance()->make(Request::class)->host();
         $base = dirname(HTTP . $host . $_SERVER['PHP_SELF']) . '/';
-        return rtrim($base, '/') . '/wxpay_notify.php';
+        return rtrim($base, '/') . '/index.php?route=pay/wxpay_notify';
     }
 
     /**
@@ -215,7 +215,7 @@ class WxPayService
      * @param mixed $obj
      * @return mixed
      */
-    private function getSign($obj)
+    public function getSign($obj)
     {
         $parameters = array();
         foreach ($obj as $k => $v) {

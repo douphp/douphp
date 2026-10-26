@@ -151,8 +151,32 @@ $(function () {
     });
   });
 
-  $(".file-image").each(function () {
-    var box = $(this);
+  // 单图控件：逐元素初始化逻辑见下方 initFileImage()，统一由 douFileImage.init() 调度。
+  // 弹窗 / AJAX 局部刷新 / 元数据槽位动态插入后可再次调用 init(root)，
+  // data-file-image-ready 标记保证同一容器只绑定一次。
+  window.douFileImage = {
+    init: function (root) {
+      var scope = root || document;
+      var nodes = [];
+      if (scope.nodeType === 1 && $(scope).hasClass("file-image")) {
+        nodes.push(scope);
+      }
+      var found = scope.querySelectorAll ? scope.querySelectorAll(".file-image") : [];
+      for (var i = 0; i < found.length; i++) {
+        nodes.push(found[i]);
+      }
+      for (var n = 0; n < nodes.length; n++) {
+        if (nodes[n].getAttribute("data-file-image-ready") === "1") {
+          continue;
+        }
+        nodes[n].setAttribute("data-file-image-ready", "1");
+        initFileImage(nodes[n]);
+      }
+    },
+  };
+
+  function initFileImage(el) {
+    var box = $(el);
     var fileInput = box.find('input[type="file"]');
     var preview = box.find(".file-image-preview");
     var clearBtn = box.find(".file-action-remove");
@@ -162,13 +186,22 @@ $(function () {
     var hasLocalFile = false;
     var numberInput = box.find(".file-number");
     var deferDelete = String(box.data("defer-delete")) === "1";
+    var draftUploadUrl = String(box.data("draft-upload-url") || "");
+    var draftReleaseUrl = String(box.data("draft-release-url") || "");
+    var draftModule = String(box.data("draft-module") || "");
+    var draftToken = String(box.data("draft-token") || "");
+    var draftMode = draftUploadUrl !== "";
+    var $draftModal = box.closest(".dou-modal");
+    var pendingDraftNumber = "";
+    var draftUploadSeq = 0;
 
     // 已保存图才显示蒙板「裁剪」：有附件号走服务端原路径覆盖；
     // data-local-crop 场景（站点设置等无附件号的字段）裁剪产物回写本地 file input 随表单提交
     function refreshCropAction() {
       var src = String(initialSrc || "");
       var canEdit = window.douCrop && window.douCrop.editableExt(src);
-      var show = canEdit && !hasLocalFile && (!!initialNumber || !!box.data("local-crop"));
+      // 草稿模式允许对“继承默认图”直接裁剪并上传为译文
+      var show = canEdit && !hasLocalFile && (!!initialNumber || !!box.data("local-crop") || (draftMode && !!src));
       box.toggleClass("file-image-croppable", show);
     }
 
@@ -300,6 +333,122 @@ $(function () {
       return true;
     }
 
+    function syncDraftState(number, url, changed) {
+      if (!$draftModal.length) {
+        return;
+      }
+      $draftModal
+        .data("draft-number", number || "")
+        .data("draft-url", url || "")
+        .data("draft-file-changed", !!changed);
+    }
+
+    function releaseDraftNumber(number) {
+      if (!number || draftReleaseUrl === "") {
+        return;
+      }
+      $.ajax({
+        type: "POST",
+        url: draftReleaseUrl,
+        data: {
+          module: draftModule,
+          number: number,
+          token: draftToken,
+        },
+        dataType: "json",
+      });
+    }
+
+    function blobToFile(blob, name) {
+      var fileName = name || "crop.jpg";
+      if (!/\.[a-zA-Z0-9]+$/.test(fileName)) {
+        fileName += ".jpg";
+      }
+      try {
+        return new File([blob], fileName, { type: blob.type || "image/jpeg" });
+      } catch (e) {
+        blob.name = fileName;
+        return blob;
+      }
+    }
+
+    function uploadDraftFile(file) {
+      if (!file || rejectOversize(file)) {
+        return;
+      }
+
+      var seq = ++draftUploadSeq;
+      if ($draftModal.length) {
+        $draftModal.data("draft-uploading", true);
+      }
+      previewFile(file);
+      var formData = new FormData();
+      formData.append("file", file);
+      formData.append("module", draftModule);
+      formData.append("slug", String(box.data("draft-slug") || ""));
+      formData.append("token", draftToken);
+      box.addClass("file-image-uploading");
+
+      $.ajax({
+        type: "POST",
+        url: draftUploadUrl,
+        data: formData,
+        processData: false,
+        contentType: false,
+        dataType: "json",
+        success: function (resp) {
+          box.removeClass("file-image-uploading");
+          if (seq !== draftUploadSeq) {
+            if (resp && resp.number) {
+              releaseDraftNumber(resp.number);
+            }
+            return;
+          }
+          if ($draftModal.length) {
+            $draftModal.data("draft-uploading", false);
+          }
+          if (!resp || !resp.ok || !resp.number) {
+            alert(resp && resp.message ? resp.message : "操作失败");
+            restoreInitial();
+            return;
+          }
+          if ($draftModal.length && $draftModal.data("draft-closed")) {
+            releaseDraftNumber(resp.number);
+            return;
+          }
+          if (pendingDraftNumber && pendingDraftNumber !== resp.number) {
+            releaseDraftNumber(pendingDraftNumber);
+          }
+          pendingDraftNumber = String(resp.number);
+          initialSrc = String(resp.url || "");
+          initialNumber = String(resp.number);
+          hasLocalFile = false;
+          box.data("initial-src", initialSrc).data("initial-number", initialNumber);
+          if (numberInput.length) {
+            numberInput.val(initialNumber);
+          }
+          showPreview(initialSrc);
+          flashPreview(box);
+          refreshCropAction();
+          syncDraftState(initialNumber, initialSrc, true);
+        },
+        error: function () {
+          box.removeClass("file-image-uploading");
+          if (seq !== draftUploadSeq) {
+            return;
+          }
+          if ($draftModal.length) {
+            $draftModal.data("draft-uploading", false);
+            if ($draftModal.data("draft-closed")) {
+              return;
+            }
+          }
+          restoreInitial();
+          alert("操作失败");
+        },
+      });
+    }
+
     fileInput.on("change", function () {
       var file = fileInput[0].files[0];
       if (!file) {
@@ -310,6 +459,23 @@ $(function () {
       }
 
       var cropOn = box.find(".file-crop-pref").prop("checked");
+      if (draftMode) {
+        var canCropDraft = cropOn && window.douCrop && window.douCrop.editableFile && window.douCrop.editableFile(file);
+        if (canCropDraft) {
+          window.douCrop.editFile(file, box.data("crop-ratio"), function (blob) {
+            if (!blob) {
+              fileInput.val("");
+              return;
+            }
+            uploadDraftFile(blobToFile(blob, file.name));
+            fileInput.val("");
+          });
+          return;
+        }
+        uploadDraftFile(file);
+        fileInput.val("");
+        return;
+      }
       var canCropFile = cropOn && window.douCrop && window.douCrop.editableFile && window.douCrop.editableFile(file);
       if (canCropFile) {
         window.douCrop.editFile(file, box.data("crop-ratio"), function (blob) {
@@ -345,6 +511,20 @@ $(function () {
     cropBtn.on("click", function (e) {
       e.preventDefault();
       e.stopPropagation();
+      if (draftMode) {
+        var draftSrc = String(initialSrc || preview.attr("src") || "");
+        if (!draftSrc || !window.douCrop || typeof window.douCrop.edit !== "function") {
+          return;
+        }
+        window.douCrop.edit(draftSrc, box.data("crop-ratio"), function (blob) {
+          if (!blob) {
+            return;
+          }
+          var baseName = draftSrc.split("?")[0].split("/").pop() || "crop.jpg";
+          uploadDraftFile(blobToFile(blob, baseName));
+        });
+        return;
+      }
       if (!initialNumber && box.data("local-crop")) {
         // 无附件号的本地裁剪：取已存图 → douCrop 弹窗 → 产物写回 file input（提交时随表单上传）
         var baseName = String(initialSrc).split("/").pop();
@@ -380,14 +560,37 @@ $(function () {
 
       fileInput.val("");
 
+      if (draftMode) {
+        draftUploadSeq++;
+        if ($draftModal.length) {
+          $draftModal.data("draft-uploading", false);
+        }
+        if (pendingDraftNumber) {
+          releaseDraftNumber(pendingDraftNumber);
+          pendingDraftNumber = "";
+        }
+        initialSrc = "";
+        initialNumber = "";
+        hasLocalFile = false;
+        box.data("initial-src", "").data("initial-number", "");
+        if (numberInput.length) {
+          numberInput.val("");
+        }
+        showEmpty();
+        refreshCropAction();
+        syncDraftState("", "", true);
+        return;
+      }
+
       if (hasLocalFile) {
         restoreInitial();
         return;
       }
 
       if (initialNumber) {
-        if (!deferDelete) {
-          fileDel(initialNumber);
+        if (!deferDelete && window.douFileUploader) {
+          // 只删不回填：单图控件的列表回填由本控件自己完成
+          window.douFileUploader.remove(initialNumber);
         }
         initialSrc = "";
         initialNumber = "";
@@ -402,12 +605,25 @@ $(function () {
       refreshCropAction();
     });
 
+    if (draftMode && $draftModal.length) {
+      $draftModal.one("douModalClose.draftFile", function () {
+        $draftModal.data("draft-closed", true);
+        if (!$draftModal.data("draft-submitted") && pendingDraftNumber) {
+          releaseDraftNumber(pendingDraftNumber);
+          pendingDraftNumber = "";
+        }
+      });
+    }
+
     if (box.hasClass("file-image-filled")) {
       syncStageWidthWhenReady();
     }
 
     refreshCropAction();
-  });
+  }
+
+  // 页面加载：为文档内已存在的单图控件绑定一次
+  window.douFileImage.init(document);
 
   $(document).on("click", ".file-upload .file-list .file-action-crop", function (e) {
     e.preventDefault();
@@ -440,17 +656,8 @@ $(function () {
     fileReplace(number, img, ratio);
   });
 
-  $(document).on("click", ".file-upload .file-list .file-action-remove", function (e) {
-    e.preventDefault();
-    e.stopPropagation();
-    var $li = $(this).closest(".file-item");
-    var number = $li.attr("data-number") || "";
-    var listId = $li.closest(".file-list").attr("id") || "";
-    if (!number) {
-      return;
-    }
-    fileDel(number, listId);
-  });
+  // 相册 / 附件行的删除按钮改由 [data-file-del] 在 document 上统一委托
+  // （js/file.uploader.js），此处不再单独绑定，避免与引擎重复发起删除请求。
 
   // 弹出菜单
   $("#switch-menu").click(function () {
@@ -927,138 +1134,16 @@ function douAction() {
 
 /**
  +----------------------------------------------------------
- * 文件上传.上传失败的可读错误文本
+ * 文件上传引擎已迁移到 js/file.uploader.js
  +----------------------------------------------------------
- * JSON envelope（{code, message}）取 message；HTML 错误页（如 413 / 500）
- * 剥掉标签后截取前 100 字符；均无法解析时回退通用上传失败文案。
+ * 旧的上传全局函数与 fileBox 别名已删除，不做兼容包装；
+ * 行为改由容器上的 data-file-* 驱动，入口为 window.douFileUploader
+ * （init / pick / destroy / remove / abort）。
  */
-function fileUploadErrorText(xhr) {
-  if (xhr && xhr.responseText) {
-    try {
-      var json = $.parseJSON(xhr.responseText);
-      if (json && json.message) {
-        return String(json.message);
-      }
-    } catch (e) {}
-    var plain = String(xhr.responseText)
-      .replace(/<[^>]*>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    if (plain) {
-      return plain.slice(0, 100);
-    }
-  }
-  return lang("upload_failed");
-}
 
 /**
  +----------------------------------------------------------
- * 文件上传.打开上传器
- +----------------------------------------------------------
- */
-function fileUpload(type, target, module, item_id, draft_token, img_width, editor, boxTarget) {
-  img_width = img_width || "";
-  editor = editor || "";
-  boxTarget = boxTarget || (target + "File");
-
-  var status = $("#" + boxTarget + " .file-status");
-  var btn = $("#" + boxTarget + " .btn-file");
-  var form = $("#" + target + "Form");
-  var field = $("#" + target + "Field");
-  var existingCount = 0;
-
-  if (form.length === 0) {
-    var field_name = target + "_file[]"; // 带 [] 才能让 PHP 接收 multiple 多文件数组
-    var csrf_token = $("#dou-post-form input[name=token]").val() || "";
-
-    var formHtml = '<form action="' + route("admin.file.box", {}, { query: { module: module, target: target } }) + '" id="' + target + 'Form" enctype="multipart/form-data" style="display:none">' + '<input id="' + target + 'Field" type="file" name="' + field_name + '" multiple>' + '<input type="hidden" name="item_id" value="' + item_id + '">' + '<input type="hidden" name="draft_token" value="' + draft_token + '">' + '<input type="hidden" name="token" value="' + csrf_token + '">' + "</form>";
-    $("body").append(formHtml);
-    form = $("#" + target + "Form");
-    field = $("#" + target + "Field");
-
-    form.ajaxForm({
-      type: "POST",
-      data: { type: type, img_width: img_width },
-      beforeSubmit: function () {
-        existingCount = $("#" + target + " .file-item").length;
-        status.show();
-        btn.hide();
-      },
-      success: function (html) {
-        // 入口对 AJAX 的 DomainException 返回 200 + dou_msg.htm 整页提示（如上传超限），
-        // 不能塞进上传列表容器：提取 <h2> 提示文本弹窗
-        if (/<html[\s>]|<!DOCTYPE/i.test(html)) {
-          var msgMatch = String(html).match(/<h2[^>]*>([\s\S]*?)<\/h2>/i);
-          alert(msgMatch ? msgMatch[1].replace(/<[^>]*>/g, "").trim() : fileUploadErrorText(null));
-          return;
-        }
-        if (type == "content") {
-          if (html.indexOf("<img") >= 0) {
-            if (editor == "vditor") {
-              douEditor[target].insertValue(html);
-            } else {
-              douEditor[target].execCommand("insertHtml", html);
-            }
-          } else {
-            alert(html);
-          }
-        } else {
-          $("#" + target).html(html);
-          // 新上传的相册项闪「已更新」反馈（服务器回传整表，旧项在前、新项在后）
-          var items = $("#" + target + " .file-item");
-          for (var i = existingCount; i < items.length; i++) {
-            flashUpdated($(items[i]));
-          }
-        }
-      },
-      error: function (xhr) {
-        alert(fileUploadErrorText(xhr));
-      },
-      complete: function () {
-        status.hide();
-        btn.show();
-        field.val("");
-      },
-      clearForm: true,
-    });
-  } else {
-    form.find('input[name="item_id"]').val(item_id);
-    form.find('input[name="draft_token"]').val(draft_token);
-  }
-
-  field.click();
-
-  field.off("change").on("change", function () {
-    if ($(this).val() == "") {
-      return;
-    }
-    var cropOn = type != "content" && $("#" + boxTarget + " .file-crop-pref").prop("checked");
-    var nativeFiles = field[0].files;
-    if (!cropOn || !nativeFiles || !nativeFiles.length || !window.douCrop) {
-      form.submit();
-      return;
-    }
-    var files = [];
-    for (var i = 0; i < nativeFiles.length; i++) {
-      files.push(nativeFiles[i]);
-    }
-    var ratio = $("#" + boxTarget).attr("data-crop-ratio") || "";
-    cropUploadFiles(field[0], files, ratio, function (ok) {
-      if (ok) {
-        form.submit();
-      } else {
-        field.val("");
-      }
-    });
-  });
-}
-
-// 兼容旧模板 / 旧模块包中的 onclick="fileBox(...)" 调用
-window.fileBox = fileUpload;
-
-/**
- +----------------------------------------------------------
- * 多图/附件：勾选「上传时裁剪」后逐张弹窗，确认的写回 file image 控件
+ * blob 转带扩展名的 File（裁剪产物入 FormData 前先命名）
  +----------------------------------------------------------
  */
 function blobToNamedFile(blob, origName) {
@@ -1078,71 +1163,6 @@ function blobToNamedFile(blob, origName) {
   } catch (e) {
     return null;
   }
-}
-
-function cropUploadFiles(input, files, ratio, done) {
-  var kept = [];
-  var index = 0;
-
-  function finish() {
-    if (!kept.length || typeof DataTransfer === "undefined") {
-      done(false);
-      return;
-    }
-    try {
-      var dt = new DataTransfer();
-      for (var n = 0; n < kept.length; n++) {
-        dt.items.add(kept[n]);
-      }
-      input.files = dt.files;
-      done(!!(input.files && input.files.length));
-    } catch (e) {
-      done(false);
-    }
-  }
-
-  function next() {
-    if (index >= files.length) {
-      finish();
-      return;
-    }
-    var file = files[index++];
-    var canCrop = window.douCrop.editableFile && window.douCrop.editableFile(file);
-    if (!canCrop) {
-      kept.push(file);
-      next();
-      return;
-    }
-    window.douCrop.editFile(file, ratio || "", function (blob) {
-      if (blob) {
-        kept.push(blobToNamedFile(blob, file.name) || file);
-      }
-      next();
-    });
-  }
-
-  next();
-}
-
-/**
- +----------------------------------------------------------
- * 文件盒子.文件删除
- +----------------------------------------------------------
- */
-function fileDel(number, target = "") {
-  var target = target ? $("#" + target) : "";
-
-  $.ajax({
-    type: "POST",
-    url: route("admin.file.destroy"),
-    data: { number: number, token: $("#dou-post-form input[name=token]").val() || "" },
-    dataType: "html",
-    success: function (html) {
-      if (target) {
-        target.html(html);
-      }
-    },
-  });
 }
 
 /**
@@ -1818,6 +1838,7 @@ window.douTab = {
 
   var modalSel = ".dou-modal";
   var activeModal = null;
+  var modalStack = [];
   var animationSpeed = 300;
 
   var placements = [
@@ -1993,7 +2014,12 @@ window.douTab = {
     }
 
     if (activeModal && activeModal.length && activeModal[0] !== $modal[0]) {
-      hide(activeModal);
+      if ($modal.data("douStacked") === true && $modal.data("douStackedPushed") !== true) {
+        modalStack.push(activeModal);
+        $modal.data("douStackedPushed", true);
+      } else {
+        hide(activeModal);
+      }
     }
 
     activeModal = $modal;
@@ -2027,6 +2053,7 @@ window.douTab = {
     var isDynamic = $modal.attr("data-dou-modal-dynamic") === "1";
     var $content = $modal.find(".dou-modal-content").first();
 
+    $modal.trigger("douModalClose");
     $(document).off("keydown.douModal", onEscKey);
 
     if ($modal.hasClass("has-editor-fullscreen") || $modal.find(".editor.fullscreen").length) {
@@ -2044,7 +2071,10 @@ window.douTab = {
         $modal.remove();
       }
       if (activeModal && activeModal[0] === $modal[0]) {
-        activeModal = null;
+        activeModal = modalStack.length ? modalStack.pop() : null;
+        if (activeModal !== null) {
+          $(document).on("keydown.douModal", onEscKey);
+        }
       }
     });
   }
@@ -2054,15 +2084,16 @@ window.douTab = {
   }
 
   function open(options) {
-    if (activeModal) {
+    options = options || {};
+    if (activeModal && options.stack !== true) {
       hide(activeModal);
     }
-    options = options || {};
     var shell = buildModalShell(options);
     var $modal = shell.$modal;
 
     $modal.appendTo("body");
     $modal.data("douCloseOnOverlay", options.closeOnOverlay !== false);
+    $modal.data("douStacked", options.stack === true);
     bindModalActions($modal, shell, options);
 
     show($modal);
@@ -2306,15 +2337,15 @@ window.douTab = {
           : "") +
         '<div id="' +
         popupEditorId +
-        'File" class="editor-btn" onclick="fileUpload(\'content\', \'' +
+        'File" class="editor-btn" data-file-type="content" data-file-prefix="' +
         popupEditorId +
-        "', '" +
+        '" data-file-module="' +
         ctx.module +
-        "', '" +
+        '" data-file-item-id="' +
         ctx.itemId +
-        "', '', '', '" +
+        '" data-file-draft-token="" data-file-editor="' +
         cur_editor +
-        '\');"><span class="btn-file">' +
+        '"><span class="btn-file" data-file-pick>' +
         lang("file_insert_image") +
         '</span><span class="file-status" style="display:none"><img src="images/loader.gif" alt="uploading"/></span></div>' +
         '<div id="' +
@@ -2553,28 +2584,33 @@ window.douTab = {
     }
   }
 
-  function draftElements(name) {
+  function draftElements(name, $scope) {
     if (!name) {
       return $();
+    }
+    if ($scope && $scope.length) {
+      return $scope.find("[name]").filter(function () {
+        return this.name === name;
+      });
     }
     return $(document.getElementsByName(name));
   }
 
-  function draftReadName(name) {
-    var elems = document.getElementsByName(name);
-    if (!elems.length) {
+  function draftReadName(name, $scope) {
+    var $elems = draftElements(name, $scope);
+    if (!$elems.length) {
       return "";
     }
-    var first = elems[0];
+    var first = $elems[0];
     if (first.type === "checkbox") {
       var values = [];
-      $(elems).filter(":checked").each(function () {
+      $elems.filter(":checked").each(function () {
         values.push($(this).val());
       });
       return values;
     }
     if (first.type === "radio") {
-      var $checked = $(elems).filter(":checked");
+      var $checked = $elems.filter(":checked");
       return $checked.length ? $checked.val() : "";
     }
     return $(first).val();
@@ -2583,7 +2619,7 @@ window.douTab = {
   function draftHasOverride($trigger) {
     var inheritName = $trigger.attr("data-draft-inherit");
     if (inheritName) {
-      var $inherit = draftElements(inheritName);
+      var $inherit = draftElements(inheritName, $trigger.closest("form"));
       return $inherit.length ? !$inherit.prop("checked") : false;
     }
     return $trigger.hasClass("cur") || $trigger.attr("data-cur") === "1";
@@ -2594,7 +2630,7 @@ window.douTab = {
     if (!inheritName) {
       return;
     }
-    var $inherit = draftElements(inheritName);
+    var $inherit = draftElements(inheritName, $trigger.closest("form"));
     if ($inherit.length && $inherit.prop("checked")) {
       $inherit.prop("checked", false).trigger("change");
     }
@@ -2605,17 +2641,17 @@ window.douTab = {
     if (!inheritName) {
       return;
     }
-    var $inherit = draftElements(inheritName);
+    var $inherit = draftElements(inheritName, $trigger.closest("form"));
     if ($inherit.length && !$inherit.prop("checked")) {
       $inherit.prop("checked", true).trigger("change");
     }
   }
 
-  function draftFilePreview(name) {
-    var $file = draftElements(name).closest(".file-image");
+  function draftFilePreview(name, $scope) {
+    var $file = draftElements(name, $scope).closest(".file-image");
     var src = $file.find(".file-image-preview").attr("src") || "";
     if (!src) {
-      src = draftElements(name).closest(".metadata-file").find("a").attr("href") || "";
+      src = draftElements(name, $scope).closest(".metadata-file").find("a").attr("href") || "";
     }
     return src;
   }
@@ -2659,13 +2695,13 @@ window.douTab = {
     }
   }
 
-  function draftReadSwitch(name) {
-    var elems = document.getElementsByName(name);
-    var checked = $(elems).filter(":checkbox:checked");
+  function draftReadSwitch(name, $scope) {
+    var $elems = draftElements(name, $scope);
+    var checked = $elems.filter(":checkbox:checked");
     if (checked.length) {
       return "1";
     }
-    var $hidden = $(elems).filter(":hidden");
+    var $hidden = $elems.filter(":hidden");
     return $hidden.length ? $hidden.first().val() : "0";
   }
 
@@ -2674,6 +2710,7 @@ window.douTab = {
     var target = $trigger.attr("data-draft-target") || "";
     var source = $trigger.attr("data-draft-source") || "";
     var override = draftHasOverride($trigger);
+    var $scope = $trigger.closest("form");
 
     if (kind === "editor") {
       var targetType = $trigger.attr("data-draft-target-type") || "input";
@@ -2686,19 +2723,19 @@ window.douTab = {
       }
       if (!override) {
         var sourceEditorValue = draftReadEditor(source);
-        return sourceEditorValue || draftReadName(target);
+        return sourceEditorValue || draftReadName(target, $scope);
       }
-      return draftReadName(target);
+      return draftReadName(target, $scope);
     }
 
     if (kind === "image" || kind === "file") {
-      var number = override ? draftReadName(target) : draftReadName(source);
-      var preview = override ? draftFilePreview(target) : draftFilePreview(source);
+      var number = override ? draftReadName(target, $scope) : draftReadName(source, $scope);
+      var preview = override ? draftFilePreview(target, $scope) : draftFilePreview(source, $scope);
       if (!override && !number) {
-        number = draftReadName(target);
+        number = draftReadName(target, $scope);
       }
       if (!override && !preview) {
-        preview = draftFilePreview(target);
+        preview = draftFilePreview(target, $scope);
       }
       if (!preview) {
         preview = $trigger.attr("data-draft-preview") || "";
@@ -2710,23 +2747,23 @@ window.douTab = {
     }
 
     if (kind === "switch") {
-      var switchValue = override ? draftReadSwitch(target) : draftReadSwitch(source);
+      var switchValue = override ? draftReadSwitch(target, $scope) : draftReadSwitch(source, $scope);
       if (!override && (switchValue === "" || switchValue === null || typeof switchValue === "undefined")) {
-        switchValue = draftReadSwitch(target);
+        switchValue = draftReadSwitch(target, $scope);
       }
       return switchValue;
     }
 
     if (kind === "checkbox") {
-      var checkedValues = override ? draftReadName(target) : draftReadName(source);
+      var checkedValues = override ? draftReadName(target, $scope) : draftReadName(source, $scope);
       if (!override && (!checkedValues || !checkedValues.length)) {
-        checkedValues = draftReadName(target);
+        checkedValues = draftReadName(target, $scope);
       }
       return checkedValues || [];
     }
 
     if (kind === "options") {
-      var raw = draftReadName(target);
+      var raw = draftReadName(target, $scope);
       if (!raw) {
         return {};
       }
@@ -2737,9 +2774,9 @@ window.douTab = {
       }
     }
 
-    var value = override ? draftReadName(target) : draftReadName(source);
+    var value = override ? draftReadName(target, $scope) : draftReadName(source, $scope);
     if (!override && (value === "" || value === null || typeof value === "undefined")) {
-      value = draftReadName(target);
+      value = draftReadName(target, $scope);
     }
     return value;
   }
@@ -2748,7 +2785,8 @@ window.douTab = {
     if (!name) {
       return $();
     }
-    var $target = draftElements(name);
+    var $form = $trigger.closest("form");
+    var $target = draftElements(name, $form);
     if ($target.length) {
       return $target;
     }
@@ -2756,7 +2794,6 @@ window.douTab = {
     input.type = "hidden";
     input.name = name;
     input.value = "";
-    var $form = $trigger.closest("form");
     if ($form.length) {
       $form.append(input);
     } else {
@@ -2805,6 +2842,7 @@ window.douTab = {
     var kind = $trigger.attr("data-draft-kind") || "text";
     var target = $trigger.attr("data-draft-target") || "";
     var override = draftHasOverride($trigger);
+    var $scope = $trigger.closest("form");
 
     if (kind === "image" || kind === "file") {
       var number = value && typeof value === "object" ? value.number : value;
@@ -2815,10 +2853,13 @@ window.douTab = {
       draftEnableMetadata($trigger);
       var clearName = target.replace(/^metadata\[/, "metadata_clear[");
       if (clearName !== target) {
-        draftElements(clearName).prop("checked", false);
+        draftElements(clearName, $scope).prop("checked", false);
       }
       draftWriteName($trigger, target, number);
-      var $targetFile = draftElements(target).closest(".file-image");
+      if ($modal && $modal.data("draft-url")) {
+        $trigger.attr("data-draft-preview", $modal.data("draft-url"));
+      }
+      var $targetFile = draftElements(target, $scope).closest(".file-image");
       if ($targetFile.length && $modal && $modal.data("draft-url")) {
         $targetFile.attr("data-initial-src", $modal.data("draft-url")).attr("data-initial-number", number);
         $targetFile.find(".file-image-preview").attr("src", $modal.data("draft-url"));
@@ -2897,6 +2938,7 @@ window.douTab = {
   function draftClearOverride($trigger, $modal) {
     var kind = $trigger.attr("data-draft-kind") || "text";
     var target = $trigger.attr("data-draft-target") || "";
+    var $scope = $trigger.closest("form");
 
     if ($modal && (kind === "image" || kind === "file") && $modal.data("draft-file-changed")) {
       var releaseUrl = $trigger.attr("data-draft-release-url") || route("admin.metadata.draft.release");
@@ -2933,7 +2975,7 @@ window.douTab = {
 
     if ($trigger.attr("data-draft-inherit")) {
       draftDisableMetadata($trigger);
-      var $field = draftElements($trigger.attr("data-draft-inherit")).closest(".metadata-field");
+      var $field = draftElements($trigger.attr("data-draft-inherit"), $scope).closest(".metadata-field");
       $field.find(".metadata-control").find("input, select, textarea").val("");
       $field.find(".metadata-control").find("input[type=checkbox], input[type=radio]").prop("checked", false);
       $field.find(".metadata-control").find("input[type=hidden]").val("");
@@ -2957,8 +2999,12 @@ window.douTab = {
       return draftReadEditor($form.attr("data-draft-editor-id"));
     }
     if (kind === "image" || kind === "file") {
+      var draftNumber = $modal.data("draft-number") || "";
+      if (!draftNumber) {
+        draftNumber = String($form.find('[name="draft_number"]').val() || "");
+      }
       return {
-        number: $modal.data("draft-number") || "",
+        number: draftNumber,
       };
     }
     if (kind === "options") {
@@ -2986,9 +3032,9 @@ window.douTab = {
     return $form.find('[name="value"]').first().val();
   }
 
-  function draftOptionRows($trigger, current) {
+  function draftOptionRows($trigger, current, $scope) {
     var source = $trigger.attr("data-draft-source") || "";
-    var $source = draftElements(source).filter("textarea").first();
+    var $source = draftElements(source, $scope).filter("textarea").first();
     var lines = $source.length ? String($source.val() || "").split(/\r?\n/) : [];
     var seen = {};
     var html = "";
@@ -3012,6 +3058,7 @@ window.douTab = {
   function buildDraftLangForm($trigger, initial) {
     var kind = $trigger.attr("data-draft-kind") || "text";
     var source = $trigger.attr("data-draft-source") || "";
+    var $scope = $trigger.closest("form");
     var html = "";
 
     if (kind === "editor") {
@@ -3037,27 +3084,67 @@ window.douTab = {
       var accept = $trigger.attr("data-draft-accept") || (kind === "image" ? "image/*" : "");
       var previewUrl = initial && initial.url ? initial.url : ($trigger.attr("data-draft-preview") || "");
       var number = initial && initial.number ? initial.number : "";
+
+      if (kind === "image") {
+        var $sourceBox = draftElements(source, $scope).closest(".file-image");
+        var cropRatio = $sourceBox.length ? String($sourceBox.attr("data-crop-ratio") || "") : "";
+        var cropChecked = $sourceBox.length && $sourceBox.find(".file-crop-pref").prop("checked");
+        var fileId = "draftLangFile" + Date.now();
+        var previewImg = previewUrl
+          ? '<img class="file-image-preview" src="' + escapeHtml(previewUrl) + '" alt="" />'
+          : '<img class="file-image-preview" alt="" />';
+        var draftAttrs =
+          ' data-initial-src="' + escapeHtml(previewUrl) + '"' +
+          ' data-initial-number="' + escapeHtml(number) + '"' +
+          ' data-crop-ratio="' + escapeHtml(cropRatio) + '"' +
+          ' data-defer-delete="1"' +
+          ' data-draft-upload-url="' + escapeHtml($trigger.attr("data-draft-upload-url") || "") + '"' +
+          ' data-draft-release-url="' + escapeHtml($trigger.attr("data-draft-release-url") || "") + '"' +
+          ' data-draft-module="' + escapeHtml($trigger.attr("data-draft-module") || "") + '"' +
+          ' data-draft-slug="' + escapeHtml($trigger.attr("data-draft-slug") || "") + '"' +
+          ' data-draft-token="' + escapeHtml($trigger.attr("data-token") || "") + '"';
+        html =
+          '<div class="file-image' + (previewUrl ? " file-image-filled" : "") + '"' + draftAttrs + '>' +
+          '<input type="hidden" class="file-number" name="draft_number" value="' + escapeHtml(number) + '" />' +
+          '<div class="file-image-stage">' +
+          '<label for="' + fileId + '" class="file-image-label">' +
+          '<i class="file-placeholder bi-plus-lg"></i>' + previewImg +
+          '<input type="file" id="' + fileId + '" name="' + fileId + '" accept="' + escapeHtml(accept) + '" />' +
+          "</label>" +
+          '<div class="file-image-mask">' +
+          '<button type="button" class="file-action file-action-upload bi-upload" title="' + escapeHtml(typeof lang === "function" ? lang("file_btn") : "Upload") + '" tabindex="-1"></button>' +
+          '<button type="button" class="file-action file-action-replace bi-arrow-repeat" title="' + escapeHtml(typeof lang === "function" ? lang("replace") : "Replace") + '" tabindex="-1"></button>' +
+          '<button type="button" class="file-action file-action-crop bi-scissors" title="' + escapeHtml(typeof lang === "function" ? lang("crop_title") : "Crop") + '"></button>' +
+          '<button type="button" class="file-action file-action-remove bi-x" title="' + escapeHtml(typeof lang === "function" ? lang("del") : "Delete") + '"></button>' +
+          "</div></div>" +
+          '<div class="file-rail"><i class="file-rail-icon bi-scissors" aria-hidden="true"></i>' +
+          '<label class="file-crop-check" title="' + escapeHtml(typeof lang === "function" ? lang("crop_on_upload") : "Crop on upload") + '">' +
+          '<input type="checkbox" class="file-crop-pref" data-crop-scope="thumb"' + (cropChecked ? ' checked="checked"' : "") + " /></label></div>" +
+          "</div>";
+        return '<form class="dou-modal-lang-form dou-modal-lang-draft"><div class="form"><div class="form-item"><div class="input-block">' + html + "</div></div></div></form>";
+      }
+
       var previewHtml = "";
       if (previewUrl) {
-        previewHtml = kind === "image"
-          ? '<img src="' + escapeHtml(previewUrl) + '" alt="" />'
-          : '<a href="' + escapeHtml(previewUrl) + '" target="_blank" rel="noopener">' + escapeHtml(previewUrl) + "</a>";
+        previewHtml = '<a href="' + escapeHtml(previewUrl) + '" target="_blank" rel="noopener">' + escapeHtml(previewUrl) + "</a>";
       }
       html =
         '<div class="draft-file-control">' +
         '<input type="file" class="draft-file-input" accept="' + escapeHtml(accept) + '" />' +
         '<input type="hidden" name="draft_number" value="' + escapeHtml(number) + '" />' +
-        '<div class="draft-file-preview">' + previewHtml + "</div></div>";
+        '<div class="draft-file-preview">' + previewHtml + "</div>" +
+        '<a href="javascript:;" class="draft-file-clear">' + escapeHtml(typeof lang === "function" ? lang("btn_reset") : "Reset") + "</a>" +
+        "</div>";
       return '<form class="dou-modal-lang-form dou-modal-lang-draft">' + html + "</form>";
     }
 
     if (kind === "options") {
-      html = draftOptionRows($trigger, initial || {});
+      html = draftOptionRows($trigger, initial || {}, $scope);
       return '<form class="dou-modal-lang-form dou-modal-lang-draft">' + html + "</form>";
     }
 
     if (kind === "select") {
-      var $select = draftElements(source).filter("select").first();
+      var $select = draftElements(source, $scope).filter("select").first();
       var optionsHtml = "";
       var selected = initial === null || typeof initial === "undefined" ? "" : String(initial);
       if ($select.length) {
@@ -3084,7 +3171,7 @@ window.douTab = {
       }
       html = '<select name="value" class="select">' + optionsHtml + "</select>";
     } else if (kind === "radio" || kind === "checkbox") {
-      var $source = draftElements(source);
+      var $source = draftElements(source, $scope);
       var currentValues = Array.isArray(initial) ? initial : (initial === "" || initial === null ? [] : [String(initial)]);
       $source.each(function () {
         var value = $(this).val();
@@ -3178,10 +3265,27 @@ window.douTab = {
     });
   }
 
+  function bindDraftFileClear($modal, $trigger) {
+    $modal.find(".draft-file-clear").off("click.draftClear").on("click.draftClear", function (e) {
+      e.preventDefault();
+      draftClearOverride($trigger, $modal);
+      $modal.find(".draft-file-preview").html("");
+      $modal.find('[name="draft_number"]').val("");
+      $modal.data("draft-number", "").data("draft-file-changed", false);
+      close();
+    });
+  }
+
   function bindDraftLangSubmit($modal, $trigger) {
     $modal.find(".dou-modal-lang-submit").off("click.draftLang").on("click.draftLang", function (e) {
       e.preventDefault();
       var kind = $trigger.attr("data-draft-kind") || "text";
+      if ((kind === "image" || kind === "file") && $modal.data("draft-uploading")) {
+        if (window.dou && window.dou.toast) {
+          window.dou.toast.error(typeof lang === "function" ? lang("uploading", "图片上传中，请稍候") : "图片上传中，请稍候");
+        }
+        return;
+      }
       var initial = $modal.data("draft-initial");
       var value = draftReadFormValue($modal, $trigger);
 
@@ -3195,6 +3299,7 @@ window.douTab = {
         return;
       }
 
+      $modal.data("draft-submitted", true);
       draftWriteValue($trigger, value, $modal);
       close();
     });
@@ -3221,6 +3326,9 @@ window.douTab = {
           ? '<div class="dou-modal-lang-toolbar"><span class="action ai-lang-translate"></span></div>'
           : "";
         $body.html(toolbar + buildDraftLangForm($trigger, initial));
+        if (window.douFileImage) {
+          window.douFileImage.init($body[0] || document);
+        }
         $footer.html(
           '<div class="dou-modal-actions">' +
           '<a href="javascript:;" class="btn dou-modal-lang-submit">' +
@@ -3228,6 +3336,7 @@ window.douTab = {
           "</a></div>"
         );
         bindDraftFileUpload($modal, $trigger);
+        bindDraftFileClear($modal, $trigger);
         bindDraftLangSubmit($modal, $trigger);
         if (hasAi) {
           $(document).trigger("douLangFormReady", {
@@ -3293,6 +3402,250 @@ window.douTab = {
     show: show,
     hide: hide,
     close: close,
+  };
+})(window, jQuery);
+
+/**
+ * 通用气泡提示（douPopover）：参考 Bootstrap Popover 的轻量实现。
+ *
+ * 声明式：
+ *   <i data-dou-toggle="popover" data-title="标题" data-content="说明"
+ *      data-placement="top|right|bottom|left" data-html="1"></i>
+ * 编程式：
+ *   douPopover.show($trigger, {title, content, placement, html});
+ *   douPopover.hide() / toggle($trigger, options) / destroy()
+ *
+ * 单例浮层挂 body + fixed 定位，同一时间只显示一个；点击外部、Esc、滚动或缩放时收起。
+ */
+(function (global, $) {
+  "use strict";
+
+  var GAP = 8; // 气泡与触发元素的间距
+  var EDGE = 8; // 与视口边缘的最小安全距离
+  var ARROW = 8; // 箭头尺寸，需与 common.css 的 .dou-popover-arrow 保持一致
+  var placements = ["top", "right", "bottom", "left"];
+  var flips = { top: "bottom", bottom: "top", left: "right", right: "left" };
+
+  var $popover = null;
+  var $title = null;
+  var $content = null;
+  var $arrow = null;
+  var currentTrigger = null;
+
+  function ensure() {
+    if ($popover) {
+      return $popover;
+    }
+    $popover = $(
+      '<div class="dou-popover" id="dou-popover" role="tooltip">' +
+        '<div class="dou-popover-arrow"></div>' +
+        '<div class="dou-popover-title"></div>' +
+        '<div class="dou-popover-content"></div>' +
+        "</div>"
+    );
+    $title = $popover.find(".dou-popover-title");
+    $content = $popover.find(".dou-popover-content");
+    $arrow = $popover.find(".dou-popover-arrow");
+    $popover.appendTo(document.body);
+    return $popover;
+  }
+
+  // 声明式触发器的取值；data-html="1" 时正文按 HTML 渲染
+  function readOptions($trigger) {
+    var placement = $trigger.attr("data-placement") || "top";
+    if ($.inArray(placement, placements) === -1) {
+      placement = "top";
+    }
+    return {
+      title: $trigger.attr("data-title") || "",
+      content: $trigger.attr("data-content") || "",
+      placement: placement,
+      html: $trigger.attr("data-html") === "1",
+    };
+  }
+
+  function viewport() {
+    return {
+      w: window.innerWidth || document.documentElement.clientWidth,
+      h: window.innerHeight || document.documentElement.clientHeight,
+    };
+  }
+
+  function clamp(value, min, max) {
+    if (max < min) {
+      return min;
+    }
+    return Math.min(Math.max(value, min), max);
+  }
+
+  // 按方向计算左上角坐标（触发元素取 getBoundingClientRect，与 fixed 同属视口坐标系）
+  function measure(rect, size, placement) {
+    var top;
+    var left;
+    if (placement === "top") {
+      top = rect.top - size.h - GAP;
+      left = rect.left + rect.width / 2 - size.w / 2;
+    } else if (placement === "bottom") {
+      top = rect.bottom + GAP;
+      left = rect.left + rect.width / 2 - size.w / 2;
+    } else if (placement === "left") {
+      top = rect.top + rect.height / 2 - size.h / 2;
+      left = rect.left - size.w - GAP;
+    } else {
+      top = rect.top + rect.height / 2 - size.h / 2;
+      left = rect.right + GAP;
+    }
+    return { top: top, left: left };
+  }
+
+  // 主轴溢出则翻到对侧；翻转后仍溢出交给 clamp 夹紧
+  function resolvePlacement(rect, size, placement, vp) {
+    var pos = measure(rect, size, placement);
+    var overflowMain =
+      (placement === "top" && pos.top < EDGE) ||
+      (placement === "bottom" && pos.top + size.h > vp.h - EDGE) ||
+      (placement === "left" && pos.left < EDGE) ||
+      (placement === "right" && pos.left + size.w > vp.w - EDGE);
+
+    if (overflowMain) {
+      placement = flips[placement];
+      pos = measure(rect, size, placement);
+    }
+    return { placement: placement, top: pos.top, left: pos.left };
+  }
+
+  function position($trigger, placement) {
+    var rect = $trigger[0].getBoundingClientRect();
+    var size = { w: $popover.outerWidth(), h: $popover.outerHeight() };
+    var vp = viewport();
+    var resolved = resolvePlacement(rect, size, placement, vp);
+
+    var top = clamp(resolved.top, EDGE, vp.h - size.h - EDGE);
+    var left = clamp(resolved.left, EDGE, vp.w - size.w - EDGE);
+    $popover.css({ top: top + "px", left: left + "px" });
+    $popover
+      .removeClass("dou-popover-top dou-popover-right dou-popover-bottom dou-popover-left")
+      .addClass("dou-popover-" + resolved.placement);
+
+    // 箭头对准触发元素中心；只设置主轴上的偏移，另一轴交给 direction 类定位
+    if (resolved.placement === "top" || resolved.placement === "bottom") {
+      var ax = clamp(rect.left + rect.width / 2 - left - ARROW / 2, 10, size.w - ARROW - 10);
+      $arrow.css({ left: ax + "px", top: "", bottom: "" });
+    } else {
+      var ay = clamp(rect.top + rect.height / 2 - top - ARROW / 2, 10, size.h - ARROW - 10);
+      $arrow.css({ top: ay + "px", left: "", right: "" });
+    }
+  }
+
+  function show($trigger, options) {
+    if (!$trigger || !$trigger.length) {
+      return;
+    }
+    ensure();
+
+    var opts = options || readOptions($trigger);
+    if (!opts.content) {
+      hide();
+      return;
+    }
+
+    if (currentTrigger && currentTrigger[0] !== $trigger[0]) {
+      currentTrigger.removeAttr("aria-describedby");
+    }
+    currentTrigger = $trigger;
+
+    $title.text(opts.title || "").toggle(!!opts.title);
+    if (opts.html) {
+      $content.html(opts.content);
+    } else {
+      $content.text(opts.content);
+    }
+
+    // 先显示再测量，否则 display:none 时取到的宽高为 0
+    $popover.addClass("is-open");
+    $trigger.attr("aria-describedby", "dou-popover");
+    position($trigger, opts.placement || "top");
+  }
+
+  function hide() {
+    if (currentTrigger) {
+      currentTrigger.removeAttr("aria-describedby");
+      currentTrigger = null;
+    }
+    if ($popover) {
+      $popover.removeClass("is-open");
+    }
+  }
+
+  function toggle($trigger, options) {
+    if (
+      currentTrigger &&
+      $trigger &&
+      currentTrigger[0] === $trigger[0] &&
+      $popover &&
+      $popover.hasClass("is-open")
+    ) {
+      hide();
+      return;
+    }
+    show($trigger, options);
+  }
+
+  function destroy() {
+    hide();
+    if ($popover) {
+      $popover.remove();
+      $popover = null;
+      $title = null;
+      $content = null;
+      $arrow = null;
+    }
+  }
+
+  // 声明式：点击触发器开合
+  $(document).on("click", '[data-dou-toggle="popover"]', function (e) {
+    e.preventDefault();
+    toggle($(this));
+  });
+
+  // 点击浮层与触发器之外的区域收起；触发器自身的点击已由上面的委托处理过
+  $(document).on("click", function (e) {
+    if (!currentTrigger) {
+      return;
+    }
+    var target = e.target;
+    if ($popover && ($popover[0] === target || $.contains($popover[0], target))) {
+      return;
+    }
+    if (currentTrigger[0] === target || $.contains(currentTrigger[0], target)) {
+      return;
+    }
+    hide();
+  });
+
+  $(document).on("keydown", function (e) {
+    if (e.key === "Escape" || e.keyCode === 27) {
+      hide();
+    }
+  });
+
+  // 滚动（含内部滚动容器，用捕获阶段）与缩放会改变锚点位置，直接收起避免错位
+  document.addEventListener(
+    "scroll",
+    function () {
+      hide();
+    },
+    true
+  );
+  $(window).on("resize", function () {
+    hide();
+  });
+
+  global.douPopover = {
+    show: show,
+    hide: hide,
+    toggle: toggle,
+    destroy: destroy,
   };
 })(window, jQuery);
 
@@ -3802,6 +4155,7 @@ window.douTab = {
       size: "lg",
       width: 720,
       closeOnOverlay: false,
+      stack: true,
       bodyHtml: buildToolbarHtml(ratioValue),
       onOpen: function ($m) {
         var $img = $m.find(".dou-crop-stage img");

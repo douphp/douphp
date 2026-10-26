@@ -22,6 +22,16 @@
   var dlPollFails = 0;            // 下载进度轮询连续失败次数
   var stepOrder = ['preflight', 'download', 'unzip', 'snapshot', 'apply', 'finalize'];
 
+  // 服务端按 mode 裁剪了步骤列表：全新安装无 snapshot 还原点步骤，
+  // 此处同步剔除，避免跳到空步骤时凭空出现「正在创建升级还原点」提示。
+  function isPlannedStep(step) {
+    if (!steps.length) { return true; }
+    for (var i = 0; i < steps.length; i++) {
+      if (steps[i] === step) { return true; }
+    }
+    return false;
+  }
+
   function escapeText(text) {
     return String(text == null ? '' : text)
       .replace(/&/g, '&amp;')
@@ -43,6 +53,14 @@
     $p.html(html);
     $log.append($p);
     return $p;
+  }
+
+  // 操作按钮行（完成态 / 失败态）：独立块级容器，便于 CSS 与上方结果行拉开固定间距
+  function appendActionRow(html) {
+    var $row = $('<div class="install-action-row"></div>');
+    $row.html(html);
+    $log.append($row);
+    return $row;
   }
 
   function pushLogs(logs, level) {
@@ -152,6 +170,7 @@
     }
     if (idx < 0) { idx = 0; }
     for (var j = idx; j < stepOrder.length; j++) {
+      if (!isPlannedStep(stepOrder[j])) { continue; }
       var text = predictStepText(stepOrder[j]);
       if (text) {
         var $line = seedLine(text);
@@ -197,7 +216,7 @@
     var backLabel = useUpdateHome
       ? (langPack.cloud_update_home || '返回更新主页')
       : (langPack.cloud_admin_home || '返回管理中心');
-    appendLogHtml('<a class="btn-secondary" href="' + backHref + '">' + escapeText(backLabel) + '</a>');
+    appendActionRow('<a class="btn-secondary" href="' + backHref + '">' + escapeText(backLabel) + '</a>');
   }
 
   function showFinishActions(result) {
@@ -209,7 +228,7 @@
     // 更新/补丁：返回更新主页 → 启用模板/插件 → 查看还原点（同一行，还原点最后）
     // 全新安装：启用在前、返回在后（维持原顺序）
     var html = isUpdate ? (back + action + note) : (action + back);
-    if (html !== '') { appendLogHtml(html); }
+    if (html !== '') { appendActionRow(html); }
   }
 
   function stopDownloadPoll() {
@@ -257,6 +276,7 @@
     query.cloud_id = cid;
     if (next.mode) { query.mode = String(next.mode); }
     if (next.version) { query.version = String(next.version); }
+    if (next.mini_version) { query.mini_version = String(next.mini_version); }
     if (next.theme_id) { query.theme_id = String(next.theme_id); }
     return route('admin.cloud.install', {}, { query: query });
   }

@@ -18,14 +18,13 @@ if (!defined('IN_DOUCO')) {
 /**
  * 读取 install 物料根元信息（install/version.php）。
  *
- * 版本串与最低 PHP / MySQL 要求以 install/version.php 为单一来源（对标升级程序 version.php 的
- * 单一来源约定）：不再散落在各控制器/服务常量与 SQL dump 之中，发版仅需修改 install/version.php
- * （并与 _update/version.php、upgrade/version.php 三份对拷）。
+ * 该文件仅承载最低 PHP / MySQL 要求；安装版本串不在其中——唯一来源是
+ * install/data/backup/douphp.sql 的 dou_config.douphp_version（安装流程直接解析该 SQL）。
  *
  * 本文件先于 install/run.php 的自动加载器注册被加载，故用全局函数 + 直接 include 实现，
  * 不依赖任何命名空间类；语法保持 PHP 5.2 可解析（PHP 过低时仍能正常解析并输出门禁提示）。
  *
- * @return array array('version' => string, 'php_min' => string, 'mysql_min' => string)
+ * @return array array('php_min' => string, 'mysql_min' => string)
  */
 if (!function_exists('douphp_install_version_meta')) {
     function douphp_install_version_meta()

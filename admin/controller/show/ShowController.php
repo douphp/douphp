@@ -59,7 +59,8 @@ class ShowController extends BaseController
             'page_cue' => '<p>' . lang('show_cue') . '</p>',
             'rec' => 'default',
             'show_list' => $listData['list'],
-            'btn_lang' => language()->buildLangButtons('show', '', 'name, image, link, text'),
+            'btn_lang' => ($this->languageDraft()->buildFormState('show', ''))['btn_lang'],
+            'lang_drafts' => ($this->languageDraft()->buildFormState('show', ''))['lang_drafts'],
             'show' => $this->showService->buildShowDefaultData(),
             'id' => '',
         ]);
@@ -121,7 +122,8 @@ class ShowController extends BaseController
             'show_list' => $listData['list'],
             'id' => $id,
             'show' => $show,
-            'btn_lang' => language()->buildLangButtons('show', $id, 'name, image, link, text'),
+            'btn_lang' => ($this->languageDraft()->buildFormState('show', $id))['btn_lang'],
+            'lang_drafts' => ($this->languageDraft()->buildFormState('show', $id))['lang_drafts'],
         ]);
     }
 

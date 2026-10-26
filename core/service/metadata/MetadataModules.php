@@ -14,6 +14,8 @@
 
 namespace Dou\Core\Service\Metadata;
 
+use Dou\Core\Foundation\Configuration\Config;
+
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
 }
@@ -21,10 +23,27 @@ if (!defined('IN_DOUCO')) {
 /**
  * 支持扩展字段的内容模块注册表。
  *
- * 清单维护在 config/metadata.php；本类只负责读取清单与生成后台显示名。
+ * 清单维护在 config/module.php 的 link_metadata 桶（模块可拆卸，故不写死在固定配置文件里），
+ * 写入来源三处：
+ *   - 全新安装：安装包自带的 config/module.php；
+ *   - 模块安装：模块包 _action/manifest.php 的 flags.link_metadata 声明（true 才写入），
+ *     由 InstallService::changeModulePhp 落盘；
+ *   - 存量站点升级：upgrade/resources/migrations/MetadataLedger 按已安装模块回填。
+ *
+ * 系统内置模块（page）随系统发行、不可拆卸，恒定纳入清单且不写入账本桶，
+ * 故只在读取侧注入。
+ *
+ * 本类只负责读取清单与生成后台显示名。
  */
 class MetadataModules
 {
+    /**
+     * 系统内置内容模块：恒定纳入清单，不写入模块账本（config/module.php 的 link_metadata）。
+     *
+     * @var array
+     */
+    private static $builtin = array('page');
+
     /** @var array|null 请求内模块清单缓存 */
     private static $modules = null;
 
@@ -61,18 +80,14 @@ class MetadataModules
             return self::$modules;
         }
 
-        self::$modules = array();
-        $file = defined('CONFIG_PATH') ? CONFIG_PATH . 'metadata.php' : '';
-        if ($file !== '' && is_file($file)) {
-            $config = include $file;
-            if (is_array($config) && isset($config['modules']) && is_array($config['modules'])) {
-                foreach ($config['modules'] as $module) {
-                    if (is_string($module) && $module !== '') {
-                        self::$modules[] = $module;
-                    }
-                }
+        $modules = self::$builtin;
+        foreach ((array) Config::get('module.link_metadata', array()) as $module) {
+            if (is_string($module) && $module !== '' && !in_array($module, $modules, true)) {
+                $modules[] = $module;
             }
         }
+
+        self::$modules = $modules;
 
         return self::$modules;
     }

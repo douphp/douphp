@@ -88,7 +88,8 @@ class NavController extends BaseController
             'type' => $type,
             'type_name' => lang('miniprogram_nav_' . $type),
             'catalog_list' => $this->miniprogramNavService->buildNavCatalogDefaultList(),
-            'btn_lang' => language()->buildLangButtons('nav', '', 'name, guide'),
+            'btn_lang' => ($this->languageDraft()->buildFormState('nav', ''))['btn_lang'],
+            'lang_drafts' => ($this->languageDraft()->buildFormState('nav', ''))['lang_drafts'],
             'nav_info' => array('icon' => ''),
             'nav' => $this->pageNav(),
         ]);

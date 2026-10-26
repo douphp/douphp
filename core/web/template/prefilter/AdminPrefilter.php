@@ -47,6 +47,8 @@ class AdminPrefilter
         // 文本仅保留在成对块内部（如 <!-- {if !$first}、{/if} --> 的「、」），
         // 成对结构之外的说明文字（如 <!-- {if $rec eq 'default'} 起始页 --> 的「起始页」）丢弃，
         // 与旧 remove_html_comments 过滤器口径一致。
+        // 含「不像标签」的花括号片段时（如文档块的 {prefix}），restoreCommentTags 返回 null 保留原注释，
+        // 由 Lexer 的 HTML 注释保护区整段吞掉，不参与标签解析。
         $source = preg_replace_callback('/<!--(.*?)-->/', function ($m) {
             $restored = self::restoreCommentTags($m[1]);
 
@@ -60,12 +62,20 @@ class AdminPrefilter
      * 还原单条注释体内的模板标签（与 FrontPrefilter::restoreCommentTags() 逐字一致，改动须同步）。
      *
      * @param string $body 注释体（<!-- 与 --> 之间的内容，不跨行）
-     * @return string|null 无完整 {..} 标签时返回 null（调用方保留原注释）
+     * @return string|null 无完整 {..} 标签、或存在不像标签的花括号片段时返回 null（调用方保留原注释）
      */
     private static function restoreCommentTags($body)
     {
         if (!preg_match_all('/\{[^{}]*\}/', $body, $matches, PREG_OFFSET_CAPTURE)) {
             return null;
+        }
+
+        // 剥壳守卫：注释体内的花括号片段须全部「像标签」，否则整条注释视为文档说明、保留原注释，
+        // 交由 Lexer 的 HTML 注释保护区整段吞掉（避免 {prefix} 这类参数占位写法被当标签报 syntax error）。
+        foreach ($matches[0] as $match) {
+            if (!self::looksLikeTag($match[0])) {
+                return null;
+            }
         }
 
         // 块标签全集：Parser 入栈容器（if/foreach/list/category/strip）+ Lexer 保护区（literal）
@@ -106,6 +116,41 @@ class AdminPrefilter
         }
 
         return $result;
+    }
+
+    /**
+     * 花括号片段是否像合法模板标签（restoreCommentTags 剥壳守卫，与 FrontPrefilter 同名方法逐字一致）。
+     *
+     * @param string $tag 形如 {if $a} / {$a.b|default:''} / {/if}
+     * @return bool
+     */
+    private static function looksLikeTag($tag)
+    {
+        $inner = trim(substr($tag, 1, -1));
+        if ($inner === '') {
+            return false;
+        }
+
+        // 变量 / 表达式形态：{$a}、{$a.b|default:''}、{"..."}、{0}
+        if (in_array(substr($inner, 0, 1), array('$', '"', "'"), true) || is_numeric($inner)) {
+            return true;
+        }
+
+        // 命令形态：Parser 命令全集 + 循环块三态 + Lexer 保护区关键字
+        static $known = array(
+            'if', 'elseif', 'else', '/if',
+            'foreach', 'foreachelse', '/foreach',
+            'list', 'listelse', '/list',
+            'category', 'categoryelse', '/category',
+            'strip', '/strip',
+            'literal', '/literal',
+            'php', '/php',
+            'break', 'continue',
+            'ldelim', 'rdelim',
+            'include', 'assign', 'url',
+        );
+
+        return in_array(strtolower(preg_replace('/\s.*$/', '', $inner)), $known, true);
     }
 
     /**

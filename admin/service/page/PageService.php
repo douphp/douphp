@@ -15,6 +15,7 @@
 namespace Dou\Admin\Service\Page;
 
 use Dou\Admin\Model\Page\Page;
+use Dou\Admin\Service\Concerns\SavesLanguageDrafts;
 use Dou\Admin\Service\Concerns\SavesMetadata;
 use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Exception\DomainException;
@@ -39,6 +40,7 @@ if (!defined('IN_DOUCO')) {
 class PageService extends BaseService
 {
     use SavesMetadata;
+    use SavesLanguageDrafts;
 
     /** @var MarkdownRenderer */
     private $markdown;
@@ -172,9 +174,10 @@ class PageService extends BaseService
         }
 
         $metadataPlan = $this->metadataBegin('page', $data, 0, '', $adminId);
+        $languagePlan = $this->languageDraftBegin('page', $data, 0, $adminId);
 
         try {
-            $newId = (int) DB::transaction(function () use ($data, $draftToken, $adminId, $editorCode, $content, $metadataPlan) {
+            $newId = (int) DB::transaction(function () use ($data, $draftToken, $adminId, $editorCode, $content, $metadataPlan, $languagePlan) {
                 $page = Page::create(array(
                     'slug' => $data['slug'],
                     'parent_id' => Arr::get($data, 'parent_id', 0),
@@ -195,16 +198,19 @@ class PageService extends BaseService
                 }
 
                 attachment()->claimByToken('page', $draftToken, $newId, 'admin', $adminId);
+                $this->languageDraftCommit($languagePlan, $newId, $adminId);
                 $this->metadataCommit($metadataPlan, $newId, $adminId);
 
                 return $newId;
             });
         } catch (\Exception $e) {
             $this->metadataAbort($metadataPlan);
+            $this->languageDraftAbort($languagePlan);
             throw $e;
         }
 
         $this->metadataPurge($metadataPlan, $newId);
+        $this->languageDraftPurge($languagePlan, $newId);
         audit()->writeAdminLog($adminId, AdminLogAction::CREATE, 1, (string) $data['name']);
 
         return $newId;
@@ -235,6 +241,7 @@ class PageService extends BaseService
         }
 
         $metadataPlan = $this->metadataBegin('page', $data, $id, $this->metadataExistingRaw($model), $adminId);
+        $languagePlan = $this->languageDraftBegin('page', $data, $id, $adminId);
 
         $editorCode = '';
         if (isset($data['mode']) && $data['mode'] === 'visualize') {
@@ -265,16 +272,19 @@ class PageService extends BaseService
         }
 
         try {
-            DB::transaction(function () use ($model, $updateData, $metadataPlan, $id, $adminId) {
+            DB::transaction(function () use ($model, $updateData, $metadataPlan, $languagePlan, $id, $adminId) {
                 $model->fill($updateData, 'update')->save();
+                $this->languageDraftCommit($languagePlan, $id, $adminId);
                 $this->metadataCommit($metadataPlan, $id, $adminId);
             });
         } catch (\Exception $e) {
             $this->metadataAbort($metadataPlan);
+            $this->languageDraftAbort($languagePlan);
             throw $e;
         }
 
         $this->metadataPurge($metadataPlan, $id);
+        $this->languageDraftPurge($languagePlan, $id);
         audit()->writeAdminLog($adminId, AdminLogAction::UPDATE, 1, (string) $data['name']);
     }
 

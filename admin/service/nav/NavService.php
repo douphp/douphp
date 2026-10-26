@@ -16,6 +16,7 @@ namespace Dou\Admin\Service\Nav;
 
 use Dou\Admin\Model\Nav\Nav;
 use Dou\Admin\Model\Page\Page;
+use Dou\Admin\Service\Concerns\SavesLanguageDrafts;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Exception\DomainException;
@@ -39,6 +40,8 @@ if (!defined('IN_DOUCO')) {
  */
 class NavService extends BaseService
 {
+    use SavesLanguageDrafts;
+
     /** @var ModuleModelResolver */
     private $resolver;
 
@@ -187,8 +190,9 @@ class NavService extends BaseService
         $iconFile = $openIcon === 'image' ? UploadedFile::fromGlobals('icon') : null;
         $icon = attachment()->reserve('nav', $iconFile, 'admin', $adminId, 'main', AttachmentUploadOptions::create());
         $row['icon'] = $openIcon === 'image' ? $icon : $iconText;
+        $languagePlan = $this->languageDraftBegin('nav', $data, 0, $adminId);
 
-        $id = (int) DB::transaction(function () use ($row, $icon, $adminId) {
+        $id = (int) DB::transaction(function () use ($row, $icon, $adminId, $languagePlan) {
             $model = Nav::create($row);
             if (!$model) {
                 throw new DomainException(lang('operation_failed'));
@@ -198,6 +202,7 @@ class NavService extends BaseService
                 throw new DomainException(lang('operation_failed'));
             }
 
+            $this->languageDraftCommit($languagePlan, $id, $adminId);
             if ($icon !== '' && attachment()->adopt('nav', $icon, $id, 'admin', $adminId) < 1) {
                 throw new DomainException(lang('file_claim_failed'));
             }
@@ -205,6 +210,7 @@ class NavService extends BaseService
             return $id;
         });
 
+        $this->languageDraftPurge($languagePlan, $id);
         audit()->writeAdminLog($adminId, AdminLogAction::CREATE, 1, (string) $row['name']);
 
         return $id;
@@ -229,6 +235,8 @@ class NavService extends BaseService
             throw new DomainException(lang('illegal'), $back);
         }
 
+        $adminId = (int) auth('admin')->id();
+        $languagePlan = $this->languageDraftBegin('nav', $data, $id, $adminId);
         $update_data = array(
             'name' => isset($data['name']) ? $data['name'] : '',
             'parent_id' => isset($data['parent_id']) ? (int) $data['parent_id'] : 0,
@@ -255,8 +263,18 @@ class NavService extends BaseService
             $update_data['icon'] = isset($data['icon']) ? (string) $data['icon'] : '';
         }
 
-        $nav->fill($update_data, 'update')->save();
-        audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::UPDATE, 1, (string) $update_data['name']);
+        try {
+            DB::transaction(function () use ($nav, $update_data, $id, $adminId, $languagePlan) {
+                $nav->fill($update_data, 'update')->save();
+                $this->languageDraftCommit($languagePlan, $id, $adminId);
+            });
+        } catch (\Exception $e) {
+            $this->languageDraftAbort($languagePlan);
+            throw $e;
+        }
+
+        $this->languageDraftPurge($languagePlan, $id);
+        audit()->writeAdminLog($adminId, AdminLogAction::UPDATE, 1, (string) $update_data['name']);
     }
 
     /**
@@ -283,6 +301,7 @@ class NavService extends BaseService
         }
 
         if (isset($post['confirm'])) {
+            language()->deleteLang('nav', (int) $id);
             audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::DELETE, 1, (string) $nav_info['name']);
             Nav::destroy((int) $id);
 
@@ -408,6 +427,21 @@ class NavService extends BaseService
                     'guide' => 0,
                     'mark' => '',
                 );
+
+                // 表单：紧跟「表单」项列出所有启用表单，module=form + guide=slug 直达 /form/{slug}。
+                // 小程序导航的跳转目标由 MiniprogramNavigationBuilder 按模块白名单解析，不含表单，故仅在后台导航展开。
+                if ($module_id === 'form' && $currentModule !== 'miniprogram') {
+                    $formRows = DB::table('form')->field('name, slug')->where('status', 1)->order('sort ASC, id ASC')->select();
+                    foreach ((array) $formRows as $formRow) {
+                        $catalog[] = array(
+                            'name' => $formRow['name'],
+                            'module' => 'form',
+                            'cur' => ($module === 'form' && (string) $id === (string) $formRow['slug']) ? true : false,
+                            'guide' => $formRow['slug'],
+                            'mark' => '-',
+                        );
+                    }
+                }
             }
         }
 

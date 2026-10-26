@@ -108,7 +108,8 @@ class ArticleController extends BaseController
             'item_content' => '',
             'article' => $article,
             'metadata_form' => $this->metadataFormBuilder->build('article', '', 0),
-            'btn_lang' => language()->buildLangButtons('article', '', 'title, content, keywords, description'),
+            'btn_lang' => ($this->languageDraft()->buildFormState('article', ''))['btn_lang'],
+            'lang_drafts' => ($this->languageDraft()->buildFormState('article', ''))['lang_drafts'],
         ]);
     }
 
@@ -164,7 +165,8 @@ class ArticleController extends BaseController
             'item_content' => $article['item_content'],
             'article' => $article,
             'metadata_form' => $this->metadataFormBuilder->build('article', isset($article['metadata']) ? $article['metadata'] : '', $id),
-            'btn_lang' => language()->buildLangButtons('article', $id, 'title, content, keywords, description'),
+            'btn_lang' => ($this->languageDraft()->buildFormState('article', $id))['btn_lang'],
+            'lang_drafts' => ($this->languageDraft()->buildFormState('article', $id))['lang_drafts'],
         ]);
     }
 

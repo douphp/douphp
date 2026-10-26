@@ -78,7 +78,8 @@ class CategoryController extends BaseController
             'rec' => 'create',
             'article_category' => ArticleCategory::flat(),
             'cat_info' => $this->categoryService->buildCategoryDefaultData(),
-            'btn_lang' => language()->buildLangButtons('article_category', '', 'name, keywords, description'),
+            'btn_lang' => ($this->languageDraft()->buildFormState('article_category', ''))['btn_lang'],
+            'lang_drafts' => ($this->languageDraft()->buildFormState('article_category', ''))['lang_drafts'],
         ]);
     }
 
@@ -128,7 +129,8 @@ class CategoryController extends BaseController
             'rec' => 'edit',
             'cat_info' => $catInfo,
             'article_category' => ArticleCategory::flat($catId),
-            'btn_lang' => language()->buildLangButtons('article_category', $catId, 'name, keywords, description'),
+            'btn_lang' => ($this->languageDraft()->buildFormState('article_category', $catId))['btn_lang'],
+            'lang_drafts' => ($this->languageDraft()->buildFormState('article_category', $catId))['lang_drafts'],
         ]);
     }
 

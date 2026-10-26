@@ -20,8 +20,8 @@ use Dou\Core\Foundation\Event\Scene\SceneNames;
 use Dou\Core\Foundation\Event\Scene\SceneRegistry;
 use Dou\Core\Foundation\Extension\Module;
 use Dou\Core\Service\Chat\SubscriptionService;
-use Dou\Core\Service\Money\MoneyService;
 use Dou\Core\Service\Vip\VipService;
+use Dou\Core\Service\Wallet\WalletService;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
@@ -62,7 +62,7 @@ class OrderPaidSceneRegistrar
                 return new VipService();
             },
             'money' => function () {
-                return new MoneyService();
+                return new WalletService();
             },
             'chat' => function () {
                 return new SubscriptionService();

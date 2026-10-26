@@ -237,7 +237,7 @@ class ProductController extends BaseController
             'coupon_list' => $coupon ? $coupon->getCouponList((int) auth('front')->id()) : array(),
             'product_category' => ProductCategory::tree($catId),
             'product' => $product,
-            'related_product' => Product::related($catId, 4, (int) auth('front')->id()),
+            'related_product' => Product::related($catId, 4, (int) auth('front')->id(), (int) $id),
             'lift' => Product::lift($id, $catId),
             'defined' => isset($product['defined']) ? $product['defined'] : array(),
             'column_name' => $cateInfo['name'] ? $cateInfo['name'] : lang('product_category'),

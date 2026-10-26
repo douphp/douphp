@@ -82,6 +82,11 @@ $_LANG['cloud_systemfile_wrong'] = '无法修改系统配置文件';
 $_LANG['cloud_files_wrong'] = '文件拷贝失败：d%（请检查目录写入权限后重试）';
 $_LANG['cloud_files_wrong_count'] = '共 d% 个文件拷贝失败（仅展示前 10 条，详见服务器错误日志）';
 
+// 模块 manifest / 版本来源（模块版本链接化）
+$_LANG['cloud_module_version_missing'] = '缺少模块版本信息，请从官网后台重新获取安装/升级链接';
+$_LANG['cloud_module_manifest_missing'] = '模块包缺少 _action/manifest.php，请重新打包';
+$_LANG['cloud_module_mini_version_missing_log'] = '未提供最低系统版本，跳过版本门槛校验';
+
 // 在线安装多步流程（cloud/install）
 $_LANG['cloud_install_retry'] = '重新安装';
 $_LANG['cloud_install_session_missing'] = '安装会话已过期或不存在，请返回安装入口重新发起';
@@ -135,6 +140,8 @@ $_LANG['cloud_extend_need_module_label'] = '支持模块：';
 $_LANG['cloud_extend_preview_theme'] = '预览模板';
 $_LANG['cloud_extend_download_count'] = '下载量：';
 $_LANG['cloud_extend_miniprogram_badge'] = '适配小程序';
+$_LANG['cloud_extend_state_installed'] = '已安装';
+$_LANG['cloud_extend_state_install'] = '未安装';
 $_LANG['cloud_extend_update_time_label'] = '更新时间：';
 $_LANG['cloud_extend_min_version_label'] = '最低版本要求：';
 $_LANG['cloud_extend_detail'] = '详细信息';

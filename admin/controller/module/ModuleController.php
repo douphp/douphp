@@ -63,11 +63,19 @@ class ModuleController extends BaseController
         $payload = $this->moduleService->buildModuleIndexData($systemSign);
         $localsite = isset($payload['localsite']) ? $payload['localsite'] : '';
         $cloudExtend = $this->cloudService->fetchExtendList('module', $request->get(), $localsite);
+        $cloudExtend = $this->moduleService->attachExtendGroups($cloudExtend);
+        $groups = is_array($cloudExtend) && isset($cloudExtend['groups']) ? $cloudExtend['groups'] : array();
 
         return $this->view('module.htm', [
             'ur_here' => lang('module'),
             'rec' => 'default',
             'cloud_extend' => $cloudExtend,
+            'cloud_extend_groups' => $groups,
+            'cloud_extend_hide_min_version' => true,
+            // 模块页按子分类分组展示，筛选栏（适配系统）在分组视图下无意义，直接隐藏
+            'cloud_extend_hide_filter' => true,
+            // 已安装 / 未安装 / 待更新 三态卡片差异（仅模块页）
+            'cloud_extend_show_state' => true,
             'cloud_extend_error' => $cloudExtend === null ? lang('cloud_connect_failed') : '',
         ]);
     }

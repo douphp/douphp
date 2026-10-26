@@ -205,44 +205,39 @@ class ProductService extends BaseService
         if ($metadataPlan !== null) {
             $data['metadata'] = $metadataPlan['json'];
         }
-        $languageDrafts = $this->languageDraft->drafts($data, array('title', 'content', 'keywords', 'description'));
+        $languagePlan = $this->languageDraft->begin('product', $data, 0, $adminId);
         unset($data['language_draft']);
 
-        $newId = (int) DB::transaction(function () use ($data, $image, $draftToken, $adminId, $metadataPlan, $languageDrafts) {
-            $product = Product::create($data);
-            if (!$product) {
-                throw new DomainException(lang('illegal'), route('admin.product'));
-            }
-            $newId = (int) $product->getKey();
-            if ($newId <= 0) {
-                throw new DomainException(lang('operation_failed'));
-            }
+        try {
+            $newId = (int) DB::transaction(function () use ($data, $image, $draftToken, $adminId, $metadataPlan, $languagePlan) {
+                $product = Product::create($data);
+                if (!$product) {
+                    throw new DomainException(lang('illegal'), route('admin.product'));
+                }
+                $newId = (int) $product->getKey();
+                if ($newId <= 0) {
+                    throw new DomainException(lang('operation_failed'));
+                }
 
-            $this->languageDraft->save('product', $newId, $languageDrafts);
-            attachment()->claimByToken('product', $draftToken, $newId, 'admin', $adminId);
-            $this->metadataCommit($metadataPlan, $newId, $adminId);
-            if ($image !== '' && attachment()->adopt('product', $image, $newId, 'admin', $adminId) < 1) {
-                throw new DomainException(lang('file_claim_failed'));
-            }
+                $this->languageDraft->commit($languagePlan, $newId, $adminId);
+                attachment()->claimByToken('product', $draftToken, $newId, 'admin', $adminId);
+                $this->metadataCommit($metadataPlan, $newId, $adminId);
+                if ($image !== '' && attachment()->adopt('product', $image, $newId, 'admin', $adminId) < 1) {
+                    throw new DomainException(lang('file_claim_failed'));
+                }
 
-            return $newId;
-        });
+                return $newId;
+            });
+        } catch (\Exception $e) {
+            $this->languageDraft->abort($languagePlan);
+            throw $e;
+        }
 
         $this->metadataPurge($metadataPlan, $newId);
+        $this->languageDraft->purge($languagePlan, $newId);
         audit()->writeAdminLog($adminId, AdminLogAction::CREATE, 1, (string) $data['title']);
 
         return $newId;
-    }
-
-    /**
-     * 编辑页原生字段多语言草稿初值（供 hidden 渲染）。
-     *
-     * @param int $id
-     * @return array
-     */
-    public function buildProductLanguageDrafts($id)
-    {
-        return $this->languageDraft->load('product', (int) $id, array('title', 'content', 'keywords', 'description'));
     }
 
     /**
@@ -300,7 +295,7 @@ class ProductService extends BaseService
         }
 
         $metadataPlan = $this->metadataBegin('product', $data, $id, $this->metadataExistingRaw($product), $adminId);
-        $languageDrafts = $this->languageDraft->drafts($data, array('title', 'content', 'keywords', 'description'));
+        $languagePlan = $this->languageDraft->begin('product', $data, $id, $adminId);
         unset($data['language_draft']);
         $image = attachment()->store('product', $id, UploadedFile::fromGlobals('image'), 'main', AttachmentUploadOptions::create()->withThumbnail(Config::get('site.thumb_width', 0), Config::get('site.thumb_height', 0))->withUploader('admin', $adminId));
         $dou_user = (Config::get('features.user', false) && user()) ? user() : null;
@@ -321,17 +316,19 @@ class ProductService extends BaseService
         }
 
         try {
-            DB::transaction(function () use ($product, $data, $metadataPlan, $id, $adminId, $languageDrafts) {
+            DB::transaction(function () use ($product, $data, $metadataPlan, $id, $adminId, $languagePlan) {
                 $product->fill($data, 'update')->save();
-                $this->languageDraft->save('product', $id, $languageDrafts);
+                $this->languageDraft->commit($languagePlan, $id, $adminId);
                 $this->metadataCommit($metadataPlan, $id, $adminId);
             });
         } catch (\Exception $e) {
             $this->metadataAbort($metadataPlan);
+            $this->languageDraft->abort($languagePlan);
             throw $e;
         }
 
         $this->metadataPurge($metadataPlan, $id);
+        $this->languageDraft->purge($languagePlan, $id);
         audit()->writeAdminLog($adminId, AdminLogAction::UPDATE, 1, (string) $data['title']);
     }
 

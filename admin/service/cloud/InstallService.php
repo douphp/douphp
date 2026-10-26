@@ -112,7 +112,7 @@ class InstallService extends BaseService
     /**
      * 步骤 1：版本校验 + 重复安装校验 + system 授权前置校验。
      *
-     * @param array $params 至少包含 type / cloud_id / mode / version
+     * @param array $params 至少包含 type / cloud_id / mode / version / mini_version
      * @return array { ok: bool, error: string, logs: string[] }
      */
     public function runPreflight(array $params)
@@ -121,6 +121,7 @@ class InstallService extends BaseService
         $cloudId = isset($params['cloud_id']) ? (string) $params['cloud_id'] : '';
         $mode = isset($params['mode']) ? (string) $params['mode'] : 'install';
         $version = isset($params['version']) ? (string) $params['version'] : '';
+        $miniVersion = isset($params['mini_version']) ? (string) $params['mini_version'] : '';
         $authStatus = isset($params['auth_status']) ? (string) $params['auth_status'] : 'ok';
 
         $logs = array();
@@ -169,8 +170,27 @@ class InstallService extends BaseService
             }
         }
 
-        if ($version !== '') {
-            $wrong = $this->checkMiniVersionSupport($version);
+        if ($type === 'module') {
+            // 模块版本是账本/门卫的必需输入：非 local 缺失直接失败；local 允许为空（不写账本）
+            if ($mode !== 'local' && $version === '') {
+                @unlink($this->cacheDir . $cloudId . '.zip');
+                return array('ok' => false, 'error' => lang('cloud_module_version_missing'), 'logs' => $logs);
+            }
+            if ($mode !== 'local') {
+                if ($miniVersion !== '') {
+                    $wrong = $this->checkMiniVersionSupport($miniVersion);
+                    if ($wrong) {
+                        @unlink($this->cacheDir . $cloudId . '.zip');
+                        return array('ok' => false, 'error' => $this->joinMessages($wrong), 'logs' => $logs);
+                    }
+                } else {
+                    $logs[] = lang('cloud_module_mini_version_missing_log');
+                }
+            }
+        } elseif ($mode !== 'local' && ($miniVersion !== '' || $version !== '')) {
+            // 非模块保持旧口径：优先 mini_version，缺失时回退 version
+            $gateVersion = $miniVersion !== '' ? $miniVersion : $version;
+            $wrong = $this->checkMiniVersionSupport($gateVersion);
             if ($wrong) {
                 @unlink($this->cacheDir . $cloudId . '.zip');
                 return array('ok' => false, 'error' => $this->joinMessages($wrong), 'logs' => $logs);
@@ -241,29 +261,6 @@ class InstallService extends BaseService
             defined('API_DIR') ? API_DIR : 'api',
             defined('MINIPROGRAM_DIR') ? MINIPROGRAM_DIR : 'miniprogram',
         );
-    }
-
-    /**
-     * 记录模块包版本（T6）：从包解压目录 _update/version.php 读元信息，写入 dou_config.module_version。
-     *
-     * 仅用于「安装模式」成功后记录；「更新模式」由包内升级载荷自行完成（载荷先于本流程收尾执行）。
-     *
-     * @param string $cloudId
-     * @param string $itemDir 包解压目录（绝对路径，不带结尾斜杠）
-     * @return void
-     */
-    private function recordModuleVersionFromPackage($cloudId, $itemDir)
-    {
-        $metaFile = rtrim(str_replace('\\', '/', (string) $itemDir), '/') . '/_update/version.php';
-        if (!is_file($metaFile)) {
-            return;
-        }
-        $meta = include $metaFile;
-        if (!is_array($meta) || empty($meta['version'])) {
-            return;
-        }
-        $module = isset($meta['module']) && (string) $meta['module'] !== '' ? (string) $meta['module'] : (string) $cloudId;
-        $this->updateState->recordModuleVersion($module, (string) $meta['version']);
     }
 
     /**
@@ -409,6 +406,30 @@ class InstallService extends BaseService
     }
 
     /**
+     * 该目标是否需要创建升级还原点。
+     *
+     * 口径（与 {@see runSnapshot()} 一致，供控制器裁剪安装步骤列表）：
+     * - 系统包 update / patch；
+     * - 模块 / 模板 / 插件 update。
+     * - 全新安装（mode=install）、本地安装（mode=local）与小程序一律不建：
+     *   安装不覆盖既有站点数据，无需回滚点，也不应出现还原点相关提示。
+     *
+     * @param string $type
+     * @param string $mode
+     * @return bool
+     */
+    public function needsSnapshot($type, $mode)
+    {
+        $type = (string) $type;
+        $mode = (string) $mode;
+        if ($type === 'system') {
+            return $mode === 'update' || $mode === 'patch';
+        }
+
+        return in_array($type, array('module', 'theme', 'plugin'), true) && $mode === 'update';
+    }
+
+    /**
      * 步骤 3.5：创建升级还原点（unzip 与 apply 之间）。
      *
      * 系统更新（system + update/patch）建 system 域全量还原点；模块 / 主题 / 插件更新
@@ -443,13 +464,15 @@ class InstallService extends BaseService
         $mode = isset($params['mode']) ? (string) $params['mode'] : 'install';
         $installId = isset($params['install_id']) ? (string) $params['install_id'] : '';
 
-        $isSystem = ($type === 'system' && ($mode === 'update' || $mode === 'patch'));
-        $isModule = ($type === 'module' && $mode === 'update');
-        $isTheme = ($type === 'theme' && $mode === 'update');
-        $isPlugin = ($type === 'plugin' && $mode === 'update');
-        if (!$isSystem && !$isModule && !$isTheme && !$isPlugin) {
+        // 还原点只服务「升级」：全新安装等场景既不提示也不落盘，直接放行到 apply
+        if (!$this->needsSnapshot($type, $mode)) {
             return array('ok' => true, 'error' => '', 'logs' => array(), 'next_step' => self::STEP_APPLY);
         }
+
+        $isSystem = ($type === 'system');
+        $isModule = ($type === 'module');
+        $isTheme = ($type === 'theme');
+        $isPlugin = ($type === 'plugin');
 
         if (!class_exists('Dou\\Core\\Service\\Snapshot\\SnapshotService')) {
             return array('ok' => false, 'error' => (string) lang('cloud_snapshot_engine_missing'), 'logs' => array());
@@ -616,7 +639,8 @@ class InstallService extends BaseService
             Session::set('cloud_report_from_version', (string) Config::get('site.douphp_version', ''));
         }
 
-        $wrong = $this->install($type, $cloudId, $mode);
+        $version = isset($params['version']) ? (string) $params['version'] : '';
+        $wrong = $this->install($type, $cloudId, $mode, $version);
         // 附加说明无论成败都回传：失败时含快照回滚结果
         foreach ($this->installNotes as $note) {
             $logs[] = (string) $note;
@@ -701,7 +725,7 @@ class InstallService extends BaseService
         $btnBack = isset($buttons['back']) ? (string) $buttons['back'] : '';
         $btnNote = isset($buttons['note']) ? (string) $buttons['note'] : '';
 
-        $nextInstall = $this->resolveNextInstall($batch, $themeId, $mode, $version);
+        $nextInstall = $this->resolveNextInstall($batch, $themeId, $mode);
 
         return array(
             'ok' => true,
@@ -806,13 +830,14 @@ class InstallService extends BaseService
     /**
      * 根据 batch / theme_id 推断下一个待安装的 cloud_id（前端用于自动创建下一个会话）。
      *
+     * 下一项不继承当前项的 version/mini_version：由下一次 install() 的 install-resolve 实时解析。
+     *
      * @param array $batch
      * @param string $themeId
      * @param string $mode
-     * @param string $version
-     * @return array|null { type, cloud_id, mode, version, theme_id }
+     * @return array|null { type, cloud_id, mode, version, mini_version, theme_id }
      */
-    private function resolveNextInstall(array $batch, $themeId, $mode, $version)
+    private function resolveNextInstall(array $batch, $themeId, $mode)
     {
         if (!empty($batch)) {
             $next = array_shift($batch);
@@ -820,7 +845,8 @@ class InstallService extends BaseService
                 'type' => 'module',
                 'cloud_id' => (string) $next,
                 'mode' => (string) $mode,
-                'version' => (string) $version,
+                'version' => '',
+                'mini_version' => '',
                 'theme_id' => (string) $themeId,
                 'batch' => array_values($batch),
             );
@@ -830,7 +856,8 @@ class InstallService extends BaseService
                 'type' => 'theme',
                 'cloud_id' => (string) $themeId,
                 'mode' => 'install',
-                'version' => (string) $version,
+                'version' => '',
+                'mini_version' => '',
                 'theme_id' => '',
                 'batch' => array(),
             );
@@ -857,15 +884,31 @@ class InstallService extends BaseService
     }
 
     /**
-     * include 升级 / 模板初始化脚本：隔离多余输出，并把可恢复异常写入 $wrong。
-     *
-     * 脚本与本方法共享 $wrong（引用），以便脚本内 `$wrong[] = …` 仍能回传到 {@see install()}。
+     * include 旧系统 / 主题的升级或初始化脚本（保持 include_once + 可跳过错误白名单）。
      *
      * @param string $file
      * @param array $wrong
      * @return void
      */
     private function includeOptionalScript($file, array &$wrong)
+    {
+        $this->includeScriptInScope($file, array(), $wrong, true, true);
+    }
+
+    /**
+     * 在指定变量作用域内 include 可选脚本：隔离多余输出，并把异常写入 $wrong。
+     *
+     * 脚本与 $wrong 共享引用，脚本内 `$wrong[] = …` 可直接上报；$vars 经 EXTR_SKIP 注入，
+     * 不会覆盖本方法局部变量（$file / $wrong 等）。
+     *
+     * @param string $file
+     * @param array $vars 注入脚本作用域的变量
+     * @param array $wrong
+     * @param bool $once 是否 include_once
+     * @param bool $whitelist 是否豁免「可跳过」错误（仅旧系统 / 主题脚本）
+     * @return void
+     */
+    private function includeScriptInScope($file, array $vars, array &$wrong, $once = false, $whitelist = true)
     {
         if (!is_file($file)) {
             return;
@@ -875,7 +918,12 @@ class InstallService extends BaseService
         ob_start();
         $caught = null;
         try {
-            include_once $file;
+            extract($vars, EXTR_SKIP);
+            if ($once) {
+                include_once $file;
+            } else {
+                include $file;
+            }
         } catch (\Exception $e) {
             $caught = $e;
         } catch (\Throwable $e) {
@@ -889,7 +937,7 @@ class InstallService extends BaseService
         if ($caught === null) {
             return;
         }
-        if ($this->isOptionalUpdateHookError($caught)) {
+        if ($whitelist && $this->isOptionalUpdateHookError($caught)) {
             return;
         }
         $wrong[] = $caught->getMessage();
@@ -913,25 +961,108 @@ class InstallService extends BaseService
     }
 
     /**
+     * 读取并校验模块包 _action/manifest.php（模块元信息唯一来源）。
+     *
+     * flags 中 link_user_center / link_work_center / link_order_item / link_ai /
+     * no_show_menu / no_show_nav 为必备键；link_metadata（扩展字段支持声明）为可选键，
+     * 缺省按 false 处理——老模块包无此键时必须仍可安装。
+     *
+     * @param string $dir 模块包解压目录或站点根 _action/（结尾斜杠可有可无）
+     * @return array|null 合法时返回归一化数组，缺失/字段非法返回 null
+     */
+    private function readModuleManifest($dir)
+    {
+        $dir = rtrim(str_replace('\\', '/', (string) $dir), '/');
+        $file = $dir . '/manifest.php';
+        if (!is_file($file)) {
+            return null;
+        }
+        $manifest = include $file;
+        if (!is_array($manifest)) {
+            return null;
+        }
+
+        $module = isset($manifest['module']) ? (string) $manifest['module'] : '';
+        $type = isset($manifest['type']) ? (string) $manifest['type'] : '';
+        if (!preg_match('/^[a-z][a-z0-9_]*$/', $module) || !in_array($type, array('column', 'single'), true)) {
+            return null;
+        }
+        if (!isset($manifest['install']) || !is_array($manifest['install'])
+            || !isset($manifest['flags']) || !is_array($manifest['flags'])) {
+            return null;
+        }
+
+        $installKeys = array('display', 'home_display', 'defined', 'nav');
+        $flagKeys = array(
+            'link_user_center',
+            'link_work_center',
+            'link_order_item',
+            'link_ai',
+            'no_show_menu',
+            'no_show_nav',
+        );
+        // 后加的开关桶：缺省视为 false（老模块包无此键仍可安装），显式声明时必须是 bool。
+        $optionalFlagKeys = array('link_metadata');
+        $install = array();
+        foreach ($installKeys as $key) {
+            if (!array_key_exists($key, $manifest['install']) || !is_bool($manifest['install'][$key])) {
+                return null;
+            }
+            $install[$key] = $manifest['install'][$key];
+        }
+        $flags = array();
+        foreach ($flagKeys as $key) {
+            if (!array_key_exists($key, $manifest['flags']) || !is_bool($manifest['flags'][$key])) {
+                return null;
+            }
+            $flags[$key] = $manifest['flags'][$key];
+        }
+        foreach ($optionalFlagKeys as $key) {
+            if (!array_key_exists($key, $manifest['flags'])) {
+                $flags[$key] = false;
+                continue;
+            }
+            if (!is_bool($manifest['flags'][$key])) {
+                return null;
+            }
+            $flags[$key] = $manifest['flags'][$key];
+        }
+
+        return array(
+            'module' => $module,
+            'type' => $type,
+            'install' => $install,
+            'flags' => $flags,
+        );
+    }
+
+    /**
      * 安装实际处理：根据 type / mode 完成文件拷贝、SQL 注入、配置文件改写。
      *
      * @param string $type
      * @param string $cloudId
      * @param string $mode
+     * @param string $moduleVersion 云端下发的模块版本（8 位 YYYYMMDD；非模块忽略）
      * @return array|null 失败时返回错误信息数组，成功时返回 null
      */
-    public function install($type, $cloudId, $mode)
+    public function install($type, $cloudId, $mode, $moduleVersion = '')
     {
         $prefix = DB::getPrefix();
         $sql = '';
         $moduleType = '';
-        $operate = array();
         $wrong = array();
+        $preApplyFailed = false;
+        $moduleFilesPrepared = false;
+        $moduleManifest = null;
+        $moduleIdMismatchNote = '';
+        $sqlAttempted = false;
         $this->installNotes = array();
 
         $itemZip = $this->cacheDir . $cloudId . '.zip';
         $itemDir = $this->cacheDir . $cloudId;
         $sqlInstallFile = $this->rootDir . 'storage/backup/' . $cloudId . '.sql';
+        $actionDir = $this->rootDir . '_action/';
+        $actionInstallFile = $actionDir . 'install.php';
         $updateDir = $this->rootDir . '_update/';
         $updateFile = $updateDir . 'action.php';
         $themeInitDir = $this->rootDir . 'theme/' . $cloudId . '/_init/';
@@ -939,11 +1070,33 @@ class InstallService extends BaseService
         $themeInitImage = $themeInitDir . 'images/';
         $installedDir = STORAGE_PATH . 'install/records/';
 
-        if (file_exists($updateDir)) {
+        if ($type === 'module') {
+            // 先校验包内 manifest，再动站点文件：缺失/字段非法时不拷贝、不清除站点 _action
+            $moduleManifest = $this->readModuleManifest($itemDir . '/_action');
+            if ($moduleManifest === null) {
+                $wrong[] = lang('cloud_module_manifest_missing');
+                $preApplyFailed = true;
+            }
+        }
+
+        if ($type === 'module' && !$preApplyFailed) {
+            // 模块包统一 _action/；站点根 _update/ 归系统升级专用，模块流程不得触碰
+            if (is_dir($actionDir)) {
+                FileHelper::delDir($actionDir);
+            }
+            // 误带的旧目录只在解压临时目录内移除，避免覆盖站点系统升级物料
+            if (is_dir($itemDir . '/_update/')) {
+                FileHelper::delDir($itemDir . '/_update/');
+            }
+        } elseif ($type !== 'module' && file_exists($updateDir)) {
             FileHelper::delDir($updateDir);
         }
 
-        $copyFailed = $this->copyExtractedFiles($type, $cloudId, $mode, $itemDir, $installedDir);
+        $copyFailed = array();
+        if (!$preApplyFailed) {
+            $copyFailed = $this->copyExtractedFiles($type, $cloudId, $mode, $itemDir, $installedDir);
+            $moduleFilesPrepared = ($type === 'module');
+        }
         if ($copyFailed) {
             // 拷贝失败必须进入 $wrong：否则主题 / 插件更新会「半更新」被记为成功，
             // 失败快照回滚分支永远不会触发。仅逐条展示前 10 个，避免大目录刷屏。
@@ -961,44 +1114,75 @@ class InstallService extends BaseService
         }
 
         if ($type === 'module') {
-            $moduleFlags = array(
-                'link_user_center' => false,
-                'link_work_center' => false,
-                'link_order_item' => false,
-                'link_ai' => false,
-                'no_show_menu' => false,
-                'no_show_nav' => false,
-            );
-            if ($mode !== 'update') {
-                if (file_exists($sqlInstallFile)) {
-                    $sql = file_get_contents($sqlInstallFile);
-                    $sql = preg_replace('/dou_/Ums', $prefix, $sql);
-                    if (DB::fnExecute($sql)) {
-                        $moduleType = strpos($sql, $cloudId . '_category') === false ? 'single_module' : 'column_module';
-                        $operate = $this->detectConfigOperates($sql);
-                        if ($operate) {
-                            $this->changeSystemConfig($cloudId, $operate);
-                        }
-                        $moduleFlags = $this->detectModuleFlags($sql);
-                    } else {
-                        $wrong[] = lang('cloud_sql_wrong');
-                    }
+            // 包内 manifest 已在拷贝前校验；缺失/非法时 $preApplyFailed 为 true，这里不再触碰站点
+            if ($moduleManifest !== null) {
+                $manifest = $moduleManifest;
+                if ($manifest['module'] !== $cloudId) {
+                    $moduleIdMismatchNote = '模块标识与 cloud_id 不一致：' . $manifest['module']
+                        . ' != ' . $cloudId . '（按 manifest module 记账）';
                 }
-                if (strpos($sql, 'CREATE-NAV') !== false) {
-                    $this->changeNav($cloudId, $moduleType);
-                }
-            } else {
-                $this->includeOptionalScript($updateFile, $wrong);
-            }
+                $moduleType = $manifest['type'] === 'column' ? 'column_module' : 'single_module';
+                $moduleFlags = $manifest['flags'];
 
-            if ($moduleType !== '') {
-                if (!$this->changeModulePhp($cloudId, $moduleType, false, $moduleFlags['link_user_center'], $moduleFlags['link_work_center'], $moduleFlags['no_show_menu'], $moduleFlags['no_show_nav'], $moduleFlags['link_order_item'], $moduleFlags['link_ai'])) {
-                    $wrong[] = lang('cloud_systemfile_wrong');
-                }
-                $this->changeMiniprogramConfigFile();
-                // T6：模块「安装」成功后记录包版本（「更新」模式由包内升级载荷自行记录）
                 if ($mode !== 'update') {
-                    $this->recordModuleVersionFromPackage($cloudId, $itemDir);
+                    // 拷贝失败等前置错误：不再写配置/导航/初始化，交给回滚处理
+                    if (!$wrong) {
+                        if (file_exists($sqlInstallFile)) {
+                            $sqlAttempted = true;
+                            $sql = file_get_contents($sqlInstallFile);
+                            $sql = preg_replace('/dou_/Ums', $prefix, $sql);
+                            if (!DB::fnExecute($sql)) {
+                                $wrong[] = lang('cloud_sql_wrong');
+                            }
+                        }
+
+                        if (!$wrong) {
+                            $operate = array();
+                            if ($manifest['install']['display']) {
+                                $operate[] = 'CREATE-CONFIG-DISPLAY';
+                            }
+                            if ($manifest['install']['home_display']) {
+                                $operate[] = 'CREATE-CONFIG-HOME-DISPLAY';
+                            }
+                            if ($manifest['install']['defined']) {
+                                $operate[] = 'CREATE-CONFIG-DEFINED';
+                            }
+                            if ($operate) {
+                                $this->changeSystemConfig($cloudId, $operate);
+                            }
+                            if ($manifest['install']['nav']) {
+                                $this->changeNav($cloudId, $moduleType);
+                            }
+
+                            if (!$this->changeModulePhp($cloudId, $moduleType, false, $moduleFlags['link_user_center'], $moduleFlags['link_work_center'], $moduleFlags['no_show_menu'], $moduleFlags['no_show_nav'], $moduleFlags['link_order_item'], $moduleFlags['link_ai'], $moduleFlags['link_metadata'])) {
+                                $wrong[] = lang('cloud_systemfile_wrong');
+                            }
+                            if (!$wrong) {
+                                $this->changeMiniprogramConfigFile();
+                            }
+
+                            // 全新安装 / 本地安装：执行模块自带的安装初始化脚本（_action/install.php）
+                            if (!$wrong && is_file($actionInstallFile)) {
+                                $moduleMeta = array(
+                                    'module' => $manifest['module'],
+                                    'version' => (string) $moduleVersion,
+                                    'min_core' => '',
+                                );
+                                $this->runModuleInstallInit($cloudId, $moduleType, $actionDir, $actionInstallFile, $wrong, $moduleMeta, (string) $moduleVersion);
+                            }
+
+                            // 模块「安装」成功后记录云端下发的版本；local 不写账本
+                            if (!$wrong && $mode !== 'local') {
+                                if (!preg_match('/^\d{8}$/', (string) $moduleVersion)) {
+                                    $wrong[] = lang('cloud_module_version_missing');
+                                } else {
+                                    $this->updateState->recordModuleVersion($manifest['module'], (string) $moduleVersion);
+                                }
+                            }
+                        }
+                    }
+                } elseif (!$wrong) {
+                    $this->runModuleUpgrade($actionDir, $wrong, $manifest['module'], (string) $moduleVersion);
                 }
             }
         } elseif ($type === 'system' || $type === 'miniprogram' || $type === 'dou') {
@@ -1010,19 +1194,34 @@ class InstallService extends BaseService
             }
         }
 
-        if ($wrong) {
+        if ($wrong && !$preApplyFailed) {
             // 模块 / 主题 / 插件「更新」失败优先快照回滚；模块无快照时回退 clearModule
             // 卸载语义（含安装失败）；主题 / 插件与其它类型保持现场不动。
+            // manifest 预校验失败时站点尚未改动，禁止 clearModule 破坏式清理。
             $restoreState = $this->tryRestoreUpdateSnapshot($type, $mode, $cloudId);
             if ($restoreState === 'none' && $type === 'module' && empty($this->installNotes)) {
-                $this->clearModule($cloudId);
+                // 只有真正尝试过模块 SQL 的安装失败才需要 DROP；纯拷贝失败不得误删同名既有表
+                $this->clearModule($cloudId, $mode === 'update' || $sqlAttempted);
             }
+        }
+        // 提示类日志放在回滚判定之后，避免误伤“无快照时是否 clearModule”的既有语义
+        if ($moduleIdMismatchNote !== '') {
+            $this->installNotes[] = $moduleIdMismatchNote;
         }
         @unlink($itemZip);
         FileHelper::delDir($itemDir);
         @unlink($sqlInstallFile);
-        FileHelper::delDir($updateDir);
-        FileHelper::delDir($themeInitDir);
+        if ($type === 'module') {
+            // 模块流程只清理本次已准备的 _action/；预校验失败时站点 _action/ 未被触碰
+            if ($moduleFilesPrepared) {
+                FileHelper::delDir($actionDir);
+            }
+        } else {
+            FileHelper::delDir($updateDir);
+        }
+        if (!$preApplyFailed) {
+            FileHelper::delDir($themeInitDir);
+        }
 
         if ($wrong) {
             return $wrong;
@@ -1033,6 +1232,102 @@ class InstallService extends BaseService
         }
 
         return null;
+    }
+
+    /**
+     * 模块更新：由核心 ModuleRunner 统一执行站点根 _action/upgrade.php。
+     *
+     * 站点根 _update/ 归系统升级专用；降级拒绝属「跳过执行」语义，不触发回滚，
+     * 但写入 installNotes 让步骤日志可见。
+     *
+     * @param string $materialsRoot 站点根 _action/（结尾带 /）
+     * @param array $wrong
+     * @param string $moduleId 模块标识（manifest module）
+     * @param string $moduleVersion 云端下发的模块版本
+     * @return void
+     */
+    private function runModuleUpgrade($materialsRoot, array &$wrong, $moduleId = '', $moduleVersion = '')
+    {
+        if (!preg_match('/^\d{8}$/', (string) $moduleVersion)) {
+            $wrong[] = lang('cloud_module_version_missing');
+            return;
+        }
+        if (!is_dir($materialsRoot)) {
+            return;
+        }
+        if (!class_exists('Dou\\Core\\Service\\Upgrade\\ModuleRunner')) {
+            $wrong[] = '模块升级失败：主系统缺少模块升级引擎 core/service/upgrade/ModuleRunner.php，请先升级主系统后再更新本模块。';
+            return;
+        }
+
+        $bufferLevel = ob_get_level();
+        ob_start();
+        $caught = null;
+        try {
+            $runner = new \Dou\Core\Service\Upgrade\ModuleRunner($this->rootDir, $materialsRoot);
+            $runner->runUpgrade($moduleId, $moduleVersion);
+        } catch (\Exception $e) {
+            $caught = $e;
+        } catch (\Throwable $e) {
+            // PHP 7+ Error（如 class not found）不继承 Exception；5.6 无 Throwable，本分支不匹配。
+            $caught = $e;
+        }
+        while (ob_get_level() > $bufferLevel) {
+            ob_end_clean();
+        }
+
+        if ($caught === null) {
+            return;
+        }
+        if ($this->isOptionalUpdateHookError($caught)) {
+            if (strpos($caught->getMessage(), '已拒绝执行降级') !== false) {
+                $this->installNotes[] = $caught->getMessage();
+            }
+            return;
+        }
+        $wrong[] = $caught->getMessage();
+    }
+
+    /**
+     * 模块安装初始化：执行站点根 _action/install.php（仅全新安装 / 本地安装）。
+     *
+     * 注入变量：$cloudId、$moduleType、$prefix、$moduleMeta、$moduleId、$moduleVersion、
+     * $materialsRoot（供 resources/ 引用）、$wrong（引用共享，可直接追加错误）。
+     *
+     * @param string $cloudId
+     * @param string $moduleType
+     * @param string $actionDir 站点根 _action/（结尾带 /）
+     * @param string $file
+     * @param array $wrong
+     * @param array $moduleMeta 由 manifest + 云端版本构造的元信息
+     * @param string $moduleVersion 云端下发的模块版本
+     * @return void
+     */
+    private function runModuleInstallInit($cloudId, $moduleType, $actionDir, $file, array &$wrong, array $moduleMeta = array(), $moduleVersion = '')
+    {
+        $moduleId = isset($moduleMeta['module']) && (string) $moduleMeta['module'] !== ''
+            ? (string) $moduleMeta['module']
+            : (string) $cloudId;
+        $moduleVersion = (string) $moduleVersion;
+        if (!isset($moduleMeta['module']) || (string) $moduleMeta['module'] === '') {
+            $moduleMeta['module'] = $moduleId;
+        }
+        if (!isset($moduleMeta['version'])) {
+            $moduleMeta['version'] = $moduleVersion;
+        }
+        if (!isset($moduleMeta['min_core'])) {
+            $moduleMeta['min_core'] = '';
+        }
+
+        $this->includeScriptInScope($file, array(
+            'cloudId' => (string) $cloudId,
+            'moduleType' => (string) $moduleType,
+            'prefix' => DB::getPrefix(),
+            'moduleMeta' => $moduleMeta,
+            'moduleId' => $moduleId,
+            'moduleVersion' => $moduleVersion,
+            'materialsRoot' => $actionDir,
+        ), $wrong, false, false);
     }
 
     /**
@@ -1173,18 +1468,18 @@ class InstallService extends BaseService
                 $siteTheme = (string) Config::get('site.site_theme', '');
                 if (Config::get('site.update_overwritten_theme', false) || $siteTheme === '' || $siteTheme === 'default') {
                     // 覆盖全部文件：「升级时覆盖模板」开启，或站点使用默认模板（默认模板不受开关保护，始终覆盖）
-                    FileHelper::copyDir($itemDir, $this->rootDir);
-                } else {
-                    // 关闭「升级时覆盖模板」仅保护非默认模板：跳过当前模板目录中已存在的文件，
-                    // 其余文件（含默认模板 theme/default）仍无条件覆盖
-                    FileHelper::copyDir($itemDir, $this->rootDir, false, true, false, '/theme/' . $siteTheme . '/');
+                    return $this->copyDirCollectFailures($itemDir, $this->rootDir, '');
                 }
-            } else {
-                FileHelper::copyDir($itemDir, $this->rootDir, false, true);
+                // 关闭「升级时覆盖模板」仅保护非默认模板：跳过当前模板目录中已存在的文件，
+                // 其余文件（含默认模板 theme/default）仍无条件覆盖
+                return $this->copyDirCollectFailures($itemDir, $this->rootDir, '', '/theme/' . $siteTheme . '/', true, false);
             }
-        } else {
-            FileHelper::copyDir($itemDir, $this->rootDir);
+
+            // 全新安装：保持原 FileHelper::copyDir(..., false, true) 语义，已存在目标文件不覆盖
+            return $this->copyDirCollectFailures($itemDir, $this->rootDir, '', '', false, true);
         }
+
+        FileHelper::copyDir($itemDir, $this->rootDir);
 
         return array();
     }
@@ -1199,9 +1494,12 @@ class InstallService extends BaseService
      * @param string $sourceDir 源目录（绝对路径）
      * @param string $destinationDir 目标目录（绝对路径）
      * @param string $relative 相对站点根的路径前缀（含结尾 /，用于错误提示）
+     * @param string $skipDir 仅对目标路径命中的文件应用“已存在则跳过”
+     * @param bool $onlyMissingInSkipDir true 时只跳过 $skipDir 内已存在的文件（模块更新保护当前模板）
+     * @param bool $skipExisting true 时所有已存在的目标文件都跳过（模块全新安装语义）
      * @return array 失败项的站点相对路径列表（目录创建失败时记目录本身）
      */
-    private function copyDirCollectFailures($sourceDir, $destinationDir, $relative)
+    private function copyDirCollectFailures($sourceDir, $destinationDir, $relative, $skipDir = '', $onlyMissingInSkipDir = false, $skipExisting = false)
     {
         $failures = array();
         if (!@is_dir($sourceDir)) {
@@ -1222,8 +1520,23 @@ class InstallService extends BaseService
             $target = rtrim($destinationDir, '/\\') . '/' . $file;
             $rel = $relative . $file;
             if (@is_dir($source) && !is_link($source)) {
-                $failures = array_merge($failures, $this->copyDirCollectFailures($source, $target, $rel . '/'));
-            } elseif (!@copy($source, $target) || !@is_file($target)) {
+                $failures = array_merge($failures, $this->copyDirCollectFailures(
+                    $source,
+                    $target,
+                    $rel . '/',
+                    $skipDir,
+                    $onlyMissingInSkipDir,
+                    $skipExisting
+                ));
+                continue;
+            }
+
+            $inSkipDir = $onlyMissingInSkipDir && $skipDir !== ''
+                && strpos(str_replace('\\', '/', $target), str_replace('\\', '/', $skipDir)) !== false;
+            if (($skipExisting || $inSkipDir) && file_exists($target)) {
+                continue;
+            }
+            if (!@copy($source, $target) || !@is_file($target)) {
                 $failures[] = $rel;
             }
         }
@@ -1264,46 +1577,6 @@ class InstallService extends BaseService
                 @unlink($sourceImageDir . $file);
             }
         }
-    }
-
-    /**
-     * 根据 SQL 文本检测 CREATE-CONFIG-* 操作集合。
-     *
-     * @param string $sql
-     * @return array
-     */
-    private function detectConfigOperates($sql)
-    {
-        $operate = array();
-        if (strpos($sql, 'CREATE-CONFIG-DISPLAY') !== false) {
-            $operate[] = 'CREATE-CONFIG-DISPLAY';
-        }
-        if (strpos($sql, 'CREATE-CONFIG-HOME-DISPLAY') !== false) {
-            $operate[] = 'CREATE-CONFIG-HOME-DISPLAY';
-        }
-        if (strpos($sql, 'CREATE-CONFIG-DEFINED') !== false) {
-            $operate[] = 'CREATE-CONFIG-DEFINED';
-        }
-
-        return $operate;
-    }
-
-    /**
-     * 根据 SQL 文本解析模块开关标志（LINK-*、NO-SHOW-*）。
-     *
-     * @param string $sql
-     * @return array
-     */
-    private function detectModuleFlags($sql)
-    {
-        return array(
-            'link_user_center' => strpos($sql, 'LINK-USER-CENTER') !== false,
-            'link_work_center' => strpos($sql, 'LINK-WORK-CENTER') !== false,
-            'link_order_item' => strpos($sql, 'LINK-ORDER-ITEM') !== false,
-            'link_ai' => strpos($sql, 'LINK-AI') !== false,
-            'no_show_menu' => strpos($sql, 'NO-SHOW-MENU') !== false,
-            'no_show_nav' => strpos($sql, 'NO-SHOW-NAV') !== false,
-        );
     }
 
     /**
@@ -1503,6 +1776,13 @@ class InstallService extends BaseService
     /**
      * 改写 config/module.php：插入或删除模块标识与开关项。
      *
+     * 空桶（无任何模块命中的开关键）不写入文件，读取侧对缺失键按空数组处理。
+     *
+     * 依赖型开关桶（目前仅 link_ai）还要看宿主模块是否在位：link_ai 记的是「AI 可挂载面」，
+     * 宿主 ai 模块没装时写入或保留都是脏数据（账本里凭空出现不会生效的挂载项）。故安装时
+     * 宿主不在位则跳过写入，卸载宿主时整桶清空；宿主装回来时由 ai 模块 _action/install.php
+     * 按「已安装模块 ∩ 支持清单」重建。
+     *
      * @param string $cloudId
      * @param string $type column_module|single_module（删除时可为空）
      * @param bool $del true 表示从配置文件移除模块
@@ -1512,11 +1792,12 @@ class InstallService extends BaseService
      * @param bool $noShowNav
      * @param bool $linkOrderItem
      * @param bool $linkAi
+     * @param bool $linkMetadata 模块自声明支持扩展字段（manifest.flags.link_metadata）
      * @return bool|null 写入成功返回 true
      */
-    public function changeModulePhp($cloudId, $type = '', $del = false, $linkUserCenter = false, $linkWorkCenter = false, $noShowMenu = false, $noShowNav = false, $linkOrderItem = false, $linkAi = false)
+    public function changeModulePhp($cloudId, $type = '', $del = false, $linkUserCenter = false, $linkWorkCenter = false, $noShowMenu = false, $noShowNav = false, $linkOrderItem = false, $linkAi = false, $linkMetadata = false)
     {
-        // 读磁盘账本原始数据（仅 8 桶键），不读 Config('module') —— 后者经 CoreModuleSettings::build
+        // 读磁盘账本原始数据（仅 9 桶键），不读 Config('module') —— 后者经 CoreModuleSettings::build
         // 附带了运行时派生的 all_module，写回会污染 config/module.php。
         $ledger = (array) app(ModuleSettingReader::class)->read();
 
@@ -1526,6 +1807,7 @@ class InstallService extends BaseService
             'link_user_center',
             'link_work_center',
             'link_ai',
+            'link_metadata',
             'no_show_menu',
             'no_show_nav',
             'link_order_item',
@@ -1536,6 +1818,9 @@ class InstallService extends BaseService
             $buckets[$bucket] = (isset($ledger[$bucket]) && is_array($ledger[$bucket])) ? array_values($ledger[$bucket]) : array();
         }
 
+        // 依赖型开关桶 => 宿主模块标识（语义见方法注释）
+        $bucketHosts = array('link_ai' => 'ai');
+
         if ($del) {
             foreach ($bucketKeys as $bucket) {
                 $buckets[$bucket] = array_values(array_filter(
@@ -1544,6 +1829,12 @@ class InstallService extends BaseService
                         return $value !== $cloudId;
                     }
                 ));
+            }
+            // 宿主被卸载：依赖它的桶整体失效，留着只会让账本与「已装模块」对不上
+            foreach ($bucketHosts as $bucket => $host) {
+                if ($host === $cloudId) {
+                    $buckets[$bucket] = array();
+                }
             }
         } else {
             if ($type === 'column_module') {
@@ -1566,8 +1857,13 @@ class InstallService extends BaseService
             if ($linkOrderItem) {
                 $buckets['link_order_item'][] = $cloudId;
             }
-            if ($linkAi) {
+            // 宿主未安装时不落桶：没装 AI 的站点不该出现 link_ai，等 AI 模块自己安装 / 升级时
+            // 按「已安装模块 ∩ 支持清单」重建（ai/_action/install.php、upgrade.php）。
+            if ($linkAi && $this->moduleLedgerHas($buckets, $bucketHosts['link_ai'])) {
                 $buckets['link_ai'][] = $cloudId;
+            }
+            if ($linkMetadata) {
+                $buckets['link_metadata'][] = $cloudId;
             }
         }
 
@@ -1583,6 +1879,15 @@ class InstallService extends BaseService
         foreach ($bucketKeys as $bucket) {
             if (!array_key_exists($bucket, $output)) {
                 $output[$bucket] = $buckets[$bucket];
+            }
+        }
+
+        // 空桶不落盘：开关未命中的桶（如 link_user_center / no_show_nav）写回会产生大量
+        // `'link_xxx' => array()` 噪声。读取侧（CoreModuleSettings::build）对缺失键按空数组处理，
+        // 因此这里直接剔除空桶，避免安装/卸载反复重写时把配置文件越写越脏。
+        foreach ($bucketKeys as $bucket) {
+            if (isset($output[$bucket]) && is_array($output[$bucket]) && !$output[$bucket]) {
+                unset($output[$bucket]);
             }
         }
 
@@ -1606,6 +1911,22 @@ class InstallService extends BaseService
         }
 
         return null;
+    }
+
+    /**
+     * 写入中的账本快照里，指定模块是否已安装（column_module 或 single_module 命中）。
+     *
+     * 用「写入前桶快照」而非 Config('module')：后者是 bootstrap 期快照，同一请求内刚完成的
+     * 安装 / 卸载不会反映到其中。
+     *
+     * @param array $buckets 桶快照
+     * @param string $module 模块标识
+     * @return bool
+     */
+    private function moduleLedgerHas(array $buckets, $module)
+    {
+        return in_array((string) $module, $buckets['column_module'], true)
+            || in_array((string) $module, $buckets['single_module'], true);
     }
 
     /**
@@ -1671,9 +1992,10 @@ class InstallService extends BaseService
      * 卸载模块清单：根据 installed 文件回滚拷贝过的文件、删除表、重置配置。
      *
      * @param string $cloudId
+     * @param bool $dropTables 是否执行 installed 清单中的 DROP TABLE（安装拷贝失败时传 false，避免误删既有表）
      * @return void
      */
-    public function clearModule($cloudId)
+    public function clearModule($cloudId, $dropTables = true)
     {
         $prefix = DB::getPrefix();
         $moduleInstalledFile = STORAGE_PATH . 'install/records/' . $cloudId . '.installed.php';
@@ -1705,10 +2027,12 @@ class InstallService extends BaseService
 
             FileHelper::removeEmptyDirs($dirAbsPaths);
 
-            $installedSqlList = unserialize((string) $installed_sql_list);
-            foreach ((array) $installedSqlList as $line) {
-                $line = preg_replace('/dou_/Ums', $prefix, $line);
-                DB::query($line);
+            if ($dropTables) {
+                $installedSqlList = unserialize((string) $installed_sql_list);
+                foreach ((array) $installedSqlList as $line) {
+                    $line = preg_replace('/dou_/Ums', $prefix, $line);
+                    DB::query($line);
+                }
             }
         }
 
@@ -1821,19 +2145,16 @@ class InstallService extends BaseService
     }
 
     /**
-     * 模块还原点的模块标识：优先包内 _update/version.php 的 module 字段。
+     * 模块还原点的模块标识：优先包内 _action/manifest.php 的 module 字段。
      *
      * @param string $cloudId
      * @return string
      */
     private function snapshotModuleId($cloudId)
     {
-        $metaFile = rtrim($this->cacheDir . $cloudId, '/\\') . '/_update/version.php';
-        if (is_file($metaFile)) {
-            $meta = include $metaFile;
-            if (is_array($meta) && !empty($meta['module'])) {
-                return (string) $meta['module'];
-            }
+        $manifest = $this->readModuleManifest(rtrim($this->cacheDir . $cloudId, '/\\') . '/_action');
+        if ($manifest !== null && $manifest['module'] !== '') {
+            return (string) $manifest['module'];
         }
 
         return (string) $cloudId;

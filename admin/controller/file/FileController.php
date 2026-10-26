@@ -20,6 +20,7 @@ use Dou\Core\Facade\DB;
 use Dou\Core\Facade\Session;
 use Dou\Core\Filesystem\Storage;
 use Dou\Core\Foundation\Configuration\Config;
+use Dou\Core\Service\Attachment\AttachmentRules;
 use Dou\Core\Service\Attachment\AttachmentUploadOptions;
 use Dou\Core\Web\Http\Request;
 use Dou\Core\Web\Http\Response;
@@ -52,11 +53,8 @@ class FileController extends BaseController
         Storage::build('images/' . $module . '/');
 
         $item_id = $request->integer('item_id', 0);
-        $type = $request->alpha('type');
         // 前端组件名统一用 attachment；存储/查询层沿用历史 type=attach
-        if ($type === 'attachment') {
-            $type = 'attach';
-        }
+        $type = AttachmentRules::normalizeTypeForAdmin($request->alpha('type'));
         $target = $request->basicString('target');
         // img_width 未传时的兜底按类型区分：编辑器插图(content)用 editor_image_width，
         // 其余（相册 gallery 等主图类）用 image_width，避免两处配置混淆
@@ -109,12 +107,11 @@ class FileController extends BaseController
         } else {
             if ($type === 'attach') {
                 // 通用附件：不做图片缩放/水印，独占 images/{module}/attach/ 目录；
-                // 白名单与上限走 config/file.php 的 attach_uploads（缺失时用代码内兜底值）
-                $attach = (array) Config::get('filesystems.attach_uploads', array());
+                // 白名单与上限由 AttachmentRules 统一提供，与前台同一套口径
                 $opts = AttachmentUploadOptions::create()
                     ->withDirectory('attach')
-                    ->withAllowExtensions(isset($attach['allow_extensions']) ? (string) $attach['allow_extensions'] : 'pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv,zip,rar,7z')
-                    ->withUploadMaxKb(isset($attach['upload_max_kb']) ? (int) $attach['upload_max_kb'] : 20480)
+                    ->withAllowExtensions(AttachmentRules::baselineExtensions('attach'))
+                    ->withUploadMaxKb(AttachmentRules::platformMaxKb('attach'))
                     ->withBusinessField($field)
                     ->withUploader('admin', $admin_id);
             } else {
@@ -241,7 +238,9 @@ class FileController extends BaseController
             ->find();
 
         if (empty($file_info) || !isset($file_info['module'])) {
-            return $this->response('');
+            // 不能回空串：空串在客户端等价于「列表已空」，重复点击 / 多标签并发删除会让
+            // 已渲染的文件从界面上被误清空（删一条丢满屏），因此回 422 + 文案走提示分支
+            return $this->json(array('code' => 1, 'message' => lang('file_not_exist')), 422);
         }
 
         attachment()->delete($number);

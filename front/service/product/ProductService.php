@@ -286,10 +286,11 @@ class ProductService extends BaseService
 
         $modelList = [];
         foreach ((array) $rows as $row) {
+            $imageNumber = language()->langValue(isset($row['image']) ? $row['image'] : '', 'product', (int) $row['id'], 'image');
             $modelList[] = array(
                 'title' => $row['title'],
-                'thumb' => attachment()->url($row['image'], true),
-                'image' => attachment()->url($row['image']),
+                'thumb' => attachment()->url($imageNumber, true),
+                'image' => attachment()->url($imageNumber),
                 'cur' => $row['id'] == $currentId,
                 'url' => route('product.show', ['id' => $row['id']]),
             );

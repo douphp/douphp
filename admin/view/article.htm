@@ -106,6 +106,7 @@
      <!-- {if $rec eq 'create' || $rec eq 'edit'} 文章添加或编辑 -->
      {include file="inc/page_header.tpl"}
      <form action="{$form_action}" method="post" enctype="multipart/form-data">
+     {include file="inc/language_drafts.tpl" drafts=$lang_drafts}
       <!-- {if $form_method} --><input type="hidden" name="_method" value="{$form_method}" /><!-- {/if} -->
       <div class="form" x-data="slugApp">
        <div class="form-item">
@@ -147,6 +148,7 @@
         <div class="form-label">{$lang.thumb}</div>
         <div class="input-block">
          {include file="inc/file_image.tpl" name="image" value=$article.image file_number=$article.file_number crop_ratio=$setting.theme.article_img_crop}
+         <p class="action" data-field="image">{$btn_lang.image nofilter}</p>
          <p class="cue">{$setting.theme.article_img_size}</p>
         </div>
        </div>

@@ -25,7 +25,7 @@ if (!defined('IN_DOUCO')) {
  *
  * 输入：{@see ModuleSettingReader::read()} 返回的原始数组。
  * 输出：栏目模块 / 单页模块 / 用户中心模块 / 工作台模块 / 订单关联模块 /
- *      隐藏菜单 / 隐藏导航等数组字段，外加 `all_module = column_module + single_module`。
+ *      扩展字段模块（link_metadata）/ 隐藏菜单 / 隐藏导航等数组字段，外加 `all_module = column_module + single_module`。
  *
  * 不读 DB、不写 Config，纯字段筛选与合并。
  */
@@ -43,6 +43,7 @@ class CoreModuleSettings extends BaseService
         'link_work_center',
         'link_ai',
         'link_order_item',
+        'link_metadata',
         'no_show_menu',
         'no_show_nav',
     );

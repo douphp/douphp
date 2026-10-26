@@ -16,15 +16,19 @@ if (!defined('IN_DOUCO')) {
 }
 
 /**
- * 目标版本与环境要求（单一来源；本文件在 _update/、upgrade/、install/ 三份逐字节一致，改后须对拷）。
+ * 环境最低要求（本文件不再承载版本串）。
  *
- * - version   ：写入 dou_config.douphp_version 的版本串（全新安装 / 升级完成后；发版时唯一手动修改点）
+ * 安装版本唯一来源：install/data/backup/douphp.sql 的 dou_config.douphp_version
+ * （导库后即为站点真实版本，安装流程不再用本文件覆盖）。
+ *
  * - php_min   ：最低 PHP 版本（安装入口门禁 / 升级包解压后二次校验，低于即中止）
  * - mysql_min ：最低 MySQL 版本（utf8mb4 字符集自 5.5.3 起支持，为全站编码底座；
  *               与 devtools/mysql-compat-check 判定口径一致）
+ *
+ * 注意：_update/version.php 与 upgrade/version.php 仍保留 version 字段（升级包的目标版本，
+ * 升级引擎据此写 dou_config.douphp_version），两份逐字节一致；本文件不再与之对拷。
  */
 return array(
-    'version' => 'v2.0 Release 20261019',
     'php_min' => '5.6.0',
     'mysql_min' => '5.5.3',
 );

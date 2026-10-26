@@ -112,6 +112,7 @@ class ProductController extends BaseController
         $userLevelOption = Module::make('user.user_level_option_builder');
 
         $dataList = data()->query('product', '0');
+        $languageForm = $this->languageDraft()->buildFormState('product', 0);
 
         return $this->view('product.htm', [
             'ur_here' => lang('product_create'),
@@ -126,8 +127,8 @@ class ProductController extends BaseController
             'product_category' => ProductCategory::flat(),
             'brand_list' => Config::get('features.brand', false) ? Brand::applyDefaultOrder()->get() : array(),
             'user_level_option' => $userLevelOption !== null ? $userLevelOption->options() : array(),
-            'btn_lang' => $this->buildProductLangButtons(''),
-            'lang_drafts' => array(),
+            'btn_lang' => $languageForm['btn_lang'],
+            'lang_drafts' => $languageForm['lang_drafts'],
             'metadata_form' => $this->metadataFormBuilder->build('product', '', 0),
             'data_list' => $dataList,
         ]);
@@ -178,6 +179,7 @@ class ProductController extends BaseController
         $dataList = data()->query('product', (string) $id);
 
         $userLevelOption = Module::make('user.user_level_option_builder');
+        $languageForm = $this->languageDraft()->buildFormState('product', $id);
 
         return $this->view('product.htm', [
             'ur_here' => lang('product_edit'),
@@ -192,53 +194,12 @@ class ProductController extends BaseController
             'product_category' => ProductCategory::flat(),
             'brand_list' => Config::get('features.brand', false) ? Brand::applyDefaultOrder()->get() : array(),
             'user_level_option' => $userLevelOption !== null ? $userLevelOption->options(null, unserialize($product['level_price'])) : array(),
-            'btn_lang' => $this->buildProductLangButtons($id),
-            'lang_drafts' => $this->productService->buildProductLanguageDrafts($id),
+            'btn_lang' => $languageForm['btn_lang'],
+            'lang_drafts' => $languageForm['lang_drafts'],
             'metadata_form' => $this->metadataFormBuilder->build('product', isset($product['metadata']) ? $product['metadata'] : '', $id),
             'attribute_list' => $attributeList,
             'data_list' => $dataList,
         ]);
-    }
-
-    /**
-     * product 原生字段的语言按钮：draft 模式，值随主表单统一保存。
-     *
-     * @param string|int $itemId 空表示新增
-     * @return array
-     */
-    private function buildProductLangButtons($itemId)
-    {
-        $default = (string) Config::get('site.language', 'zh_cn');
-        $types = array(
-            'title' => 'text',
-            'content' => 'editor',
-            'keywords' => 'text',
-            'description' => 'textarea',
-        );
-        $targets = array();
-        foreach ($types as $field => $kind) {
-            $targets[$field] = array(
-                'kind' => $kind,
-                'target' => 'language_draft[%s][' . $field . ']',
-                'source' => $kind === 'editor' ? 'content' : $field,
-                'ai_field' => $field,
-                'ai_type' => $kind === 'editor' ? 'content' : $kind,
-            );
-        }
-
-        return language()->buildLangButtons('product', $itemId, array_keys($types), array(
-            'draft' => true,
-            'draft_create' => true,
-            'default_pack' => $default,
-            'exclude_pack' => $default,
-            'targets' => $targets,
-            'labels' => array(
-                'title' => lang('product_title'),
-                'content' => lang('product_content'),
-                'keywords' => lang('keywords'),
-                'description' => lang('description'),
-            ),
-        ));
     }
 
     /**

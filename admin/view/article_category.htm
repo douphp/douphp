@@ -50,6 +50,7 @@
    <!-- {if $rec eq 'create' || $rec eq 'edit'} 分类添加或编辑 -->
    {include file="inc/page_header.tpl"}
    <form action="{$form_action}" method="post" enctype="multipart/form-data"><input type="hidden" name="_method" value="{$form_method}" />
+   {include file="inc/language_drafts.tpl" drafts=$lang_drafts}
     <div class="form">
      <div class="form-item">
       <div class="form-label">{$lang.article_category_cat_name}</div>

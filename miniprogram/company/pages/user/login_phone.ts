@@ -15,7 +15,7 @@ Page({
     agree: false,
     checkValue: 1,
     showTermCue: false,
-    codeNumber: 4,
+    codeNumber: 6,
     isFocus: true,
     vcode: '',
     ispassword: false,
@@ -85,7 +85,7 @@ Page({
     const that = this
     that.setData({ vcode: e.detail.value })
 
-    if (that.data.vcode.length !== 4) return
+    if (that.data.vcode.length !== that.data.codeNumber) return
 
     const verificationData = that.data.verification_data || {}
 

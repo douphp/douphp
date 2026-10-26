@@ -63,12 +63,12 @@ class Article extends Model
     protected $appends = array('add_time_short', 'time', 'name', 'description', 'url', 'favorites', 'cate_info');
 
     /** @var array title/content/description/keywords 随当前语言覆写（keywords 供详情页 SEO） */
-    protected $translatable = array('title', 'content', 'description', 'keywords');
+    protected $translatable = array('title', 'content', 'description', 'keywords', 'image');
 
     /** @var array 列表批量预热：url 构建缓存、多语言、附件 */
     protected $prefetchers = array(
         'url' => true,
-        'language' => 'title,content,description,keywords',
+        'language' => 'title,content,description,keywords,image',
         'attachment' => 'image',
     );
 

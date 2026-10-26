@@ -433,6 +433,7 @@ class UrlGenerator
      *   - 模块以 _category 结尾：{base}.category + ['category_id' => guide]（含 0 表示分类根）
      *   - 数字型 guide：{module}.show + ['id' => guide]（栏目 / 单表；page 亦可用数字 id）
      *   - page + 非数字 guide：page.show + ['slug' => guide]（如 agreement）
+     *   - form + 非数字 guide：form.show + ['slug' => guide]（表单别名，前台 /form/{slug}）
      *   - 非数字 guide：{module}.{guide}（动作段）
      *   - guide 为空：{module}（列表）
      *
@@ -462,6 +463,10 @@ class UrlGenerator
 
         if ($module === 'page' && !is_numeric($guide)) {
             return array('page.show', array('slug' => $guide), array());
+        }
+
+        if ($module === 'form' && !is_numeric($guide)) {
+            return array('form.show', array('slug' => $guide), array());
         }
 
         if (is_numeric($guide)) {

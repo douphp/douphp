@@ -445,13 +445,18 @@ class Captcha
      */
     public function tokenCheck($captcha_token, $storageCaptchaToken = '')
     {
-        $temp_id = $this->tempId();
-        $stored = $storageCaptchaToken !== ''
-            ? (string) $storageCaptchaToken
-            : (string) Session::get($temp_id, '');
-        if ($stored !== '' && (string) $captcha_token === $stored) {
+        // API 无 session：客户端回传 raw token + md5(raw + DOU_SHELL) 哈希，服务端重算比对。
+        // 不能直接把 storage 值当“期望值”与 raw 比较，否则两者传同一任意值即可绕过。
+        if ($storageCaptchaToken !== '') {
+            $expected = md5((string) $captcha_token . DOU_SHELL);
+            return hash_equals($expected, (string) $storageCaptchaToken) ? 'ok' : 'wrong';
+        }
+
+        $stored = (string) Session::get($this->tempId(), '');
+        if ($stored !== '' && hash_equals($stored, (string) $captcha_token)) {
             return 'ok';
         }
+
         return 'wrong';
     }
 

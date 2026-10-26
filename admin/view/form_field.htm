@@ -1,0 +1,217 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+ <meta name="copyright" content="DouCo Co.,Ltd." />
+ <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+ <meta name="csrf-token" content="{$csrf_token}">
+ <title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+ <link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+ <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+ <link href="css/common.css" rel="stylesheet" type="text/css">
+ <link href="css/form.css" rel="stylesheet" type="text/css">
+ {include file="inc/javascript.tpl"}
+</head>
+
+<body>
+ <div id="dou"> {include file="inc/header.tpl"}
+  {include file="inc/sidebar.tpl"}
+  <div id="dou-content"> {include file="inc/toolbar.tpl"}
+   <div class="dou-main has-subnav">
+    {include file="inc/form_submenu.tpl"}
+    <div id="form" class="dou-page">
+     {include file="inc/page_header.tpl"}
+     <div class="split-layout">
+      <div class="split-pane col-5">
+       <div class="split-header">{if $field.id}{$lang.form_field_edit}{else}{$lang.form_field_create}{/if}</div>
+       <div class="split-body">
+      <form action="{$field_form_action}" method="post"{if $field.id} class="form-edit"{/if}>
+       {include file="inc/language_drafts.tpl" drafts=$field_lang_drafts}
+       <!-- {if $field_form_method} --><input type="hidden" name="_method" value="{$field_form_method}" /><!-- {/if} -->
+       <input type="hidden" name="token" value="{$token}" />
+       <input type="hidden" name="form_id" value="{$field.form_id}" />
+       <!-- {if $field.id} -->
+       <input type="hidden" name="id" value="{$field.id}" />
+       <!-- {/if} -->
+       <div class="form">
+        <div class="form-item">
+         <div class="form-label">{$lang.form_field_name}</div>
+         <div class="input-block">
+          <input type="text" name="name" id="field-name" value="{$field.name}" size="30" class="input" />
+          <!-- {if $field_btn_lang.name} --><span class="action" data-field="name">{$field_btn_lang.name nofilter}</span><!-- {/if} -->
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.form_field_slug} <em class="btn-outline js-slug" data-slug-from="#field-name" data-slug-to="#field-slug">{$lang.slug_auto}</em></div>
+         <div class="input-block">
+          <input type="text" name="slug" id="field-slug" value="{$field.slug}" size="30" class="input" />
+          <p class="cue">{$lang.form_field_slug_cue}</p>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-field-inline">
+          <div class="form-label">{$lang.form_field_type}</div>
+          <div class="input-block">
+           <select class="select" name="type">
+            <!-- {foreach from=$field_type_options item=type} -->
+            <option value="{$type.value}" data-default-rules="{$type.default_rules}"{if $type.cur} selected="selected"{/if}>{$type.label}</option>
+            <!-- {/foreach} -->
+           </select>
+          </div>
+         </div>
+         <div class="form-field-inline">
+          <div class="form-label">{$lang.form_field_must_fill}</div>
+          <div class="input-block">
+           <select class="select" name="must_fill">
+            <option value="0"{if $field.must_fill eq '0'} selected="selected"{/if}>{$lang.form_field_must_fill_0}</option>
+            <option value="1"{if $field.must_fill eq '1'} selected="selected"{/if}>{$lang.form_field_must_fill_1}</option>
+           </select>
+          </div>
+         </div>
+         <div class="form-field-inline">
+          <div class="form-label">{$lang.form_field_width}<i class="bi bi-question-circle form-tip" data-dou-toggle="popover" data-content="{$lang.form_field_width_cue}" data-placement="bottom"></i></div>
+          <div class="input-block">
+           <input type="text" name="width" value="{$field.width}" size="4" class="input" />
+          </div>
+         </div>
+         <div class="form-field-inline">
+          <div class="form-label">{$lang.sort}</div>
+          <div class="input-block">
+           <input type="text" name="sort" value="{$field.sort}" size="4" class="input" />
+          </div>
+         </div>
+        </div>
+        <div class="form-item" data-form-for="input textarea email url tel mobile number date">
+         <div class="form-label">{$lang.form_field_validate}</div>
+         <div class="input-block">
+          <input type="text" name="validate" id="field-validate" value="{$field.validate}" size="30" class="input" />
+          <div class="form-chips">
+           <!-- {foreach from=$field_validate_options item=option} -->
+           <em class="chip js-validate-rule" data-rule="{$option.value}">{$option.label}</em>
+           <!-- {/foreach} -->
+          </div>
+          <p class="cue">{$lang.form_field_validate_cue}</p>
+         </div>
+        </div>
+        <div class="form-item" data-form-for="number">
+         <div class="form-label">{$lang.form_field_unit}</div>
+         <div class="input-block">
+          <input type="text" name="unit" value="{$field.unit}" size="8" class="input" />
+         </div>
+        </div>
+        <div class="form-item" data-form-for="input textarea number email tel url mobile date select agree">
+         <div class="form-label">{$lang.form_field_placeholder}</div>
+         <div class="input-block">
+          <input type="text" name="placeholder" value="{$field.placeholder}" size="30" class="input" />
+          <!-- {if $field_btn_lang.placeholder} --><span class="action" data-field="placeholder">{$field_btn_lang.placeholder nofilter}</span><!-- {/if} -->
+          <p class="cue">{$lang.form_field_placeholder_cue}</p>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.form_field_tip}</div>
+         <div class="input-block">
+          <input type="text" name="tip" value="{$field.tip}" size="30" class="input" />
+          <!-- {if $field_btn_lang.tip} --><span class="action" data-field="tip">{$field_btn_lang.tip nofilter}</span><!-- {/if} -->
+         </div>
+        </div>
+        <div class="form-item" data-form-for="input textarea number email tel url mobile date select radio checkbox switch">
+         <div class="form-label">{$lang.form_field_default_value}</div>
+         <div class="input-block">
+          <input type="text" name="default_value" value="{$field.default_value}" size="30" class="input" />
+          <p class="cue">{$lang.form_field_default_value_cue}</p>
+         </div>
+        </div>
+        <div class="form-item" data-form-for="select radio checkbox">
+         <div class="form-label">{$lang.form_field_option}</div>
+         <div class="input-block">
+          <textarea name="option" cols="40" rows="5" class="textarea">{$field.option}</textarea>
+          <p class="cue">{$lang.form_field_option_cue}</p>
+         </div>
+        </div>
+        <div class="form-item" data-form-for="checkbox">
+         <div class="form-label">{$lang.form_field_limit_checkbox}</div>
+         <div class="input-block">
+          <input type="text" name="limit" value="{$field.limit}" size="4" class="input js-field-limit" />
+          <p class="cue">{$lang.form_field_limit_checkbox_cue}</p>
+         </div>
+        </div>
+        <div class="group-title" data-form-for="image gallery file">{$lang.form_field_section_upload}</div>
+        <div class="form-item" data-form-for="gallery file">
+         <div class="form-label">{$lang.form_field_limit}</div>
+         <div class="input-block">
+          <input type="text" name="limit" value="{$field.limit}" size="4" class="input js-field-limit" />
+          <p class="cue">{$lang.form_field_limit_cue}</p>
+         </div>
+        </div>
+        <div class="form-item" data-form-for="image gallery file">
+         <div class="form-label">{$lang.form_field_extensions}</div>
+         <div class="input-block">
+          <input type="text" name="extensions" value="{$field.extensions}" size="30" class="input" placeholder="jpg,png,pdf" />
+          <p class="cue">{$lang.form_field_extensions_cue}<br />{$lang.form_field_extensions_baseline}：{$field_extensions_baseline}</p>
+         </div>
+        </div>
+        <div class="form-item" data-form-for="image gallery file">
+         <div class="form-label">{$lang.form_field_max_size}</div>
+         <div class="input-block">
+          <input type="text" name="max_size" value="{$field.max_size}" size="8" class="input" />
+          <p class="cue">{$lang.form_field_max_size_cue}</p>
+         </div>
+        </div>
+        <div class="form-item">
+         <a href="{url link='admin.form.field' form_id=$form.form_id}" class="btn-secondary">{$lang.cancel}</a>
+         <input class="btn" type="submit" value="{$lang.btn_submit}" />
+        </div>
+       </div>
+      </form>
+       </div>
+      </div>
+      <div class="split-pane col-7">
+       <div class="split-header">{$lang.form_field_list}</div>
+       <div class="split-body">
+        <table class="table table-soft">
+         <tr>
+          <th class="text-left">{$lang.form_field_name}</th>
+          <th width="120" class="text-left">{$lang.form_field_slug}</th>
+          <th width="56" class="text-center">{$lang.form_field_type}</th>
+          <th width="56" class="text-center">{$lang.form_field_must_fill}</th>
+          <th width="34" class="text-center">{$lang.sort}</th>
+          <th width="60" class="text-center">{$lang.handler}</th>
+         </tr>
+         <!-- {foreach from=$field_list item=row} -->
+         <tr{if $row.id eq $field.id} class="active"{/if}>
+          <td><a href="{$row.edit_url}">{$row.name}</a></td>
+          <td class="form-field-slug-cell">
+           <a href="javascript:;" class="js-copy form-field-slug" data-copy="{$row.slug}" title="{$lang.form_field_slug_copy_cue}">{$row.slug}</a>
+          </td>
+          <td class="text-center">{$row.type_name}</td>
+          <td class="text-center">{$row.required_text}</td>
+          <td class="text-center">{$row.sort}</td>
+          <td class="text-center">
+           <a href="{$row.edit_url}">{$lang.edit}</a>
+           |
+           <a href="javascript:;" class="js-delete" data-url="{$row.delete_url}">{$lang.del}</a>
+          </td>
+         </tr>
+         <!-- {/foreach} -->
+         <!-- {if !$field_list} -->
+         <tr>
+          <td class="text-center cue" colspan="6">{$lang.form_field_empty}</td>
+         </tr>
+         <!-- {/if} -->
+        </table>
+        <!-- {if $field.id} -->
+        <p class="mt-20"><a class="btn-secondary" href="{url link='admin.form.field' form_id=$form.form_id}">{$lang.form_field_create}</a></p>
+        <!-- {/if} -->
+       </div>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div>
+  {include file="inc/footer.tpl"}
+ </div>
+<script type="text/javascript" src="js/form.js"></script>
+</body>
+
+</html>

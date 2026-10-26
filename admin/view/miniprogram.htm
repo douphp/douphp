@@ -115,6 +115,7 @@
       <!-- {/if} -->
       <!-- {if $act eq 'add'} 导航添加 -->
       <form action="{url link='admin.miniprogram.nav.store'}" method="post" enctype="multipart/form-data">
+       {include file="inc/language_drafts.tpl" drafts=$lang_drafts}
        <div class="form">
         <div class="form-item">
          <div class="form-label">{$lang.nav_system}</div>

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <meta name="keywords" content="{$keywords}" />
+ <meta name="description" content="{$description}" />
+ <meta name="generator" content="{$generator}" />
+ <meta name="csrf-token" content="{$csrf_token}">
+ <title>{$page_title}</title>
+ <link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+ <link href="css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+ <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css" />
+ <link href="css/common.css" rel="stylesheet" type="text/css" />
+ <link href="css/style.css" rel="stylesheet" type="text/css" />
+ <link href="css/form.css" rel="stylesheet" type="text/css" />
+ {include file="inc/code_head.tpl"}
+</head>
+
+<body>
+ <div id="wrapper"> {include file="inc/header.tpl"}
+  <div id="form" class="container mb">
+   {include file="inc/ur_here.tpl"}
+   <div class="detail">
+    <div class="head">
+     <h1>{$form.name}</h1>
+     <p>{$form.content nofilter}</p>
+    </div>
+    <div class="formBox">
+     <!-- {if $form.require_login && !$dou.auth.is_login} 仅登录会员可提交 -->
+     <p class="form-login-tip">{$lang.form_login_required}<a href="{url link='user.login'}">{$lang.user_login_nav}</a></p>
+     <!-- {else} -->
+     <form id="formSubmit" x-data="douForm()" @submit.prevent="submit" action="{url link='form.submit'}" method="post" novalidate>
+      <!-- {if $dou.auth.is_login} -->
+      <input type="hidden" name="draft_token" value="{$draft_token}" />
+      <!-- {/if} -->
+      <div class="form row">
+       <!-- {if !$form.field_list} 未配置字段 -->
+       <div class="form-item col-12">
+        <p class="cueGray">{$lang.form_empty}</p>
+       </div>
+       <!-- {else} -->
+       <!-- {foreach from=$form.field_list item=field} -->
+       <div class="form-item col-12 col-md-{$field.width}">
+        <div class="form-label">{$field.name}{if $field.required}<i>*</i>{/if}</div>
+        <div class="input-block">
+         <!-- {if $field.type eq 'textarea'} -->
+         <textarea name="{$field.slug}" class="textarea" rows="6" placeholder="{$field.placeholder}">{$field.default}</textarea>
+         <!-- {elseif $field.type eq 'select'} -->
+         <select name="{$field.slug}" class="select">
+          <!-- {if $field.placeholder} -->
+          <option value="">{$field.placeholder}</option>
+          <!-- {else} -->
+          <option value="">{$lang.form_select_placeholder}</option>
+          <!-- {/if} -->
+          <!-- {foreach from=$field.option_list item=opt} -->
+          <option value="{$opt.value}" {if $opt.selected} selected{/if}>{$opt.value}</option>
+          <!-- {/foreach} -->
+         </select>
+         <!-- {elseif $field.type eq 'radio'} -->
+         <span class="checkbox-group">
+          <!-- {foreach from=$field.option_list item=opt} -->
+          <label><input type="radio" name="{$field.slug}" value="{$opt.value}" {if $opt.selected} checked{/if} /> {$opt.value}</label>
+          <!-- {/foreach} -->
+         </span>
+         <!-- {elseif $field.type eq 'checkbox'} -->
+         <span class="checkbox-group">
+          <!-- {foreach from=$field.option_list item=opt} -->
+          <label><input type="checkbox" name="{$field.slug}[]" value="{$opt.value}" {if $opt.selected} checked{/if} /> {$opt.value}</label>
+          <!-- {/foreach} -->
+         </span>
+         <!-- {elseif $field.type eq 'switch'} -->
+         <label class="form-switch">
+          <input type="checkbox" name="{$field.slug}" value="1" {if $field.default eq '1' } checked{/if} />
+          <span class="form-switch-box"></span>
+         </label>
+         <!-- {elseif $field.type eq 'agree'} -->
+         <span class="checkbox-group">
+          <!-- {if $field.placeholder} -->
+          <label><input type="checkbox" name="{$field.slug}" value="1" /> {$field.placeholder}</label>
+          <!-- {else} -->
+          <label><input type="checkbox" name="{$field.slug}" value="1" /> {$field.name}</label>
+          <!-- {/if} -->
+         </span>
+         <!-- {elseif $field.type eq 'number'} -->
+         <input type="number" step="any" name="{$field.slug}" class="input" placeholder="{$field.placeholder}" value="{$field.default}" />
+         <!-- {elseif $field.type eq 'email'} -->
+         <input type="email" name="{$field.slug}" class="input" placeholder="{$field.placeholder}" value="{$field.default}" />
+         <!-- {elseif $field.type eq 'tel'} -->
+         <input type="tel" name="{$field.slug}" class="input" placeholder="{$field.placeholder}" value="{$field.default}" />
+         <!-- {elseif $field.type eq 'mobile'} -->
+         <input type="tel" inputmode="numeric" maxlength="11" autocomplete="tel" name="{$field.slug}" class="input" placeholder="{$field.placeholder}" value="{$field.default}" />
+         <!-- {elseif $field.type eq 'url'} -->
+         <input type="url" name="{$field.slug}" class="input" placeholder="{$field.placeholder}" value="{$field.default}" />
+         <!-- {elseif $field.type eq 'date'} -->
+         <input type="date" name="{$field.slug}" class="input" value="{$field.default}" title="{$field.placeholder}" />
+         <!-- {elseif $field.type eq 'area'} -->
+         <div class="form-area" x-data="douArea()" x-init="init($el)" data-default="{$field.default}">
+          <select name="{$field.slug}[province]" class="select" data-part="province"></select>
+          <select name="{$field.slug}[city]" class="select" data-part="city"></select>
+          <select name="{$field.slug}[district]" class="select" data-part="district"></select>
+         </div>
+         <!-- {elseif $field.type eq 'image'} -->
+         {include file="inc/file_image.tpl" module="form" prefix=$field.target type="main" item_id="" draft_token=$draft_token list_html="" extensions=$field.extensions max_size=$field.max_size img_width=0}
+         <!-- {elseif $field.type eq 'gallery'} -->
+         {include file="inc/file_gallery.tpl" module="form" prefix=$field.target type="gallery" item_id="" draft_token=$draft_token list_html="" extensions=$field.extensions max_size=$field.max_size img_width=0}
+         <!-- {elseif $field.type eq 'file'} -->
+         {include file="inc/file_attachment.tpl" module="form" prefix=$field.target type="attach" item_id="" draft_token=$draft_token list_html="" extensions=$field.extensions max_size=$field.max_size img_width=0}
+         <!-- {else} -->
+         <input type="text" name="{$field.slug}" class="input" placeholder="{$field.placeholder}" value="{$field.default}" />
+         <!-- {/if} -->
+         <!-- {if $field.unit} -->
+         <span class="form-unit">{$field.unit}</span>
+         <!-- {/if} -->
+        </div>
+        <!-- {if $field.tip} -->
+        <p class="form-tip">{$field.tip}</p>
+        <!-- {/if} -->
+        <p class="cue" x-show="hasError('{$field.slug}')" x-text="errorOf('{$field.slug}')"></p>
+       </div>
+       <!-- {/foreach} -->
+       <!-- {if $site.captcha && $form.captcha} 验证码 -->
+       <div class="form-item col-12 col-md-6">
+        <div class="form-label">{$lang.captcha}</div>
+        <div class="input-block form-captcha">
+         <input type="text" name="captcha" class="input captcha" size="10" autocomplete="off" />
+         <img id="vcode_{$form.form_id}" class="pointer" src="{url link='captcha'}" alt="{$lang.captcha}" border="0" onclick="refreshFormCaptcha('vcode_{$form.form_id}')" title="{$lang.captcha_refresh}" />
+        </div>
+        <p class="cue" x-show="hasError('captcha')" x-text="errorOf('captcha')"></p>
+       </div>
+       <!-- {/if} -->
+       <!-- {/if} -->
+       <div class="form-item col-12 submit">
+        <div class="input-block">
+         <input type="hidden" name="form_id" value="{$form.form_id}" />
+         <input type="hidden" name="token" value="{$token}" />
+         <input type="hidden" name="source_url" value="" />
+         <button type="submit" class="btn" :disabled="loading">{$lang.btn_submit}</button>
+         <p class="cue" x-show="message" x-text="message"></p>
+        </div>
+       </div>
+      </div>
+     </form>
+     <!-- {/if} -->
+    </div>
+   </div>
+  </div>
+  {include file="inc/online_service.tpl"}
+  {include file="inc/footer.tpl"}
+ </div>
+ {include file="inc/code_footer.tpl"}
+ <script type="text/javascript" src="js/bootstrap.min.js"></script>
+ <script type="text/javascript" src="js/alpine.min.js" defer></script>
+ <script type="text/javascript" src="js/dou.js"></script>
+ <script type="text/javascript" src="js/dou.form.js"></script>
+ <script type="text/javascript" src="js/online_service.js"></script>
+ <script type="text/javascript" src="js/form.js"></script>
+ <script type="text/javascript" src="js/jquery.form.min.js"></script>
+ <script type="text/javascript" src="js/file.js"></script>
+</body>
+
+</html>

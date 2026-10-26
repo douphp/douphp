@@ -17,6 +17,7 @@ namespace Dou\Admin\Service\Article;
 use Dou\Admin\Model\Article\Article;
 use Dou\Admin\Service\Concerns\DecoratesAdminMetadata;
 use Dou\Admin\Service\Concerns\SavesMetadata;
+use Dou\Admin\Service\Concerns\SavesLanguageDrafts;
 use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Service\Admin\AdminLogAction;
@@ -44,6 +45,7 @@ if (!defined('IN_DOUCO')) {
 class ArticleService extends BaseService
 {
     use SavesMetadata;
+    use SavesLanguageDrafts;
     use DecoratesAdminMetadata;
     /** @var MarkdownRenderer */
     private $markdown;
@@ -161,30 +163,38 @@ class ArticleService extends BaseService
         $image = attachment()->reserve('article', UploadedFile::fromGlobals('image'), 'admin', $adminId, 'main', AttachmentUploadOptions::create());
         $data['image'] = $image;
         $metadataPlan = $this->metadataBegin('article', $data, 0, '', $adminId);
+        $languagePlan = $this->languageDraftBegin('article', $data, 0, $adminId);
         if ($metadataPlan !== null) {
             $data['metadata'] = $metadataPlan['json'];
         }
 
-        $newId = (int) DB::transaction(function () use ($data, $image, $draftToken, $adminId, $metadataPlan) {
-            $article = Article::create($data);
-            if (!$article) {
-                throw new DomainException(lang('article_add_wrong'), route('admin.article'));
-            }
-            $newId = (int) $article->getKey();
-            if ($newId <= 0) {
-                throw new DomainException(lang('operation_failed'));
-            }
+        try {
+            $newId = (int) DB::transaction(function () use ($data, $image, $draftToken, $adminId, $metadataPlan, $languagePlan) {
+                $article = Article::create($data);
+                if (!$article) {
+                    throw new DomainException(lang('article_add_wrong'), route('admin.article'));
+                }
+                $newId = (int) $article->getKey();
+                if ($newId <= 0) {
+                    throw new DomainException(lang('operation_failed'));
+                }
 
-            attachment()->claimByToken('article', $draftToken, $newId, 'admin', $adminId);
-            $this->metadataCommit($metadataPlan, $newId, $adminId);
-            if ($image !== '' && attachment()->adopt('article', $image, $newId, 'admin', $adminId) < 1) {
-                throw new DomainException(lang('file_claim_failed'));
-            }
+                attachment()->claimByToken('article', $draftToken, $newId, 'admin', $adminId);
+                $this->languageDraftCommit($languagePlan, $newId, $adminId);
+                $this->metadataCommit($metadataPlan, $newId, $adminId);
+                if ($image !== '' && attachment()->adopt('article', $image, $newId, 'admin', $adminId) < 1) {
+                    throw new DomainException(lang('file_claim_failed'));
+                }
 
-            return $newId;
-        });
+                return $newId;
+            });
+        } catch (\Exception $e) {
+            $this->languageDraftAbort($languagePlan);
+            throw $e;
+        }
 
         $this->metadataPurge($metadataPlan, $newId);
+        $this->languageDraftPurge($languagePlan, $newId);
         audit()->writeAdminLog($adminId, AdminLogAction::CREATE, 1, (string) $data['title']);
 
         return $newId;
@@ -239,6 +249,7 @@ class ArticleService extends BaseService
         }
 
         $metadataPlan = $this->metadataBegin('article', $data, $id, $this->metadataExistingRaw($article), $adminId);
+        $languagePlan = $this->languageDraftBegin('article', $data, $id, $adminId);
         $image = attachment()->store('article', $id, UploadedFile::fromGlobals('image'), 'main', AttachmentUploadOptions::create()->withUploader('admin', $adminId));
         $content = '';
         if (isset($data['content'])) {
@@ -257,16 +268,19 @@ class ArticleService extends BaseService
         }
 
         try {
-            DB::transaction(function () use ($article, $data, $metadataPlan, $id, $adminId) {
+            DB::transaction(function () use ($article, $data, $metadataPlan, $id, $adminId, $languagePlan) {
                 $article->fill($data, 'update')->save();
+                $this->languageDraftCommit($languagePlan, $id, $adminId);
                 $this->metadataCommit($metadataPlan, $id, $adminId);
             });
         } catch (\Exception $e) {
             $this->metadataAbort($metadataPlan);
+            $this->languageDraftAbort($languagePlan);
             throw $e;
         }
 
         $this->metadataPurge($metadataPlan, $id);
+        $this->languageDraftPurge($languagePlan, $id);
 
         audit()->writeAdminLog($adminId, AdminLogAction::UPDATE, 1, (string) $data['title']);
     }

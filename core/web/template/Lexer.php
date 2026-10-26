@@ -22,10 +22,14 @@ if (!defined('IN_DOUCO')) {
  * 词法切分：把模板源切成有序 {@see Token} 序列（{@see TokenStream}）。
  *
  * Twig 式 cursor + 状态机单趟扫描（取代旧「fold + preg_match_all + preg_split」三趟）。
- * 在 DATA 态推进游标，遇左定界符时按优先级逐一判定：
+ * 在 DATA 态推进游标：
+ *   0) `<!--...-->` HTML 注释整段并入文本（内部 `{` 不参与标签判定，无闭合 `-->` 时回退）。
+ *      prefilter 已先把「含合法标签的单行注释」剥壳成可编译标签，故此处残留的注释只可能是
+ *      文档说明，其内花括号（如参数名占位写法）不应当作标签解析。
+ *   遇左定界符时按优先级逐一判定：
  *   1) `{*...*}` 注释 → COMMENT；2) `{literal}...{/literal}` → LITERAL；
  *   3) `{php}...{/php}` → PHP；4) 普通 `{...}` → TAG（内容按 `\s*` 去边空白）。
- * 受保护区（注释/literal/php）整体吞掉其内的 `{`，无对应闭合则回退当普通标签处理。
+ * 受保护区（HTML 注释/注释/literal/php）整体吞掉其内的 `{`，无对应闭合则回退当普通标签处理。
  * 文本块内疑似 PHP 起止符转义为 echo 字面，杜绝注入。
  *
  * 输出 TokenStream 与旧实现逐字节对齐（渲染回归由 devtools/douview-list-tag-smoke.php 冒烟覆盖）。
@@ -62,6 +66,18 @@ class Lexer
         $n = strlen($source);
 
         while ($i < $n) {
+            // 0) HTML 注释保护区：`<!-- ... -->` 整段并入文本，内部 { } 不参与标签判定。
+            //    无闭合 `-->` 时回退，按普通字符推进（保持旧行为）。
+            if ($source[$i] === '<' && substr($source, $i, 4) === '<!--') {
+                $closePos = strpos($source, '-->', $i + 4);
+                if ($closePos !== false) {
+                    $regionEnd = $closePos + 3;
+                    $textBuf .= substr($source, $i, $regionEnd - $i);
+                    $i = $regionEnd;
+                    continue;
+                }
+            }
+
             if (substr($source, $i, $ldLen) !== $leftDelimiter) {
                 $textBuf .= $source[$i];
                 $i++;

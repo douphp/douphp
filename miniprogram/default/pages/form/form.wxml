@@ -1,0 +1,15 @@
+<!--pages/form/form.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="grid-list padding-y">
+   <navigator class="item" hover-class="mouseDown" wx:for="{{form_list}}" wx:key="index" wx:for-item="form" url="{{form.url}}">
+    <view class="img">
+     <image src="{{form.image}}" mode="widthFix" style="height: 183px" />
+    </view>
+    <view class="title">{{form.name}}</view>
+   </navigator>
+   <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
+  </view>
+ </view>
+</view>

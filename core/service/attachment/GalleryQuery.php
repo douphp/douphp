@@ -43,10 +43,11 @@ class GalleryQuery
      * @param mixed $module
      * @param mixed $itemId
      * @param mixed $type
-     * @param bool $arrayMode 是否返回数组形态（false → 返回后台 li 字符串）
+     * @param bool $arrayMode 是否返回数组形态（false → 返回 li 字符串）
+     * @param string|null $listId 删除回调指向的列表 id，null → `{type}List`
      * @return mixed
      */
-    public function galleryList($module, $itemId, $type, $arrayMode = false)
+    public function galleryList($module, $itemId, $type, $arrayMode = false, $listId = null)
     {
         $data = $arrayMode ? array() : '';
         $rows = DB::table('file')
@@ -65,7 +66,7 @@ class GalleryQuery
                     'file' => ROOT_URL . $row['file'],
                 );
             } else {
-                $data .= $this->renderItemHtml($row, $type);
+                $data .= $this->renderItemHtml($row, $type, $listId);
             }
         }
 
@@ -83,10 +84,11 @@ class GalleryQuery
      * @param string $uploaderType admin / user / work
      * @param int $uploaderId
      * @param string $type gallery / main / content
-     * @param bool $arrayMode 是否返回数组形态（false → 返回后台 li 字符串）
+     * @param bool $arrayMode 是否返回数组形态（false → 返回 li 字符串）
+     * @param string|null $listId 删除回调指向的列表 id，null → `{type}List`
      * @return mixed
      */
-    public function galleryListByDraft($module, $draftToken, $uploaderType, $uploaderId, $type, $arrayMode = false)
+    public function galleryListByDraft($module, $draftToken, $uploaderType, $uploaderId, $type, $arrayMode = false, $listId = null)
     {
         $data = $arrayMode ? array() : '';
         if ($draftToken === '' || $uploaderId <= 0) {
@@ -110,7 +112,7 @@ class GalleryQuery
                     'file' => ROOT_URL . $row['file'],
                 );
             } else {
-                $data .= $this->renderItemHtml($row, $type);
+                $data .= $this->renderItemHtml($row, $type, $listId);
             }
         }
 
@@ -118,23 +120,34 @@ class GalleryQuery
     }
 
     /**
-     * 相册列表项：后台悬停 mask（替换 / 裁剪 / 删除）+ 前台仍用 span.del 删除。
+     * 相册列表项：后台悬停 mask（替换 / 裁剪 / 删除）+ 前台 span.del 删除。
      *
      * mask 默认 inline display:none，仅后台 CSS 在悬停时覆盖为 flex，避免前台未引入
-     * admin 样式时三个按钮裸露。span.del 保留 onclick，对接 theme 里现有 fileDel。
+     * admin 样式时三个按钮裸露。
+     *
+     * 删除按钮不绑定任何内联事件：输出 `data-file-del` + `data-number` + `data-list`，
+     * 由前后台各自的脚本在 document 上一次性委托（前台 douFileBox / 后台 douFileUploader）。
+     * `data-list` 只是「这个删除按钮属于哪个列表」的自描述信息；脚本按容器
+     * `data-file-prefix` 派生 `#{prefix}List` 定位刷新目标，不读该属性，故默认值
+     * `{type}List` 与实际 prefix 不同也不影响功能。同一行的两个删除入口必须输出一致的属性集。
+     *
+     * span 而非 button：后台 `.file-upload .file-list li > span.del` 与前台
+     * `.fileBox .fileList li span` 两条样式规则都按标签名命中，换标签会丢样式。
      *
      * @param array $row
      * @param mixed $type
+     * @param string|null $listId null → `{type}List`
      * @return string
      */
-    private function renderItemHtml($row, $type)
+    private function renderItemHtml($row, $type, $listId = null)
     {
         $number = htmlspecialchars((string) $row['number'], ENT_QUOTES, 'UTF-8');
         $src = htmlspecialchars(ROOT_URL . $row['file'], ENT_QUOTES, 'UTF-8');
         $ext = strtolower(pathinfo((string) $row['file'], PATHINFO_EXTENSION));
         $croppable = in_array($ext, array('jpg', 'jpeg', 'png', 'webp'), true);
         $class = $croppable ? 'file-item file-item-croppable' : 'file-item';
-        $listId = htmlspecialchars((string) $type . 'List', ENT_QUOTES, 'UTF-8');
+        $listId = $listId === null || $listId === '' ? (string) $type . 'List' : (string) $listId;
+        $listId = htmlspecialchars($listId, ENT_QUOTES, 'UTF-8');
         $replaceTitle = htmlspecialchars(lang('replace'), ENT_QUOTES, 'UTF-8');
         $cropTitle = htmlspecialchars(lang('crop_title'), ENT_QUOTES, 'UTF-8');
         $delTitle = htmlspecialchars(lang('del'), ENT_QUOTES, 'UTF-8');
@@ -144,9 +157,9 @@ class GalleryQuery
             . '<div class="file-item-mask" style="display:none">'
             . '<button type="button" class="file-action file-action-replace bi-arrow-repeat" title="' . $replaceTitle . '"></button>'
             . '<button type="button" class="file-action file-action-crop bi-scissors" title="' . $cropTitle . '"></button>'
-            . '<button type="button" class="file-action file-action-remove bi-x" title="' . $delTitle . '"></button>'
+            . '<button type="button" class="file-action file-action-remove bi-x" data-file-del data-number="' . $number . '" data-list="' . $listId . '" title="' . $delTitle . '"></button>'
             . '</div>'
-            . '<span onclick="fileDel(\'' . $number . '\', \'' . $listId . '\');" class="del">X</span>'
+            . '<span class="del" data-file-del data-number="' . $number . '" data-list="' . $listId . '">X</span>'
             . '</li>';
     }
 

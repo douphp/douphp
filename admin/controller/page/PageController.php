@@ -102,7 +102,8 @@ class PageController extends BaseController
             'item_content' => $bundle['item_content'],
             'download' => $this->pageService->buildPageDownloadData(0),
             'metadata_form' => $this->metadataFormBuilder->build('page', '', 0),
-            'btn_lang' => language()->buildLangButtons('page', '', 'name, content, keywords, description'),
+            'btn_lang' => ($this->languageDraft()->buildFormState('page', ''))['btn_lang'],
+            'lang_drafts' => ($this->languageDraft()->buildFormState('page', ''))['lang_drafts'],
         ]);
     }
 
@@ -167,7 +168,8 @@ class PageController extends BaseController
             'page' => $page,
             'download' => $this->pageService->buildPageDownloadData($id),
             'metadata_form' => $this->metadataFormBuilder->build('page', isset($page['metadata']) ? $page['metadata'] : '', $id),
-            'btn_lang' => language()->buildLangButtons('page', $id, 'name, content, keywords, description'),
+            'btn_lang' => ($this->languageDraft()->buildFormState('page', $id))['btn_lang'],
+            'lang_drafts' => ($this->languageDraft()->buildFormState('page', $id))['lang_drafts'],
             'data_list' => $dataList,
         ]);
     }

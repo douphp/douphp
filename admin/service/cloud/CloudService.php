@@ -68,7 +68,7 @@ class CloudService extends BaseService
      * @param string $type 扩展类型（system|module|plugin|theme|miniprogram|dou|onedou）
      * @param string $cloudId 云端资源 id（可能为 '|' 拼接的批量）
      * @param string $mode 模式：install|update|patch|local
-     * @param string $version 最低核心版本号
+     * @param string $version 模块版本 / 最低核心版本（当前标题未使用，保留入参兼容）
      * @param string $themeId 对应主题 id（模块附带）
      * @return array
      */
@@ -519,6 +519,7 @@ class CloudService extends BaseService
      *   - pagination.pages[i]             page / url / active
      *   - meta.theme_filters              active / all_url / free_url
      *   - meta.system_sign_tabs           active / all_url / items[i].{value,name,url}
+     *   - meta.categories                 module 子分类清单 items[i].{id,slug,name}（接口新增，未返回时不存在）
      *
      * @param string $slug 'module' | 'theme' | 'plugin' | 'miniprogram'
      * @param array<string, mixed> $currentGet 当前页 $_GET（用于序列化为 `get` 参数，并合并出筛选/分页 URL）
@@ -720,7 +721,7 @@ class CloudService extends BaseService
      * @param string $type
      * @param string $cloudId
      * @param string $mode
-     * @return array{status:string, download_url:string, sha256?:string}
+     * @return array{status:string, download_url:string, sha256?:string, version?:string, mini_version?:string}
      */
     public function resolveInstallDownload($type, $cloudId, $mode)
     {
@@ -748,28 +749,55 @@ class CloudService extends BaseService
                 if (!preg_match('/^[a-f0-9]{64}$/', $sha256)) {
                     $sha256 = '';
                 }
+                $versionFields = $this->normalizeVersionFields($data);
 
-                return array('status' => 'ok', 'download_url' => (string) $data['download_url'], 'sha256' => $sha256);
+                return array(
+                    'status' => 'ok',
+                    'download_url' => (string) $data['download_url'],
+                    'sha256' => $sha256,
+                    'version' => $versionFields['version'],
+                    'mini_version' => $versionFields['mini_version'],
+                );
             }
 
             if ($code === 401 || $message === 'login_required') {
-                return array('status' => 'login_required', 'download_url' => '');
+                return array('status' => 'login_required', 'download_url' => '', 'version' => '', 'mini_version' => '');
             }
 
             if ($code === 403) {
                 if ($message === 'not_purchased') {
-                    return array('status' => 'not_purchased', 'download_url' => '');
+                    return array('status' => 'not_purchased', 'download_url' => '', 'version' => '', 'mini_version' => '');
                 }
                 if ($message === 'vip_required') {
-                    return array('status' => 'vip_required', 'download_url' => '');
+                    return array('status' => 'vip_required', 'download_url' => '', 'version' => '', 'mini_version' => '');
                 }
                 if ($message === 'vip_expired') {
-                    return array('status' => 'vip_expired', 'download_url' => '');
+                    return array('status' => 'vip_expired', 'download_url' => '', 'version' => '', 'mini_version' => '');
                 }
-                return array('status' => 'unauthorized', 'download_url' => '');
+                return array('status' => 'unauthorized', 'download_url' => '', 'version' => '', 'mini_version' => '');
             }
         }
 
-        return array('status' => 'unavailable', 'download_url' => '');
+        return array('status' => 'unavailable', 'download_url' => '', 'version' => '', 'mini_version' => '');
+    }
+
+    /**
+     * 归一 install-resolve 响应中的模块版本与最低版本（只接受 8 位数字）。
+     *
+     * @param array $data
+     * @return array{version:string, mini_version:string}
+     */
+    private function normalizeVersionFields(array $data)
+    {
+        $version = isset($data['version']) ? trim((string) $data['version']) : '';
+        $miniVersion = isset($data['mini_version']) ? trim((string) $data['mini_version']) : '';
+        if (!preg_match('/^\d{8}$/', $version)) {
+            $version = '';
+        }
+        if (!preg_match('/^\d{8}$/', $miniVersion)) {
+            $miniVersion = '';
+        }
+
+        return array('version' => $version, 'mini_version' => $miniVersion);
     }
 }

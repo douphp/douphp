@@ -15,6 +15,7 @@
 namespace Dou\Admin\Service\Show;
 
 use Dou\Admin\Model\Show\Show;
+use Dou\Admin\Service\Concerns\SavesLanguageDrafts;
 use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Service\Admin\AdminLogAction;
@@ -33,6 +34,8 @@ if (!defined('IN_DOUCO')) {
  */
 class ShowService extends BaseService
 {
+    use SavesLanguageDrafts;
+
     /**
      * 列表页数据（右侧表格），与前台 CollectionService::getShowList 展示字段一致。
      *
@@ -108,24 +111,32 @@ class ShowService extends BaseService
         $file = (isset($_FILES['image']['name']) && $_FILES['image']['name'] != '') ? UploadedFile::fromGlobals('image') : null;
         $image = attachment()->reserve('show', $file, 'admin', $adminId, 'main', AttachmentUploadOptions::create());
         $row['image'] = $image;
+        $languagePlan = $this->languageDraftBegin('show', $data, 0, $adminId);
 
-        $id = (int) DB::transaction(function () use ($row, $image, $adminId) {
-            $model = Show::create($row);
-            if (!$model) {
-                throw new DomainException(lang('operation_failed'));
-            }
-            $id = (int) $model->getKey();
-            if ($id <= 0) {
-                throw new DomainException(lang('operation_failed'));
-            }
+        try {
+            $id = (int) DB::transaction(function () use ($row, $image, $adminId, $languagePlan) {
+                $model = Show::create($row);
+                if (!$model) {
+                    throw new DomainException(lang('operation_failed'));
+                }
+                $id = (int) $model->getKey();
+                if ($id <= 0) {
+                    throw new DomainException(lang('operation_failed'));
+                }
 
-            if ($image !== '' && attachment()->adopt('show', $image, $id, 'admin', $adminId) < 1) {
-                throw new DomainException(lang('file_claim_failed'));
-            }
+                $this->languageDraftCommit($languagePlan, $id, $adminId);
+                if ($image !== '' && attachment()->adopt('show', $image, $id, 'admin', $adminId) < 1) {
+                    throw new DomainException(lang('file_claim_failed'));
+                }
 
-            return $id;
-        });
+                return $id;
+            });
+        } catch (\Exception $e) {
+            $this->languageDraftAbort($languagePlan);
+            throw $e;
+        }
 
+        $this->languageDraftPurge($languagePlan, $id);
         audit()->writeAdminLog($adminId, AdminLogAction::CREATE, 1, (string) $data['name']);
 
         return $id;
@@ -149,6 +160,8 @@ class ShowService extends BaseService
             throw new DomainException(lang('illegal'), route('admin.show'));
         }
 
+        $adminId = (int) auth('admin')->id();
+        $languagePlan = $this->languageDraftBegin('show', $data, $id, $adminId);
         $new_image = '';
         if (isset($_FILES['image']['name']) && $_FILES['image']['name'] != '') {
             $new_image = attachment()->store('show', $id, UploadedFile::fromGlobals('image'), 'main', AttachmentUploadOptions::create()->withUploader('admin', (int) auth('admin')->id()));
@@ -165,9 +178,18 @@ class ShowService extends BaseService
             $update_data['image'] = $new_image;
         }
 
-        $show->fill($update_data, 'update')->save();
+        try {
+            DB::transaction(function () use ($show, $update_data, $id, $adminId, $languagePlan) {
+                $show->fill($update_data, 'update')->save();
+                $this->languageDraftCommit($languagePlan, $id, $adminId);
+            });
+        } catch (\Exception $e) {
+            $this->languageDraftAbort($languagePlan);
+            throw $e;
+        }
 
-        audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::UPDATE, 1, (string) $data['name']);
+        $this->languageDraftPurge($languagePlan, $id);
+        audit()->writeAdminLog($adminId, AdminLogAction::UPDATE, 1, (string) $data['name']);
     }
 
     /**

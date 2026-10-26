@@ -86,10 +86,11 @@ class CloudController extends BaseController
      *   2) `type` 可省略：在 `mode=update|patch` 且无 `type` 时视为 **system** 内核包；`cloud_id=font` 且无 `type` 时视为 **system** 字体包。
      *   3) `cloud_id` 形如 `a|b|c` 时拆出首项 a 与批量队列 [b, c]。
      *   4) 调 {@see InstallSessionService::create()} 落盘新会话，得到 install_id。
-     *   5) 渲染 `cloud.htm` 的 `rec='install'` 区块，将 install_id / token / 6 步元数据
-     *      （preflight→download→unzip→snapshot→apply→finalize）暴露给前端 JS，
-     *      由其逐步 POST `cloud/install_step` 完成实际工作；snapshot 步未完成时
-     *      返回 next_step 指回自身，前端循环续做直至还原点创建完成。
+     *   5) 渲染 `cloud.htm` 的 `rec='install'` 区块，将 install_id / token / 步骤元数据
+     *      （preflight→download→unzip→[snapshot]→apply→finalize）暴露给前端 JS，
+     *      由其逐步 POST `cloud/install_step` 完成实际工作；snapshot 步仅在
+     *      {@see InstallService::needsSnapshot()} 判定为升级时出现（全新安装无还原点），
+     *      未完成时返回 next_step 指回自身，前端循环续做直至还原点创建完成。
      *
      * 同步阶段（不在浏览器实时显示「半截 HTML」）已下沉到独立 {@see installStep()} 中执行。
      *
@@ -103,7 +104,8 @@ class CloudController extends BaseController
         $themeId = $themeIdInput !== '' && preg_match("/^[A-Za-z0-9-_]+$/", $themeIdInput) ? $themeIdInput : '';
 
         $mode = $this->resolveMode($request->query('mode', ''));
-        $version = $request->digits('version', '', 'query');
+        $version = $this->eightDigits($request->query('version', ''));
+        $miniVersion = $this->eightDigits($request->query('mini_version', ''));
         $backUrl = $this->sanitizeAdminBackUrl($request->query('back_url', ''));
 
         $cloudId = '';
@@ -145,6 +147,13 @@ class CloudController extends BaseController
             $authStatus = isset($resolved['status']) ? (string) $resolved['status'] : 'unavailable';
             $downloadUrl = isset($resolved['download_url']) ? (string) $resolved['download_url'] : '';
             $downloadSha256 = isset($resolved['sha256']) ? (string) $resolved['sha256'] : '';
+            // install-resolve 是版本权威来源：仅在响应值合法时覆盖链接参数
+            if (isset($resolved['version']) && $this->eightDigits($resolved['version']) !== '') {
+                $version = $this->eightDigits($resolved['version']);
+            }
+            if (isset($resolved['mini_version']) && $this->eightDigits($resolved['mini_version']) !== '') {
+                $miniVersion = $this->eightDigits($resolved['mini_version']);
+            }
             if ($downloadUrl !== '') {
                 $downloadUrl = $this->installService->filterTrustedInstallDownloadUrl($downloadUrl);
             }
@@ -159,6 +168,7 @@ class CloudController extends BaseController
             'cloud_id' => $cloudId,
             'mode' => $mode,
             'version' => $version,
+            'mini_version' => $miniVersion,
             'theme_id' => $themeId,
             'batch' => $batch,
             'download_url' => $downloadUrl,
@@ -173,10 +183,13 @@ class CloudController extends BaseController
             InstallService::STEP_PREFLIGHT,
             InstallService::STEP_DOWNLOAD,
             InstallService::STEP_UNZIP,
-            InstallService::STEP_SNAPSHOT,
-            InstallService::STEP_APPLY,
-            InstallService::STEP_FINALIZE,
         );
+        // 还原点只服务升级：安装（install/local）不建还原点，步骤列表里也不出现 snapshot
+        if ($this->installService->needsSnapshot($type, $mode)) {
+            $steps[] = InstallService::STEP_SNAPSHOT;
+        }
+        $steps[] = InstallService::STEP_APPLY;
+        $steps[] = InstallService::STEP_FINALIZE;
         $langPack = array(
             'cloud_install_next' => lang('cloud_install_next'),
             'cloud_update_next' => lang('cloud_update_next'),
@@ -335,18 +348,7 @@ class CloudController extends BaseController
                 }
             }
 
-            $params = array(
-                'type' => isset($state['type']) ? (string) $state['type'] : '',
-                'cloud_id' => isset($state['cloud_id']) ? (string) $state['cloud_id'] : '',
-                'mode' => isset($state['mode']) ? (string) $state['mode'] : 'install',
-                'version' => isset($state['version']) ? (string) $state['version'] : '',
-                'theme_id' => isset($state['theme_id']) ? (string) $state['theme_id'] : '',
-                'download_url' => isset($state['download_url']) ? (string) $state['download_url'] : '',
-                'sha256' => isset($state['sha256']) ? (string) $state['sha256'] : '',
-                'auth_status' => isset($state['auth_status']) ? (string) $state['auth_status'] : 'ok',
-                'back_url' => isset($state['back_url']) ? (string) $state['back_url'] : '',
-                'install_id' => $installId,
-            );
+            $params = $this->buildStepParams($state, $installId);
 
             $outcome = $this->runStep($service, $step, $params, $state);
 
@@ -370,16 +372,7 @@ class CloudController extends BaseController
                         'info',
                         $skippedId . lang('cloud_install_repeat')
                     );
-                    $params = array(
-                        'type' => isset($state['type']) ? (string) $state['type'] : '',
-                        'cloud_id' => isset($state['cloud_id']) ? (string) $state['cloud_id'] : '',
-                        'mode' => isset($state['mode']) ? (string) $state['mode'] : 'install',
-                        'version' => isset($state['version']) ? (string) $state['version'] : '',
-                        'theme_id' => isset($state['theme_id']) ? (string) $state['theme_id'] : '',
-                        'download_url' => isset($state['download_url']) ? (string) $state['download_url'] : '',
-                        'auth_status' => isset($state['auth_status']) ? (string) $state['auth_status'] : 'ok',
-                        'back_url' => isset($state['back_url']) ? (string) $state['back_url'] : '',
-                    );
+                    $params = $this->buildStepParams($state, $installId);
                     $skippedId = $params['cloud_id'];
                     $outcome = $service->runPreflight($params);
                 }
@@ -427,7 +420,7 @@ class CloudController extends BaseController
                 $state['completed_steps'][] = $step;
             }
             // 步骤可携带 next_step 覆写（快照创建未完成时指回自身，前端循环续做）
-            $next = !empty($outcome['next_step']) ? (string) $outcome['next_step'] : $this->nextStep($step);
+            $next = !empty($outcome['next_step']) ? (string) $outcome['next_step'] : $this->nextStep($step, $state);
             $state['current_step'] = $next ? $next : InstallService::STEP_FINALIZE;
 
             $response['ok'] = true;
@@ -556,10 +549,14 @@ class CloudController extends BaseController
     /**
      * 计算下一步名称；finalize 返回 null。
      *
+     * 当前目标不需要还原点时跳过 snapshot（unzip 直连 apply），
+     * 避免前端出现「正在创建升级还原点」的空步骤。
+     *
      * @param string $step
+     * @param array $state 当前会话快照（链式安装时 type / mode 已切到当前目标）
      * @return string|null
      */
-    private function nextStep($step)
+    private function nextStep($step, array $state)
     {
         $order = array(
             InstallService::STEP_PREFLIGHT => InstallService::STEP_DOWNLOAD,
@@ -569,7 +566,41 @@ class CloudController extends BaseController
             InstallService::STEP_APPLY => InstallService::STEP_FINALIZE,
             InstallService::STEP_FINALIZE => null,
         );
-        return isset($order[$step]) ? $order[$step] : null;
+        $next = isset($order[$step]) ? $order[$step] : null;
+
+        if ($next === InstallService::STEP_SNAPSHOT
+            && !$this->installService->needsSnapshot(
+                isset($state['type']) ? (string) $state['type'] : '',
+                isset($state['mode']) ? (string) $state['mode'] : 'install'
+            )) {
+            $next = InstallService::STEP_APPLY;
+        }
+
+        return $next;
+    }
+
+    /**
+     * 从安装会话构建步骤参数（两处调用共用，避免字段漂移）。
+     *
+     * @param array $state
+     * @param string $installId
+     * @return array
+     */
+    private function buildStepParams(array $state, $installId)
+    {
+        return array(
+            'type' => isset($state['type']) ? (string) $state['type'] : '',
+            'cloud_id' => isset($state['cloud_id']) ? (string) $state['cloud_id'] : '',
+            'mode' => isset($state['mode']) ? (string) $state['mode'] : 'install',
+            'version' => isset($state['version']) ? (string) $state['version'] : '',
+            'mini_version' => isset($state['mini_version']) ? (string) $state['mini_version'] : '',
+            'theme_id' => isset($state['theme_id']) ? (string) $state['theme_id'] : '',
+            'download_url' => isset($state['download_url']) ? (string) $state['download_url'] : '',
+            'sha256' => isset($state['sha256']) ? (string) $state['sha256'] : '',
+            'auth_status' => isset($state['auth_status']) ? (string) $state['auth_status'] : 'ok',
+            'back_url' => isset($state['back_url']) ? (string) $state['back_url'] : '',
+            'install_id' => (string) $installId,
+        );
     }
 
     /**
@@ -598,27 +629,88 @@ class CloudController extends BaseController
      */
     private function advanceInstallChainTarget(array $state)
     {
-        $batch = isset($state['batch']) && is_array($state['batch']) ? $state['batch'] : array();
-        if (!empty($batch)) {
-            $next = array_shift($batch);
-            $state['cloud_id'] = (string) $next;
-            $state['batch'] = array_values($batch);
+        // 已安装模块直接跳过，避免为“最终仍会跳过”的目标调用 install-resolve 并累加下载计数
+        $safety = 0;
+        while ($safety < 64) {
+            $safety++;
+            $batch = isset($state['batch']) && is_array($state['batch']) ? $state['batch'] : array();
+            if (!empty($batch)) {
+                $next = array_shift($batch);
+                $state['type'] = 'module';
+                $state['cloud_id'] = (string) $next;
+                $state['batch'] = array_values($batch);
+            } else {
+                $type = isset($state['type']) ? (string) $state['type'] : '';
+                $themeId = isset($state['theme_id']) ? (string) $state['theme_id'] : '';
+                if ($type !== 'module' || $themeId === '') {
+                    return null;
+                }
+                $state['type'] = 'theme';
+                $state['cloud_id'] = $themeId;
+                $state['theme_id'] = '';
+                $state['batch'] = array();
+                $state['mode'] = 'install';
+            }
 
-            return $state;
-        }
-        $type = isset($state['type']) ? (string) $state['type'] : '';
-        $themeId = isset($state['theme_id']) ? (string) $state['theme_id'] : '';
-        if ($type === 'module' && $themeId !== '') {
-            $state['type'] = 'theme';
-            $state['cloud_id'] = $themeId;
-            $state['theme_id'] = '';
-            $state['batch'] = array();
-            $state['mode'] = 'install';
+            if ($state['type'] === 'module'
+                && $this->installService->installCheck('module', $state['cloud_id'])) {
+                $state = $this->installSession->pushLog(
+                    $state,
+                    InstallService::STEP_PREFLIGHT,
+                    'info',
+                    (string) $state['cloud_id'] . lang('cloud_install_repeat')
+                );
+                continue;
+            }
 
-            return $state;
+            return $this->refreshChainTargetResolution($state);
         }
 
         return null;
+    }
+
+    /**
+     * 链式目标切换后重新解析下载地址与版本，避免沿用上一项的 URL/version。
+     *
+     * @param array $state
+     * @return array
+     */
+    private function refreshChainTargetResolution(array $state)
+    {
+        $state['download_url'] = '';
+        $state['sha256'] = '';
+        $state['version'] = '';
+        $state['mini_version'] = '';
+        $state['auth_status'] = 'ok';
+
+        $mode = isset($state['mode']) ? (string) $state['mode'] : 'install';
+        if ($mode === 'local') {
+            return $state;
+        }
+
+        $type = isset($state['type']) ? (string) $state['type'] : '';
+        $cloudId = isset($state['cloud_id']) ? (string) $state['cloud_id'] : '';
+        if ($type === '' || $cloudId === '') {
+            $state['auth_status'] = 'unavailable';
+            return $state;
+        }
+
+        $resolved = $this->cloudService->resolveInstallDownload($type, $cloudId, $mode);
+        $state['auth_status'] = isset($resolved['status']) ? (string) $resolved['status'] : 'unavailable';
+        $downloadUrl = isset($resolved['download_url']) ? (string) $resolved['download_url'] : '';
+        $downloadSha256 = isset($resolved['sha256']) ? (string) $resolved['sha256'] : '';
+        if ($downloadUrl !== '') {
+            $downloadUrl = $this->installService->filterTrustedInstallDownloadUrl($downloadUrl);
+        }
+        if ($downloadUrl === '') {
+            $downloadSha256 = '';
+        }
+        $state['download_url'] = $downloadUrl;
+        $state['sha256'] = $downloadSha256;
+        $state['version'] = isset($resolved['version']) ? $this->eightDigits($resolved['version']) : '';
+        $state['mini_version'] = isset($resolved['mini_version']) ? $this->eightDigits($resolved['mini_version']) : '';
+
+        return $state;
     }
 
     /**
@@ -635,6 +727,19 @@ class CloudController extends BaseController
             return $mode;
         }
         return 'install';
+    }
+
+    /**
+     * 归一 8 位日期版本号（YYYYMMDD）；非法值返回空串。
+     *
+     * @param mixed $value
+     * @return string
+     */
+    private function eightDigits($value)
+    {
+        $value = trim((string) $value);
+
+        return preg_match('/^\d{8}$/', $value) ? $value : '';
     }
 
     /**

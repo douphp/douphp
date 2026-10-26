@@ -1,10 +1,10 @@
 -- DouPHP v2.x SQL Dump Program
 -- http://localhost/douphp/
 -- 
--- DATE : 2026-10-22 10:45:55
+-- DATE : 2026-10-24 16:22:55
 -- MYSQL SERVER VERSION : 5.7.44-log
 -- PHP VERSION : 7.4.33
--- DouPHP VERSION : v2.0 Release 20261022
+-- DouPHP VERSION : v2.0 Release 20261026
 
 DROP TABLE IF EXISTS `dou_admin`;
 CREATE TABLE `dou_admin` (
@@ -192,12 +192,12 @@ INSERT INTO dou_config VALUES('73','site_theme','default','hidden','','');
 INSERT INTO dou_config VALUES('74','miniprogram_code','default','hidden','','');
 INSERT INTO dou_config VALUES('75','build_date','1377768032','hidden','','');
 INSERT INTO dou_config VALUES('76','update_number','a:5:{s:6:\"update\";i:0;s:5:\"patch\";i:0;s:6:\"module\";i:0;s:6:\"plugin\";i:0;s:5:\"theme\";i:0;}','hidden','','');
-INSERT INTO dou_config VALUES('77','update_date','a:3:{s:6:\"system\";a:2:{s:6:\"update\";s:8:\"20261022\";s:5:\"patch\";s:8:\"20261022\";}s:6:\"module\";a:3:{s:7:\"article\";s:8:\"20261022\";s:7:\"product\";s:8:\"20261022\";s:8:\"language\";s:8:\"20261022\";}s:5:\"theme\";a:0:{}}','hidden','','');
+INSERT INTO dou_config VALUES('77','update_date','a:3:{s:6:\"system\";a:2:{s:6:\"update\";s:8:\"20261026\";s:5:\"patch\";s:8:\"20261026\";}s:6:\"module\";a:4:{s:7:\"article\";s:8:\"20261026\";s:7:\"product\";s:8:\"20261026\";s:8:\"language\";s:8:\"20261026\";s:4:\"form\";s:8:\"20261026\";}s:5:\"theme\";a:0:{}}','hidden','','');
 INSERT INTO dou_config VALUES('78','file_update_time','1653395208','hidden','','');
 INSERT INTO dou_config VALUES('79','cloud_account','','hidden','','');
 INSERT INTO dou_config VALUES('80','hash_code','166d0de32dafdef9ab26e10130dd115b','hidden','','');
-INSERT INTO dou_config VALUES('81','module_version','a:0:{}','hidden','','');
-INSERT INTO dou_config VALUES('82','douphp_version','v2.0 Release 20261022','hidden','','');
+INSERT INTO dou_config VALUES('81','module_version','a:1:{s:4:\"form\";s:8:\"20261026\";}','hidden','','');
+INSERT INTO dou_config VALUES('82','douphp_version','v2.0 Release 20261026','hidden','','');
 
 DROP TABLE IF EXISTS `dou_data`;
 CREATE TABLE `dou_data` (
@@ -300,6 +300,68 @@ INSERT INTO dou_file VALUES('51','admin','0','3a5ersn.file','images/article/7_15
 INSERT INTO dou_file VALUES('52','admin','0','h66rjpb.file','images/article/8_1592028547020909.jpg','article','8','main','44993','0','','','local','',NULL,'owned','2020-06-13 14:09:07','2020-06-13 14:09:07');
 INSERT INTO dou_file VALUES('53','admin','0','xlmxlw3.file','images/article/9_1592028554471746.jpg','article','9','main','147605','0','','','local','',NULL,'owned','2020-06-13 14:09:14','2020-06-13 14:09:14');
 INSERT INTO dou_file VALUES('54','admin','0','jwbdr85.file','images/article/10_1590637651640490.jpg','article','10','main','83272','0','','','local','',NULL,'owned','2020-05-28 11:47:31','2020-05-28 11:47:31');
+
+DROP TABLE IF EXISTS `dou_form`;
+CREATE TABLE `dou_form` (
+  `id` smallint(5) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '表单名称',
+  `slug` varchar(60) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '唯一别名，^[a-z][a-z0-9_]{0,59}$',
+  `content` text COLLATE utf8mb4_unicode_ci COMMENT '表单说明',
+  `success_message` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '提交成功提示',
+  `success_url` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '提交后跳转，空则留原页',
+  `captcha` tinyint(1) NOT NULL DEFAULT '0' COMMENT '启用验证码',
+  `require_login` tinyint(1) NOT NULL DEFAULT '0' COMMENT '仅登录会员可提交',
+  `spam_limit` smallint(5) unsigned NOT NULL DEFAULT '10' COMMENT '同IP每小时上限，0不限',
+  `notify_email` varchar(120) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '新提交通知邮箱（预留）',
+  `status` tinyint(1) NOT NULL DEFAULT '1',
+  `sort` smallint(5) unsigned NOT NULL DEFAULT '50',
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `slug` (`slug`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='自定义表单';
+
+
+DROP TABLE IF EXISTS `dou_form_data`;
+CREATE TABLE `dou_form_data` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `form_id` smallint(5) unsigned NOT NULL DEFAULT '0',
+  `data` longtext COLLATE utf8mb4_unicode_ci COMMENT '提交内容 JSON',
+  `user_id` int(10) unsigned NOT NULL DEFAULT '0',
+  `ip` varchar(45) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
+  `source_url` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '提交页面地址',
+  `if_read` tinyint(1) NOT NULL DEFAULT '0' COMMENT '0未读 1已读',
+  `status` tinyint(1) NOT NULL DEFAULT '0' COMMENT '0待处理 1已处理',
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `form_id` (`form_id`),
+  KEY `created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='表单提交';
+
+
+DROP TABLE IF EXISTS `dou_form_field`;
+CREATE TABLE `dou_form_field` (
+  `id` mediumint(8) unsigned NOT NULL AUTO_INCREMENT,
+  `form_id` smallint(5) unsigned NOT NULL DEFAULT '0',
+  `name` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '字段标签',
+  `slug` varchar(60) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '字段键名，^[a-z][a-z0-9_]{0,59}$',
+  `type` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'input' COMMENT '见 FormFieldSchema',
+  `unit` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '单位',
+  `option` text COLLATE utf8mb4_unicode_ci COMMENT '可选项，每行一个纯值',
+  `placeholder` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
+  `tip` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '字段说明',
+  `default_value` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
+  `validate` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '校验规则，逗号分隔',
+  `width` tinyint(3) unsigned NOT NULL DEFAULT '12' COMMENT '栅格 1-12',
+  `must_fill` tinyint(1) NOT NULL DEFAULT '0',
+  `limit` tinyint(3) unsigned NOT NULL DEFAULT '1' COMMENT '上传类：最多文件数',
+  `extensions` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '上传类：允许扩展名',
+  `max_size` smallint(5) unsigned NOT NULL DEFAULT '0' COMMENT '上传类：单文件上限KB，0走磁盘默认',
+  `sort` tinyint(3) unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `form_slug` (`form_id`,`slug`),
+  KEY `form_id` (`form_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='表单字段';
+
 
 DROP TABLE IF EXISTS `dou_language`;
 CREATE TABLE `dou_language` (

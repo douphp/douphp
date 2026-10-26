@@ -57,10 +57,10 @@ trait HasContentLift
         $lift['previous'] = $query->order('id ASC')->find();
         if ($lift['previous']) {
             $lift['previous']['url'] = route($module . '.show', array('id' => $lift['previous']['id']));
+            $lift['previous'] = language()->langBox($lift['previous'], $module, $field . ',image');
             $prevImage = $lift['previous']['image'];
             $lift['previous']['image'] = attachment()->url($prevImage);
             $lift['previous']['thumb'] = attachment()->url($prevImage, true);
-            $lift['previous'] = language()->langBox($lift['previous'], $module, $field);
         }
 
         $query = DB::table($module)
@@ -72,10 +72,10 @@ trait HasContentLift
         $lift['next'] = $query->order('id DESC')->find();
         if ($lift['next']) {
             $lift['next']['url'] = route($module . '.show', array('id' => $lift['next']['id']));
+            $lift['next'] = language()->langBox($lift['next'], $module, $field . ',image');
             $nextImage = $lift['next']['image'];
             $lift['next']['image'] = attachment()->url($nextImage);
             $lift['next']['thumb'] = attachment()->url($nextImage, true);
-            $lift['next'] = language()->langBox($lift['next'], $module, $field);
         }
 
         return $lift;

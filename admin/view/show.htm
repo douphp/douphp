@@ -28,6 +28,7 @@
         <div class="split-body">
          <div class="form-box">
           <form action="{$form_action}" {if $rec eq 'edit'}class="form-edit" {/if} method="post" enctype="multipart/form-data"><!-- {if $form_method} --><input type="hidden" name="_method" value="{$form_method}" /><!-- {/if} -->
+           {include file="inc/language_drafts.tpl" drafts=$lang_drafts}
            <div class="form">
             <div class="form-item">
              <div class="form-label">{$lang.show_name}</div>

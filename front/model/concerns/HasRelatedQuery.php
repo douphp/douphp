@@ -24,6 +24,8 @@ if (!defined('IN_DOUCO')) {
  * 需要会员视图（如 Product 的 sale_price / favorites）的子类追加 $userId 参数并覆写本方法、
  * 在链中插入 forUser($userId)；参考 Product::related()。
  *
+ * 详情页调用时传 $excludeId = 当前记录 id，避免随机推荐命中当前条目本身；列表页保持不传。
+ *
  * 返回前必须经 toArray()：多语言只能在 Model::toArray() 中应用，直接传集合会绕过翻译。
  */
 trait HasRelatedQuery
@@ -33,14 +35,19 @@ trait HasRelatedQuery
      *
      * @param int|string $catId 分类 ID（精确单分类经 filterByCategory 子树展开）
      * @param int $number limit
+     * @param int $excludeId 需排除的记录 ID（0 = 不排除）
      * @return array
      */
-    public static function related($catId, $number = 4)
+    public static function related($catId, $number = 4, $excludeId = 0)
     {
-        return static::published()
+        $query = static::published()
             ->with('category')
-            ->filterByCategory($catId)
-            ->order('RAND()')
+            ->filterByCategory($catId);
+        if ((int) $excludeId > 0) {
+            $query->where('id', '<>', (int) $excludeId);
+        }
+
+        return $query->order('RAND()')
             ->limit((int) $number)
             ->get()
             ->toArray();

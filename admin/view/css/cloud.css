@@ -11,13 +11,15 @@
 }
 /*- handle -*/
 .cloud .handle h2 {
-  background: url(../images/icon_cloud_handle.png) no-repeat left top;
-  height: 46px;
+  background: url(../images/icon_cloud_handle.png) no-repeat left center;
   padding-left: 45px;
-  font-size: 18px;
+  font-size: 25px;
+  margin-bottom: 20px;
 }
 .cloud .handle p {
   margin-bottom: 12px;
+  font-size: 13px;
+  color: #555;
 }
 .cloud .handle a {
   margin-right: 15px;
@@ -338,6 +340,12 @@
   display: inline-block;
   margin-left: 6px;
   color: #999;
+}
+
+/* -- 安装/更新完成（及失败）后的操作按钮行：用 padding-top 而非 margin，
+     避开与上方日志行 margin-bottom 的外边距合并，间距恒定 12px + 16px = 28px -- */
+#dou-install-log .install-action-row {
+  padding-top: 16px;
 }
 
 /*- cloud-frame -*/

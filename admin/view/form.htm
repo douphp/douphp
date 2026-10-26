@@ -1,0 +1,190 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+ <meta name="copyright" content="DouCo Co.,Ltd." />
+ <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+ <meta name="csrf-token" content="{$csrf_token}">
+ <title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+ <link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+ <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+ <link href="css/common.css" rel="stylesheet" type="text/css">
+ <link href="css/form.css" rel="stylesheet" type="text/css">
+ {include file="inc/javascript.tpl"}
+</head>
+
+<body>
+ <div id="dou"> {include file="inc/header.tpl"}
+  {include file="inc/sidebar.tpl"}
+  <div id="dou-content"> {include file="inc/toolbar.tpl"}
+   <div class="dou-main has-subnav">
+    {include file="inc/form_submenu.tpl"}
+    <div id="form" class="dou-page">
+     <!-- {if $rec eq 'list'} 表单列表 -->
+     {include file="inc/page_header.tpl"}
+     <div class="filter">
+      <form action="{url link='admin.form.form_list'}" method="get" onsubmit="return hideEmpty(this)">
+       <input name="keyword" type="text" class="input" value="{$keyword}" size="24" placeholder="{$lang.form_name}" />
+       <input class="btn-secondary" type="submit" value="{$lang.btn_filter}" />
+       <a class="btn-secondary" href="{url link='admin.form.form_list'}">{$lang.btn_reset}</a>
+      </form>
+     </div>
+     <div id="list">
+      <table class="table">
+       <tr>
+        <th width="50" class="text-center">{$lang.record_id}</th>
+        <th class="text-left">{$lang.form_name}</th>
+        <th class="m-none">{$lang.form_slug}</th>
+        <th class="text-center">{$lang.form_field_count}</th>
+        <th class="text-center">{$lang.form_data_count}</th>
+        <th class="text-center">{$lang.form_status}</th>
+        <th class="m-none text-center">{$lang.form_created_at}</th>
+        <th class="text-center">{$lang.form_data_list}</th>
+        <th class="text-center">{$lang.view}</th>
+        <th class="text-center">{$lang.form_field_manage}</th>
+        <th class="text-center">{$lang.form_embed}</th>
+        <th width="110" class="text-center">{$lang.handler}</th>
+       </tr>
+       <!-- {foreach from=$form_list item=row} -->
+       <tr{if $row.status eq '0'} class="row-disabled"{/if}>
+        <td class="text-center">{$row.form_id}</td>
+        <td><a href="{$row.edit_url}">{$row.name}</a></td>
+        <td class="m-none">{$row.slug}</td>
+        <td class="text-center">{$row.field_count}</td>
+        <td class="text-center">{$row.data_count}</td>
+        <td class="text-center">{$row.status_text}</td>
+        <td class="m-none text-center">{$row.created_at}</td>
+        <td class="text-center"><a href="{$row.data_url}">{$lang.form_data_list}</a></td>
+        <td class="text-center"><a href="{$row.url}" target="_blank">{$lang.view}</a></td>
+        <td class="text-center"><a href="{$row.field_url}">{$lang.form_field_list}</a></td>
+        <td class="text-center"><a href="javascript:;" class="js-embed" data-name="{$row.name}" data-code="{$row.embed_code}">{$lang.form_embed}</a></td>
+        <td class="text-center">
+         <a href="{$row.edit_url}">{$lang.edit}</a>
+         |
+         <a href="javascript:;" class="js-delete" data-url="{$row.delete_url}">{$lang.del}</a>
+        </td>
+       </tr>
+       <!-- {/foreach} -->
+       <!-- {if !$form_list} -->
+       <tr>
+        <td class="text-center cue" colspan="12">{$lang.form_list_empty}</td>
+       </tr>
+       <!-- {/if} -->
+      </table>
+     </div>
+     <div class="clear"></div>
+     {include file="inc/pager.tpl"}
+     <!-- {else} 新建 / 编辑（字段与提交数据各有独立页面） -->
+     {include file="inc/page_header.tpl"}
+     <div class="form-box">
+      <form action="{$form_action}" method="post">
+       {include file="inc/language_drafts.tpl" drafts=$form.lang_drafts}
+       <!-- {if $form_method} --><input type="hidden" name="_method" value="{$form_method}" /><!-- {/if} -->
+       <div class="form">
+        <div class="form-item">
+         <div class="form-label">{$lang.form_name}</div>
+         <div class="input-block">
+          <input type="text" name="name" id="form-name" value="{$form.name}" size="30" class="input" />
+          <!-- {if $form.btn_lang.name} --><span class="action" data-field="name">{$form.btn_lang.name nofilter}</span><!-- {/if} -->
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.form_slug} <em class="btn-outline js-slug" data-slug-from="#form-name" data-slug-to="#form-slug">{$lang.slug_auto}</em></div>
+         <div class="input-block">
+          <input type="text" name="slug" id="form-slug" value="{$form.slug}" size="30" class="input" />
+          <p class="cue">{$lang.form_slug_cue}</p>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.form_content}</div>
+         <div class="input-block">
+          <textarea name="content" cols="60" rows="6" class="textarea">{$form.content nofilter}</textarea>
+          <!-- {if $form.btn_lang.content} --><p class="action" data-field="content">{$form.btn_lang.content nofilter}</p><!-- {/if} -->
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.form_success_message}</div>
+         <div class="input-block">
+          <input type="text" name="success_message" value="{$form.success_message}" size="59" class="input" />
+          <p class="cue">{$lang.form_success_message_cue}</p>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.form_success_url}</div>
+         <div class="input-block">
+          <input type="text" name="success_url" value="{$form.success_url}" size="59" class="input" />
+          <p class="cue">{$lang.form_success_url_cue}</p>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.form_captcha}</div>
+         <div class="input-block">
+          <select class="select" name="captcha">
+           <option value="0"{if $form.captcha eq '0'} selected="selected"{/if}>{$lang.form_status_0}</option>
+           <option value="1"{if $form.captcha eq '1'} selected="selected"{/if}>{$lang.form_status_1}</option>
+          </select>
+          <p class="cue">{$lang.form_captcha_cue}</p>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.form_require_login}</div>
+         <div class="input-block">
+          <select class="select" name="require_login">
+           <option value="0"{if $form.require_login eq '0'} selected="selected"{/if}>{$lang.form_status_0}</option>
+           <option value="1"{if $form.require_login eq '1'} selected="selected"{/if}>{$lang.form_status_1}</option>
+          </select>
+          <p class="cue">{$lang.form_require_login_cue}</p>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.form_spam_limit}</div>
+         <div class="input-block">
+          <input type="text" name="spam_limit" value="{$form.spam_limit}" size="8" class="input" />
+          <p class="cue">{$lang.form_spam_limit_cue}</p>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.form_notify_email}</div>
+         <div class="input-block">
+          <input type="text" name="notify_email" value="{$form.notify_email}" size="40" class="input" />
+          <p class="cue">{$lang.form_notify_email_cue}</p>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-field-inline">
+          <div class="form-label">{$lang.form_status}</div>
+          <div class="input-block">
+           <select class="select" name="status">
+            <option value="1"{if $form.status eq '1'} selected="selected"{/if}>{$lang.form_status_1}</option>
+            <option value="0"{if $form.status eq '0'} selected="selected"{/if}>{$lang.form_status_0}</option>
+           </select>
+          </div>
+         </div>
+         <div class="form-field-inline">
+          <div class="form-label">{$lang.form_sort}</div>
+          <div class="input-block">
+           <input type="text" name="sort" value="{$form.sort}" size="4" class="input" />
+          </div>
+         </div>
+        </div>
+        <div class="form-item">
+         <input type="hidden" name="token" value="{$token}" />
+         <!-- {if $rec eq 'edit'} -->
+         <input type="hidden" name="form_id" value="{$form.form_id}" />
+         <!-- {/if} -->
+         <input class="btn" type="submit" value="{$lang.btn_submit}" />
+        </div>
+       </div>
+      </form>
+     </div>
+     <!-- {/if} -->
+    </div>
+   </div>
+  </div>
+  {include file="inc/footer.tpl"}
+ </div>
+<script type="text/javascript" src="js/form.js"></script>
+</body>
+
+</html>

@@ -12,6 +12,9 @@ export interface Verification {
   account: string
   ontime: number
   code: string
+  type?: string
+  /** 服务端 HMAC 签名 token，提交时原样回传 */
+  sig?: string
 }
 
 export interface SendCaptchaOptions {
@@ -25,7 +28,7 @@ export interface SendCaptchaOptions {
 
 export function sendCaptcha(options: SendCaptchaOptions): Promise<Verification> {
   return http
-    .post<{ message?: string; verification?: Verification }>(route('captcha.verification'), {
+    .post<{ verification?: Verification }>(route('captcha.verification'), {
       type: options.type,
       account: options.account,
       captcha_token: options.captcha_token,
@@ -33,7 +36,7 @@ export function sendCaptcha(options: SendCaptchaOptions): Promise<Verification> 
       check: typeof options.check !== 'undefined' ? options.check : 'no_allow_phone_exist',
     })
     .then((data) => {
-      if (!data || data.message !== 'success' || !data.verification) {
+      if (!data || !data.verification) {
         return Promise.reject(
           new ApiError({
             code: 'BUSINESS_RULE_VIOLATION',

@@ -394,4 +394,14 @@ abstract class BaseController extends CoreBaseController
 
         return redirect($backUrl)->with('success', $message);
     }
+
+    /**
+     * 原生字段多语言草稿服务（按钮 + 草稿初值）。
+     *
+     * @return \Dou\Admin\Service\Language\LanguageDraftService
+     */
+    protected function languageDraft()
+    {
+        return app(\Dou\Admin\Service\Language\LanguageDraftService::class);
+    }
 }

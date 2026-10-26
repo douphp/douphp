@@ -89,7 +89,6 @@ class LanguageValueService extends BaseService
             ->where('module', $module)
             ->where('item_id', $itemId)
             ->where('field', $field)
-            ->where('type', $type)
             ->order('id DESC')
             ->value('value');
 
@@ -102,8 +101,7 @@ class LanguageValueService extends BaseService
                 ->where('module', $module)
                 ->where('item_id', $itemId)
                 ->where('field', $field)
-                ->where('type', $type)
-                ->data(array('value' => $value))
+                ->data(array('value' => $value, 'type' => $type))
                 ->update();
             audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::UPDATE, 1, (string) $rawInput);
             $action = 'edit';
@@ -150,7 +148,6 @@ class LanguageValueService extends BaseService
             ->where('module', $module)
             ->where('item_id', $itemId)
             ->where('field', $field)
-            ->where('type', $type)
             ->order('id DESC')
             ->value('value');
         if ($type === 'checkbox') {

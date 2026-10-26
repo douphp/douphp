@@ -127,7 +127,7 @@
     {include file="inc/page_header.tpl"}
     <form action="{$form_action}" method="post" enctype="multipart/form-data"><input type="hidden" name="_method" value="{$form_method}" />
      <div class="form" x-data="slugApp">
-      {include file="inc/language_drafts.tpl"}
+      {include file="inc/language_drafts.tpl" drafts=$lang_drafts}
       <div class="form-item">
        <div class="form-label">{$lang.product_title}</div>
        <div class="input-block">
@@ -208,6 +208,7 @@
        <div class="form-label">{$lang.thumb}</div>
        <div class="input-block">
         {include file="inc/file_image.tpl" name="image" value=$product.image file_number=$product.file_number crop_ratio=$setting.theme.product_img_crop}
+        <p class="action" data-field="image">{$btn_lang.image nofilter}</p>
         <p class="cue">{$setting.theme.product_img_size}</p>
        </div>
       </div>

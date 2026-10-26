@@ -19,6 +19,7 @@
  * 子控制器。
  */
 
+use Dou\Admin\Controller\Language\DraftController;
 use Dou\Admin\Controller\Language\LanguageController;
 use Dou\Admin\Controller\Language\ValueController;
 use Dou\Core\Web\Routing\Route;
@@ -36,4 +37,10 @@ Route::name('admin.')->compositeModule()->group(function () {
         ->sub('value')
         ->get(['index'])
         ->post(['store', 'value']);
+
+    Route::group('language', DraftController::class)
+        ->prefix('language/draft')
+        ->sub('draft')
+        ->root('__noop__')
+        ->post(array('upload', 'release'));
 });

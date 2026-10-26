@@ -77,7 +77,8 @@ class CategoryController extends BaseController
             'rec' => 'create',
             'product_category' => $this->categoryService->flat(),
             'cat_info' => $this->categoryService->buildCategoryDefaultData(),
-            'btn_lang' => language()->buildLangButtons('product_category', '', 'name, keywords, description'),
+            'btn_lang' => ($this->languageDraft()->buildFormState('product_category', ''))['btn_lang'],
+            'lang_drafts' => ($this->languageDraft()->buildFormState('product_category', ''))['lang_drafts'],
         ]);
     }
 
@@ -127,7 +128,8 @@ class CategoryController extends BaseController
             'rec' => 'edit',
             'cat_info' => $catInfo,
             'product_category' => $this->categoryService->flat($catId),
-            'btn_lang' => language()->buildLangButtons('product_category', $catId, 'name, keywords, description'),
+            'btn_lang' => ($this->languageDraft()->buildFormState('product_category', $catId))['btn_lang'],
+            'lang_drafts' => ($this->languageDraft()->buildFormState('product_category', $catId))['lang_drafts'],
         ]);
     }
 

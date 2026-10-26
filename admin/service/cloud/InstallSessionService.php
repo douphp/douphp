@@ -56,7 +56,8 @@ class InstallSessionService extends BaseService
     /**
      * 新建一个会话并落盘，返回 install_id。
      *
-     * @param array $params 至少包含 type / cloud_id / mode / version / theme_id；可选 batch、download_url（云端解析后的安装包 URL）、
+     * @param array $params 至少包含 type / cloud_id / mode / version / theme_id；可选 mini_version（最低系统版本）、
+     *                      batch、download_url（云端解析后的安装包 URL）、
      *                      sha256（安装包 sha256，下载后解压前强校验用）、
      *                      auth_status（云端解析后的授权状态：ok / unauthorized / unavailable，默认 ok）、
      *                      back_url（安装成功后「返回」按钮指向的本站后台 URL，调用方需预先校验）。mode 取值 install|update|patch|local。
@@ -68,6 +69,10 @@ class InstallSessionService extends BaseService
         $cloudId = isset($params['cloud_id']) ? (string) $params['cloud_id'] : '';
         $mode = isset($params['mode']) ? (string) $params['mode'] : 'install';
         $version = isset($params['version']) ? (string) $params['version'] : '';
+        $miniVersion = isset($params['mini_version']) ? trim((string) $params['mini_version']) : '';
+        if (!preg_match('/^\d{8}$/', $miniVersion)) {
+            $miniVersion = '';
+        }
         $themeId = isset($params['theme_id']) ? (string) $params['theme_id'] : '';
         $batch = isset($params['batch']) && is_array($params['batch']) ? array_values($params['batch']) : array();
         $downloadUrl = isset($params['download_url']) ? (string) $params['download_url'] : '';
@@ -89,6 +94,7 @@ class InstallSessionService extends BaseService
             'cloud_id' => $cloudId,
             'mode' => $mode,
             'version' => $version,
+            'mini_version' => $miniVersion,
             'theme_id' => $themeId,
             'download_url' => $downloadUrl,
             'sha256' => $sha256,

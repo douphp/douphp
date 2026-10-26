@@ -61,6 +61,7 @@ class LanguageAdminService extends CoreLanguageService implements AdminLanguageC
         $targets = isset($options['targets']) && is_array($options['targets']) ? $options['targets'] : array();
         $labels = isset($options['labels']) && is_array($options['labels']) ? $options['labels'] : array();
         $hasValue = isset($options['has_value']) && is_array($options['has_value']) ? $options['has_value'] : array();
+        $previews = isset($options['previews']) && is_array($options['previews']) ? $options['previews'] : array();
         $defaultPack = isset($options['default_pack'])
             ? (string) $options['default_pack']
             : (string) Config::get('site.language', 'zh_cn');
@@ -102,7 +103,8 @@ class LanguageAdminService extends CoreLanguageService implements AdminLanguageC
                     $inherit = isset($desc['inherit']) ? str_replace('%s', $pack, (string) $desc['inherit']) : '';
                     $triggerId = isset($desc['trigger_id']) ? (string) $desc['trigger_id'] : ($pack . '_' . $field);
 
-                    if (isset($hasValue[$field]) && is_array($hasValue[$field]) && array_key_exists($pack, $hasValue[$field])) {
+                    if (isset($hasValue[$field]) && is_array($hasValue[$field])) {
+                        // 调用方已提供该字段的完整/部分状态：缺失 pack 视为未翻译，避免逐项查库
                         $cur = !empty($hasValue[$field][$pack]);
                     } else {
                         $cur = $itemId ? (bool) DB::table('language_value')
@@ -125,8 +127,12 @@ class LanguageAdminService extends CoreLanguageService implements AdminLanguageC
                     if ($inherit !== '') {
                         $attrs .= ' data-draft-inherit="' . $this->attr($inherit) . '"';
                     }
-                    if (!empty($desc['preview'])) {
-                        $attrs .= ' data-draft-preview="' . $this->attr($desc['preview']) . '"';
+                    $preview = isset($previews[$field][$pack]) ? (string) $previews[$field][$pack] : '';
+                    if ($preview === '' && !empty($desc['preview'])) {
+                        $preview = (string) $desc['preview'];
+                    }
+                    if ($preview !== '') {
+                        $attrs .= ' data-draft-preview="' . $this->attr($preview) . '"';
                     }
                     if (!empty($desc['options'])) {
                         $attrs .= ' data-draft-options="' . $this->attr(json_encode($desc['options'], JSON_UNESCAPED_UNICODE)) . '"';

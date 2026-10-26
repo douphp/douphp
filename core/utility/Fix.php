@@ -126,7 +126,7 @@ class Fix
             'comment' => 'user',
             'ai' => 'chat|stream|user|package|history|quota_check|new_chat|get_sessions|get_records|save_record|switch_chat',
             'aftersale' => 'user',
-            'vote' => 'detail|item|rank|view|submit|qrcode',
+            'vote' => 'options|option|rank|submit',
         );
 
         $currentModule = (string) $currentModule;
