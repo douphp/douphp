@@ -207,7 +207,7 @@ Page({
         if (concat) {
           dataBox = that.data.comment_list
           const dataNew = data.comment_list
-          if (dataNew) {
+          if (dataNew && dataNew.length) {
             dataBox = dataBox.concat(dataNew)
           } else {
             that.setData({ nomore: true })

@@ -47,7 +47,7 @@ class ProductController extends BaseController
 
     public function index(Request $request)
     {
-        $categoryIdInput = $request->input('id');
+        $categoryIdInput = $this->categoryListRequestId($request);
         $catId = RouteId::category('product_category', $categoryIdInput, $request->input('category_slug'));
         if ($catId == -1) {
             throw new DomainException(lang('page_wrong'));

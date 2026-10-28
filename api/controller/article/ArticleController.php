@@ -54,7 +54,7 @@ class ArticleController extends BaseController
      */
     public function index(Request $request)
     {
-        $catId = RouteId::category('article_category', $request->input('id'), $request->input('category_slug'));
+        $catId = RouteId::category('article_category', $this->categoryListRequestId($request), $request->input('category_slug'));
         if ($catId == -1) {
             throw new DomainException(lang('page_wrong'));
         }

@@ -15,6 +15,7 @@
 namespace Dou\Api\Controller;
 
 use Dou\Core\Controller\BaseController as CoreBaseController;
+use Dou\Core\Web\Http\Request;
 use Dou\Front\Service\User\UserCenterNavBuilder as FrontUserCenterNavBuilder;
 
 if (!defined('IN_DOUCO')) {
@@ -57,5 +58,24 @@ abstract class BaseController extends CoreBaseController
         }
 
         return app(FrontUserCenterNavBuilder::class)->build($currentModule);
+    }
+
+    /**
+     * 列表接口分类 ID：兼容 id 与 category_id（小程序等）。
+     *
+     * 列模块列表接口统一从 id 取分类；小程序侧历史页面传 category_id，
+     * 此处兼容两种入参，避免未传 id 时被 RouteIdValidator 回落为 0（全部分类）。
+     *
+     * @param Request $request
+     * @return string
+     */
+    protected function categoryListRequestId(Request $request)
+    {
+        $raw = $request->input('id', '');
+        if ($raw === '') {
+            $raw = $request->input('category_id', '');
+        }
+
+        return $raw;
     }
 }

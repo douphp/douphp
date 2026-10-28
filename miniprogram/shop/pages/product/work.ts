@@ -56,7 +56,7 @@ Page({
         if (concat) {
           dataBox = that.data.product_list
           const dataNew = data.product_list
-          if (dataNew) {
+          if (dataNew && dataNew.length) {
             dataBox = dataBox.concat(dataNew)
           } else {
             that.setData({ nomore: true })

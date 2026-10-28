@@ -48,7 +48,7 @@ Page({
         if (concat) {
           dataBox = that.data.form_list
           const dataNew = data.form_list
-          if (dataNew) {
+          if (dataNew && dataNew.length) {
             dataBox = dataBox.concat(dataNew)
           } else {
             that.setData({ nomore: true })
