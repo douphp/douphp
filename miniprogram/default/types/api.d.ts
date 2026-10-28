@@ -97,6 +97,7 @@ export interface OptionalFeatures {
   dh?: boolean
   work?: boolean
   sms?: boolean
+  geo?: boolean
   [key: string]: boolean | undefined
 }
 

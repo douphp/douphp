@@ -1,0 +1,43 @@
+<!--list.wxml-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="search-list">
+  <view class="wrap">
+   <view class="search-box">
+    <view class="search-pill" data-url="/pages/search/search?keyword={{keyword}}" bindtap="douNavigateTo">
+     <view class="search-pill-main">
+      <text class="bi bi-search"></text>
+      <text class="keyword">{{keyword}}</text>
+     </view>
+     <view class="search-pill-btn">{{lang.search || '搜索'}}</view>
+    </view>
+   </view>
+   <view class="sort-box" wx:if="{{sort_list.length}}">
+    <view class="item{{item.active ? ' active' : ''}}" wx:for="{{sort_list}}" wx:key="name" wx:for-item="item" data-by="{{item.param.by}}" data-sort="{{item.param.sort}}" bindtap="douSort">{{item.name}}<text class="bi bi-caret-{{item.icon}}" wx:if="{{item.icon}}"></text></view>
+   </view>
+   <view class="head-brand" wx:if="{{brand}}">{{brand.name}}</view>
+   <view class="empty" wx:if="{{!loading && !loadpage && !search_list.length}}">{{keyword ? '暂无搜索结果' : '暂无商品'}}</view>
+   <view class="grid-list left">
+    <navigator class="item" hover-class="mouseDown" wx:for="{{search_list}}" wx:key="id" wx:for-index="i" wx:for-item="product" url="/pages/product/product?id={{product.id}}">
+     <view class="img">
+      <image src="{{product.thumb}}" mode="widthFix" style="height: 183px" />
+     </view>
+     <view class="title"><rich-text nodes="{{product.title}}"></rich-text></view>
+     <view class="tags" wx:if="{{product.sale_price && product.sale_price.name}}">
+      <text class="tag-solid">限时折扣</text>
+      <text class="tag-soft">{{product.sale_price.name}}</text>
+     </view>
+     <view class="price-row">
+      <view class="price-left">
+       <text class="price">{{product.sale_price.format || product.level_price || product.price}}</text>
+       <text class="price-line" wx:if="{{(product.sale_price && product.sale_price.type != 'original') || product.level_price}}">{{product.price}}</text>
+      </view>
+      <text class="bi bi-cart cart-icon" data-url="/pages/product/product?id={{product.id}}" catchtap="douNavigateTo"></text>
+     </view>
+    </navigator>
+   </view>
+   <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
+   <view class="loading" wx:if="{{loading && !loadpage}}">{{lang.loading}}</view>
+  </view>
+ </view>
+</view>

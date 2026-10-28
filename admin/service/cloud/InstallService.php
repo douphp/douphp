@@ -1479,6 +1479,16 @@ class InstallService extends BaseService
             return $this->copyDirCollectFailures($itemDir, $this->rootDir, '', '', false, true);
         }
 
+        if ($type === 'miniprogram') {
+            // 站点私有主题色：app.custom.wxss 随包发行，站点已存在时摘除包内同名文件，改色不被升级回滚
+            $customList = (array) @glob(rtrim(str_replace('\\', '/', (string) $itemDir), '/') . '/miniprogram/*/app.custom.wxss');
+            foreach ($customList as $packageFile) {
+                if (is_file($this->rootDir . 'miniprogram/' . basename(dirname($packageFile)) . '/app.custom.wxss')) {
+                    @unlink($packageFile);
+                }
+            }
+        }
+
         FileHelper::copyDir($itemDir, $this->rootDir);
 
         return array();
@@ -2923,8 +2933,10 @@ class InstallService extends BaseService
     /**
      * 将业务域名 / API 目录 / 调试开关写入小程序代码包运行时配置，仅写入 default 与当前启用包。
      *
-     * 按文件存在性分支：
-     *   - 命中 config/site.ts：TS 整文件覆盖（default 包形态，mp_url 由 root_url + API_DIR 拼成）。
+     * 按包形态分支：
+     *   - TS 包（config/site.ts 已存在，或包根有 app.ts 且 config 目录在位）：TS 整文件覆盖/生成
+     *     （default / shop 包形态，mp_url 由 root_url + API_DIR 拼成）；site.ts 缺省时一并创建，
+     *     否则包内 `import ... from '../config/site.js'` 会编译失败。
      *   - 否则回落到 utils/dou.ts / utils/dou.js 的字面量正则替换（hanjing 等遗留 JS 包形态）。
      *
      * @param string $domain
@@ -2954,12 +2966,15 @@ class InstallService extends BaseService
             $legacyTs = $miniprogramRoot . '/' . $slug . '/utils/dou.ts';
             $legacyJs = $miniprogramRoot . '/' . $slug . '/utils/dou.js';
 
-            if (is_file($tsFile)) {
+            if (is_file($tsFile) || $this->isTypescriptMiniprogramPackage($miniprogramRoot, $slug)) {
                 $rootLiteral = str_replace(array('\\', "'"), array('\\\\', "\\'"), $rootUrl);
                 $mpLiteral = str_replace(array('\\', "'"), array('\\\\', "\\'"), $rootUrl . $apiDir . '/');
+                $codeLiteral = str_replace(array('\\', "'"), array('\\\\', "\\'"), $this->resolveMiniprogramPackageCode($miniprogramRoot, $slug));
                 $tsContent = "/**\n"
                     . " * 站点级运行数据 —— 由后台 InstallService::syncMiniprogramRuntimeConfig 整文件覆盖。\n"
                     . " *\n"
+                    . " * - miniprogram_code：本包身份（取 manifest.json 的 code，缺省为目录名），随请求以 X-MP-Code 上报，\n"
+                    . " *   服务端据此按本包模板解析 data（不受后台当前启用包影响）\n"
                     . " * - root_url / mp_url：站点部署域名派生\n"
                     . " * - rewrite_enable：镜像 site.rewrite（与 front / API 伪静态同一开关）\n"
                     . " * - debug_enable：镜像 admin 站点调试开关\n"
@@ -2968,6 +2983,7 @@ class InstallService extends BaseService
                     . " * 业务侧请直接 `import { mp_url } from '../config/site.js'`，无须额外薄壳。\n"
                     . " */\n"
                     . "\n"
+                    . "export const miniprogram_code = '" . $codeLiteral . "'\n"
                     . "export const root_url = '" . $rootLiteral . "'\n"
                     . "export const mp_url = '" . $mpLiteral . "'\n"
                     . "export const douLoading = true\n"
@@ -2994,6 +3010,45 @@ class InstallService extends BaseService
             );
             file_put_contents($legacyFile, $content);
         }
+    }
+
+    /**
+     * 判断小程序包为 TS 形态：包根有 app.ts 且 config 目录在位。
+     *
+     * 用于 config/site.ts 缺失（首次同步 / 手工删过）时仍能生成运行时配置，
+     * 避免 TS 包因 `import { mp_url } from '../config/site.js'` 找不到模块而编译失败。
+     *
+     * @param string $miniprogramRoot
+     * @param string $slug 代码包目录名
+     * @return bool
+     */
+    protected function isTypescriptMiniprogramPackage($miniprogramRoot, $slug)
+    {
+        return is_file($miniprogramRoot . '/' . $slug . '/app.ts')
+            && is_dir($miniprogramRoot . '/' . $slug . '/config');
+    }
+
+    /**
+     * 解析小程序包身份标识：优先取包根 manifest.json 的 code 字段，缺省用目录名。
+     *
+     * 生成器把该值写入 config/site.ts 的 miniprogram_code 导出，供客户端随请求上报；
+     * manifest.json 本身不参与微信打包（仍可在 packOptions.ignore 中），故不依赖运行时读文件。
+     *
+     * @param string $miniprogramRoot
+     * @param string $slug 代码包目录名
+     * @return string
+     */
+    protected function resolveMiniprogramPackageCode($miniprogramRoot, $slug)
+    {
+        $file = $miniprogramRoot . '/' . $slug . '/manifest.json';
+        if (is_file($file)) {
+            $data = json_decode((string) @file_get_contents($file), true);
+            if (is_array($data) && isset($data['code']) && is_string($data['code']) && $data['code'] !== '') {
+                return $data['code'];
+            }
+        }
+
+        return (string) $slug;
     }
 
     /**

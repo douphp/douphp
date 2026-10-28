@@ -7,7 +7,7 @@ import { bootstrapStores } from './stores/index.js'
 import { http } from './services/http.js'
 import { isDebugEnv } from './utils/env.js'
 import { setPromotionUserSn } from './utils/promotion.js'
-import { douLoading, mp_url, root_url } from './config/site.js'
+import { douLoading, miniprogram_code, mp_url, root_url } from './config/site.js'
 
 App<IAppOption>({
   root_url,
@@ -27,6 +27,13 @@ App<IAppOption>({
         authStore.logout()
       }
     })
+
+    // 包身份：随每个请求上报，服务端据此按当前小程序模板解析 data（不受后台启用包影响）
+    if (miniprogram_code) {
+      http.onRequest(function (cfg) {
+        cfg.header = Object.assign({}, cfg.header, { 'X-MP-Code': miniprogram_code })
+      })
+    }
 
     // 推广分销：onLaunch 第一时间解析 user_sn 落本地缓存
     this.parsePromotionFromLaunchOptions(options)

@@ -40,7 +40,7 @@ $_LANG['data_is_locked'] = '是否锁定';
 $_LANG['data_banner'] = '横幅广告';
 
 // 小程序
-$_LANG['data_miniprogram'] = '小程序数据';
+$_LANG['data_miniprogram'] = '内容片段';
 
 // 备注
 $_LANG['data_class_cue'] = '设置为分组后，可以在当前片段下添加子片段，前台调用标签：<em class="copytext">' . htmlspecialchars('<!-- {foreach from=$data.唯一标记.child item=item} -->{$item.name}<!-- {/foreach} -->', ENT_QUOTES | ENT_HTML5, 'UTF-8') . '</em>';
@@ -49,6 +49,16 @@ $_LANG['data_code_cue'] = '唯一标记不能为空且只能使用小写字母�
 $_LANG['data_image_cue'] = '前台调用标签：<em class="copytext">{$data.唯一标记.image}</em>';
 $_LANG['data_text_cue'] = '前台调用标签：<em class="copytext">{$data.唯一标记.text}</em>';
 $_LANG['data_link_cue'] = '前台调用标签：<em class="copytext">{$data.唯一标记.link}</em>';
+
+// 小程序端备注（小程序模板不支持多语言，调用代码为 WXML 写法，数据来自 commonStore.data）
+$_LANG['data_miniprogram_template'] = '小程序模板';
+$_LANG['data_miniprogram_list'] = '小程序内容片段';
+$_LANG['data_mp_name_cue'] = '小程序调用代码：<em class="copytext">{{data.唯一标记.name}}</em>';
+$_LANG['data_mp_code_cue'] = '唯一标记不能为空且只能使用小写字母、数字、下划线，小程序调用代码为：<em class="copytext">{{data.唯一标记.code}}</em>，建议手动输入便于记忆的英文单词或拼音作为标记';
+$_LANG['data_mp_image_cue'] = '小程序调用代码：<em class="copytext">{{data.唯一标记.image}}</em>';
+$_LANG['data_mp_text_cue'] = '小程序调用代码：<em class="copytext">{{data.唯一标记.text}}</em>';
+$_LANG['data_mp_link_cue'] = '小程序调用代码：<em class="copytext">{{data.唯一标记.link}}</em>';
+$_LANG['data_mp_class_cue'] = '设置为分组后，可以在当前片段下添加子片段，小程序调用代码（子项字段用 item.xxx）：<em class="copytext">' . htmlspecialchars('<block wx:for="{{data.唯一标记.child}}" wx:key="code"> {{item.name}} </block>', ENT_QUOTES | ENT_HTML5, 'UTF-8') . '</em>';
 
 // 提示信息
 $_LANG['data_add_succes'] = '添加内容片段成功';

@@ -5,6 +5,10 @@
       {
         "value": "config/setting.php",
         "type": "file"
+      },
+      {
+        "value": "manifest.json",
+        "type": "file"
       }
     ],
     "include": []
@@ -54,8 +58,8 @@
   },
   "compileType": "miniprogram",
   "libVersion": "3.14.1",
-  "appid": "touristappid",
-  "projectname": "DouPHP%E5%95%86%E5%9F%8E",
+  "appid": "",
+  "projectname": "DouPHP 企业建站系统",
   "simulatorType": "wechat",
   "simulatorPluginVersion": {},
   "condition": {},

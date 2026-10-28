@@ -1,14 +1,19 @@
-/*
-Miniprogram Name: DouPHP Default
-Miniprogram URI: http://demo.douphp.com/
-Description: DouPHP 默认模板
-Version: 1.0
-Author: DouCo Co.,Ltd.
-Author URI: http://www.douphp.com/
-*/
+/**
+ * DouPHP®
+ * ------------------------------------------------------------------------------------
+ * Copyright (c) 2013-2026 漳州豆壳网络科技有限公司 (DouCo® Co.,Ltd.)
+ *
+ * 本软件基于 MIT 协议开源发布，完整协议文本见项目根目录 LICENSE 文件。
+ * 网站地址：http://www.douphp.com
+ * ------------------------------------------------------------------------------------
+ * Author: DouCo Co.,Ltd.
+ * Release Date: 2026-09-08
+ */
 
 @import "./style/weui.wxss";
 @import "./style/iconfont.wxss";
+/* 站点私有主题定制（随包发行、升级不覆盖），改主色请只改 app.custom.wxss */
+@import "./app.custom.wxss";
 
 /* 初始化
 ----------------------------------------------- */
@@ -17,6 +22,13 @@ page {
   height: 100%;
   font-size: 14px;
   color: #555;
+  /* 主题色（语义层）：取值来自主题层 --theme-*，可在 app.custom.wxss 覆盖；缺省为本站默认色 */
+  --color-primary: var(--theme-primary, #0072c6);
+  --color-primary-dark: var(--theme-primary-dark, #005a9e);
+  --color-primary-light: var(--theme-primary-light, #2b8fdd);
+  --color-primary-bg: var(--theme-primary-bg, #eaf3fb);
+  --color-primary-text: var(--theme-primary-text, #00548f);
+  --color-primary-text-weak: var(--theme-primary-text-weak, #2f7cb5);
 }
 view,
 text,
@@ -78,13 +90,14 @@ textarea {
   height: 65px;
 }
 .page-left {
-  width: 100px;
+  width: 90px;
   position: fixed;
   top: 65px;
+  bottom: 0;
   background-color: #f5f5f5;
 }
 .page-main {
-  margin-left: 100px;
+  margin-left: 90px;
   padding-top: 65px;
 }
 /* -- navbar-logo -- */
@@ -205,7 +218,7 @@ textarea {
   padding: 2px 2px 2px 12px;
   box-sizing: border-box;
   background-color: #fff;
-  border: 1px solid #cc0000;
+  border: 1px solid var(--color-primary);
   border-radius: 20px;
   overflow: hidden;
 }
@@ -252,7 +265,7 @@ textarea {
   padding: 0 14px;
   border: none;
   border-radius: 15px;
-  background-color: #cc0000;
+  background-color: var(--color-primary);
   color: #fff;
   font-size: 13px;
   text-align: center;
@@ -510,6 +523,7 @@ textarea {
 }
 /* -- form -- */
 .tree-box {
+  height: 100%;
 }
 .tree-box .item {
   padding: 20px 0;
@@ -589,7 +603,7 @@ textarea {
 /* -- form -- */
 .btn {
   display: inline-block;
-  background-color: #0072c6;
+  background-color: var(--color-primary);
   color: #fff;
   padding: 6px 0;
   text-transform: capitalize;
@@ -712,7 +726,7 @@ textarea {
   font-size: 15px;
 }
 .navbar .item.active {
-  border-bottom: solid #0072c6 2px;
+  border-bottom: solid var(--color-primary) 2px;
 }
 .navbar .navScroll {
   position: fixed;
@@ -752,7 +766,7 @@ textarea {
 }
 .page-head .action .link {
   display: inline-block;
-  background-color: #0072c6;
+  background-color: var(--color-primary);
   padding: 0 30px;
   line-height: 30px;
   border-radius: 15px;
@@ -780,14 +794,23 @@ textarea {
   padding: 10px;
   background-color: #f8f8f8;
 }
-/* sort-box */
+/* sort-box — 横向滚动排序条：文字不换行，宽度不够时横向滑动 */
 .sort-box {
   display: flex;
   justify-content: space-around;
+  white-space: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.sort-box::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 .sort-box .item {
+  flex: 0 0 auto;
   padding: 12px 10px;
   color: #777;
+  white-space: nowrap;
 }
 .sort-box .item.active {
   color: #cc0000;

@@ -6,7 +6,7 @@
  </view>
  
  <view class="page-left" style="{{'top: ' + navigationBarAndStatusBarHeight}}">
-  <scroll-view class="tree-box" scroll-y="true" style="height:{{treeHeight}}px">
+  <scroll-view class="tree-box" scroll-y="true">
    <view class="item{{cate.cur == true ? ' active' : ''}}" wx:for="{{product_category}}" wx:key="cate" wx:for-item="cate" data-catid="{{cate.id}}" bindtap="douMenu">{{cate.name}}</view>
   </scroll-view>
  </view>

@@ -32,13 +32,13 @@
         {include file="inc/language_drafts.tpl" drafts=$lang_drafts}
         <div class="form">
          <div class="form-item">
-          <div class="input-block"><p class="cue">{$lang.data_theme}：{$site.site_theme}<!-- {if $data.parent} -->，{$lang.data_parent_code}：{$data.parent.name}<!-- {/if} --></p></div>
+          <div class="input-block"><p class="cue"><!-- {if $data.is_miniprogram} -->{$lang.data_miniprogram_template}：{$data.theme}<!-- {else} -->{$lang.data_theme}：{$data.theme}<!-- {/if} --><!-- {if $data.parent.id} -->，{$lang.data_parent_code}：{$data.parent.name}<!-- {/if} --></p></div>
          </div>
          <div class="form-item">
           <div class="form-label">{$lang.data_name}</div>
           <div class="input-block">
            <input type="text" name="name" value="{$data.name}" size="40" class="input" />
-           <span class="action" data-field="name">{$btn_lang.name nofilter}</span>
+           <!-- {if $btn_lang.name} --><span class="action" data-field="name">{$btn_lang.name nofilter}</span><!-- {/if} -->
            <p class="cue">{$lang.data_name_cue nofilter}</p>
           </div>
          </div>
@@ -53,7 +53,7 @@
           <div class="form-label">{$lang.data_image}</div>
           <div class="input-block">
            {include file="inc/file_image.tpl" name="image" value=$data.image file_number=$data.file_number}
-           <p class="action" data-field="image">{$btn_lang.image nofilter}</p>
+           <!-- {if $btn_lang.image} --><p class="action" data-field="image">{$btn_lang.image nofilter}</p><!-- {/if} -->
            <p class="cue">{$lang.data_image_cue nofilter}</p>
           </div>
          </div>
@@ -61,7 +61,7 @@
           <div class="form-label">{$lang.data_text}</div>
           <div class="input-block">
            <textarea name="text" cols="92" rows="7" class="textarea-auto auto-textarea">{$data.text}</textarea>
-           <p class="action" data-field="text">{$btn_lang.text nofilter}</p>
+           <!-- {if $btn_lang.text} --><p class="action" data-field="text">{$btn_lang.text nofilter}</p><!-- {/if} -->
            <p class="cue">{$lang.data_text_cue nofilter}</p>
           </div>
          </div>
@@ -69,7 +69,7 @@
           <div class="form-label">{$lang.data_link}</div>
           <div class="input-block">
            <input type="text" name="link" value="{$data.link}" size="74" class="input" />
-           <span class="action" data-field="link">{$btn_lang.link nofilter}</span>
+           <!-- {if $btn_lang.link} --><span class="action" data-field="link">{$btn_lang.link nofilter}</span><!-- {/if} -->
            <p class="cue">{$lang.data_link_cue nofilter}</p>
           </div>
          </div>
@@ -109,6 +109,7 @@
   {include file="inc/footer.tpl"}
  </div>
 <script type="text/javascript" src="js/cropper.min.js"></script>
+<script type="text/javascript" src="js/data.js"></script>
 </body>
 
 </html>

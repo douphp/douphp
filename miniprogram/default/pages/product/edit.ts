@@ -131,7 +131,6 @@ Page({
           stock: e.detail.value.stock || 0,
           point: e.detail.value.point || 0,
           sort: e.detail.value.sort || 0,
-          defined: e.detail.value.defined,
           content: that.data.editorContent,
           keywords: e.detail.value.keywords,
           description: e.detail.value.description,

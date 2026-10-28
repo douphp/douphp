@@ -1,105 +1,114 @@
 <!--index.wxml-->
-<navbar title="{{title}}" showMenu="{{false}}">
- <view slot="left" class="navbar-logo">
-  <image src="/images/logo.png" mode="heightFix" />
- </view>
-</navbar>
-<view class="body">
- <!-- 搜索栏 -->
- <view class="index-box">
-  <view class="wrap">
-   <view class="search-wrap">
-    <view class="search-pill" data-url="/pages/search/search" bindtap="douNavigateTo">
-     <view class="search-pill-main">
-      <text class="bi bi-search"></text>
-      <text class="placeholder">搜索</text>
-     </view>
-     <view class="search-pill-btn">搜索</view>
-    </view>
-   </view>
+<navbar title="{{title}}" showMenu="{{false}}"></navbar>
+<view class="body fix">
+ <view class="header" style="{{'top: ' + navigationBarAndStatusBarHeight}}">
+  <view class="logo">
+   <image src="/images/logo.png" mode="heightFix" />
   </view>
- </view>
-
- <!-- 幻灯 -->
- <view class="index-box">
-  <view class="wrap">
-   <swiper class="swiper" indicator-dots="{{indicatorDots}}" indicator-color="{{indicatorColor}}" indicator-active-color="{{indicatorActiveColor}}" autoplay="{{autoplay}}" current="{{current}}" interval="{{interval}}" duration="{{duration}}" bindchange="swiperbindchange">
-    <block wx:for="{{index.show_list}}" wx:key="s" wx:for-item="show">
-     <swiper-item>
-      <image src="{{show.image}}" class="swiper-slide" mode="aspectFill" />
-     </swiper-item>
-    </block>
-   </swiper>
-  </view>
- </view>
-
- <!-- 分类树：两行横滑 + 滚动进度条 -->
- <view class="index-box">
-  <view class="wrap">
-   <view class="menu">
-    <scroll-view class="menu-scroll" scroll-x enhanced show-scrollbar="{{false}}" bindscroll="onCategoryScroll">
-     <view class="menu-list">
-      <view class="menu-item" wx:for="{{index.product_category}}" wx:for-item="cate" wx:key="id" data-category_id="{{cate.id}}" data-url="/pages/product_category/product_category" bindtap="douCategory">
-       <view class="menu-icon">
-        <image src="{{cate.icon || '/images/menu_icon_empty.jpg'}}" mode="aspectFill" />
-       </view>
-       <view class="menu-name">{{cate.name}}</view>
-      </view>
-     </view>
+  <scroll-view class="nav" scroll-x>
+   <text class="bi bi-search" data-url="/pages/search/search" bindtap="douNavigateTo"></text>
+   <text class="active">首页</text>
+   <text data-url="{{nav.url}}" bindtap="douNavigateTo" wx:for="{{nav_list}}" wx:key="id" wx:for-item="nav" wx:if="{{nav.status.value == '1'}}">{{nav.name}}</text>
+  </scroll-view>
+  <view class="location">
+   <view class="box {{locationMode}}">
+    <view class="head">所有分类</view>
+    <scroll-view class="menu" scroll-x>
+     <text class="item{{curMenu == 'main' ? ' active' : ''}}" data-id="main" bindtap="scrollTo">活动</text>
+     <text class="item{{curMenu == 'product' ? ' active' : ''}}" data-id="product" bindtap="scrollTo">新商品</text>
+     <text class="item{{curMenu == 'article' ? ' active' : ''}}" data-id="article" bindtap="scrollTo" wx:if="{{features.article}}">新闻</text>
+     <text class="item{{curMenu == 'category' ? ' active' : ''}}" data-id="category" bindtap="scrollTo">分类</text>
+     <text class="item{{curMenu == 'about' ? ' active' : ''}}" data-id="about" bindtap="scrollTo">关于我们</text>
+     <text class="item{{curMenu == 'contact' ? ' active' : ''}}" data-id="contact" bindtap="scrollTo">联系方式</text>
     </scroll-view>
-    <view class="menu-indicator" wx:if="{{categoryShowIndicator}}">
-     <view class="menu-indicator-track">
-      <view class="menu-indicator-thumb" style="left: {{categoryScrollPercent}}%;"></view>
-     </view>
-    </view>
    </view>
+   <view class="more bi bi-chevron-down" bindtap="locationAction"></view>
   </view>
  </view>
-
- <!-- 3个广告位 -->
- <view class="index-box">
+ <swiper id="main" class="swiper scroll-box" indicator-dots="{{indicatorDots}}" indicator-color="{{indicatorColor}}" indicator-active-color="{{indicatorActiveColor}}" autoplay="{{autoplay}}" circular="{{true}}" current="{{current}}" interval="{{interval}}" duration="{{duration}}" bindchange="swiperbindchange" style="height: {{imgheight}}">
+  <block wx:for="{{index.show_list}}" wx:key="id" wx:for-item="show">
+   <swiper-item>
+    <image src="{{show.image}}" class="slide" bindload="imageLoad" mode="widthFix" />
+   </swiper-item>
+  </block>
+ </swiper>
+ <view class="index">
   <view class="wrap">
-   <view class="ad">
-    <view class="ad-box">
-     <view class="ad-item">
-      <image src="/images/home_ad_a.png" mode="widthFix" />
-     </view>
-     <view class="ad-item">
-      <image src="/images/home_ad_b.png" mode="widthFix" />
-     </view>
-     <view class="ad-item">
-      <image src="/images/home_ad_c.png" mode="widthFix" />
-     </view>
-    </view>
-   </view>
-  </view>
- </view>
-
- <!-- 产品列表 -->
- <view class="index-box">
-  <view class="wrap">
-   <view class="grid-list left">
-    <navigator class="item" hover-class="mouseDown" wx:for="{{product_list}}" wx:key="id" wx:for-index="i" wx:for-item="product" url="{{product.url}}">
-     <view class="img">
-      <image src="{{product.thumb}}" mode="widthFix" style="height: 183px" />
-     </view>
-     <view class="title">{{product.title}}</view>
-     <view class="tags" wx:if="{{product.sale_price && product.sale_price.name}}">
-      <text class="tag-solid">限时折扣</text>
-      <text class="tag-soft">{{product.sale_price.name}}</text>
-     </view>
-     <view class="price-row">
-      <view class="price-left">
-       <text class="price">{{product.sale_price.format || product.price}}</text>
-       <text class="price-line" wx:if="{{product.sale_price && product.sale_price.type != 'original'}}">{{product.price}}</text>
+   <view id="product" class="scroll-box inc-box">
+    <view class="head">
+     <text class="more" data-url="/pages/product_category/product_category" bindtap="douSwitchTab">{{lang.product_more}}</text>
+     {{lang.product_news}}</view>
+    <view class="grid-list left">
+     <navigator class="item" hover-class="mouseDown" wx:for="{{index.recommend_product}}" wx:key="id" wx:for-index="i" wx:for-item="product" url="{{product.url}}">
+      <view class="img">
+       <image src="{{product.thumb}}" mode="widthFix" style="height: 183px" />
       </view>
-      <text class="bi bi-cart cart-icon" data-url="{{product.url}}" catchtap="douNavigateTo"></text>
-     </view>
-    </navigator>
+      <view class="title">{{product.title}}</view>
+      <view class="price">{{product.sale_price.format || product.price}}<text class="price-line" wx:if="{{product.sale_price && product.sale_price.type != 'original'}}">{{product.price}}</text></view>
+     </navigator>
+    </view>
    </view>
-   <view class="loadpage" wx:if="{{loadpage}}">{{lang.loadpage}}</view>
+   <view id="article" class="scroll-box inc-box" wx:if="{{features.article}}">
+    <view class="head">
+     <text class="more" data-url="/pages/article_category/article_category" bindtap="douNavigateTo">{{lang.article_more}}</text>
+     {{lang.article_news}}</view>
+    <view class="article-list">
+     <navigator class="item" hover-class="mouseDown" wx:for="{{index.recommend_article}}" wx:key="id" wx:for-item="article" url="{{article.url}}">
+      <view class="title">{{article.title}}</view>
+      <view class="info">
+       <text>{{lang.created_at}}：{{article.created_at}}</text>
+       <text>{{lang.click}}：{{article.click}}</text>
+      </view>
+     </navigator>
+    </view>
+   </view>
+   <view id="category" class="scroll-box inc-box">
+    <view class="head">
+     <text class="more" data-url="/pages/product_category/product_category" bindtap="douSwitchTab">{{lang.product_more}}</text>
+     分类树</view>
+    <view class="tree">
+     <view class="dl" wx:for="{{index.product_category}}" wx:for-item="cate" wx:key="id">
+      <view class="dt">
+       <view class="a" data-category_id="{{cate.id}}" data-url="/pages/product_category/product_category" bindtap="douCategory">
+        <text class="bi bi-chevron-right"></text>
+        {{cate.name}}</view>
+      </view>
+      <view class="dd" wx:if="{{cate.child}}">
+       <text class="a" data-category_id="{{child.id}}" data-url="/pages/product_category/product_category" bindtap="douCategory" wx:for="{{cate.child}}" wx:for-item="child" wx:key="id">{{child.name}}</text>
+      </view>
+     </view>
+    </view>
+   </view>
+   <view id="about" class="scroll-box inc-box">
+    <view class="head">
+     <text class="more" data-url="/pages/page/page?id={{index.about.id || 1}}" bindtap="douNavigateTo">{{lang.view}}</text>
+     {{data.about.name || index.about.name}}</view>
+    <view class="index-about">
+     <view class="img" wx:if="{{data.about.image}}"><image src="{{data.about.image}}" mode="widthFix" /></view>
+     <view class="text">{{index.about.content}}</view>
+    </view>
+   </view>
+   <view id="contact" class="scroll-box inc-box">
+    <view class="head">联系方式</view>
+    <view class="index-contact">
+     <view class="item">
+      <view class="bi bi-geo-alt"></view>
+      <view class="name">{{lang.contact_address}}</view>
+      <view class="text">{{site.address}}</view>
+     </view>
+     <view class="item">
+      <view class="bi bi-telephone"></view>
+      <view class="name">{{lang.contact_tel}}</view>
+      <view class="text">{{site.tel}}</view>
+     </view>
+     <view class="item">
+      <view class="bi bi-envelope"></view>
+      <view class="name">{{lang.contact_email}}</view>
+      <view class="text">{{site.email}}</view>
+     </view>
+    </view>
+   </view>
   </view>
  </view>
-
  <view class="footer"><text wx:if="{{lang.powered_by}}">{{lang.powered_by}}</text></view>
 </view>

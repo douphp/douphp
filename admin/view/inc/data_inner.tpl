@@ -3,7 +3,7 @@
  <div class="data-list-box {if $data.is_class}block{else}inline{/if}">
   <!-- {if $data.is_class} -->
   <div class="data-list-parent">
-   <div class="data-list-name"><em>{$data.name}</em><a href="{url link='admin.data.edit' id=$data.id}">{$lang.edit}</a><a href="{url link='admin.data.create' parent_code=$data.code}">{$lang.add}</a></div>
+   <div class="data-list-name"><em>{$data.name}</em><a href="{url link='admin.data.edit' id=$data.id}">{$lang.edit}</a><a href="{url link='admin.data.create' parent_code=$data.code group=$data.data_group}">{$lang.add}</a></div>
    <div class="data-list-text">{$data.text nofilter}</div>
   </div>
   <div class="data-list-child">

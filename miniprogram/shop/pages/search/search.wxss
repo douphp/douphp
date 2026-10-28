@@ -1,0 +1,29 @@
+.page-search {
+}
+.page-search .search-bar {
+  padding: 20px 0 0;
+}
+.page-search .search-bar .bar-head {
+  font-size: 14px;
+  font-weight: bold;
+  color: #333333;
+  display: flex;
+  justify-content: space-between;
+  padding: 16px 0 0;
+  padding-right: 15px;
+}
+.page-search .search-bar .bar-head .del {
+  color: #999999;
+  font-weight: normal;
+}
+.page-search .history-list {
+}
+.page-search .history-list .item {
+  display: inline-block;
+  padding: 0 20px;
+  line-height: 30px;
+  background-color: #EEE;
+  border-radius: 15px;
+  font-size: 12px;
+  margin: 10px 10px 0 0;
+}

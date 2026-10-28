@@ -196,7 +196,7 @@ class Product extends Model
      */
     public static function getThumbFileQueryList()
     {
-        $sql = 'SELECT file FROM ' . DB::table('file') . " WHERE module = 'product' AND thumb_size > 0 ORDER BY id ASC";
+        $sql = 'SELECT file FROM ' . DB::tableName('file') . " WHERE module = 'product' AND thumb_size > 0 ORDER BY id ASC";
         $query = DB::query($sql);
         $count = DB::numRows($query);
         return array('query' => $query, 'count' => $count);
@@ -227,7 +227,7 @@ class Product extends Model
     private static function generateUniqueModelSn()
     {
         $model_sn = Str::randomByType('number', 5);
-        if (DB::table('product')->where('model', $model_sn)->find()) {
+        if (DB::table(static::tableName())->where('model', $model_sn)->find()) {
             return static::generateUniqueModelSn();
         }
 

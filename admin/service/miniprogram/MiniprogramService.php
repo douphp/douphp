@@ -215,12 +215,92 @@ class MiniprogramService extends BaseService
     }
 
     /**
-     * 从小程序包 app.wxss 头部注释解析元数据。
+     * 解析小程序代码包元数据。
+     *
+     * 优先读取包根 `manifest.json`（主流包清单约定：纯数据、不参与微信打包）；
+     * 老代码包无 manifest 时回退解析 `app.wxss` 头部注释（WordPress style.css 式旧格式）。
+     *
+     * @param string $slug 代码包目录名
+     * @return array|null 两条路径都取不到时返回 null
+     */
+    private function parseMiniprogramMeta($slug)
+    {
+        if (!$slug) {
+            return null;
+        }
+
+        $info = $this->parseMiniprogramManifest($slug);
+        if ($info === null) {
+            $info = $this->parseMiniprogramStyleMeta($slug);
+        }
+        if ($info === null) {
+            return null;
+        }
+
+        $info['slug'] = $slug;
+        $screenshot = isset($info['screenshot']) ? (string) $info['screenshot'] : '';
+        unset($info['screenshot']);
+        $info['image'] = ROOT_URL . MINIPROGRAM_DIR . '/' . $slug . '/' . $this->resolveMiniprogramScreenshot($slug, $screenshot);
+
+        return $info;
+    }
+
+    /**
+     * 读取包根 manifest.json 元数据（字段对齐 npm / uni-app 命名习惯）。
+     *
+     * @param string $slug 代码包目录名
+     * @return array|null 无 manifest（或 JSON 非法、缺 name）时返回 null
+     */
+    private function parseMiniprogramManifest($slug)
+    {
+        $file = MINIPROGRAM_CODE_PATH . $slug . '/manifest.json';
+        if (!is_file($file)) {
+            return null;
+        }
+
+        $data = json_decode((string) file_get_contents($file), true);
+        if (!is_array($data) || $this->manifestString($data, 'name') === '') {
+            return null;
+        }
+
+        $homepage = $this->manifestString($data, 'homepage');
+        $uri = $this->manifestString($data, 'uri');
+        $authorUri = $this->manifestString($data, 'author_uri');
+
+        return array(
+            'miniprogram_name' => $this->manifestString($data, 'name'),
+            'miniprogram_uri' => $uri !== '' ? $uri : $homepage,
+            'description' => $this->manifestString($data, 'description'),
+            'version' => $this->manifestString($data, 'version'),
+            'author' => $this->manifestString($data, 'author'),
+            'author_uri' => $authorUri !== '' ? $authorUri : $homepage,
+            'screenshot' => $this->manifestString($data, 'screenshot'),
+        );
+    }
+
+    /**
+     * 取 manifest 字符串字段（缺失或非字符串时返回空串）。
+     *
+     * @param array $data manifest 解构后的数组
+     * @param string $key 字段名
+     * @return string
+     */
+    private function manifestString(array $data, $key)
+    {
+        if (!isset($data[$key]) || !is_string($data[$key])) {
+            return '';
+        }
+
+        return trim($data[$key]);
+    }
+
+    /**
+     * 回退路径：从小程序包 app.wxss 头部注释解析元数据（旧代码包兼容）。
      *
      * @param string $slug 代码包目录名
      * @return array|null
      */
-    private function parseMiniprogramMeta($slug)
+    private function parseMiniprogramStyleMeta($slug)
     {
         $readme_file = MINIPROGRAM_CODE_PATH . $slug . '/app.wxss';
         if (!file_exists($readme_file)) {
@@ -242,20 +322,33 @@ class MiniprogramService extends BaseService
             $key = str_replace(' ', '_', strtolower($arr[0]));
             $info[$key] = isset($arr[1]) ? trim($arr[1]) : '';
         }
-        $info['slug'] = $slug;
+
+        return $info;
+    }
+
+    /**
+     * 解析包内截图相对路径：manifest 指定优先，缺失或不存在时回退约定位置。
+     *
+     * @param string $slug 代码包目录名
+     * @param string $preferred manifest 中声明的截图相对路径
+     * @return string
+     */
+    private function resolveMiniprogramScreenshot($slug, $preferred = '')
+    {
         $candidates = array(
             'images/screenshot.png',
             'system.dou/screenshot.png',
         );
-        $relImage = $candidates[0];
+        if ($preferred !== '') {
+            array_unshift($candidates, $preferred);
+        }
+
         foreach ($candidates as $rel) {
             if (is_file(MINIPROGRAM_CODE_PATH . $slug . '/' . $rel)) {
-                $relImage = $rel;
-                break;
+                return $rel;
             }
         }
-        $info['image'] = ROOT_URL . MINIPROGRAM_DIR . '/' . $slug . '/' . $relImage;
 
-        return $info;
+        return 'images/screenshot.png';
     }
 }

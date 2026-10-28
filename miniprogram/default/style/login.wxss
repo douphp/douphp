@@ -26,7 +26,7 @@
  font-size: 16px;
 }
 .login .btn-action.blue {
- background-color: #0072C6;
+ background-color: var(--color-primary);
 }
 .login .btn-action.gray {
  background-color: #EEE;

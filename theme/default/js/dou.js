@@ -176,7 +176,10 @@ function refreshimage() {
  * 加入购物车
  +----------------------------------------------------------
  */
-function addToCart(item_id = "", module = "product") {
+function addToCart(item_id = "", module = "product", replace = false) {
+  // 套餐类商品走「立即购买」报价单，避免清空或混入购物车
+  var action = module && String(module).indexOf("_package") !== -1 ? "buynow" : "addtocart";
+
   function handle(result) {
     if (result.ok) {
       if (result.data && result.data.jump_url) {
@@ -188,13 +191,19 @@ function addToCart(item_id = "", module = "product") {
       window.location.href = result.data.jump_url;
       return;
     }
+    if (result.data && result.data.reason === "cart_module_conflict") {
+      if (confirm(result.message)) {
+        addToCart(item_id, module, true);
+      }
+      return;
+    }
     alert(result.message || "error");
   }
 
   $.ajax({
     type: "POST",
     url: route("order.cart.store"),
-    data: { module: module, item_id: item_id, from: "js" },
+    data: { module: module, item_id: item_id, action: action, replace: replace ? 1 : 0, from: "js" },
     dataType: "json",
     success: function (data) {
       handle(douApi(data));

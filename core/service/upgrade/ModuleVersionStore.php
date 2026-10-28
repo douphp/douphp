@@ -77,7 +77,7 @@ class ModuleVersionStore
 
         if (!is_string($raw) || $raw === '') {
             // 行不存在（老站首跳）：INSERT
-            DB::query('INSERT INTO `' . DB::getPrefix() . "config` (`value`, `name`, `type`, `box`, `tab`)"
+            DB::query('INSERT INTO ' . DB::tableName('config') . " (`value`, `name`, `type`, `box`, `tab`)"
                 . " VALUES ('" . DB::escapeString(serialize($map)) . "', 'module_version', 'hidden', '', '')");
             return;
         }

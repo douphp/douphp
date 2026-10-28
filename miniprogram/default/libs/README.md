@@ -183,6 +183,7 @@ DouPHP 是模块化系统：只有 `product / article / data` 是必装核心模
 - **单一真相源**：后端 `DataboxService::buildCommonDatabox` 的 `data.open = Config::get('features')` 下发到小程序，统一由 `stores/common.ts` 的 `commonStore.features` 暴露。页面用字段别名 `open: () => commonStore.features` 保持 wxml 里 `{{open.x}}` 不变。
 - **类型层强约束**：`types/api.d.ts` 把 `Features` 分为「必装」（`product/article/data` 非可选）+「可选」（`boolean | undefined`，编译期强制处理 `undefined`）；并维护 `USER_DERIVED_FEATURES`（与 PHP 端 `link_user_center` 同步）。
 - **查询工具**：`utils/module-guard.ts` 提供 `isModuleEnabled` / `isUserDerivedModuleEnabled`（纯查询、无副作用、不做主动跳转）。
+- **请求前守卫**：`utils/route.ts` 的 `hasRoute(name)` 判定端点是否已生成（可选模块未装时后端不产出对应命名路由，`route()` 会同步抛 Unknown route，不在 `.catch` 链内）。路由表是同步期站点快照，用它做请求守卫不受 `features` 冷启动未就绪影响；wxml 的 `wx:if` 仍以 `features.*` 为准。
 - **store 降级**：`authStore` 在 `features.user === false` 时 `is_login` 恒 false、不发请求；`cartStore` 在 `features.order === false` 时数量恒 0、`refresh()` 短路。覆盖 bootstrap 期与发布版未装 user/order 场景。
 - **service 静默兜底**：可选模块 API 失败时 `catch` 后返回空数据，不弹错。
 - **不做**路由级守卫跳转 / 专用提示页：发布版打包按已装模块裁剪 `app.json`，未装模块 URL 由微信 `onPageNotFound` 系统默认接管（与 `data/installed/` 安装清单同机制，不在小程序重构范围内）。

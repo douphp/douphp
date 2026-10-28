@@ -27,6 +27,7 @@ use Dou\Core\Foundation\Container\Container;
 use Dou\Core\Foundation\Extension\Module;
 use Dou\Core\Foundation\Provider\ProviderRegistry;
 use Dou\Core\Init\InitTrait;
+use Dou\Core\Service\Data\DataTemplate;
 use Dou\Core\Service\Nav\MiniprogramNavigationBuilder;
 use Dou\Core\Service\Pricing\PricingService;
 use Dou\Core\Support\Cdkey;
@@ -71,6 +72,7 @@ class Init
     {
         $this->bootCommon();
         $this->bootCore();
+        $this->applyMiniprogramPackage();
         $this->loadLanguageAndModules();
         $this->checkSiteClosed();
 
@@ -113,6 +115,35 @@ class Init
         if (!defined('API_DIR')) {
             define('API_DIR', 'api');
         }
+    }
+
+    /**
+     * 应用小程序包身份：按请求上报的模板标识覆盖 data 的模板解析。
+     *
+     * 小程序包各自独立（一个目录对应一个开发者工具项目），后台「启用哪个包」只决定后台
+     * 默认编辑对象与未上报时的回落值，不应决定线上读哪套 data。包内 manifest.json 的 code
+     * 由客户端经 X-MP-Code 头上报（GET 参数 mp 作兼容通道），此处只接受 miniprogram/ 下
+     * 实际存在的目录名；未上报或校验不通过时保持后台启用值。
+     *
+     * @return void
+     */
+    private function applyMiniprogramPackage()
+    {
+        $code = (string) request()->header('X-MP-Code', '');
+        if ($code === '') {
+            $code = (string) request()->get('mp', '');
+        }
+
+        $code = strtolower(trim($code));
+        if ($code === '' || !preg_match('/^[a-z0-9_]+$/', $code)) {
+            return;
+        }
+
+        if (!is_dir(ROOT_PATH . MINIPROGRAM_DIR . '/' . $code)) {
+            return;
+        }
+
+        DataTemplate::useCode($code);
     }
 
     // -----------------------------------------------------------------------

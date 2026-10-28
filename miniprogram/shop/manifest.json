@@ -1,0 +1,10 @@
+{
+  "name": "DouPHP 商城小程序",
+  "code": "shop",
+  "version": "2.0",
+  "description": "DouPHP 商城小程序",
+  "author": "DouCo Co.,Ltd.",
+  "homepage": "http://www.douphp.com/",
+  "license": "MIT",
+  "screenshot": "images/screenshot.png"
+}

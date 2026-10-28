@@ -50,6 +50,16 @@ $_LANG['data_image_cue'] = '前台呼叫標籤：<em class="copytext">{$data.唯
 $_LANG['data_text_cue'] = '前台呼叫標籤：<em class="copytext">{$data.唯一標記.text}</em>';
 $_LANG['data_link_cue'] = '前台呼叫標籤：<em class="copytext">{$data.唯一標記.link}</em>';
 
+// 小程式端備註（小程式模板不支援多語言，呼叫代碼為 WXML 寫法，資料來自 commonStore.data）
+$_LANG['data_miniprogram_template'] = '小程式範本';
+$_LANG['data_miniprogram_list'] = '小程式內容片段';
+$_LANG['data_mp_name_cue'] = '小程式呼叫代碼：<em class="copytext">{{data.唯一標記.name}}</em>';
+$_LANG['data_mp_code_cue'] = '唯一標記不能為空且只能使用小寫字母、數字、下底線，小程式呼叫代碼為：<em class="copytext">{{data.唯一標記.code}}</em>，建議手動輸入便於記憶的英文單字或拼音作為標記';
+$_LANG['data_mp_image_cue'] = '小程式呼叫代碼：<em class="copytext">{{data.唯一標記.image}}</em>';
+$_LANG['data_mp_text_cue'] = '小程式呼叫代碼：<em class="copytext">{{data.唯一標記.text}}</em>';
+$_LANG['data_mp_link_cue'] = '小程式呼叫代碼：<em class="copytext">{{data.唯一標記.link}}</em>';
+$_LANG['data_mp_class_cue'] = '設定為分組後，可以在當前片段下新增子片段，小程式呼叫代碼（子項欄位用 item.xxx）：<em class="copytext">' . htmlspecialchars('<block wx:for="{{data.唯一標記.child}}" wx:key="code"> {{item.name}} </block>', ENT_QUOTES | ENT_HTML5, 'UTF-8') . '</em>';
+
 // 提示訊息
 $_LANG['data_add_succes'] = '新增內容片段成功';
 $_LANG['data_edit_succes'] = '編輯內容片段成功';

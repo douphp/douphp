@@ -236,7 +236,10 @@ class WorkProductService extends BaseService
         }
 
         $data['level_price'] = !empty($data['level_price']) ? $this->pricingService->levelPrice($data['level_price']) : '';
-        $data['defined'] = $this->normalizeDefined(isset($data['defined']) ? $data['defined'] : '');
+        // 工作端表单未提交 defined 时保持原值（default 主题已移除该输入项，shop 主题仍会提交）
+        if (array_key_exists('defined', $data)) {
+            $data['defined'] = $this->normalizeDefined($data['defined']);
+        }
 
         if (isset($data['image']) && $data['image'] === '') {
             unset($data['image']);

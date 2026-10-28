@@ -1900,6 +1900,39 @@ select option.selected {
   padding: 0 6px;
 }
 
+/* 16.1 状态徽章 — 列表派生状态（生效中/已过期等） */
+.statusBadge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 3px;
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+  color: #595959;
+  background-color: #f5f5f5;
+  border: 1px solid #e8e8e8;
+}
+.statusBadge.success {
+  color: #389e0d;
+  background-color: #f6ffed;
+  border-color: #b7eb8f;
+}
+.statusBadge.warning {
+  color: #d46b08;
+  background-color: #fff7e6;
+  border-color: #ffd591;
+}
+.statusBadge.danger {
+  color: #cf1322;
+  background-color: #fff1f0;
+  border-color: #ffa39e;
+}
+.statusBadge.info {
+  color: #096dd9;
+  background-color: #e6f7ff;
+  border-color: #91d5ff;
+}
+
 /* 16.1 状态切换药丸（js-toggle 行内启停徽章，on/off 两态）。
    语义通用：与 ai.css 中 #ai 作用域的 .ai-status 保持一致，供列表行内状态切换复用。 */
 .ai-status {

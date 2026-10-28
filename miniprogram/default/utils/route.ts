@@ -18,12 +18,29 @@ import { routes } from './routes.generated.js'
 
 type RouteParams = Record<string, string | number | undefined>
 
-export function route(name: string, params?: RouteParams): string {
+/** 路由模板查询（兼容带 / 不带 api. 前缀两种 key），未命中返回 undefined */
+function lookup(name: string): string | undefined {
   const table = routes as Record<string, string | undefined>
-  let path = table[name]
-  if (path === undefined) {
-    path = table['api.' + name]
+  const path = table[name]
+  if (path !== undefined) {
+    return path
   }
+  return table['api.' + name]
+}
+
+/**
+ * 端点是否已生成（纯查询，不抛错）。
+ *
+ * 可选模块未装时后端不产出对应命名路由，route() 会同步抛 Unknown route；
+ * 路由表是同步期生成的站点快照，请求前守卫用它判定比等 features 网络下发更稳
+ * （冷启动首帧 features 只有核心键，会误判为未装）。UI 开关仍以 features 为准。
+ */
+export function hasRoute(name: string): boolean {
+  return lookup(name) !== undefined
+}
+
+export function route(name: string, params?: RouteParams): string {
+  let path = lookup(name)
   if (path === undefined) {
     throw new Error('Unknown route: ' + name)
   }

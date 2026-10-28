@@ -22,6 +22,7 @@ use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Service\Admin\AdminLogAction;
 use Dou\Core\Service\Attachment\AttachmentUploadOptions;
 use Dou\Core\Service\BaseService;
+use Dou\Core\Service\Data\DataTemplate;
 use Dou\Core\Support\Arr;
 use Dou\Core\Support\Str;
 use Dou\Core\Web\Http\UploadedFile;
@@ -76,6 +77,76 @@ class DataService extends BaseService
     }
 
     /**
+     * 数据分组所属的模板标识（写入 / 校验 dou_data.theme 用）。
+     *
+     * 小程序分组关联当前启用的小程序模板包（site.miniprogram_code，如 default / shop），
+     * 其余分组关联当前网站主题，见 {@see DataTemplate::codeForGroup()}。
+     *
+     * @param string $dataGroup 数据分组
+     * @return string
+     */
+    private function themeForGroup($dataGroup)
+    {
+        return DataTemplate::codeForGroup($dataGroup);
+    }
+
+    /**
+     * data 主图在 images/data/ 下的相对子目录。
+     *
+     * 小程序分组按 `miniprogram/<模板标识>` 落盘：站点主题与小程序模板包同名时（如都叫
+     * default），两者共用 `data/<模板标识>/` 会互相覆盖；其余分组沿用历史布局 `<模板标识>/`。
+     *
+     * @param string $dataGroup 数据分组
+     * @param string $theme     记录所属模板标识
+     * @return string
+     */
+    private function uploadDirectory($dataGroup, $theme)
+    {
+        if ((string) $dataGroup === DataTemplate::MINIPROGRAM_GROUP) {
+            return DataTemplate::MINIPROGRAM_GROUP . '/' . (string) $theme;
+        }
+
+        return (string) $theme;
+    }
+
+    /**
+     * 按 code 查父级记录（新增子项 / 编辑页展示父级用）。
+     *
+     * 优先在目标分组所属模板里找，找不到再依次回落到网站主题、小程序模板，
+     * 兼容子项入口未携带 group 参数的历史链接。
+     *
+     * @param string $parentCode 父级 code
+     * @param string $dataGroup  目标数据分组（可能为空）
+     * @return \Dou\Core\Orm\Model|null
+     */
+    private function findParentByCode($parentCode, $dataGroup)
+    {
+        $themes = array($this->themeForGroup($dataGroup));
+        $candidates = array(
+            Config::get('site.site_theme', ''),
+            Config::get('site.miniprogram_code', ''),
+        );
+        foreach ($candidates as $candidate) {
+            $candidate = (string) $candidate;
+            if ($candidate !== '' && !in_array($candidate, $themes, true)) {
+                $themes[] = $candidate;
+            }
+        }
+
+        foreach ($themes as $theme) {
+            if ((string) $theme === '') {
+                continue;
+            }
+            $parent = Data::findByCodeAndTheme($parentCode, (string) $theme);
+            if ($parent) {
+                return $parent;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * 生成全局唯一的随机 code（跨主题不重复）。冲突则递归重试。
      *
      * @return string
@@ -93,22 +164,24 @@ class DataService extends BaseService
     /**
      * 按父级 code 生成顺序子 code：{parent}_a、{parent}_b …（超过 z 后进位为 aa、ab …）。
      *
-     * 仅统计当前主题下形如 {parent}_{字母} 的 code，取最大序号的下一个；
+     * 仅统计目标模板下形如 {parent}_{字母} 的 code，取最大序号的下一个；
      * 无同类记录时从 _a 开始。已删除的字母不复用，避免与历史链接/缓存冲突。
      *
      * @param string $parentCode 父级 code
+     * @param string $theme      目标模板标识（空则取当前网站主题）
      * @return string
      */
-    public function createChildCode($parentCode)
+    public function createChildCode($parentCode, $theme = '')
     {
         $parentCode = (string) $parentCode;
         if ($parentCode === '') {
             return $this->createCode();
         }
 
+        $theme = (string) $theme !== '' ? (string) $theme : (string) Config::get('site.site_theme', '');
         $pattern = '/^' . preg_quote($parentCode, '/') . '_([a-z]+)$/i';
         $max = 0;
-        foreach (Data::findAllCodesByTheme(Config::get('site.site_theme', '')) as $code => $id) {
+        foreach (Data::findAllCodesByTheme($theme) as $code => $id) {
             if (preg_match($pattern, (string) $code, $matches)) {
                 $number = $this->alphaToNumber(strtolower($matches[1]));
                 if ($number > $max) {
@@ -204,6 +277,13 @@ class DataService extends BaseService
     public function buildDataListData($group)
     {
         $groupName = lang('data_' . $group);
+        // 小程序分组单独命名，避免列表标题与 PC 主题的「内容片段」混淆
+        if ((string) $group === DataTemplate::MINIPROGRAM_GROUP) {
+            $miniprogramListName = lang('data_miniprogram_list');
+            if ($miniprogramListName) {
+                $groupName = $miniprogramListName;
+            }
+        }
         $dataList = data()->query($group);
         $noInPageList = $this->noInPageList();
 
@@ -235,13 +315,18 @@ class DataService extends BaseService
         $parent = null;
 
         if ($parentCode) {
-            $parent = Data::findByCodeAndTheme($parentCode, Config::get('site.site_theme', ''));
+            $parent = $this->findParentByCode($parentCode, $dataGroupInput);
             $dataGroup = $parent ? $parent['data_group'] : '';
             $dataItem = $parent ? $parent['data_item'] : '';
         } else {
             $dataGroup = $dataGroupInput;
             $dataItem = $dataItemInput;
         }
+
+        // 归属模板：子项继承父级所在模板，否则按分组解析（小程序分组 → miniprogram_code）
+        $theme = $parent && (string) $parent['theme'] !== ''
+            ? (string) $parent['theme']
+            : $this->themeForGroup($dataGroup);
 
         $parentForTpl = array(
             'id' => 0,
@@ -256,20 +341,13 @@ class DataService extends BaseService
             );
         }
 
-        $newCode = $parentCode ? $this->createChildCode($parentCode) : $this->createCode();
-        $lang = lang_all();
-        $langArray = array('name', 'code', 'image', 'text', 'link', 'class');
-        foreach ($langArray as $value) {
-            if (isset($lang['data_' . $value . '_cue'])) {
-                $lang['data_' . $value . '_cue'] = preg_replace(
-                    '/.唯一标记/Ums',
-                    '.' . $newCode,
-                    $lang['data_' . $value . '_cue']
-                );
-            }
-        }
-
-        $languageForm = $this->languageDraftService()->buildFormState('data', 0);
+        $newCode = $parentCode ? $this->createChildCode($parentCode, $theme) : $this->createCode();
+        // 小程序端记录：提示改用 WXML 调用代码（{{data.code.field}}），且不提供多语言入口
+        $isMiniprogram = DataTemplate::isMiniprogramRecord($dataGroup);
+        $lang = $this->buildCueLang($newCode, $isMiniprogram);
+        $languageForm = $isMiniprogram
+            ? $this->emptyLanguageFormState()
+            : $this->languageDraftService()->buildFormState('data', 0);
 
         return array(
             'ur_here' => lang('data_create'),
@@ -280,6 +358,8 @@ class DataService extends BaseService
             'data' => array(
                 'data_group' => $dataGroup,
                 'data_item' => $dataItem,
+                'theme' => $theme,
+                'is_miniprogram' => $isMiniprogram,
                 'parent' => $parentForTpl,
                 'code' => $newCode,
                 'name' => '',
@@ -309,12 +389,14 @@ class DataService extends BaseService
     {
         $name = Arr::get($post, 'name', '');
         $code = Arr::get($post, 'code', '');
-        $this->assertDataCodeUnique($code, 0);
+        $dataGroup = Arr::get($post, 'data_group', '');
+        $theme = $this->themeForGroup($dataGroup);
+        $this->assertDataCodeUnique($code, $theme, 0);
 
         $insertData = array(
             'parent_code' => Arr::get($post, 'parent_code', ''),
-            'theme' => Config::get('site.site_theme', ''),
-            'data_group' => Arr::get($post, 'data_group', ''),
+            'theme' => $theme,
+            'data_group' => $dataGroup,
             'data_item' => Arr::get($post, 'data_item', ''),
             'name' => $name,
             'code' => $code,
@@ -325,7 +407,7 @@ class DataService extends BaseService
         );
 
         $adminId = (int) auth('admin')->id();
-        $image = attachment()->reserve('data', UploadedFile::fromGlobals('image'), 'admin', $adminId, 'main', AttachmentUploadOptions::create()->withBasename($code)->withDirectory(Config::get('site.site_theme', '')));
+        $image = attachment()->reserve('data', UploadedFile::fromGlobals('image'), 'admin', $adminId, 'main', AttachmentUploadOptions::create()->withBasename($code)->withDirectory($this->uploadDirectory($dataGroup, $theme)));
         $insertData['image'] = $image;
         $languagePlan = $this->languageDraftBegin('data', $post, 0, $adminId);
 
@@ -388,6 +470,11 @@ class DataService extends BaseService
         $data['file_number'] = $data['image'];
         $data['image'] = attachment()->url($data['image']);
         $data['code'] = $data['code'] ? $data['code'] : $this->createCode();
+        // 小程序端记录：提示改用 WXML 调用代码，且不提供多语言入口
+        $isMiniprogram = DataTemplate::isMiniprogramRecord(
+            isset($data['data_group']) ? $data['data_group'] : ''
+        );
+        $data['is_miniprogram'] = $isMiniprogram;
 
         $data['parent'] = array(
             'id' => 0,
@@ -395,7 +482,7 @@ class DataService extends BaseService
             'name' => '',
         );
         if ($data['parent_code'] !== '' && $data['parent_code'] !== null) {
-            $parentRow = Data::findByCodeAndTheme($data['parent_code'], Config::get('site.site_theme', ''));
+            $parentRow = Data::findByCodeAndTheme($data['parent_code'], (string) $data['theme']);
             if ($parentRow) {
                 $data['parent'] = array(
                     'id' => isset($parentRow['id']) ? $parentRow['id'] : 0,
@@ -405,19 +492,10 @@ class DataService extends BaseService
             }
         }
 
-        $lang = lang_all();
-        $langArray = array('name', 'code', 'image', 'text', 'link', 'class');
-        foreach ($langArray as $value) {
-            if (isset($lang['data_' . $value . '_cue'])) {
-                $lang['data_' . $value . '_cue'] = preg_replace(
-                    '/.唯一标记/Ums',
-                    '.' . $data['code'],
-                    $lang['data_' . $value . '_cue']
-                );
-            }
-        }
-
-        $languageForm = $this->languageDraftService()->buildFormState('data', $id);
+        $lang = $this->buildCueLang($data['code'], $isMiniprogram);
+        $languageForm = $isMiniprogram
+            ? $this->emptyLanguageFormState()
+            : $this->languageDraftService()->buildFormState('data', $id);
 
         return array(
             'ur_here' => lang('data_edit'),
@@ -436,6 +514,60 @@ class DataService extends BaseService
     }
 
     /**
+     * 组装表单提示（cue）：按记录归属端选择 PC 模板标签或小程序 WXML 调用代码，
+     * 并把「唯一标记」占位替换为实际 code。
+     *
+     * 简体占位为「唯一标记」、繁体为「唯一標記」，两者都替换，避免繁体后台提示不带 code。
+     * 小程序版 cue 缺失时（如英文语言包未收录）回落 PC 版，不报错。
+     *
+     * @param string $code          片段唯一标记
+     * @param bool   $isMiniprogram 是否小程序端记录（data_group 为 miniprogram）
+     * @return array 语言包键值（data_*_cue 已替换）
+     */
+    private function buildCueLang($code, $isMiniprogram)
+    {
+        $lang = lang_all();
+        $fields = array('name', 'code', 'image', 'text', 'link', 'class');
+        foreach ($fields as $field) {
+            $key = 'data_' . $field . '_cue';
+            if ($isMiniprogram && isset($lang['data_mp_' . $field . '_cue'])) {
+                $key = 'data_mp_' . $field . '_cue';
+            }
+            if (!isset($lang[$key])) {
+                continue;
+            }
+            $lang['data_' . $field . '_cue'] = str_replace(
+                array('.唯一标记', '.唯一標記'),
+                '.' . (string) $code,
+                (string) $lang[$key]
+            );
+        }
+
+        return $lang;
+    }
+
+    /**
+     * 小程序端表单不提供多语言按钮与语言草稿：返回空壳，视图据此不渲染按钮。
+     *
+     * 字段键保留为空串，避免模板未加条件判断时访问到不存在的键。
+     *
+     * @return array {btn_lang: array, lang_drafts: array}
+     */
+    private function emptyLanguageFormState()
+    {
+        return array(
+            'btn_lang' => array(
+                'name' => '',
+                'code' => '',
+                'image' => '',
+                'text' => '',
+                'link' => '',
+            ),
+            'lang_drafts' => array(),
+        );
+    }
+
+    /**
      * 更新 data：code 变更时同步物理文件名，再写库并返回 backUrl。
      *
      * @param array $post 含 id、name、code 等
@@ -446,19 +578,22 @@ class DataService extends BaseService
         $id = intval(Arr::get($post, 'id', 0));
         $name = Arr::get($post, 'name', '');
         $code = Arr::get($post, 'code', '');
-        $this->assertDataCodeUnique($code, $id);
 
-        $row = Data::findById($id, 'data_group, data_item, code, image');
+        $row = Data::findById($id, 'data_group, data_item, theme, code, image');
         if (!$row) {
             throw new DomainException(lang('illegal'), route('admin.data'));
         }
+
+        // 已入库记录的归属模板以库中值为准（小程序分组记录存的是 miniprogram_code）
+        $theme = (string) $row['theme'] !== '' ? (string) $row['theme'] : $this->themeForGroup($row['data_group']);
+        $this->assertDataCodeUnique($code, $theme, $id);
 
         $adminId = (int) auth('admin')->id();
         $languagePlan = $this->languageDraftBegin('data', $post, $id, $adminId);
         if ($code !== $row['code']) {
             attachment()->renameStoredFile($row['image'], $code);
         }
-        $image = attachment()->store('data', $id, UploadedFile::fromGlobals('image'), 'main', AttachmentUploadOptions::create()->withBasename($code)->withDirectory(Config::get('site.site_theme', ''))->withUploader('admin', $adminId));
+        $image = attachment()->store('data', $id, UploadedFile::fromGlobals('image'), 'main', AttachmentUploadOptions::create()->withBasename($code)->withDirectory($this->uploadDirectory($row['data_group'], $theme))->withUploader('admin', $adminId));
 
         $updateData = array(
             'name' => $name,
@@ -520,15 +655,18 @@ class DataService extends BaseService
     }
 
     /**
+     * 同一模板内 code 唯一性校验（code 按模板区分，不跨模板）。
+     *
      * @param string $code
-     * @param int $excludeId
+     * @param string $theme
+     * @param int    $excludeId
      * @return void
      */
-    private function assertDataCodeUnique($code, $excludeId)
+    private function assertDataCodeUnique($code, $theme, $excludeId)
     {
         $exists = Data::existsByCodeAndTheme(
             (string) $code,
-            Config::get('site.site_theme', ''),
+            (string) $theme,
             (int) $excludeId
         );
 

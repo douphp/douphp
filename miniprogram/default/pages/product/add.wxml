@@ -64,12 +64,6 @@
       <input name="sort" type="number" class="input" value="{{product.sort}}" placeholder="50" placeholder-class="placeholder" />
      </view>
     </view>
-    <view class="dl" wx:if="{{product.defined}}">
-     <view class="dt">{{lang.product_defined}}</view>
-     <view class="dd">
-      <textarea name="defined" class="text-area" value="{{product.defined}}" auto-height="true" />
-     </view>
-    </view>
     <view class="dl" wx:if="{{features.attribute && attribute_list.length > 0}}">
      <view class="dt">{{lang.attribute}}</view>
      <view class="dd">

@@ -11,6 +11,15 @@ Page({
   onLoad(options) {
     const that = this
 
+    // 支持 id 与 slug 两种寻址（如会员中心的「服务使用协议」用 slug=agreement）
+    const params: Record<string, any> = {}
+    if (options.id) {
+      params.id = options.id
+    }
+    if (options.slug) {
+      params.slug = options.slug
+    }
+
     showShareMenu()
 
     this.storeBindings = createStoreBindings(this, {
@@ -19,7 +28,7 @@ Page({
     })
 
     http
-      .get(route('page'), { id: options.id })
+      .get(route('page'), params)
       .then(function (data) {
         const page = data.page || {}
         that.setData({ title: page.name, page, defined: data.defined })

@@ -1,0 +1,21 @@
+/**
+ * 小程序私有主题色 —— 站点私有文件，随包发行但升级不覆盖，请勿删除。
+ *
+ * app.wxss 定义语义层 --color-*: var(--theme-*, 默认值)，本文件提供主题层 --theme-*，
+ * 两者是不同属性，故与文件导入顺序无关。
+ * 改主色只需取消对应注释并改值，未覆盖的项自动走 app.wxss 默认色。
+ */
+page {
+  /* 主色 */
+  --theme-primary: #ff0f23;
+  /* 主色·加深（标题、按下态） */
+  --theme-primary-dark: #c40012;
+  /* 主色·提亮（高亮态、渐变端点） */
+  --theme-primary-light: #ff5a66;
+  /* 主色·浅底（标签底、选中项底） */
+  --theme-primary-bg: #ffeff0;
+  /* 主色·深文字（浅底上的文字） */
+  --theme-primary-text: #c40012;
+  /* 主色·弱文字 */
+  --theme-primary-text-weak: #d93645;
+}

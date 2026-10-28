@@ -15,6 +15,7 @@ import { commonStore } from './common.js'
 type CartStore = CartState & {
   readonly badge: string
   refresh(): Promise<void>
+  setNumber(n: number): void
   reset(): void
 }
 
@@ -70,6 +71,10 @@ export const cartStore: CartStore = observable<CartStore>({
       })
     })
   },
+
+  setNumber: action(function (this: CartStore, n: number) {
+    this.number = Math.max(0, Math.floor(n || 0))
+  }),
 
   reset: action(function (this: CartStore) {
     this.number = 0

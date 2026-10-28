@@ -1,0 +1,38 @@
+<!--components/navbar/navbar.wxml-->
+<view class="navigation" style="{{'height: ' + navigationBarAndStatusBarHeight}}">
+ <!--背景层，opacity 由 scrollOpacity 控制（0 完全透明 ~ 1 完全显示）-->
+ <view class="nav-bg" style="{{'background-color: ' + backgroundColor + ';opacity: ' + scrollOpacity}}"></view>
+ <!--空白来占位状态栏-->
+ <view style="{{'height: ' + statusBarHeight}}"></view>
+ <!--导航栏：left / center / right 命名插槽，未传 center 时回落为 title-->
+ <view class="bar" style="{{'height:' + navigationBarHeight}}">
+  <view class="bar-left">
+   <view class="menu" wx:if="{{showMenu}}" style="{{'border-radius:' + navigationBarHeightHalf}}">
+    <view class="item" data-url="{{url}}" bindtap="goBack">
+     <image src="/images/icon_left.png" mode="heightFix" style="{{'height: ' + menuButtonHeight}}" />
+    </view>
+    <view class="item" bindtap="goHome">
+     <image src="/images/icon_home.png" mode="heightFix" style="{{'height: ' + menuButtonHeight}}" />
+    </view>
+   </view>
+   <slot name="left"></slot>
+  </view>
+  <view class="bar-center" style="{{'line-height:' + navigationBarHeight}}">
+   <slot name="center">
+    <view class="title" style="{{'color: ' + titleColor + ';opacity: ' + scrollOpacity}}">{{title}}</view>
+   </slot>
+  </view>
+  <view class="bar-right">
+   <slot name="right"></slot>
+  </view>
+ </view>
+</view>
+<!--空白占位fixed空出的位置-->
+<view style="{{'height: ' + navigationBarAndStatusBarHeight}}"></view>
+<!--全屏右侧垂直居中的调试入口圆点（双门控：客户端非正式版 + 服务端调试开启）；
+    外层 debug-layer 跨视口存在，给 fixed 圆点提供 hit-test 范围，
+    规避微信自定义组件下 fixed 子元素脱出组件 bounding box 后 bindtap 不响应的限制；
+    layer 设 pointer-events:none 不挡业务点击，dot 设 pointer-events:auto 接收 tap-->
+<view wx:if="{{debugDot}}" class="debug-layer">
+ <view class="debug-dot" bindtap="openDebug"></view>
+</view>

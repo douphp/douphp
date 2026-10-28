@@ -22,9 +22,11 @@ export interface RequestConfig {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
   header?: Record<string, string>
   responseType?: 'text' | 'arraybuffer'
+  /** 请求超时（毫秒）；AI/检测/分析等长任务显式放大 */
+  timeout?: number
 }
 
-/** 请求附加选项（缓存 / 去重） */
+/** 请求附加选项（缓存 / 去重 / 超时） */
 export interface RequestOpts {
   /** 命中内存缓存直接返回（GET 推荐） */
   cache?: boolean
@@ -34,6 +36,8 @@ export interface RequestOpts {
   revalidate?: boolean
   /** 相同 GET 在飞行中是否复用同一 Promise，默认 true */
   dedupe?: boolean
+  /** 请求超时（毫秒），config.timeout 优先 */
+  timeout?: number
 }
 
 /** 标准错误对象（信封解析失败 / 业务码非 OK / 网络异常 / HTTP 非 2xx 统一为此） */
@@ -193,11 +197,13 @@ function cacheKey(config: RequestConfig): string {
 
 /** 核心请求：解析信封，成功 resolve data<T>，失败 reject ApiError */
 export function request<T = any>(config: RequestConfig, opts?: RequestOpts): Promise<T> {
+  const options = opts || {}
   let cfg: RequestConfig = {
     url: config.url,
     data: config.data || {},
     method: config.method || 'GET',
     responseType: config.responseType,
+    timeout: typeof config.timeout === 'number' ? config.timeout : options.timeout,
     header: Object.assign(
       {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -214,7 +220,6 @@ export function request<T = any>(config: RequestConfig, opts?: RequestOpts): Pro
     }
   }
 
-  const options = opts || {}
   const isGet = (cfg.method || 'GET') === 'GET'
   const key = cacheKey(cfg)
   const ttl = typeof options.ttl === 'number' ? options.ttl : 60000
@@ -237,6 +242,7 @@ export function request<T = any>(config: RequestConfig, opts?: RequestOpts): Pro
       data: cfg.data || {},
       method: cfg.method || 'GET',
       responseType: cfg.responseType,
+      timeout: cfg.timeout,
       header: cfg.header,
       success(res) {
         const body = res && res.data

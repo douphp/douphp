@@ -14,6 +14,7 @@
 
 namespace Dou\Vendor\Excel;
 
+use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Configuration\Config;
 
 if (!defined('IN_DOUCO')) {
@@ -292,8 +293,8 @@ class Excel
                 $field_value_list .= "'" . addslashes($cell_value) . "', ";
             }
             $field_value_list = rtrim($field_value_list, ', ');
-            $sql = "INSERT INTO " . $GLOBALS['dou']->table_name($table) . " (" . $field_name_list . $data['field_name_list'] . ")" . " VALUES (" . $field_value_list . $data['field_value_list'] . ")";
-            if (!$GLOBALS['dou']->query($sql)) {
+            $sql = "INSERT INTO " . DB::tableName($table) . " (" . $field_name_list . $data['field_name_list'] . ")" . " VALUES (" . $field_value_list . $data['field_value_list'] . ")";
+            if (!DB::query($sql)) {
                 echo '导入数据库失败：' . $sql;
                 exit;
             }

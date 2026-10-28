@@ -26,6 +26,7 @@ export const USER_DERIVED_FEATURES = [
   'coupon',
   'distribution',
   'chat',
+  'geo',
 ] as const
 
 export type UserDerivedFeature = (typeof USER_DERIVED_FEATURES)[number]

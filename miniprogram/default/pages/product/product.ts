@@ -1,16 +1,17 @@
 // pages/product/product.ts
 import { createStoreBindings } from '../../libs/mobx-miniprogram-bindings/index.js'
-import { authStore, commonStore } from '../../stores/index.js'
+import { authStore, cartStore, commonStore } from '../../stores/index.js'
 import { http } from '../../services/http.js'
-import { route } from '../../utils/route.js'
+import { hasRoute, route } from '../../utils/route.js'
 import { douMsg } from '../../utils/ui.js'
+import { startQuoteCheckout } from '../../utils/checkout.js'
 import { pageTitle } from '../../utils/page_title.js'
 
 Page({
   data: {
     product: {},
     favorites: {},
-    defined: [],
+    metadata_list: [],
     coupon_list: [],
     open: {},
     attribute_list: [],
@@ -19,6 +20,7 @@ Page({
     page: 1,
     nomore: false,
 
+    current: 0,
     indicatorDots: true,
     indicatorColor: 'rgba(0, 0, 0, .3)',
     indicatorActiveColor: '#FF0000',
@@ -40,15 +42,9 @@ Page({
     if (commonStore.features.order !== true) {
       return
     }
-    http
-      .get(route('order.cart'), {
-      })
-      .then(function (data) {
-        if (data.cart_number > 0) {
-          that.setData({ cart_number: data.cart_number })
-        }
-      })
-      .catch(function () {})
+    cartStore.refresh().then(function () {
+      that.setData({ cart_number: cartStore.number })
+    })
   },
 
   onLoad(options) {
@@ -66,10 +62,21 @@ Page({
       .get(route('product.show', { id: itemId }))
       .then(function (data) {
         const product = data.product || {}
+        // 与 PC 端 product.dwt 一致：仅展示有值的文本类扩展字段
+        const metadataList = (product.metadata_list || []).filter(function (meta: any) {
+          return (
+            meta &&
+            meta.value !== '' &&
+            meta.type !== 'image' &&
+            meta.type !== 'gallery' &&
+            meta.type !== 'file' &&
+            meta.type !== 'editor'
+          )
+        })
         that.setData({
           product,
           favorites: product.favorites || {},
-          defined: data.defined || [],
+          metadata_list: metadataList,
           coupon_list: data.coupon_list || [],
           open: data.open || {},
         })
@@ -85,8 +92,6 @@ Page({
       mode: options.mode ? options.mode : 'money',
     })
 
-    wx.setStorageSync('product_buy_mode', that.data.mode)
-
     that.attributeList()
     that.commentList(false, '', itemId)
   },
@@ -100,7 +105,7 @@ Page({
 
   addToCart(e: WechatMiniprogram.CustomEvent) {
     const that = this
-    const action = e.detail.target.dataset.action
+    const action = e.detail.target.dataset.action || 'addtocart'
 
     // order 未装时 route() 同步抛 Unknown route（不在 .catch 链内），需 feature 守卫
     if (commonStore.features.order !== true) {
@@ -108,23 +113,60 @@ Page({
     }
     authStore.ensureLogin().then(function (ok) {
       if (!ok) return
-      http
-        .post(route('order.cart.store'), {
-          post: JSON.stringify(e.detail.value),
-          mode: that.data.mode,
-          action,
-        })
-        .then(function (data) {
-          if (data.mode == 'point' || action == 'buynow') {
-            wx.navigateTo({ url: '/pages/order/checkout' })
-          } else {
-            wx.switchTab({ url: '/pages/order/order' })
-          }
-        })
-        .catch(function (err) {
+
+      const form = e.detail.value || {}
+      const isQuote = action === 'buynow' || that.data.mode === 'point'
+
+      // 立即购买 / 积分兑换：走报价单，不写入购物车
+      if (isQuote) {
+        startQuoteCheckout(Object.assign({ mode: that.data.mode }, form)).catch(function (err) {
           douMsg(err.message || 'request_failed')
         })
+        return
+      }
+
+      that.submitCart(form, false)
     })
+  },
+
+  submitCart(form: Record<string, any>, replace: boolean) {
+    const that = this
+
+    http
+      .post(
+        route('order.cart.store'),
+        Object.assign(
+          {
+            mode: that.data.mode,
+            action: 'addtocart',
+            replace: replace ? 1 : 0,
+          },
+          form
+        )
+      )
+      .then(function (data) {
+        if (typeof data.cart_number === 'number') {
+          cartStore.setNumber(data.cart_number)
+          that.setData({ cart_number: data.cart_number })
+        }
+        that.hideCartForm()
+        douMsg(that.data.lang.order_cart_added || '已加入购物车')
+      })
+      .catch(function (err) {
+        if (err && err.data && err.data.reason === 'cart_module_conflict') {
+          wx.showModal({
+            title: that.data.lang.order_cart || '购物车',
+            content: err.message,
+            success(res) {
+              if (res.confirm) {
+                that.submitCart(form, true)
+              }
+            },
+          })
+          return
+        }
+        douMsg(err.message || 'request_failed')
+      })
   },
 
   attributeList() {
@@ -137,7 +179,8 @@ Page({
         attribute_data: that.data.attribute_data,
       })
       .then(function (data) {
-        that.setData({ attribute_list: data.attribute_list, box: data.box })
+        // attribute 可选模块未装时后端返回空 data，setData(undefined) 会告警
+        that.setData({ attribute_list: data.attribute_list || [], box: data.box || {} })
       })
       .catch(function (err) {
         douMsg(err.message || 'request_failed')
@@ -148,7 +191,8 @@ Page({
     const that = this
     const productId = itemId || that.data.item_id
 
-    if (!productId) {
+    // comment 为可选模块，未装时后端不产出 comment.list 路由（route() 同步抛错，不在 .catch 链内）
+    if (!productId || !hasRoute('comment.list')) {
       return
     }
 
@@ -198,7 +242,8 @@ Page({
 
   onReachBottom() {
     const that = this
-    if (!that.data.nomore) {
+    // 触底只用于评论分页，comment 未装时不进入加载态
+    if (!that.data.nomore && hasRoute('comment.list')) {
       const page = that.data.page + 1
       that.setData({ page, loadpage: true })
       setTimeout(function () {
@@ -209,6 +254,11 @@ Page({
 
   favorites(e: WechatMiniprogram.TouchEvent) {
     const that = this
+
+    // favorites 为可选模块，未装时无对应命名路由
+    if (!hasRoute('favorites.user.store')) {
+      return
+    }
 
     http
         .post(route('favorites.user.store'), {
@@ -230,6 +280,11 @@ Page({
 
   getCoupon(e: WechatMiniprogram.TouchEvent) {
     const that = this
+
+    // coupon 为可选模块，未装时无对应命名路由
+    if (!hasRoute('coupon.claim')) {
+      return
+    }
 
     http
         .post(route('coupon.claim'), {
@@ -278,12 +333,21 @@ Page({
 
   bindPlus() {
     let number = this.data.number
-    number++
+    if (number < 999) {
+      number++
+    }
     this.setData({ number })
   },
 
   bindManual(e: WechatMiniprogram.CustomEvent) {
-    this.setData({ number: e.detail.value })
+    let number = parseInt(e.detail.value, 10)
+    if (!number || number < 1) {
+      number = 1
+    }
+    if (number > 999) {
+      number = 999
+    }
+    this.setData({ number })
   },
 
   onShareAppMessage() {
@@ -302,20 +366,24 @@ Page({
     this.setData({ imgheight })
   },
 
+  // 受控 current 只做同步，首尾衔接交给 swiper 的 circular，不再手动回跳
   swiperbindchange(e: WechatMiniprogram.CustomEvent) {
-    if (e.detail.source == 'touch' || e.detail.source == 'autoplay') {
+    if (e.detail.source === 'touch' || e.detail.source === 'autoplay') {
       this.setData({ current: e.detail.current })
-
-      if (this.data.current == 0 && this.data.rightcurrent > 1) {
-        this.setData({ current: this.data.rightcurrent })
-      } else {
-        this.setData({ rightcurrent: this.data.current })
-      }
     }
   },
 
   douSwitchTab(e: WechatMiniprogram.TouchEvent) {
     wx.switchTab({ url: e.currentTarget.dataset.url })
+  },
+
+  // 评论图片预览（product.wxml 中 comment.img_list 图片）
+  previewImage(e: WechatMiniprogram.TouchEvent) {
+    const image = e.currentTarget.dataset.image
+    if (!image) {
+      return
+    }
+    wx.previewImage({ current: image, urls: [image] })
   },
 
   douNavigateTo(e: WechatMiniprogram.TouchEvent) {

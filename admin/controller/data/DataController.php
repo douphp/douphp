@@ -58,7 +58,7 @@ class DataController extends BaseController
      *   - site_home / show 组 → 站点首页族 + 同名项；
      *   - common / all / box 组 → 站点首页族 + data 项（与中央解析缺省一致）；
      *   - 其余（业务模块数据组或空组）→ 站点首页族但无激活项。
-     * 侧栏节点：聚合数据组归「站点首页」，小程序数据组归「小程序」，
+     * 侧栏节点：聚合数据组归「站点首页」，内容片段组归「小程序」，
      * 模块数据组（cur=模块名）归模块自身节点。
      *
      * @param array $bundle DataService 产出的页面数据（含 cur / group 键）

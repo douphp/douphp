@@ -19,7 +19,6 @@ Page({
     sort: '',
     page: 1,
     nomore: false,
-    treeHeight: 500,
   } as Record<string, any>,
 
   onLoad(options) {
@@ -40,7 +39,6 @@ Page({
     if (options.brand_id) {
       that.setData({ brand_id: options.brand_id })
     }
-    that.getTreeHeight()
     that.loadData()
   },
 
@@ -135,19 +133,6 @@ Page({
       nomore: false,
     })
     this.loadData()
-  },
-
-  getTreeHeight() {
-    const that = this
-    const windowHeight = wx.getWindowInfo().windowHeight
-    const query = wx.createSelectorQuery()
-
-    query
-      .select('.page-top')
-      .boundingClientRect(function (rect: any) {
-        that.setData({ treeHeight: windowHeight - rect.height })
-      })
-      .exec()
   },
 
   douNavigateTo(e: WechatMiniprogram.TouchEvent) {

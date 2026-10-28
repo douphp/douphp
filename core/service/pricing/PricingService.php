@@ -74,7 +74,7 @@ class PricingService extends BaseService
      */
     public function salePrice($module, $itemId, $userId = 0, $itemData = null)
     {
-        $excludeModule = array('vip_package', 'money_package', 'chat_package');
+        $excludeModule = array('money_package', 'chat_package');
 
         if ($itemData !== null && isset($itemData['price']) && isset($itemData['level_price']) && isset($itemData['promote_price'])) {
             $item = $itemData;
@@ -88,6 +88,12 @@ class PricingService extends BaseService
             }
             if ($hasPromotePrice) {
                 $fields[] = 'promote_price';
+            }
+            if (DB::fieldExist($module, 'promote_start_at')) {
+                $fields[] = 'promote_start_at';
+            }
+            if (DB::fieldExist($module, 'promote_end_at')) {
+                $fields[] = 'promote_end_at';
             }
 
             $item = DB::table($module)
@@ -107,6 +113,12 @@ class PricingService extends BaseService
             if (!isset($item['promote_price'])) {
                 $item['promote_price'] = 0;
             }
+            if (!isset($item['promote_start_at'])) {
+                $item['promote_start_at'] = null;
+            }
+            if (!isset($item['promote_end_at'])) {
+                $item['promote_end_at'] = null;
+            }
         }
 
         $salePrice = array(
@@ -115,6 +127,20 @@ class PricingService extends BaseService
             'type' => 'original',
             'name' => '',
         );
+
+        // VIP 套餐：只支持促销价（含时间窗），不叠加会员等级价。
+        if ($module === 'vip_package') {
+            if ($this->isVipPromotionActive($item)) {
+                return array(
+                    'value' => $item['promote_price'],
+                    'format' => Util::formatPrice($item['promote_price']),
+                    'type' => 'promote',
+                    'name' => lang('price_promote'),
+                );
+            }
+
+            return $salePrice;
+        }
 
         if (in_array($module, $excludeModule)) {
             return $salePrice;
@@ -164,6 +190,35 @@ class PricingService extends BaseService
             'type' => 'level',
             'name' => lang('price_level'),
         );
+    }
+
+    /**
+     * VIP 套餐促销是否生效：只认促销价 + 时间窗，不叠加等级价。
+     *
+     * 促销价必须低于原价；原价 <= 0（免费套餐）不参与促销；空时间窗视为不限。
+     *
+     * @param array $item
+     * @return bool
+     */
+    private function isVipPromotionActive(array $item)
+    {
+        $price = isset($item['price']) ? (float) $item['price'] : 0;
+        $promotePrice = isset($item['promote_price']) ? (float) $item['promote_price'] : 0;
+        if ($price <= 0 || $promotePrice <= 0 || $promotePrice >= $price) {
+            return false;
+        }
+
+        $now = time();
+        $startTs = Util::toTimestamp(isset($item['promote_start_at']) ? $item['promote_start_at'] : null);
+        $endTs = Util::toTimestamp(isset($item['promote_end_at']) ? $item['promote_end_at'] : null);
+        if ($startTs !== null && $startTs > $now) {
+            return false;
+        }
+        if ($endTs !== null && $endTs <= $now) {
+            return false;
+        }
+
+        return true;
     }
 
     /**

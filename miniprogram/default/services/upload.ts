@@ -5,7 +5,7 @@
  * wx.uploadFile 返回字符串，需手动解析信封。
  */
 
-import { http } from './http.js'
+import { http, ApiError } from './http.js'
 import { route } from '../utils/route.js'
 import { authStore } from '../stores/auth.js'
 
@@ -80,5 +80,65 @@ export function fileDel(params: { dataset: { number: string | number } }, callba
       .catch(() => {
         callback([])
       })
+  })
+}
+
+/**
+ * 通用 multipart 上传（wx.uploadFile）。
+ *
+ * wx.uploadFile 返回字符串，需手动解析 API 信封；失败统一 reject ApiError。
+ */
+export function uploadFile<T = any>(
+  url: string,
+  filePath: string,
+  name: string,
+  formData?: Record<string, any>,
+  timeout?: number
+): Promise<T> {
+  return new Promise(function (resolve, reject) {
+    wx.uploadFile({
+      url,
+      filePath,
+      name,
+      formData: formData || {},
+      timeout,
+      header: {
+        Authorization: 'Bearer ' + (wx.getStorageSync('api_token') || ''),
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      success(res) {
+        const status = (res && res.statusCode) || 0
+        let raw: any = {}
+        try {
+          raw = res && res.data ? JSON.parse(res.data) : {}
+        } catch (e) {
+          raw = {}
+        }
+        const code = raw && typeof raw.code === 'string' ? raw.code : ''
+        if (status < 200 || status >= 300 || code !== 'OK') {
+          reject(
+            new ApiError({
+              code: code || 'HTTP_' + status,
+              message: (raw && raw.message) || '请求失败',
+              statusCode: status,
+              errors: raw && raw.errors ? raw.errors : {},
+              data: raw && raw.data ? raw.data : {},
+              request_id: raw && raw.request_id ? raw.request_id : '',
+            })
+          )
+          return
+        }
+        resolve((raw.data && typeof raw.data === 'object' ? raw.data : {}) as T)
+      },
+      fail(err) {
+        reject(
+          new ApiError({
+            code: 'NETWORK_ERROR',
+            message: (err && err.errMsg) || '网络异常',
+            statusCode: 0,
+          })
+        )
+      },
+    })
   })
 }

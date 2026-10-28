@@ -1,0 +1,10 @@
+{
+  "name": "DouPHP 默认小程序",
+  "code": "default",
+  "version": "2.0",
+  "description": "DouPHP 默认小程序",
+  "author": "DouCo Co.,Ltd.",
+  "homepage": "http://www.douphp.com/",
+  "license": "MIT",
+  "screenshot": "images/screenshot.png"
+}
