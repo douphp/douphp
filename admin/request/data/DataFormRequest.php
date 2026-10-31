@@ -57,6 +57,8 @@ class DataFormRequest extends FormRequest
             'text' => '',
             'link' => '',
             'is_class' => 'in:0,1',
+            // 主图删除标记：随主表单提交后由 Service 清空字段并回收旧图
+            'image_delete' => '',
         );
 
         if ($this->scene === 'update') {

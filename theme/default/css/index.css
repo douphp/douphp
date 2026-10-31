@@ -134,6 +134,14 @@
  margin-top: 12px;
  font-size: 16px;
 }
+#index .product-list .item .name a {
+ color: #333333;
+ -webkit-transition: color .3s;
+ transition: color .3s;
+}
+#index .product-list .item .name a:hover {
+ color: #19B4EA;
+}
 #index .product-list .item .price-box {
  margin-top: 5px;
 }
@@ -195,6 +203,11 @@
 #index .article-list .item dd a {
  color: #000;
  font-size: 16px;
+ -webkit-transition: color .3s;
+ transition: color .3s;
+}
+#index .article-list .item dd a:hover {
+ color: #19B4EA;
 }
 #index .article-list .item dd p {
  color: #9A9A9A;

@@ -70,7 +70,7 @@
    <!-- {/foreach} -->
    <!-- {foreach from=$workspace.menu_single item=menu} -->
    <!-- {if $menu.lang} -->
-   <li{if $nav.sidebar[$menu.name].is_active} class="cur"{/if} data-id="{$menu.name}"><a href="{$menu.url}"><i class="{$menu.icon}"></i><em>{$menu.lang}<!-- {if $menu.name eq 'plugin'} -->{if $unum.plugin}<span class="badge"><span>{$unum.plugin}</span></span>{/if}<!-- {/if} --></em></a></li>
+   <li{if $nav.sidebar[$menu.name].is_active} class="cur"{/if} data-id="{$menu.name}"><a href="{$menu.url}"><i class="{$menu.icon}"></i><em>{$menu.lang}<!-- {if $menu.name eq 'plugin'} -->{if $unum.plugin}<span class="badge"><span>{$unum.plugin}</span></span>{/if}<!-- {/if} --><!-- {if $menu.badge} --><span class="badge"><span>{$menu.badge}</span></span><!-- {/if} --></em></a></li>
    <!-- {/if} -->
    <!-- {/foreach} -->
   </ul>

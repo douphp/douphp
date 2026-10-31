@@ -132,8 +132,8 @@ i {
   clear: both;
   visibility: hidden;
 }
-.none {
-  display: none;
+.hidden {
+  display: none !important;
 }
 .cue {
   color: #999;
@@ -846,6 +846,59 @@ p.cue {
   padding-bottom: 10px;
   margin-top: 20px;
   margin-bottom: 15px;
+}
+/* Page — notice：页面内提示条（page_header.tpl flash 与模块 notice-* 共用同一视觉；限定 div，避免误伤状态文字） */
+div.notice {
+  background: #eff9f1;
+  border-left: 4px solid #c3c4c7;
+  padding: 10px 12px;
+  margin: 10px 0;
+  color: #555;
+  font-size: 13px;
+  line-height: 1.6;
+  position: relative;
+}
+div.notice p {
+  margin: 0;
+}
+div.notice a {
+  color: #2271b1;
+  text-decoration: none;
+}
+div.notice a:hover {
+  text-decoration: underline;
+}
+div.notice.notice-info {
+  background: #f0f6fc;
+  border-left-color: #72aee6;
+}
+div.notice.notice-success {
+  background: #eff9f1;
+  border-left-color: #00a32a;
+}
+div.notice.notice-error {
+  background: #fcf0f1;
+  border-left-color: #d63638;
+}
+div.notice.notice-warning {
+  background: #fcf9e8;
+  border-left-color: #dba617;
+}
+.notice-dismiss {
+  position: absolute;
+  top: 0;
+  right: 1px;
+  border: 0;
+  margin: 0;
+  padding: 9px;
+  background: none;
+  color: #787c82;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+.notice-dismiss:hover {
+  color: #d63638;
 }
 .page-header {
   border-bottom: 1px solid #d7d7d7;
@@ -1624,6 +1677,16 @@ select option.selected {
 }
 .table tr:hover .action {
   display: inline-block;
+}
+/* 表格 — 浅色表头变体（用于 split-layout 侧栏列表） */
+.split-layout .table-soft {
+  background-color: #f9f9f9;
+}
+.split-layout .table-soft th {
+  height: 16px;
+  color: #555;
+  font-weight: bold;
+  background-color: #eee;
 }
 
 /* 15. Form — 表单 */
@@ -3428,4 +3491,26 @@ select option.selected {
 }
 .is-lang-draft .form-item {
   margin-bottom: 12px;
+}
+
+/* 28. Collapse — 折叠区块（douCollapse，data-dou-toggle="collapse" 声明式开合）
+   与 Bootstrap .collapse:not(.show) 同构：组件类常驻，.is-open 表示展开；
+   展开后不强制 display，沿用元素自身类型（div 为 block、tr 为 table-row）。 */
+.dou-collapse:not(.is-open) {
+  display: none !important;
+}
+.dou-collapse-toggle {
+  color: #06c;
+  text-decoration: none;
+}
+.dou-collapse-toggle i {
+  font-size: 12px;
+}
+
+/* 29. Laydate — 日期浮层定位修正 */
+.layui-laydate .laydate-set-ym {
+  min-height: 30px;
+}
+.layui-laydate .layui-laydate-content td {
+  line-height: 20px;
 }

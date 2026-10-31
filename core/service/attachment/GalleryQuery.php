@@ -74,6 +74,54 @@ class GalleryQuery
     }
 
     /**
+     * 批量列出多个业务主键的相册（仅数组形态），供列表页一次取回、避免逐行查询。
+     *
+     * @param string $module
+     * @param array $itemIds 业务主键集合
+     * @param string $type gallery / main / content
+     * @return array<int, array> 业务主键 => 图片数组
+     */
+    public function galleryListBatch($module, array $itemIds, $type)
+    {
+        $keys = array();
+        foreach ($itemIds as $itemId) {
+            $keys[(int) $itemId] = (int) $itemId;
+        }
+
+        $grouped = array();
+        foreach ($keys as $key) {
+            $grouped[$key] = array();
+        }
+
+        if (!$keys) {
+            return $grouped;
+        }
+
+        $rows = DB::table('file')
+            ->field('number, file, item_id')
+            ->where('module', $module)
+            ->where('item_id', 'IN', array_values($keys))
+            ->where('type', $type)
+            ->where('status', 'owned')
+            ->order('id ASC')
+            ->select();
+
+        foreach ((array) $rows as $row) {
+            $key = (int) $row['item_id'];
+            if (!isset($grouped[$key])) {
+                $grouped[$key] = array();
+            }
+            $grouped[$key][] = array(
+                'number' => $row['number'],
+                'item_id' => $key,
+                'file' => ROOT_URL . $row['file'],
+            );
+        }
+
+        return $grouped;
+    }
+
+    /**
      * 列出某 module + 某 draft_token + 某上传者 + 某 type 下的全部 draft 附件。
      *
      * 用于「新建场景」编辑器右侧 gallery 缩略图列表：附件仍处于 draft（item_id=0），

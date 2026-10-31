@@ -168,7 +168,7 @@ class DatabaseInstallService
     }
 
     /**
-     * 完整执行安装：写 config.php → 导 SQL → 初始化管理员/系统配置 → 可选清理测试数据。
+     * 完整执行安装：写 config.php / module.php → 导 SQL → 初始化管理员/系统配置 → 可选清理测试数据。
      *
      * @param array $post 安装表单
      * @return array array('username' => 设置成功后的管理员用户名, 'douphp_version' => 本次安装的核心版本)
@@ -197,6 +197,9 @@ class DatabaseInstallService
             'dbpass' => $dbpass,
             'prefix' => $prefix,
         ));
+
+        // 落盘 config/module.php（安装包自带的默认模块账本）
+        $this->writeModuleLedger();
 
         // 不 include config/config.php（其内 define 会污染当前请求常量），DB 参数直接用局部变量
         $dou = new Connection($dbhost, $dbuser, $dbpass, $dbname, $prefix, 'utf-8');
@@ -254,6 +257,30 @@ class DatabaseInstallService
     }
 
     /**
+     * 复制安装包自带的默认模块账本 install/data/module.php 到 config/module.php。
+     *
+     * 全新安装的账本固定：product / article 为列模块，language / form 为单页模块，
+     * 与安装 SQL 自带的模块表一致；安装后由后台「模块管理」维护。
+     *
+     * @return void
+     */
+    private function writeModuleLedger()
+    {
+        $source = INSTALL_PATH . 'data/module.php';
+        $target = ROOT_PATH . 'config/module.php';
+
+        if (!is_file($source)) {
+            throw new \Exception('安装包缺少默认模块账本：install/data/module.php，请确认安装包完整。');
+        }
+        if (@copy($source, $target) === false) {
+            throw new \Exception('模块账本写入失败：config/module.php 不可写，请检查目录权限后重试。');
+        }
+        if (function_exists('opcache_invalidate')) {
+            @opcache_invalidate($target, true);
+        }
+    }
+
+    /**
      * 写入站点初始 dou_config：hash_code / build_date / update_date / domain / cloud_account / rewrite。
      * （douphp_version 沿用 douphp.sql 的导库结果，这里不再覆盖）
      *
@@ -273,7 +300,7 @@ class DatabaseInstallService
         $douphp_version = trim((string) $douphpVersion);
         $version_date = substr($douphp_version, -8);
         // 默认模块账本：article / product / language / form
-        // （form 为开源安装包默认自带的表单模块，口径与安装包 config/module.php 的 single_module 保持一致）
+        // （form 为开源安装包默认自带的表单模块，口径与 install/data/module.php 的 single_module 保持一致）
         $update_date = 'a:3:{s:6:"system";a:2:{s:6:"update";s:8:"' . $version_date . '";s:5:"patch";s:8:"' . $version_date . '";}s:6:"module";a:4:{s:7:"article";s:8:"' . $version_date . '";s:7:"product";s:8:"' . $version_date . '";s:8:"language";s:8:"' . $version_date . '";s:4:"form";s:8:"' . $version_date . '";}s:5:"theme";a:0:{}}';
 
         $configUpdates = array(

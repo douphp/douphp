@@ -18,6 +18,7 @@ use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Service\Attachment\AttachmentUploadOptions;
+use Dou\Core\Service\Attachment\LanguagePath;
 use Dou\Core\Service\BaseService;
 use Dou\Core\Service\Content\MarkdownRenderer;
 use Dou\Core\Service\Language\LanguageImageCleaner;
@@ -127,6 +128,8 @@ class LanguageDraftService extends BaseService
             'labels' => array('image' => lang('thumb')),
             'has_value' => $hasValue,
             'previews' => $previews,
+            // 未添加译文时弹框保持为空，不再代入主语言内容
+            'blank_when_missing' => true,
             'upload_url' => $uploadUrl,
             'release_url' => $releaseUrl,
         ));
@@ -359,6 +362,42 @@ class LanguageDraftService extends BaseService
     }
 
     /**
+     * 直接写入/清空单条翻译（不经过 language_draft 表单结构）。
+     *
+     * 供子表记录（如 attribute_value）随主记录事务批量落库时复用幂等写入语义：
+     * 空字符串删除该翻译行，非空则查最新行、去重后更新或插入。
+     *
+     * @param string $module
+     * @param int|string $itemId
+     * @param string $pack
+     * @param string $field
+     * @param string $value
+     * @param string $type
+     * @return void
+     */
+    public function saveTranslation($module, $itemId, $pack, $field, $value, $type = 'text')
+    {
+        $module = (string) $module;
+        $field = (string) $field;
+        $pack = (string) $pack;
+        $itemId = (int) $itemId;
+
+        if (!Config::get('features.language', false) || $module === '' || $field === '' || $itemId <= 0) {
+            return;
+        }
+        if ($pack === $this->defaultLanguage() || !Check::languagePack($pack)) {
+            return;
+        }
+
+        if ((string) $value === '') {
+            $this->deleteRow($module, $itemId, $pack, $field);
+            return;
+        }
+
+        $this->writeRow($module, $itemId, $pack, $field, (string) $value, (string) $type);
+    }
+
+    /**
      * 抽屉内图片草稿上传。
      *
      * @param array $data module/slug/file
@@ -384,9 +423,14 @@ class LanguageDraftService extends BaseService
 
         attachment()->cleanupUserDrafts('admin', $adminId, $module);
         $draftToken = attachment()->newDraftToken('admin', $adminId);
-        $options = AttachmentUploadOptions::create()
-            ->withUploader('admin', $adminId)
-            ->withThumbnail(Config::get('site.thumb_width', 0), Config::get('site.thumb_height', 0));
+        $languagePack = LanguagePath::normalize(isset($data['language_pack']) ? $data['language_pack'] : '');
+        $options = AttachmentUploadOptions::create()->withUploader('admin', $adminId);
+        // 缩略图仅用于产品主图（前台商品列表按 image 取 _thumb）；
+        // 文章、幻灯、链接等其它模块的语言图片不生成缩略图。
+        if ($module === 'product' && $field === 'image') {
+            $options->withThumbnail(Config::get('site.thumb_width', 0), Config::get('site.thumb_height', 0));
+        }
+        $options->withLanguagePack($languagePack);
         $number = attachment()->storeDraft($module, $file, 'admin', $adminId, $draftToken, 'language:image', $options);
         if ($number === '') {
             throw new DomainException(lang('file_upload_error', '文件上传失败'));

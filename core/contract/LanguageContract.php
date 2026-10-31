@@ -66,7 +66,8 @@ interface LanguageContract
      * 清理指定模块/记录的关联多语言值：先删语言图片附件，再删 language_value 行。
      *
      * 删除副作用可能在三端任一上下文触发（模型层共用清理），故纳入通用契约；
-     * features.language 关闭时实现应静默返回。
+     * 实现不依赖 features.language 开关，按 module + item_id 精确清理，
+     * language_value 表不存在时静默返回。
      *
      * @param string $module
      * @param string|int $itemId

@@ -21,8 +21,7 @@ if (!defined('IN_DOUCO')) {
 /**
  * 写入 storage/state/install.lock，完成安装收尾。
  *
- * config/module.php 随安装包附带（固定文件），安装阶段不再生成或改写；
- * 模块的增删改由后台「模块管理」按需维护。
+ * 模块账本（config/module.php）已在安装阶段从 install/data/module.php 复制，此处只写安装锁。
  */
 class FinishService
 {

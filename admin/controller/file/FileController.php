@@ -22,6 +22,7 @@ use Dou\Core\Filesystem\Storage;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Service\Attachment\AttachmentRules;
 use Dou\Core\Service\Attachment\AttachmentUploadOptions;
+use Dou\Core\Service\Attachment\LanguagePath;
 use Dou\Core\Web\Http\Request;
 use Dou\Core\Web\Http\Response;
 use Dou\Core\Web\Http\UploadedFile;
@@ -51,6 +52,7 @@ class FileController extends BaseController
     {
         $module = $request->alpha('module');
         Storage::build('images/' . $module . '/');
+        $languagePack = LanguagePath::normalize((string) $request->post('language_pack', ''));
 
         $item_id = $request->integer('item_id', 0);
         // 前端组件名统一用 attachment；存储/查询层沿用历史 type=attach
@@ -94,6 +96,7 @@ class FileController extends BaseController
                     ->withImageWidth($img_width)
                     ->withWatermark(Config::get('site.watermark', false))
                     ->withBusinessField($fkey)
+                    ->withLanguagePack($languagePack)
                     ->withUploader('admin', $admin_id);
 
                 if ($useDraft) {
@@ -113,12 +116,14 @@ class FileController extends BaseController
                     ->withAllowExtensions(AttachmentRules::baselineExtensions('attach'))
                     ->withUploadMaxKb(AttachmentRules::platformMaxKb('attach'))
                     ->withBusinessField($field)
+                    ->withLanguagePack($languagePack)
                     ->withUploader('admin', $admin_id);
             } else {
                 $opts = AttachmentUploadOptions::create()
                     ->withImageWidth($img_width)
                     ->withWatermark(Config::get('site.watermark', false))
                     ->withBusinessField($field)
+                    ->withLanguagePack($languagePack)
                     ->withUploader('admin', $admin_id);
             }
 

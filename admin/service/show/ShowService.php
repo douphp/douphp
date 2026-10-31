@@ -109,7 +109,7 @@ class ShowService extends BaseService
 
         $adminId = (int) auth('admin')->id();
         $file = (isset($_FILES['image']['name']) && $_FILES['image']['name'] != '') ? UploadedFile::fromGlobals('image') : null;
-        $image = attachment()->reserve('show', $file, 'admin', $adminId, 'main', AttachmentUploadOptions::create());
+        $image = attachment()->reserve('show', $file, 'admin', $adminId, 'main', $this->uploadOptions($type));
         $row['image'] = $image;
         $languagePlan = $this->languageDraftBegin('show', $data, 0, $adminId);
 
@@ -162,10 +162,14 @@ class ShowService extends BaseService
 
         $adminId = (int) auth('admin')->id();
         $languagePlan = $this->languageDraftBegin('show', $data, $id, $adminId);
+        $attributes = $show->getAttributes();
+        $type = isset($attributes['type']) ? (string) $attributes['type'] : 'pc';
+        $oldImageNumber = isset($attributes['image']) ? (string) $attributes['image'] : '';
         $new_image = '';
         if (isset($_FILES['image']['name']) && $_FILES['image']['name'] != '') {
-            $new_image = attachment()->store('show', $id, UploadedFile::fromGlobals('image'), 'main', AttachmentUploadOptions::create()->withUploader('admin', (int) auth('admin')->id()));
+            $new_image = attachment()->store('show', $id, UploadedFile::fromGlobals('image'), 'main', $this->uploadOptions($type)->withUploader('admin', $adminId));
         }
+        $deleteImage = ($new_image === '' && !empty($data['image_delete']));
 
         $update_data = array(
             'name' => $data['name'],
@@ -176,6 +180,8 @@ class ShowService extends BaseService
 
         if ($new_image !== '') {
             $update_data['image'] = $new_image;
+        } elseif ($deleteImage) {
+            $update_data['image'] = '';
         }
 
         try {
@@ -189,7 +195,28 @@ class ShowService extends BaseService
         }
 
         $this->languageDraftPurge($languagePlan, $id);
+        if ($deleteImage && $oldImageNumber !== '') {
+            attachment()->delete($oldImageNumber);
+        }
         audit()->writeAdminLog($adminId, AdminLogAction::UPDATE, 1, (string) $data['name']);
+    }
+
+    /**
+     * 幻灯上传选项：show disk 映射到 images/slide/，按终端类型保留历史子目录。
+     *
+     * @param string $type pc / mobile / miniprogram
+     * @return AttachmentUploadOptions
+     */
+    private function uploadOptions($type)
+    {
+        $directory = '';
+        if ($type === 'miniprogram') {
+            $directory = MINIPROGRAM_DIR;
+        } elseif ($type === 'mobile') {
+            $directory = 'm';
+        }
+
+        return AttachmentUploadOptions::create()->withDirectory($directory);
     }
 
     /**
@@ -236,7 +263,6 @@ class ShowService extends BaseService
         if (isset($data['confirm'])) {
             $showImg = isset($show['image']) ? $show['image'] : '';
             attachment()->delete($showImg);
-            language()->deleteLang('show', $id);
             audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::DELETE, 1, (string) $showName);
             Show::destroy($id);
 

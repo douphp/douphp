@@ -297,10 +297,14 @@ class Init
             return;
         }
 
-        // 多语言验证
+        // 多语言验证（先判模块与表是否存在，避免模块卸载后先查表报错）
         $locale = locale();
         if ($locale->isActive()) {
-            if (!DB::table('language')->where('language_pack', $locale->pack())->find() || !Config::get('features.language', false)) {
+            if (
+                !Config::get('features.language', false)
+                || !DB::tableExist('language')
+                || !DB::table('language')->where('language_pack', $locale->pack())->find()
+            ) {
                 throw new HttpResponseException(redirect(ROOT_URL));
             } elseif ($locale->mode() === 'rewrite_open' && !Config::get('site.rewrite', false)) {
                 throw new HttpResponseException(redirect(ROOT_URL));

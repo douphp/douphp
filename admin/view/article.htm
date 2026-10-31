@@ -162,7 +162,11 @@
        <div class="form-item">
         <div class="form-label">{$lang.created_at}</div>
         <div class="input-block">
-         <input type="text" name="created_at" value="{$article.created_at}" size="15" class="input" />
+         <script type="text/javascript" src="js/laydate/laydate.js"></script>
+         <input type="text" id="created_at" name="created_at" value="{$article.created_at}" size="20" class="input" autocomplete="off" />
+         <script>
+         {literal}laydate.render({ elem: '#created_at', type: 'datetime', format: 'yyyy-MM-dd HH:mm' });{/literal}
+         </script>
         </div>
        </div>
        <div class="form-item">

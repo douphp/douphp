@@ -14,6 +14,7 @@
 
 namespace Dou\Admin\Model\Miniprogram;
 
+use Dou\Admin\Model\Concerns\PurgesRelatedOnDelete;
 use Dou\Core\Orm\Model;
 
 use Dou\Core\Facade\DB;
@@ -26,6 +27,8 @@ if (!defined('IN_DOUCO')) {
  */
 class MiniprogramNav extends Model
 {
+    use PurgesRelatedOnDelete;
+
     /**
      * @var string
      */

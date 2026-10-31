@@ -14,6 +14,7 @@
 
 namespace Dou\Admin\Model\Show;
 
+use Dou\Admin\Model\Concerns\PurgesRelatedOnDelete;
 use Dou\Core\Facade\DB;
 use Dou\Core\Orm\Model;
 
@@ -26,6 +27,8 @@ if (!defined('IN_DOUCO')) {
  */
 class Show extends Model
 {
+    use PurgesRelatedOnDelete;
+
     protected $table = 'show';
     protected $primary = 'id';
 

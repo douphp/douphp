@@ -247,10 +247,13 @@ class ArticleService extends BaseService
         if (!$article) {
             throw new DomainException(lang('article_not_exist'), route('admin.article'));
         }
+        $articleAttributes = $article->getAttributes();
+        $oldImageNumber = isset($articleAttributes['image']) ? (string) $articleAttributes['image'] : '';
 
         $metadataPlan = $this->metadataBegin('article', $data, $id, $this->metadataExistingRaw($article), $adminId);
         $languagePlan = $this->languageDraftBegin('article', $data, $id, $adminId);
         $image = attachment()->store('article', $id, UploadedFile::fromGlobals('image'), 'main', AttachmentUploadOptions::create()->withUploader('admin', $adminId));
+        $deleteImage = ($image === '' && !empty($data['image_delete']));
         $content = '';
         if (isset($data['content'])) {
             $content = $this->markdown->toStore($data['content']);
@@ -262,6 +265,8 @@ class ArticleService extends BaseService
 
         if ($image) {
             $data['image'] = $image;
+        } elseif ($deleteImage) {
+            $data['image'] = '';
         }
         if ($metadataPlan !== null) {
             $data['metadata'] = $metadataPlan['json'];
@@ -281,6 +286,9 @@ class ArticleService extends BaseService
 
         $this->metadataPurge($metadataPlan, $id);
         $this->languageDraftPurge($languagePlan, $id);
+        if ($deleteImage && $oldImageNumber !== '') {
+            attachment()->delete($oldImageNumber);
+        }
 
         audit()->writeAdminLog($adminId, AdminLogAction::UPDATE, 1, (string) $data['title']);
     }

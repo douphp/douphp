@@ -35,6 +35,8 @@ class LanguageDraftRequest extends FormRequest
             'slug' => 'alpha_dash',
             'number' => '',
             'token' => '',
+            // 抽屉所属语言包：非空时图片落入 images/{pack}/ 目录
+            'language_pack' => 'alpha_dash',
         );
     }
 }

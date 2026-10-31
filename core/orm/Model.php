@@ -819,6 +819,14 @@ abstract class Model implements ArrayAccess, IteratorAggregate, Countable, JsonS
         return false;
     }
 
+    /**
+     * 读属性（返回值的副本，不是引用）。
+     *
+     * 因此禁止对实例做数组间接修改（`$model['list'][] = $item`、`$model['a']['b'] = 1`）：
+     * PHP 会报 “Indirect modification of overloaded element ... has no effect”
+     * （Whoops 环境下直接 500，且写入静默丢失）。需要追加元素时先取到局部数组，
+     * 处理完再整体赋值：`$list = (array) $model['list']; $list[] = $item; $model['list'] = $list;`
+     */
     #[\ReturnTypeWillChange]
     public function offsetGet($offset)
     {

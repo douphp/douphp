@@ -25,7 +25,7 @@ if (!defined('IN_DOUCO')) {
  * 前台定向限流中间件。
  *
  * 仅对敏感端点按 IP 限流（与登录失败限流 LoginService::ipRateLimited 独立、互补）：
- * 登录 / 注册 / 手机号登录 / 找回密码 / 短信验证码下发 / 公共表单提交。其余路由不限流。
+ * 登录 / 注册 / 手机号登录 / 找回密码 / 短信验证码下发 / 公共表单提交 / 评论发表。其余路由不限流。
  */
 class ThrottleMiddleware extends AbstractThrottleMiddleware
 {
@@ -47,9 +47,15 @@ class ThrottleMiddleware extends AbstractThrottleMiddleware
         'guestbook/store' => array('max' => 10, 'window' => 60),
         'landing/submit' => array('max' => 10, 'window' => 60),
         'consultation/store' => array('max' => 10, 'window' => 60),
+        // 评论发表：会员身份提交也按 IP 收敛，防被盗号或批量灌水刷评
+        'comment/user/store' => array('max' => 10, 'window' => 60),
         'distribution/apply_post' => array('max' => 10, 'window' => 300),
         'chat/stream' => array('max' => 20, 'window' => 60),
         'chat/new_session' => array('max' => 10, 'window' => 60),
+
+        // 余额消费与提现：防止高频核销/申请
+        'money/user/use' => array('max' => 30, 'window' => 60),
+        'withdraw/user/store' => array('max' => 5, 'window' => 300),
     );
 
     /**

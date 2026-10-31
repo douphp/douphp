@@ -48,6 +48,8 @@ class MiniprogramShowFormRequest extends FormRequest
             'name' => 'required|max:200',
             'link' => 'max:500',
             'sort' => 'integer',
+            // 主图删除标记：随主表单提交后由 Service 清空字段并回收旧图
+            'image_delete' => '',
         );
 
         if ($this->scene === 'update') {

@@ -18,6 +18,7 @@ use Dou\Admin\Service\Menu\AdminMenuService;
 use Dou\Admin\Service\Preinstall\PreinstallService;
 use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Configuration\Config;
+use Dou\Core\Foundation\Extension\Module;
 use Dou\Core\Service\BaseService;
 use Dou\Core\Support\MenuIconMap;
 use Dou\Core\Support\Util;
@@ -38,7 +39,8 @@ if (!defined('IN_DOUCO')) {
  *   - 商品分类行（menu_item）与页面树（menu_simple）：记录驱动动态节点，路由阶段无法解析，
  *     由本类在枚举的同一次遍历中就地计算 is_active（$nav.sidebar 不含这些逐行 id）；
  *   - 预置模块行（menu_preinstall）：同路由名不同 slug 的路由参数无法被 $nav.sidebar 区分，
- *     同样由本类按当前 slug 就地计算 is_active。
+ *     同样由本类按当前 slug 就地计算 is_active；header 槽位（header_preinstall，如 language）
+ *     与侧栏项互斥，只在头部固定位置渲染，不进入侧栏。
  */
 class WorkspaceBuilder extends BaseService
 {
@@ -100,6 +102,8 @@ class WorkspaceBuilder extends BaseService
         $workspace['menu_permission'] = $this->buildBasicMenuPermission();
         // 预置项高亮仅认预置详情路由（plugin 等模块也有 slug 参数，不参与高亮）
         $workspace['menu_preinstall'] = $this->buildPreinstallMenu($currentModule === 'preinstall' ? (string) $preinstallSlug : '');
+        // header 槽位预置项（如 language）：与侧栏预置项同源互补，不重复输出
+        $workspace['header_preinstall'] = $this->buildHeaderPreinstall($currentModule === 'preinstall' ? (string) $preinstallSlug : '');
         $workspace['menu_icon_map'] = $this->buildMenuIconMapForView();
 
         return self::$buildMemo[$memoKey] = $workspace;
@@ -170,11 +174,29 @@ class WorkspaceBuilder extends BaseService
                     'lang' => lang($value),
                     'url' => route('admin.' . $value),
                     'icon' => MenuIconMap::resolve($value),
+                    'badge' => $this->singleModuleBadge($value),
                 );
             }
         }
 
         return $menuList;
+    }
+
+    /**
+     * 单模块侧栏角标：目前只有评论需要「管理员未读」计数，其余模块返回 0（不渲染）。
+     *
+     * @param string $module
+     * @return int
+     */
+    private function singleModuleBadge($module)
+    {
+        if ($module !== 'comment' || !Config::get('features.comment', false)) {
+            return 0;
+        }
+
+        $comment = Module::make('comment');
+
+        return $comment !== null ? (int) $comment->unreadCount() : 0;
     }
 
     /**
@@ -309,9 +331,9 @@ class WorkspaceBuilder extends BaseService
     /**
      * 预置模块侧栏菜单（menu_preinstall）。
      *
-     * 数据源：storage/install/preinstall/ 标识文件 ∖ 已安装模块（config/module.php 口径），
-     * 每模块一条（与已安装单页模块一对一）；is_active 由 PreinstallService 按当前 slug
-     * 就地计算（同路由名不同 slug 参数，$nav.sidebar 无法区分）。
+     * 数据源：storage/install/preinstall/ 标识文件 ∖ 已安装模块（config/module.php 口径）
+     * ∖ header 槽位（如 language），每模块一条（与已安装单页模块一对一）；is_active 由
+     * PreinstallService 按当前 slug 就地计算（同路由名不同 slug 参数，$nav.sidebar 无法区分）。
      *
      * 权限：defined 子管理员需 action_list 勾选 'preinstall'，未勾选返回空数组
      * （路由侧由 AdminGate 同步拦截）。
@@ -321,20 +343,53 @@ class WorkspaceBuilder extends BaseService
      */
     private function buildPreinstallMenu($activeSlug)
     {
+        if (!$this->preinstallAllowed()) {
+            return array();
+        }
+
+        return $this->preinstallService->promotions($activeSlug);
+    }
+
+    /**
+     * 顶部导航预置入口（header_preinstall，slug => item）。
+     *
+     * 与侧栏预置项同源，仅装载 PreinstallService::HEADER_SLUGS 槽位（如 language）：
+     * 这类模块未安装时由 header 固定位置承载入口，不进入侧栏（避免与顶部既有
+     * 语言入口重复）。
+     *
+     * @param string $activeSlug 当前详情页 slug（空串=无高亮）
+     * @return array
+     */
+    private function buildHeaderPreinstall($activeSlug)
+    {
+        if (!$this->preinstallAllowed()) {
+            return array();
+        }
+
+        return $this->preinstallService->headerPromotions($activeSlug);
+    }
+
+    /**
+     * 预置模块入口权限：defined 子管理员需 action_list 勾选 'preinstall'。
+     *
+     * 与预置详情页路由侧 AdminGate 判定一致（preinstall 为独立可授项）。
+     *
+     * @return bool
+     */
+    private function preinstallAllowed()
+    {
         $admin = auth('admin')->user();
         if (!is_array($admin)) {
             $admin = array();
         }
 
-        $adminType = isset($admin['type']) ? $admin['type'] : '';
-        if ($adminType == 'defined') {
-            $actionList = isset($admin['action_list']) ? explode(',', $admin['action_list']) : array();
-            if (!in_array('preinstall', $actionList)) {
-                return array();
-            }
+        if (!isset($admin['type']) || $admin['type'] !== 'defined') {
+            return true;
         }
 
-        return $this->preinstallService->promotions($activeSlug);
+        $actionList = isset($admin['action_list']) ? explode(',', $admin['action_list']) : array();
+
+        return in_array('preinstall', $actionList);
     }
 
     /**

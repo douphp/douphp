@@ -110,9 +110,10 @@ class NullPluginService extends BaseService implements PluginServiceContract
     /**
      * 与真实现兜底分支一致：无插件时默认 wxpay。
      *
+     * @param string $currency 目标币种（兜底实现忽略）
      * @return string
      */
-    public function defaultPaymentSlug()
+    public function defaultPaymentSlug($currency = '')
     {
         return 'wxpay';
     }

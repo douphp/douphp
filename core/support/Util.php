@@ -14,8 +14,6 @@
 
 namespace Dou\Core\Support;
 
-use Dou\Core\Foundation\Configuration\Config;
-
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
 }
@@ -42,24 +40,75 @@ class Util
     }
 
     /**
-     * 按站点配置格式化价格。
+     * 按当前展示币格式化价格（输入为基准币金额，内部按语言汇率换算）。
      *
-     * @param mixed $price 参数 price。
-     * @return string|null
+     * 非数字输入（如“面议”文案）原样返回，保持旧调用方兼容。
+     *
+     * @param mixed $price 基准币金额
+     * @return mixed
      */
     public static function formatPrice($price = '')
     {
         if ($price === null || $price === '') {
             return '';
         }
-
-        if (preg_match("/^[0-9.]+$/", $price)) {
-            $price = number_format($price, Config::get('site.price_decimal', 0), '.', '');
-            $price = rtrim(rtrim($price, '0'), '.');
-            $priceFormat = preg_replace('/d%/Ums', $price, Config::get('site.price_format', 'd%'));
-
-            return $priceFormat;
+        if (!is_numeric($price)) {
+            return $price;
         }
+
+        return currency()->formatFromBase($price);
+    }
+
+    /**
+     * 基准币金额格式化（钱包 / 余额 / 佣金 / 累计消费等基准币口径场景）。
+     *
+     * @param mixed $price 基准币金额
+     * @return mixed
+     */
+    public static function formatBasePrice($price = '')
+    {
+        if ($price === null || $price === '') {
+            return '';
+        }
+        if (!is_numeric($price)) {
+            return $price;
+        }
+
+        return currency()->formatBase($price);
+    }
+
+    /**
+     * 按指定币种上下文格式化金额（金额已是该币种数值，不再换算）。
+     *
+     * @param mixed $amount 订单币金额
+     * @param array|null $ctx currency()->contextForOrder() / contextForAftersale() 等
+     * @return mixed
+     */
+    public static function formatCurrency($amount, $ctx = null)
+    {
+        if ($amount === null || $amount === '') {
+            return '';
+        }
+        if (!is_numeric($amount)) {
+            return $amount;
+        }
+
+        if ($ctx === null) {
+            $ctx = currency()->currentContext();
+        }
+
+        return currency()->formatIn($amount, $ctx);
+    }
+
+    /**
+     * 金额转分（与支付回调 round 口径一致）。
+     *
+     * @param mixed $amount
+     * @return int
+     */
+    public static function toCents($amount)
+    {
+        return (int) round((float) $amount * 100);
     }
 
     /**

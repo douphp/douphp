@@ -93,7 +93,7 @@ class PageService extends BaseService
     }
 
     /**
-     * 单页详情 JSON（小程序 / API）：点击量 +1 后返回 title 与 page。
+     * 单页详情 JSON（小程序 / API）。
      *
      * @param int $id
      * @return array|null 含 title 与 page 的详情结构
@@ -110,10 +110,6 @@ class PageService extends BaseService
         if (!$page || !is_array($page)) {
             return null;
         }
-
-        $oldClick = isset($page['click']) ? (int) $page['click'] : 0;
-        Page::updateClick($id);
-        $page['click'] = $oldClick + 1;
 
         $page = language()->langBox($page, 'page', 'name, content, keywords, description');
         MetadataValues::decorateRow('page', $page);

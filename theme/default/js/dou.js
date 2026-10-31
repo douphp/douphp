@@ -272,16 +272,27 @@ function coupon(id = "", target = "") {
 
   function handle(result) {
     if (!result.ok) {
+      if (result.data && result.data.claimable === false) {
+        target.addClass("got");
+        if (result.data.text) {
+          target.find(".t").html(result.data.text);
+        }
+      }
       if (result.message) {
         alert(result.message);
       }
       return;
     }
 
-    target.addClass("got");
+    var data = result.data || {};
+    if (data.claimable === true) {
+      target.removeClass("got");
+    } else {
+      target.addClass("got");
+    }
     var text = "";
-    if (result.data && result.data.text) {
-      text = result.data.text;
+    if (data.text) {
+      text = data.text;
     } else if (result.message) {
       text = result.message;
     }

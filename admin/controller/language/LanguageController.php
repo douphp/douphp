@@ -77,6 +77,9 @@ class LanguageController extends BaseController
             'rec' => 'create',
             'language_pack' => $this->languageService->getLanguagePack(),
             'language' => $this->languageService->buildLanguageCreateData(),
+            'currency_list' => $this->languageService->buildCurrencyOptions(),
+            'currency_base' => $this->languageService->buildCurrencyBase(),
+            'currency_decimal_list' => array(0, 1, 2),
         ]);
     }
 
@@ -107,6 +110,7 @@ class LanguageController extends BaseController
         }
         $language['language_id'] = (int) $language['id'];
         $language['site_logo'] = 'theme/' . Config::get('site.site_theme', '') . '/images/' . $this->languageService->siteLogoForLang($language['language_pack']);
+        $language = $this->languageService->decorateCurrencyState($language);
 
         return $this->view('language.htm', [
             'ur_here' => lang('language_edit'),
@@ -117,6 +121,9 @@ class LanguageController extends BaseController
             'language_pack' => $this->languageService->getLanguagePack($language['language_pack']),
             'item_id' => $languageId,
             'language' => $language,
+            'currency_list' => $this->languageService->buildCurrencyOptions(),
+            'currency_base' => $this->languageService->buildCurrencyBase(),
+            'currency_decimal_list' => array(0, 1, 2),
         ]);
     }
 
@@ -131,6 +138,7 @@ class LanguageController extends BaseController
         $language = DB::table('language')->where('id', intval($languageId))->find();
         $language['language_id'] = (int) $language['id'];
         $language['site_logo'] = 'theme/' . Config::get('site.site_theme', '') . '/images/' . $this->languageService->siteLogoForLang($language['language_pack']);
+        $language = $this->languageService->decorateCurrencyState($language);
 
         // 数据源与主设置页同源（admin/menu/tab/setting.php 一组声明），语言包列表高亮当前语言
         $tabContext = $this->settingService->buildTabNavContext();
@@ -148,6 +156,9 @@ class LanguageController extends BaseController
             'language_pack' => $this->languageService->getLanguagePack($language['language_pack']),
             'item_id' => $languageId,
             'language' => $language,
+            'currency_list' => $this->languageService->buildCurrencyOptions(),
+            'currency_base' => $this->languageService->buildCurrencyBase(),
+            'currency_decimal_list' => array(0, 1, 2),
         ] + $tabContext);
     }
 

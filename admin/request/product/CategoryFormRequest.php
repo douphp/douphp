@@ -65,6 +65,8 @@ class CategoryFormRequest extends FormRequest
             'slug' => 'required|alpha_dash',
             'parent_id' => 'integer',
             'icon' => '',
+            // 图标删除标记：随主表单提交后由 Service 清空字段并回收旧图
+            'icon_delete' => '',
             'keywords' => '',
             'description' => '',
             'sync_to_nav' => 'integer',

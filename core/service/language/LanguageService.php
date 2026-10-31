@@ -18,7 +18,7 @@ use Dou\Core\Contract\LanguageContract;
 use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Service\BaseService;
-use Dou\Core\Support\Check;
+use Dou\Core\Support\LanguageValuePurger;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
@@ -198,7 +198,8 @@ class LanguageService extends BaseService implements LanguageContract
      * 清理指定模块/记录的关联多语言值：先删语言图片附件，再删 language_value 行。
      *
      * 删除副作用常由三端共用的模型层触发（如模型销毁时按 module + item_id 清理），
-     * 故实现落在通用服务而非后台子类；features.language 关闭时静默返回。
+     * 故实现落在通用服务而非后台子类；清理不依赖 features.language 开关，
+     * 由 {@see LanguageValuePurger} 统一按表存在性兜底。
      *
      * @param string $module
      * @param string|int $item_id
@@ -206,36 +207,7 @@ class LanguageService extends BaseService implements LanguageContract
      */
     public function deleteLang($module = '', $item_id = '')
     {
-        if (!Config::get('features.language', false)) {
-            return;
-        }
-
-        $rows = DB::table('language_value')
-            ->field('value, field, type')
-            ->where('module', $module)
-            ->where('item_id', $item_id)
-            ->select();
-
-        $numbers = array();
-        foreach ((array) $rows as $row) {
-            $value = isset($row['value']) ? (string) $row['value'] : '';
-            $field = isset($row['field']) ? (string) $row['field'] : '';
-            $type = isset($row['type']) ? (string) $row['type'] : '';
-            if (!Check::fileNumber($value)) {
-                continue;
-            }
-            if (in_array($field, array('image', 'show_img'), true)
-                || in_array($type, array('image', 'file', 'language:image'), true)) {
-                $numbers[] = $value;
-            }
-        }
-
-        DB::table('language_value')
-            ->where('module', $module)
-            ->where('item_id', $item_id)
-            ->delete();
-
-        LanguageImageCleaner::purge($module, (int) $item_id, $numbers);
+        LanguageValuePurger::purge($module, $item_id);
     }
 
     /**

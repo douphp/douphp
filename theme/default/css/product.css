@@ -17,6 +17,14 @@
  margin-top: 12px;
  font-size: 16px;
 }
+#product-category .product-list .item .name a {
+ color: #333333;
+ -webkit-transition: color .3s;
+ transition: color .3s;
+}
+#product-category .product-list .item .name a:hover {
+ color: #19B4EA;
+}
 #product-category .product-list .item .price {
  margin-top: 5px;
 }

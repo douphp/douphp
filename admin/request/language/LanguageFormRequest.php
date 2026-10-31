@@ -37,6 +37,9 @@ class LanguageFormRequest extends FormRequest
         $rules = array(
             'name' => 'required',
             'language_pack' => 'required',
+            'currency_code' => 'regex:/^([A-Z]{3})?$/',
+            'currency_rate' => 'float',
+            'currency_decimal' => 'integer',
             'site_name' => 'required',
             'site_title' => 'required',
             'site_keywords' => '',

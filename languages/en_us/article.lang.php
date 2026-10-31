@@ -16,12 +16,13 @@
 $_LANG['article'] = 'Articles';
 $_LANG['article_work_tree'] = 'Article Management';
 $_LANG['article_category'] = 'Articles';
-$_LANG['article_detail'] = 'Article Detail';
+$_LANG['article_detail'] = 'Article Details';
 $_LANG['article_list'] = 'Article List';
-$_LANG['article_tree'] = 'Article Category';
+$_LANG['article_tree'] = 'Article Categories';
 $_LANG['article_news'] = 'Latest Articles';
 $_LANG['article_recommend'] = 'Featured Articles';
 $_LANG['article_more'] = 'More Articles';
-$_LANG['article_previous'] = 'Previous';
-$_LANG['article_next'] = 'Next';
+$_LANG['article_read_more'] = 'Learn More';
+$_LANG['article_previous'] = 'Previous Article';
+$_LANG['article_next'] = 'Next Article';
 $_LANG['article_related'] = 'Related Articles';

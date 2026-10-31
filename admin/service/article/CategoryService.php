@@ -169,6 +169,7 @@ class CategoryService extends BaseService
 
         $iconMode = Config::get('site.open_icon', '');
         $icon = (string) $category->getRawAttribute('icon');
+        $oldIconNumber = $icon;
         if ($iconMode === 'image') {
             $boxed = attachment()->store(
                 'article_category',
@@ -180,8 +181,11 @@ class CategoryService extends BaseService
                     ->withBusinessField('icon')
                     ->withUploader('admin', $adminId)
             );
+            $deleteIcon = ($boxed === '' && !empty($data['icon_delete']));
             if ($boxed !== '') {
                 $icon = $boxed;
+            } elseif ($deleteIcon) {
+                $icon = '';
             }
         } elseif ($iconMode === 'text') {
             $icon = Arr::get($data, 'icon', '');
@@ -199,6 +203,9 @@ class CategoryService extends BaseService
             throw $e;
         }
         $this->languageDraftPurge($languagePlan, $catId);
+        if (!empty($deleteIcon) && $oldIconNumber !== '') {
+            attachment()->delete($oldIconNumber);
+        }
 
         if (isset($data['sync_to_nav']) && (int) $data['sync_to_nav'] === 1) {
             $this->navCategorySync->syncForCategory('article_category', $catId);
@@ -241,13 +248,7 @@ class CategoryService extends BaseService
             );
         }
 
-        if (!empty(Config::get('features.language', false))) {
-            language()->deleteLang('article_category', $catId);
-        }
-
-        if (DB::table('nav')->where('guide', $catId)->where('module', 'article_category')->where('type', 'middle')->find()) {
-            DB::table('nav')->where('guide', $catId)->where('module', 'article_category')->where('type', 'middle')->delete();
-        }
+        $this->navCategorySync->deleteForCategory('article_category', $catId);
 
         ArticleCategory::destroy((int) $catId);
         audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::DELETE, 1, (string) $catNameStr);

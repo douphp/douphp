@@ -123,17 +123,6 @@
   text-decoration: none;
 }
 
-/*- 字段列表：浅色表头变体 table-soft（表头比默认 #ddd 浅一档，行线改虚线） -*/
-.split-layout .table-soft {
-  background-color: #f9f9f9;
-}
-.split-layout .table-soft th {
-  height: 16px;
-  color: #555;
-  font-weight: bold;
-  background-color: #eee;
-}
-
 /*- 嵌入代码弹窗：等宽字体 + 浅底，保留换行便于整段选中复制 -*/
 .embed-code {
   width: 100%;

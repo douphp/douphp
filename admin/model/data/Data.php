@@ -14,6 +14,7 @@
 
 namespace Dou\Admin\Model\Data;
 
+use Dou\Admin\Model\Concerns\PurgesRelatedOnDelete;
 use Dou\Core\Orm\Model;
 
 use Dou\Core\Facade\DB;
@@ -26,6 +27,8 @@ if (!defined('IN_DOUCO')) {
  */
 class Data extends Model
 {
+    use PurgesRelatedOnDelete;
+
     /** @var string */
     protected $table = 'data';
 
@@ -221,7 +224,7 @@ class Data extends Model
      */
     public static function deleteById($id)
     {
-        return DB::table(static::tableName())->where('id', (int) $id)->delete();
+        return static::destroy((int) $id);
     }
 
     /**

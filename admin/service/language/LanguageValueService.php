@@ -15,11 +15,11 @@
 namespace Dou\Admin\Service\Language;
 
 use Dou\Core\Facade\DB;
-use Dou\Core\Filesystem\Storage;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Service\Admin\AdminLogAction;
 use Dou\Core\Service\Attachment\AttachmentUploadOptions;
+use Dou\Core\Service\Attachment\LanguagePath;
 use Dou\Core\Service\BaseService;
 use Dou\Core\Service\Content\MarkdownRenderer;
 use Dou\Core\Support\Check;
@@ -64,9 +64,9 @@ class LanguageValueService extends BaseService
             throw new DomainException(lang('illegal'));
         }
 
-        $disk = Storage::build('images/' . $module . '/');
+        $languageOptions = LanguagePath::normalize($languagePack);
         if ($type === 'file' || $type === 'image') {
-            $value = attachment()->store($module, $itemId, UploadedFile::fromGlobals('value'), 'main', AttachmentUploadOptions::create()->withBusinessField('value')->withUploader('admin', (int) auth('admin')->id()));
+            $value = attachment()->store($module, $itemId, UploadedFile::fromGlobals('value'), 'main', AttachmentUploadOptions::create()->withBusinessField('value')->withLanguagePack($languageOptions)->withUploader('admin', (int) auth('admin')->id()));
         } elseif ($type === 'checkbox') {
             $checked = isset($data['value']) && is_array($data['value']) ? array_values(array_filter($data['value'], 'is_scalar')) : array();
             $value = empty($checked) ? '' : json_encode(array_map('strval', $checked), JSON_UNESCAPED_UNICODE);
@@ -81,7 +81,7 @@ class LanguageValueService extends BaseService
         }
 
         if ($type === 'content' && !empty($data['content_remote_image_local'])) {
-            $value = attachment()->storeContentImages($module, $itemId, $value, 'content', '', AttachmentUploadOptions::create()->withUploader('admin', (int) auth('admin')->id()));
+            $value = attachment()->storeContentImages($module, $itemId, $value, 'content', '', AttachmentUploadOptions::create()->withLanguagePack($languageOptions)->withUploader('admin', (int) auth('admin')->id()));
         }
 
         $haveValue = DB::table('language_value')

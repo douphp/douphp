@@ -14,6 +14,7 @@
 
 namespace Dou\Admin\Model\Nav;
 
+use Dou\Admin\Model\Concerns\PurgesRelatedOnDelete;
 use Dou\Core\Facade\DB;
 use Dou\Core\Orm\Model;
 
@@ -28,6 +29,8 @@ if (!defined('IN_DOUCO')) {
  */
 class Nav extends Model
 {
+    use PurgesRelatedOnDelete;
+
     /**
      * @var string
      */

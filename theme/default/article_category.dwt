@@ -26,18 +26,22 @@
     <div class="col-md-10"> {include file="inc/ur_here.tpl"}
      <div id="article-list">
       <!-- {foreach from=$article_list name=article_list item=article} -->
-      <dl<!-- {if $article@last} --> class="last"<!-- {/if} -->>
-       <div class="num-date"> <em>{$article.click}</em>
-        <p>{$article.add_time_short}</p>
-       </div>
-       <dt><a href="{$article.url}">{$article.title}</a></dt>
-       <dd{if $article.image} class="have-img" {/if}><!-- {if $article.image} -->
-        <p class="img"><img src="{$article.image}" /></p>
+      <div class="article-item">
+       <!-- {if $article.image} -->
+       <a class="thumb" href="{$article.url}" title="{$article.title}"><img src="{$article.image}" alt="{$article.title}" /></a>
+       <!-- {/if} -->
+       <div class="body">
+        <h2><a href="{$article.url}" title="{$article.title}">{$article.title}</a></h2>
+        <!-- {if $article.description} -->
+        <p class="desc">{$article.description|truncate:120:"..."}</p>
         <!-- {/if} -->
-        <p class="desc">{$article.description|truncate:96:"..."}</p>
-        </dd>
-        </dl>
-        <!-- {/foreach} -->
+        <div class="foot">
+         <span class="date">{$article.created_at}</span>
+         <a class="more" href="{$article.url}">{$lang.article_read_more}<i class="bi bi-arrow-right"></i></a>
+        </div>
+       </div>
+      </div>
+      <!-- {/foreach} -->
      </div>
      {include file="inc/pager.tpl"}
     </div>

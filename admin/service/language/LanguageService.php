@@ -15,6 +15,7 @@
 namespace Dou\Admin\Service\Language;
 
 use Dou\Admin\Model\Language\Language;
+use Dou\Core\Domain\Currency\CurrencyCatalog;
 use Dou\Core\Facade\DB;
 use Dou\Core\Filesystem\Storage;
 use Dou\Core\Foundation\Configuration\Config;
@@ -91,10 +92,17 @@ class LanguageService extends BaseService
      */
     public function buildLanguageCreateData()
     {
+        $baseCode = $this->baseCode();
         return array(
             'language_id' => 0,
             'name' => '',
             'language_pack' => '',
+            'currency_code' => '',
+            'currency_name' => CurrencyCatalog::name($baseCode),
+            'currency_symbol' => CurrencyCatalog::symbol($baseCode),
+            'currency_rate' => 1,
+            'currency_decimal' => $this->baseDecimals(),
+            'currency_enabled' => false,
             'site_name' => '',
             'site_title' => '',
             'site_keywords' => '',
@@ -136,6 +144,174 @@ class LanguageService extends BaseService
     }
 
     /**
+     * 货币下拉选项（含符号与 ISO 小数位，供表单切换币种时自动带出）。
+     *
+     * @return array
+     */
+    public function buildCurrencyOptions()
+    {
+        $options = array();
+        foreach (CurrencyCatalog::all() as $code => $row) {
+            $options[] = array(
+                'value' => $code,
+                'name' => $code . ' ' . $row['name'],
+                'symbol' => $row['symbol'],
+                'decimals' => $row['decimals'],
+            );
+        }
+        return $options;
+    }
+
+    /**
+     * 基准货币上下文（= 默认语言货币，来自 config.currency_code）。
+     *
+     * @return array
+     */
+    public function buildCurrencyBase()
+    {
+        $code = $this->baseCode();
+        return array(
+            'code' => $code,
+            'name' => CurrencyCatalog::name($code),
+            'symbol' => CurrencyCatalog::symbol($code),
+            'decimals' => $this->baseDecimals(),
+        );
+    }
+
+    /**
+     * 基准币代码（config.currency_code 归一）。
+     *
+     * @return string
+     */
+    private function baseCode()
+    {
+        $code = strtoupper(trim((string) Config::get('site.currency_base_code', '')));
+        if ($code === '' || !CurrencyCatalog::has($code)) {
+            $code = strtoupper(trim((string) Config::get('site.currency_code', '')));
+        }
+        if ($code === '' || !CurrencyCatalog::has($code)) {
+            $code = 'CNY';
+        }
+        return $code;
+    }
+
+    /**
+     * 基准币展示小数位。
+     *
+     * @return int
+     */
+    private function baseDecimals()
+    {
+        $code = $this->baseCode();
+        $decimals = (int) Config::get('site.currency_base_decimal', CurrencyCatalog::defaultDecimals($code));
+        return CurrencyCatalog::isValidDecimals($code, $decimals) ? $decimals : CurrencyCatalog::defaultDecimals($code);
+    }
+
+    /**
+     * 该语言行是否启用了独立货币（后台表单显隐用）。
+     *
+     * 判定与前台装配同源：{@see CurrencyCatalog::isIndependent()}。
+     *
+     * @param string $code 语言行 currency_code
+     * @return bool
+     */
+    public function isIndependentCurrency($code)
+    {
+        return CurrencyCatalog::isIndependent($code, $this->baseCode());
+    }
+
+    /**
+     * 补齐语言行的「独立货币」表单状态：未启用时把币种归一为空，
+     * 避免下拉框回显为基准币而实际又处于未启用状态。
+     *
+     * @param array $language language 表行（含视图需要的 language_id / site_logo）
+     * @return array
+     */
+    public function decorateCurrencyState(array $language)
+    {
+        $language['currency_enabled'] = $this->isIndependentCurrency(
+            isset($language['currency_code']) ? $language['currency_code'] : ''
+        );
+        if (!$language['currency_enabled']) {
+            $language['currency_code'] = '';
+        }
+
+        // decimal(18,8) 取回为 "1.00000000"，归一后表单回显更直观（1 / 0.14）
+        if (isset($language['currency_rate'])) {
+            $language['currency_rate'] = (float) $language['currency_rate'];
+        }
+        if (isset($language['currency_decimal'])) {
+            $language['currency_decimal'] = (int) $language['currency_decimal'];
+        }
+
+        return $language;
+    }
+
+    /**
+     * 归一语言货币字段：未启用独立货币 → 跟随基准币（汇率 1、小数位同基准币）。
+     *
+     * 「启用独立货币」= currency_code 非空且不等于基准币；此时才校验并保留
+     * 汇率与价格小数位数，否则一律复位，避免隐藏字段的旧值残留在库里。
+     *
+     * @param array $data 经校验的表单字段
+     * @param array|null $existing 编辑时的现有行（表单未提交该字段时沿用）
+     * @return array currency_code / currency_rate / currency_decimal
+     * @throws DomainException
+     */
+    private function resolveCurrencyFields(array $data, $existing = null)
+    {
+        $baseCode = $this->baseCode();
+
+        if (array_key_exists('currency_code', $data)) {
+            $code = strtoupper(trim((string) $data['currency_code']));
+        } elseif (is_array($existing) && isset($existing['currency_code'])) {
+            $code = strtoupper(trim((string) $existing['currency_code']));
+        } else {
+            $code = '';
+        }
+        if ($code !== '' && !CurrencyCatalog::has($code)) {
+            throw new DomainException(lang('language_currency_invalid'));
+        }
+
+        if (array_key_exists('currency_rate', $data)) {
+            $rate = (float) $data['currency_rate'];
+        } elseif (is_array($existing) && isset($existing['currency_rate'])) {
+            $rate = (float) $existing['currency_rate'];
+        } else {
+            $rate = 1;
+        }
+
+        if (array_key_exists('currency_decimal', $data)) {
+            $decimals = (int) $data['currency_decimal'];
+        } elseif (is_array($existing) && isset($existing['currency_decimal'])) {
+            $decimals = (int) $existing['currency_decimal'];
+        } else {
+            $decimals = $this->baseDecimals();
+        }
+
+        if (!CurrencyCatalog::isIndependent($code, $baseCode)) {
+            return array(
+                'currency_code' => '',
+                'currency_rate' => 1,
+                'currency_decimal' => $this->baseDecimals(),
+            );
+        }
+
+        if ($rate <= 0) {
+            throw new DomainException(lang('language_currency_rate_invalid'));
+        }
+        if (!CurrencyCatalog::isValidDecimals($code, $decimals)) {
+            throw new DomainException(lang('language_currency_decimal_invalid'));
+        }
+
+        return array(
+            'currency_code' => $code,
+            'currency_rate' => $rate,
+            'currency_decimal' => $decimals,
+        );
+    }
+
+    /**
      * 新增语言：使用经请求层校验后的字段写入。
      *
      * @param array $data 来自 LanguageFormRequest::validated()
@@ -165,6 +341,7 @@ class LanguageService extends BaseService
             'email' => isset($data['email']) ? (string) $data['email'] : '',
             'sort' => isset($data['sort']) ? (int) $data['sort'] : 50,
         );
+        $insert = array_merge($insert, $this->resolveCurrencyFields($data));
         if (!empty($files['name'])) {
             $insert['site_logo'] = attachment()->storeToDirectory(UploadedFile::fromGlobals('site_logo'), $this->themeLogoDisk, '', 'logo_' . $data['language_pack'], 'main');
         }
@@ -214,6 +391,7 @@ class LanguageService extends BaseService
             'email' => isset($data['email']) ? (string) $data['email'] : '',
             'sort' => isset($data['sort']) ? (int) $data['sort'] : 50,
         );
+        $update = array_merge($update, $this->resolveCurrencyFields($data, $language));
         if (!empty($files['name'])) {
             $update['site_logo'] = attachment()->storeToDirectory(UploadedFile::fromGlobals('site_logo'), $this->themeLogoDisk, '', 'logo_' . $data['language_pack'], 'main');
         }

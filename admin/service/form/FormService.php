@@ -540,7 +540,6 @@ class FormService extends BaseService
             foreach ((array) $fieldIds as $fieldRow) {
                 language()->deleteLang('form_field', (int) $fieldRow['id']);
             }
-            language()->deleteLang('form', $formId);
             DB::table('form_field')->where('form_id', $formId)->delete();
             DB::table('form_data')->where('form_id', $formId)->delete();
             Form::destroy($formId);

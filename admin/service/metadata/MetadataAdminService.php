@@ -150,6 +150,8 @@ class MetadataAdminService extends BaseService
             'draft_create' => true,
             'default_pack' => $defaultPack,
             'exclude_pack' => $defaultPack,
+            // 未添加译文时弹框保持为空，不代入主语言文字
+            'blank_when_missing' => true,
             'has_value' => isset($translations['has_value']) ? $translations['has_value'] : array(),
             'labels' => array(
                 'label' => lang('metadata_label'),

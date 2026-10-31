@@ -6,6 +6,11 @@
 $(function() {
     // 款式属性
     if ($(".attribute-list").length > 0) {
+        var currency_decimals = parseInt($('.attribute-list').data('decimals'), 10);
+        if (isNaN(currency_decimals)) {
+            currency_decimals = 2;
+        }
+
         $('.attribute-list .radio-box input[type="radio"]').on('change', function() {
             var price_text = $('.attribute-list').data('price');
             var price = Number(price_text.match(/\d+(?:\.\d+)?/g));
@@ -19,8 +24,8 @@ $(function() {
                 }
             });
             
-            $('#price').text(price_text.replace(/\d+(\.\d+)?/g, price.toFixed(2)));
-            $('#salePrice').text(sale_price_text.replace(/\d+(\.\d+)?/g, sale_price.toFixed(2)));
+            $('#price').text(price_text.replace(/\d+(\.\d+)?/g, price.toFixed(currency_decimals)));
+            $('#salePrice').text(sale_price_text.replace(/\d+(\.\d+)?/g, sale_price.toFixed(currency_decimals)));
         }).trigger('change'); // 初始化时触发一次更新
     }
  

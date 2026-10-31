@@ -291,7 +291,6 @@ class FormFieldService extends BaseService
      */
     public function deleteField($fieldId)
     {
-        language()->deleteLang('form_field', (int) $fieldId);
         FormField::destroy((int) $fieldId);
     }
 

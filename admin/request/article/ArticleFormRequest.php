@@ -72,8 +72,10 @@ class ArticleFormRequest extends FormRequest
             'description' => '',
             'sort' => 'integer',
             'created_at' => 'required|date',
-            // 仅用于处理内容中远程图片本地化的行为开关，不是 article 表字段
+            // 仅用于处理内容中远程图片本地化的行为开关，不是 article 表字段    
             'content_remote_image_local' => 'boolean',
+            // 主图删除标记：随主表单提交后由 Service 清空字段并回收旧图
+            'image_delete' => '',
             // 草稿附件认领令牌：仅 store 场景必填，由 create() action 通过
             // attachment()->newDraftToken() 生成并随表单透传；update 场景无意义
             'draft_token' => '',

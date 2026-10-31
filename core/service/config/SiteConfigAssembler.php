@@ -14,6 +14,7 @@
 
 namespace Dou\Core\Service\Config;
 
+use Dou\Core\Domain\Currency\CurrencyCatalog;
 use Dou\Core\Facade\DB;
 use Dou\Core\Service\BaseService;
 use Dou\Core\Support\Util;
@@ -82,12 +83,11 @@ class SiteConfigAssembler extends BaseService
             $config['weixin_img'] = $_ROOT_URL . 'images/upload/' . $config['weixin_img'] . attachment()->cacheTag($fileUpdateTime);
         }
 
+        $langRow = $this->currentLanguageRow();
+
         $siteLogo = DB::table('config')->where('name', 'site_logo')->value('value');
-        if (!empty($currentLang) && isset($currentLang['pack']) && $currentLang['pack'] !== '') {
-            $langLogo = DB::table('language')->where('language_pack', $currentLang['pack'])->value('site_logo');
-            if ($langLogo) {
-                $siteLogo = $langLogo;
-            }
+        if (is_array($langRow) && !empty($langRow['site_logo'])) {
+            $siteLogo = $langRow['site_logo'];
         }
         $config['site_logo'] = ($siteLogo ? $siteLogo : '') . attachment()->cacheTag($fileUpdateTime);
 
@@ -95,6 +95,8 @@ class SiteConfigAssembler extends BaseService
         $config['admin_url'] = $_ROOT_URL . ADMIN_DIR . '/';
         $siteTheme = isset($config['site_theme']) ? $config['site_theme'] : '';
         $config['theme_url'] = $_ROOT_URL . 'theme/' . $siteTheme . '/';
+
+        $config = $this->applyBaseCurrency($config);
 
         if (!empty($currentLang)) {
             if (isset($currentLang['mode']) && $currentLang['mode'] === 'rewrite_open') {
@@ -104,17 +106,117 @@ class SiteConfigAssembler extends BaseService
             }
 
             $langFields = explode(',', 'site_name,site_title,site_keywords,site_description,address,tel,fax,email');
-            $langConfig = DB::table('language')->where('language_pack', $currentLang['pack'])->find();
-            if (is_array($langConfig)) {
+            if (is_array($langRow)) {
                 foreach ($langFields as $field) {
-                    if (!empty($langConfig[$field])) {
-                        $config[$field] = $langConfig[$field];
+                    if (!empty($langRow[$field])) {
+                        $config[$field] = $langRow[$field];
                     }
                 }
+                $config = $this->applyLanguageCurrency($config, $langRow);
             }
         } else {
             $config['home_url'] = $_ROOT_URL;
         }
+
+        return $config;
+    }
+
+    /**
+     * 当前语言行（默认语言或 language 表缺失时返回 null）。
+     *
+     * features 在 SiteBootstrap::loadSite() 之后才装配，此处不能依赖；
+     * 以「表是否存在 + 当前请求是否选定副语言」为守卫：多语言模块卸载后
+     * 表被清理时自然跳过，不会在启动期报错。
+     *
+     * @return array|null
+     */
+    private function currentLanguageRow()
+    {
+        if (!DB::tableExist('language')) {
+            return null;
+        }
+
+        $locale = locale();
+        if (!$locale->isActive()) {
+            return null;
+        }
+
+        $row = DB::table('language')->where('language_pack', $locale->pack())->find();
+
+        return is_array($row) ? $row : null;
+    }
+
+    /**
+     * 基准币配置归一（config.currency_code / currency_decimal）。
+     *
+     * `currency_code` / `currency_decimal` 两个原始键会被改写为「当前展示币」，
+     * 基准币原值保留在 `currency_base_*`；副语言激活时再由语言行覆盖展示币。
+     *
+     * @param array $config
+     * @return array
+     */
+    private function applyBaseCurrency(array $config)
+    {
+        $baseCode = isset($config['currency_code']) ? strtoupper(trim((string) $config['currency_code'])) : '';
+        if ($baseCode === '' || !CurrencyCatalog::has($baseCode)) {
+            $baseCode = 'CNY';
+        }
+
+        $baseDecimals = isset($config['currency_decimal']) && $config['currency_decimal'] !== ''
+            ? (int) $config['currency_decimal']
+            : CurrencyCatalog::defaultDecimals($baseCode);
+        if (!CurrencyCatalog::isValidDecimals($baseCode, $baseDecimals)) {
+            $baseDecimals = CurrencyCatalog::defaultDecimals($baseCode);
+        }
+
+        $symbol = CurrencyCatalog::symbol($baseCode);
+        $config['currency_base_code'] = $baseCode;
+        $config['currency_base_decimal'] = $baseDecimals;
+        $config['currency_base_symbol'] = $symbol;
+
+        $config['currency_code'] = $baseCode;
+        $config['currency_rate'] = 1;
+        $config['currency_decimal'] = $baseDecimals;
+        $config['currency_symbol'] = $symbol;
+
+        return $config;
+    }
+
+    /**
+     * 副语言货币覆盖：未启用独立货币时完全跟随基准币。
+     *
+     * 「启用独立货币」的唯一判定是 currency_code 非空且不等于基准币
+     * （见 {@see CurrencyCatalog::isIndependent()}）；未启用时汇率与小数位不参与装配，
+     * 全流程等同单币种。
+     *
+     * @param array $config
+     * @param array $langConfig language 表当前语言行
+     * @return array
+     */
+    private function applyLanguageCurrency(array $config, array $langConfig)
+    {
+        $baseCode = $config['currency_base_code'];
+        $code = isset($langConfig['currency_code']) ? strtoupper(trim((string) $langConfig['currency_code'])) : '';
+        if (!CurrencyCatalog::isIndependent($code, $baseCode)) {
+            return $config;
+        }
+
+        $rate = isset($langConfig['currency_rate']) ? (float) $langConfig['currency_rate'] : 0;
+        if ($rate <= 0) {
+            return $config;
+        }
+
+        $decimals = isset($langConfig['currency_decimal']) && $langConfig['currency_decimal'] !== ''
+            ? (int) $langConfig['currency_decimal']
+            : CurrencyCatalog::defaultDecimals($code);
+        if (!CurrencyCatalog::isValidDecimals($code, $decimals)) {
+            $decimals = CurrencyCatalog::defaultDecimals($code);
+        }
+
+        $config['currency_code'] = $code;
+        $config['currency_rate'] = $rate;
+        $config['currency_decimal'] = $decimals;
+        $config['currency_symbol'] = CurrencyCatalog::symbol($code);
 
         return $config;
     }

@@ -14,8 +14,7 @@
 
 namespace Dou\Core\Service\Language;
 
-use Dou\Core\Facade\DB;
-use Dou\Core\Support\Check;
+use Dou\Core\Support\LanguageValuePurger;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
@@ -34,47 +33,6 @@ class LanguageImageCleaner
      */
     public static function purge($module, $itemId, array $numbers)
     {
-        $module = (string) $module;
-        $itemId = (int) $itemId;
-        if ($module === '' || $itemId <= 0 || empty($numbers)) {
-            return;
-        }
-
-        foreach (array_unique($numbers) as $number) {
-            $number = (string) $number;
-            if (!Check::fileNumber($number)) {
-                continue;
-            }
-
-            $row = DB::table('file')->where('number', $number)->find();
-            if (!$row) {
-                continue;
-            }
-            if ((string) $row['module'] !== $module) {
-                continue;
-            }
-            if ((string) $row['item_id'] !== '' && (int) $row['item_id'] !== $itemId) {
-                continue;
-            }
-            $type = isset($row['type']) ? (string) $row['type'] : '';
-            if ($type !== '' && !in_array($type, array('language:image', 'main', 'file', 'image'), true)) {
-                continue;
-            }
-
-            // 仍被任意语言行引用（含并发写入）时不删
-            if (DB::table('language_value')->where('value', $number)->find()) {
-                continue;
-            }
-
-            // 业务主图与会话中的图库首图等其它引用不在此处理
-            if (DB::fieldExist($module, 'id') && DB::fieldExist($module, 'image')) {
-                $current = DB::table($module)->where('id', $itemId)->value('image');
-                if ((string) $current === $number) {
-                    continue;
-                }
-            }
-
-            attachment()->delete($number);
-        }
+        LanguageValuePurger::reclaimImages($module, $itemId, $numbers);
     }
 }

@@ -11,7 +11,9 @@
    <!-- {/if} -->
    <li class="m-none"><a href="{$site.root_url}" target="_blank"><i class="bi-laptop"></i>{$lang.top_go_site}</a></li>
    <li><a href="{url link='admin.index.clear_cache'}" class="js-post"><i class="bi-arrow-clockwise"></i>{$lang.clear_cache}</a></li>
-   <!-- {if $features.language && $workspace.menu_permission.language} -->
+   <!-- {if $workspace.header_preinstall.language} -->
+   <li><a href="{$workspace.header_preinstall.language.url}"><i class="bi-globe"></i>{$lang.language}</a></li>
+   <!-- {elseif $features.language && $workspace.menu_permission.language} -->
    <li><a href="{url link='admin.language'}"><i class="bi-globe"></i>{$lang.language}</a></li>
    <!-- {/if} -->
    <!-- {if !$pure_mode && $workspace.menu_permission.cloud} -->

@@ -110,6 +110,13 @@ class AdminMenuService extends BaseService
             $names[] = $value;
         }
 
+        // 财务类模块不占侧栏节点（no_show_menu），但必须可单独授权给受限管理员
+        foreach (array('money', 'withdraw') as $hiddenGrantable) {
+            if (in_array($hiddenGrantable, (array) Config::get('module.single_module'), true)) {
+                $names[] = $hiddenGrantable;
+            }
+        }
+
         $basicMenu = $this->basicMenu();
         if (!Config::get('site.close_douphp_plus', false)) {
             $basicMenu[] = 'module';

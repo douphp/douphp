@@ -57,13 +57,43 @@ Author URI: https://www.douphp.com/
 #header .top .top-nav ul {
  display: none;
  background: #F5F5F5;
- width: 100%;
+ min-width: 100%;
+ width: auto;
+ white-space: nowrap;
  position: absolute;
  top: 100%;
  left: 0;
+ max-height: 600px;
+ max-height: calc(100vh - 60px);
+ overflow-x: hidden;
+ overflow-y: auto;
+ overscroll-behavior: contain;
+ -ms-overflow-style: -ms-autohiding-scrollbar;
+}
+/* Firefox 专用细滚动条（Chrome 识别标准属性后会忽略 ::-webkit-scrollbar） */
+@supports (-moz-appearance: none) {
+ #header .top .top-nav ul {
+  scrollbar-width: thin;
+  scrollbar-color: #C4C4C4 transparent;
+ }
+}
+#header .top .top-nav ul::-webkit-scrollbar {
+ width: 4px;
+ height: 4px;
+}
+#header .top .top-nav ul::-webkit-scrollbar-track {
+ background: transparent;
+}
+#header .top .top-nav ul::-webkit-scrollbar-thumb {
+ background-color: #C4C4C4;
+ border-radius: 2px;
+}
+#header .top .top-nav ul::-webkit-scrollbar-thumb:hover {
+ background-color: #A8A8A8;
 }
 #header .top .top-nav ul li {
  float: none;
+ text-align: left;
  font-size: 13px;
 }
 #header .top .top-nav ul li a:hover {
@@ -209,6 +239,35 @@ Author URI: https://www.douphp.com/
   border-left: .3em solid;
   border-bottom: .2em solid transparent;
  }
+ /* 超长下拉限高滚动：含下级菜单的层级不加，避免裁剪三级菜单 */
+ #header .main-nav .dropdown-menu:not(:has(.dropdown)) {
+  max-height: 420px;
+  max-height: calc(100vh - 160px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -ms-overflow-style: -ms-autohiding-scrollbar;
+ }
+ #header .main-nav .dropdown-menu:not(:has(.dropdown))::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+ }
+ #header .main-nav .dropdown-menu:not(:has(.dropdown))::-webkit-scrollbar-track {
+  background: transparent;
+ }
+ #header .main-nav .dropdown-menu:not(:has(.dropdown))::-webkit-scrollbar-thumb {
+  background-color: #C4C4C4;
+  border-radius: 2px;
+ }
+ #header .main-nav .dropdown-menu:not(:has(.dropdown))::-webkit-scrollbar-thumb:hover {
+  background-color: #A8A8A8;
+ }
+ @supports (-moz-appearance: none) {
+  #header .main-nav .dropdown-menu:not(:has(.dropdown)) {
+   scrollbar-width: thin;
+   scrollbar-color: #C4C4C4 transparent;
+  }
+ }
 }
 @media (max-width:992px) {
  #header .main-nav .dropdown-toggle::after {
@@ -327,13 +386,23 @@ Author URI: https://www.douphp.com/
  margin-bottom: 15px;
 }
 .tree-box h3 {
- padding: 25px 0 10px 0;
- line-height: 20px;
- color: #999999;
+ position: relative;
+ padding: 25px 0 14px 14px;
+ line-height: 24px;
+ color: #1A1A1A;
  font-weight: bold;
- font-size: 14px;
- border-bottom: 1px solid #DDD;
- margin-bottom: 15px;
+ font-size: 17px;
+ border-bottom: 1px solid #EBEBEB;
+ margin-bottom: 6px;
+}
+.tree-box h3:before {
+ content: "";
+ position: absolute;
+ left: 0;
+ top: 28px;
+ width: 3px;
+ height: 18px;
+ background-color: #19B4EA;
 }
 @media (max-width:992px) {
  .tree-box h3 {
@@ -341,17 +410,74 @@ Author URI: https://www.douphp.com/
  }
 }
 .tree-box li {
- padding: 8px 8px;
+ position: relative;
+ padding: 0;
 }
 .tree-box li a {
- color: #000;
+ display: block;
+ position: relative;
+ padding: 9px 12px 9px 14px;
+ color: #333333;
  font-size: 14px;
+ line-height: 22px;
+ -webkit-transition: color .25s, background-color .25s;
+ transition: color .25s, background-color .25s;
 }
-.tree-box li.cur {
+.tree-box li a:before {
+ content: "";
+ position: absolute;
+ left: 0;
+ top: 50%;
+ width: 3px;
+ height: 22px;
+ margin-top: -11px;
+ background-color: transparent;
+ -webkit-transition: background-color .25s;
+ transition: background-color .25s;
+}
+.tree-box li a:hover {
+ background-color: #F5FAFD;
+ color: #19B4EA;
+}
+.tree-box li a:hover:before {
  background-color: #19B4EA;
 }
-.tree-box li.cur a {
- color: #FFF;
+.tree-box > ul > li.cur > a {
+ background-color: #F0F9FE;
+ color: #19B4EA;
+ font-weight: bold;
+}
+.tree-box > ul > li.cur > a:before {
+ background-color: #19B4EA;
+}
+.tree-box li i {
+ display: none;
+}
+.tree-box ul ul {
+ padding: 0 0 6px 0;
+}
+.tree-box ul ul li a {
+ padding: 7px 12px 7px 30px;
+ color: #777777;
+ font-size: 13px;
+ line-height: 21px;
+}
+.tree-box ul ul li a:before {
+ left: 16px;
+ top: 50%;
+ width: 5px;
+ height: 1px;
+ margin-top: -1px;
+ background-color: #C9C9C9;
+}
+.tree-box ul ul li a:hover:before,
+.tree-box ul ul li.cur a:before {
+ width: 9px;
+ background-color: #19B4EA;
+}
+.tree-box ul ul li.cur a {
+ background-color: #F7FBFE;
+ color: #19B4EA;
 }
 @media (max-width:992px) {
  .tree-box {
@@ -359,23 +485,38 @@ Author URI: https://www.douphp.com/
  }
  .tree-box ul {
   display: inline-block;
+  padding: 0;
+ }
+ .tree-box ul ul {
+  padding: 0;
  }
  .tree-box li {
   display: inline-block;
   padding: 0;
-  margin-right: 5px;
-  margin-top: 5px;
+  margin-right: 6px;
+  margin-top: 6px;
  }
- .tree-box li i {
+ .tree-box li a,
+ .tree-box ul ul li a {
+  display: block;
+  border: 1px solid #E3E8EB;
+  padding: 6px 14px;
+  color: #555555;
+  font-size: 13px;
+  line-height: 20px;
+ }
+ .tree-box li a:before {
   display: none;
  }
- .tree-box li a {
-  display: block;
-  border: 1px solid #EEE;
-  padding: 5px 8px;
- }
  .tree-box ul ul li a {
-  color: #888;
+  color: #888888;
+ }
+ .tree-box > ul > li.cur > a,
+ .tree-box ul ul li.cur a {
+  border-color: #19B4EA;
+  background-color: #19B4EA;
+  color: #FFFFFF;
+  font-weight: normal;
  }
 }
 .tree-box .search {

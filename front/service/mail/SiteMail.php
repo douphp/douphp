@@ -18,6 +18,7 @@ use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Event\Event;
 use Dou\Core\Foundation\Event\SystemEvents;
 use Dou\Core\Infra\Database\Connection;
+use Dou\Core\Support\Util;
 use Dou\Vendor\Mail\Mail;
 
 if (!defined('IN_DOUCO')) {
@@ -76,7 +77,8 @@ class SiteMail
 
         $body = (isset($lang['order_created_at']) ? $lang['order_created_at'] : '') . '：' . $order['created_at'] . '<br/>';
         $body .= (isset($lang['order_sn']) ? $lang['order_sn'] : '') . '：' . $order['order_sn'] . '<br/>';
-        $body .= (isset($lang['order_order_amount']) ? $lang['order_order_amount'] : '') . '：' . (isset($order['order_amount']) ? $order['order_amount'] : '') . '<br/>';
+        $orderAmountFormat = Util::formatCurrency(currency()->orderAmount($order), currency()->contextForOrder($order));
+        $body .= (isset($lang['order_order_amount']) ? $lang['order_order_amount'] : '') . '：' . $orderAmountFormat . '<br/>';
         $body .= (isset($lang['order_status']) ? $lang['order_status'] : '') . '：' . $statusText . '<br/>';
         $body .= (isset($lang['order_contact']) ? $lang['order_contact'] : '') . '：' . (isset($order['contact']) ? $order['contact'] : '') . '<br/>';
         $body .= (isset($lang['order_phone']) ? $lang['order_phone'] : '') . '：' . (isset($order['phone']) ? $order['phone'] : '') . '<br/>';
@@ -175,7 +177,8 @@ class SiteMail
         $subject = '订单支付通知（抄送）：' . $sn;
         $body = '订单号：' . htmlspecialchars($sn, ENT_QUOTES, 'UTF-8') . '<br/>';
         if (isset($order['order_amount'])) {
-            $body .= '金额：' . htmlspecialchars($order['order_amount'], ENT_QUOTES, 'UTF-8') . '<br/>';
+            $amountFormat = Util::formatCurrency(currency()->orderAmount($order), currency()->contextForOrder($order));
+            $body .= '金额：' . htmlspecialchars($amountFormat, ENT_QUOTES, 'UTF-8') . '<br/>';
         }
         if (isset($order['created_at'])) {
             $body .= '下单时间：' . (is_numeric($order['created_at']) ? date('Y-m-d H:i:s', (int) $order['created_at']) : $order['created_at']) . '<br/>';

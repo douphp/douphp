@@ -25,23 +25,22 @@ if (!defined('IN_DOUCO')) {
  *
  * accessor 只做数据语义转换（markdown 渲染 + strip_tags 转纯文本），不截字；
  * 截字长度由调用方按场景自行 Str::excerpt() 收口。
+ * 取值统一走 translatedRaw()，保证非默认语言下回退生成的摘要也取自当前语言译文。
  */
 trait HasContentListFields
 {
     /**
-     * 列表名称：name 优先，缺省回退 title。
+     * 列表名称：name 优先，缺省回退 title（均取当前语言值）。
      *
      * @return string
      */
     public function getNameAttribute()
     {
         if (array_key_exists('name', $this->attributes)) {
-            return $this->attributes['name'];
+            return $this->translatedRaw('name');
         }
 
-        $title = $this->getRawAttribute('title');
-
-        return $title !== null ? $title : '';
+        return $this->translatedRaw('title');
     }
 
     /**
@@ -51,12 +50,12 @@ trait HasContentListFields
      */
     public function getDescriptionAttribute()
     {
-        $description = $this->getRawAttribute('description');
+        $description = $this->translatedRaw('description');
         if ($description) {
             return $description;
         }
 
-        $content = (string) $this->getRawAttribute('content');
+        $content = $this->translatedRaw('content');
         $rendered = app(MarkdownRenderer::class)->toHtml($content);
 
         return trim(strip_tags($rendered));

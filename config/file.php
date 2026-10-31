@@ -58,6 +58,10 @@ return [
 
             // root 走约定（images/avatar_admin/），仅覆盖上传上限
             'avatar_admin' => ['upload_max_kb' => 100],
+
+            // 幻灯历史素材统一存放于 images/slide/（disk 名 show 与路径名不一致，必须显式声明）；
+            // 移动端 / 小程序幻灯分别落 images/slide/m/ 与 images/slide/miniprogram/ 子目录
+            'show' => ['driver' => 'local', 'root' => 'images/slide/'],
         ],
 
         // 通用附件上传策略（type=attach，落盘到 images/{module}/attach/）

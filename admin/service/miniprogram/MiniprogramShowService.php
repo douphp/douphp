@@ -16,7 +16,6 @@ namespace Dou\Admin\Service\Miniprogram;
 
 use Dou\Admin\Model\Miniprogram\MiniprogramShow;
 use Dou\Admin\Model\Show\Show;
-use Dou\Core\Filesystem\Storage;
 use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Service\Admin\AdminLogAction;
@@ -33,14 +32,6 @@ if (!defined('IN_DOUCO')) {
  */
 class MiniprogramShowService extends BaseService
 {
-    /** @var \Dou\Core\Filesystem\Disk */
-    private $slideBase;
-
-    public function __construct()
-    {
-        $this->slideBase = Storage::build('images/slide/' . MINIPROGRAM_DIR . '/');
-    }
-
     /**
      * 列表页左侧「添加幻灯」表单默认值（键齐全，避免 Smarty/PHP 8 对 null 取下标）。
      *
@@ -65,6 +56,16 @@ class MiniprogramShowService extends BaseService
         return array(
             'show_list' => Show::showList('miniprogram'),
         );
+    }
+
+    /**
+     * 幻灯上传选项：show disk 映射到 images/slide/，小程序幻灯落 miniprogram 子目录。
+     *
+     * @return AttachmentUploadOptions
+     */
+    private function uploadOptions()
+    {
+        return AttachmentUploadOptions::create()->withDirectory(MINIPROGRAM_DIR);
     }
 
     /**
@@ -103,7 +104,7 @@ class MiniprogramShowService extends BaseService
         );
         $adminId = (int) auth('admin')->id();
         $file = !empty($_FILES['image']['name']) ? UploadedFile::fromGlobals('image') : null;
-        $image = attachment()->reserve('show', $file, 'admin', $adminId, 'main', AttachmentUploadOptions::create());
+        $image = attachment()->reserve('show', $file, 'admin', $adminId, 'main', $this->uploadOptions());
         $row['image'] = $image;
 
         $newId = (int) DB::transaction(function () use ($row, $image, $adminId) {
@@ -140,8 +141,9 @@ class MiniprogramShowService extends BaseService
         }
         $new_image = '';
         if (!empty($_FILES['image']['name'])) {
-            $new_image = attachment()->store('show', $id, UploadedFile::fromGlobals('image'), 'main', AttachmentUploadOptions::create()->withUploader('admin', (int) auth('admin')->id()));
+            $new_image = attachment()->store('show', $id, UploadedFile::fromGlobals('image'), 'main', $this->uploadOptions()->withUploader('admin', (int) auth('admin')->id()));
         }
+        $deleteImage = ($new_image === '' && !empty($data['image_delete']));
         $update_data = array(
             'name' => $data['name'],
             'link' => isset($data['link']) ? $data['link'] : '',
@@ -149,12 +151,19 @@ class MiniprogramShowService extends BaseService
         );
         if ($new_image) {
             $update_data['image'] = $new_image;
+        } elseif ($deleteImage) {
+            $update_data['image'] = '';
         }
         $model = MiniprogramShow::find($id);
         if (!$model) {
             throw new DomainException(lang('illegal'), route('admin.miniprogram.show'));
         }
+        $modelAttributes = $model->getAttributes();
+        $oldImageNumber = isset($modelAttributes['image']) ? (string) $modelAttributes['image'] : '';
         $model->fill($update_data, 'update')->save();
+        if ($deleteImage && $oldImageNumber !== '') {
+            attachment()->delete($oldImageNumber);
+        }
         audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::UPDATE, 1, (string) $data['name'], 'miniprogram_show');
     }
 

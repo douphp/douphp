@@ -17,6 +17,7 @@ namespace Dou\Core\Service\Attachment;
 use Dou\Core\Facade\DB;
 use Dou\Core\Filesystem\Disk;
 use Dou\Core\Filesystem\FilesystemManager;
+use Dou\Core\Filesystem\PathNormalizer;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Infra\Image\ImageManager;
@@ -472,8 +473,13 @@ class AttachmentService
         $thumbSub = (string) $disk->getConfig('thumb_directory', '');
 
         $diskRoot = rtrim((string) $disk->getConfig('root', ''), '/');
-        $relativePathInDisk = (strpos($oldPath, $diskRoot . '/') === 0) ? substr($oldPath, strlen($diskRoot . '/')) : $oldPath;
-        $absoluteTarget = $disk->path($relativePathInDisk);
+        if ($diskRoot !== '' && strpos($oldPath, $diskRoot . '/') === 0) {
+            $relativePathInDisk = substr($oldPath, strlen($diskRoot) + 1);
+            $absoluteTarget = $disk->path($relativePathInDisk);
+        } else {
+            // 语言目录等非当前 disk 路径：直接按站点相对路径定位，保持原路径覆盖
+            $absoluteTarget = PathNormalizer::absoluteFromSiteRoot($oldPath);
+        }
         $absoluteDir = dirname($absoluteTarget);
         if (FileHelper::permission($absoluteDir . '/') !== 'write' || !file_exists($absoluteTarget)) {
             return '';
@@ -1029,6 +1035,41 @@ class AttachmentService
     }
 
     /**
+     * 按业务字段删除主图（随表单提交的删除入口）。
+     *
+     * 仅接受 image / icon 字段，且字段必须存在于业务表；无图或参数不合法时返回空串。
+     * 供业务层在事务提交成功后清理旧图，避免保存失败时提前丢失附件。
+     *
+     * @param string $module
+     * @param int|string $itemId
+     * @param string $field
+     * @param string $primaryKey
+     * @return string 实际删除的 number；无图时返回 ''
+     */
+    public function deleteByField($module, $itemId, $field = 'image', $primaryKey = 'id')
+    {
+        $module = (string) $module;
+        $field = (string) $field;
+        $itemId = (string) $itemId;
+        if ($module === '' || $field === '' || $itemId === '' || $itemId === '0') {
+            return '';
+        }
+        if (!in_array($field, array('image', 'icon'), true) || !DB::fieldExist($module, $field)) {
+            return '';
+        }
+
+        $number = DB::table($module)->where((string) $primaryKey, $itemId)->value($field);
+        $number = Check::fileNumber($number) ? (string) $number : '';
+        if ($number === '') {
+            return '';
+        }
+
+        $this->delete($number);
+
+        return $number;
+    }
+
+    /**
      * 按 number 改写物理文件主名。
      *
      * @param string $number
@@ -1104,6 +1145,19 @@ class AttachmentService
     public function gallery($module, $itemId, $type, $arrayMode = false, $listId = null)
     {
         return $this->gallery->galleryList($module, $itemId, $type, $arrayMode, $listId);
+    }
+
+    /**
+     * 批量取多个业务主键的相册（数组形态），供评论等列表页消除逐行查询。
+     *
+     * @param string $module
+     * @param array $itemIds
+     * @param string $type gallery / main / content
+     * @return array<int, array> 业务主键 => 图片数组
+     */
+    public function galleryBatch($module, array $itemIds, $type)
+    {
+        return $this->gallery->galleryListBatch($module, $itemIds, $type);
     }
 
     /**
@@ -1211,8 +1265,20 @@ class AttachmentService
     private function resolveDisk($module, AttachmentUploadOptions $options)
     {
         $name = $options->getDisk() !== '' ? $options->getDisk() : (string) $module;
+        $pack = LanguagePath::normalize($options->getLanguagePack());
+        if ($pack === '') {
+            return $this->storage->disk($name);
+        }
 
-        return $this->storage->disk($name);
+        // 语言图片：沿用原 disk 的上传策略，仅把 root 换到 images/{pack}/ 下
+        $config = $this->storage->getDiskConfig($name);
+        $root = isset($config['root']) ? (string) $config['root'] : '';
+        unset($config['root'], $config['url']);
+        if (!isset($config['driver']) || $config['driver'] === '') {
+            $config['driver'] = 'local';
+        }
+
+        return $this->storage->build(LanguagePath::root($root, $pack), $config);
     }
 
     /**

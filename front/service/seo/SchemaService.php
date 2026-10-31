@@ -209,13 +209,13 @@ class SchemaService extends BaseService
             $schema['category'] = $product['cate_info']['name'];
         }
 
-        // 获取货币类型
-        $currency = $this->getCurrency();
+        // 当前展示币：价格按语言汇率换算，结构化数据与页面展示保持一致
+        $price = isset($product['sale_price']['value']) ? (float) $product['sale_price']['value'] : 0;
 
         $schema['offers'] = array(
             '@type' => 'Offer',
-            'price' => $product['sale_price']['value'],
-            'priceCurrency' => $currency,
+            'price' => currency()->fromBase($price),
+            'priceCurrency' => $this->getCurrency(),
             'availability' => 'https://schema.org/InStock',
             'url' => route('product.show', ['id' => $product['id']])
         );
@@ -785,34 +785,13 @@ class SchemaService extends BaseService
     }
 
     /**
-     * 执行getCurrency操作。
+     * 当前展示币种代码（ISO 4217）。
      *
-     * @return mixed 返回结果。
+     * @return string
      */
     public function getCurrency()
     {
-        $price_format = !empty(Config::get('site.price_format', '')) ? Config::get('site.price_format', '') : '￥d%';
-
-        // 货币映射
-        $currency_map = array(
-            '￥' => 'CNY',   // 人民币
-            '¥' => 'CNY',    // 人民币
-            '$' => 'USD',    // 美元
-            '€' => 'EUR',    // 欧元
-            '£' => 'GBP',    // 英镑
-            '円' => 'JPY',   // 日元
-            '₩' => 'KRW',    // 韩元
-            '₽' => 'RUB'     // 卢布
-        );
-
-        foreach ($currency_map as $symbol => $code) {
-            if (strpos($price_format, $symbol) !== false) {
-                return $code;
-            }
-        }
-
-        // 默认返回人民币
-        return 'CNY';
+        return currency()->currentCode();
     }
 
     /**

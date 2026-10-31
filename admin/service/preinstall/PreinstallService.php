@@ -31,6 +31,10 @@ if (!defined('IN_DOUCO')) {
  * 渲染一对一入口，点击进入详情页（route=preinstall/<slug>）；详情页「隐藏此预置项」
  * 按钮删除标识文件后入口不再出现。用户真正安装模块后，入口自动隐藏、由真实菜单接管。
  *
+ * 入口槽位：默认为侧栏（{@see self::promotions()}）；{@see self::HEADER_SLUGS} 内的模块
+ * 改由后台 header 固定位置承载（{@see self::headerPromotions()}），不进入侧栏，
+ * 避免与既有顶部入口重复（如 language 的多语言入口固定在 header，不在侧栏）。
+ *
  * 文案统一走 preinstall 语言文件（扁平键）：
  *   - 界面键：preinstall / preinstall_hide / preinstall_hide_confirm …；
  *   - 内容键：preinstall_<slug>_intro、preinstall_<slug>_feature_<n>_title/_desc
@@ -40,6 +44,14 @@ class PreinstallService extends BaseService
 {
     /** @var string 标识文件目录（相对 ROOT_PATH） */
     const IDENT_DIR = 'storage/install/preinstall';
+
+    /**
+     * @var array 顶部导航槽位：这些预置项在后台 header 渲染，不进入侧栏。
+     *
+     * 例：language（多语言）本身被 system.admin_hidden_single 排除出侧栏菜单，
+     * 其入口固定在 header 的「多语言设置」位置，未安装时由预置入口接替。
+     */
+    const HEADER_SLUGS = array('language');
 
     /**
      * 扫描全部标识文件，返回模块 slug 列表（字母序）。
@@ -100,7 +112,7 @@ class PreinstallService extends BaseService
     }
 
     /**
-     * 侧栏预置菜单项：标识 ∖ 已安装，逐项计算活跃态。
+     * 侧栏预置菜单项：标识 ∖ 已安装 ∖ 顶部槽位，逐项计算活跃态。
      *
      * @param string $activeSlug 当前详情页 slug（空串=无高亮）
      * @return array<int,array{name: string, lang: string, url: string, icon: string, is_active: bool}>
@@ -111,19 +123,63 @@ class PreinstallService extends BaseService
         $items = array();
 
         foreach ($this->identifiers() as $slug) {
-            if (in_array($slug, $installed, true)) {
+            if (in_array($slug, self::HEADER_SLUGS, true)) {
                 continue;
             }
-            $items[] = array(
-                'name' => $slug,
-                'lang' => $this->displayName($slug),
-                'url' => route('admin.preinstall.show', array('slug' => $slug)),
-                'icon' => MenuIconMap::resolve($slug),
-                'is_active' => ($activeSlug !== '' && $activeSlug === $slug),
-            );
+            $item = $this->promotionItem($slug, $installed, $activeSlug);
+            if ($item !== null) {
+                $items[] = $item;
+            }
         }
 
         return $items;
+    }
+
+    /**
+     * 顶部导航预置入口（slug => item）。
+     *
+     * 仅装载 {@see self::HEADER_SLUGS} 槽位内、标识存在且尚未安装的模块；
+     * 这些模块在 header 固定位置渲染，侧栏不再重复输出。
+     *
+     * @param string $activeSlug 当前详情页 slug（空串=无高亮）
+     * @return array<string,array{name: string, lang: string, url: string, icon: string, is_active: bool}>
+     */
+    public function headerPromotions($activeSlug = '')
+    {
+        $installed = $this->installedModules();
+        $items = array();
+
+        foreach (self::HEADER_SLUGS as $slug) {
+            $item = $this->promotionItem($slug, $installed, $activeSlug);
+            if ($item !== null) {
+                $items[$slug] = $item;
+            }
+        }
+
+        return $items;
+    }
+
+    /**
+     * 单条预置项：已安装或标识缺失返回 null。
+     *
+     * @param string $slug
+     * @param array<int,string> $installed 已安装模块全集（调用方一次解析，循环内复用）
+     * @param string $activeSlug 当前详情页 slug（空串=无高亮）
+     * @return array|null
+     */
+    private function promotionItem($slug, array $installed, $activeSlug)
+    {
+        if (in_array($slug, $installed, true) || !$this->hasIdentifier($slug)) {
+            return null;
+        }
+
+        return array(
+            'name' => $slug,
+            'lang' => $this->displayName($slug),
+            'url' => route('admin.preinstall.show', array('slug' => $slug)),
+            'icon' => MenuIconMap::resolve($slug),
+            'is_active' => ($activeSlug !== '' && $activeSlug === $slug),
+        );
     }
 
     /**

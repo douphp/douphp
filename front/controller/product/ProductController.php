@@ -18,6 +18,7 @@ use Dou\Core\Facade\RouteId;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Foundation\Extension\Module;
+use Dou\Core\Service\Coupon\CouponService as CouponCore;
 use Dou\Core\Support\Util;
 use Dou\Core\Web\Http\Request;
 use Dou\Core\Web\Http\Response;
@@ -234,7 +235,11 @@ class ProductController extends BaseController
             'breadcrumb' => $this->breadcrumb->schema($urHere),
 
             // 数据
-            'coupon_list' => $coupon ? $coupon->getCouponList((int) auth('front')->id()) : array(),
+            'coupon_list' => $coupon ? $coupon->getCouponList((int) auth('front')->id(), array(
+                'module' => 'product',
+                'item_id' => (int) $product['id'],
+                'category_ids' => CouponCore::categoryPath(isset($product['category_id']) ? (int) $product['category_id'] : 0),
+            )) : array(),
             'product_category' => ProductCategory::tree($catId),
             'product' => $product,
             'related_product' => Product::related($catId, 4, (int) auth('front')->id(), (int) $id),

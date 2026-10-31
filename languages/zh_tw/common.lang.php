@@ -73,7 +73,6 @@ $_LANG['price_original'] = '原價';
 $_LANG['price_level'] = '會員價';
 $_LANG['price_promote'] = '促銷價';
 $_LANG['price_vip'] = 'VIP到手價';
-$_LANG['price_format'] = '貨幣格式';
 $_LANG['price_discuss'] = '面議';
 $_LANG['powered_by'] = "<a href='http://www.douphp.com' target='_blank'>d% DouPHP</a>";
 $_LANG['page_wrong'] = '頁面不存在！';

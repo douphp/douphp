@@ -15,6 +15,7 @@
 namespace Dou\Admin\Service\Concerns;
 
 use Dou\Admin\Service\Language\LanguageDraftService;
+use Dou\Core\Service\Noop\NullLanguageDraftService;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
@@ -79,10 +80,17 @@ trait SavesLanguageDrafts
     }
 
     /**
-     * @return LanguageDraftService
+     * 语言草稿服务：language 模块文件缺失（未安装 / 升级包剔除 / 已卸载）时回退 Null 实现，
+     * 保证 begin / commit / abort / purge / buildFormState 调用面始终非空（同 NullLanguageService 思路）。
+     *
+     * @return LanguageDraftService|NullLanguageDraftService
      */
     protected function languageDraftService()
     {
+        if (!class_exists(LanguageDraftService::class)) {
+            return new NullLanguageDraftService();
+        }
+
         return app(LanguageDraftService::class);
     }
 }

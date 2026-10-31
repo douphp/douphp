@@ -14,9 +14,9 @@
 
 namespace Dou\Admin\Model\Concerns;
 
-use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Service\Metadata\MetadataTranslationStore;
 use Dou\Core\Service\Metadata\MetadataValues;
+use Dou\Core\Support\LanguageValuePurger;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
@@ -30,9 +30,11 @@ if (!defined('IN_DOUCO')) {
  * 共用同一套清理逻辑，Service 层不再各自维护 purgeXxx()。
  *
  * 默认行为：删除 `image` 字段对应附件 + 删除以表名为模块的多语言记录。
- * 模块差异以子模型覆写 purgeRelatedOnDelete() / shouldPurgeLanguage() 表达：
- * - Store：覆写 shouldPurgeLanguage() 返回 false（仅删附件）。
+ * 模块差异以子模型覆写 purgeRelatedOnDelete() 表达：
  * - Product / Health：覆写 purgeRelatedOnDelete() 改清理图库 / 关联表。
+ *
+ * 多语言清理不依赖 features.language 开关：由 {@see LanguageValuePurger} 按表存在性兜底，
+ * 语言模块关闭 / 卸载后历史 language_value 行仍能随内容删除。
  */
 trait PurgesRelatedOnDelete
 {
@@ -61,10 +63,10 @@ trait PurgesRelatedOnDelete
     }
 
     /**
-     * 清理扩展字段附件与 metadata 翻译行。
+     * 清理扩展字段附件与 field='metadata' 的翻译行。
      *
-     * 与 shouldPurgeLanguage() 无关：store 等模块关闭通用语言清理时，
-     * 仍必须清掉 field='metadata' 的覆盖行，避免残留。
+     * 与通用语言行清理分开执行：即使模块没有原生多语言字段，
+     * 仍需清掉扩展字段的覆盖值与附件，避免残留。
      *
      * @return void
      */
@@ -96,29 +98,17 @@ trait PurgesRelatedOnDelete
     }
 
     /**
-     * 删除多语言记录（features.language 开启且模块名非空时）。
+     * 删除多语言记录（按 module + item_id 精确清理，不依赖功能开关）。
      *
      * @return void
      */
     protected function purgeLanguageOnDelete()
     {
-        if (!$this->shouldPurgeLanguage()) {
-            return;
-        }
         $module = $this->resolveLanguageModule();
-        if ($module !== '') {
-            language()->deleteLang($module, (int) $this->getKey());
+        $itemId = (int) $this->getKey();
+        if ($module !== '' && $itemId > 0) {
+            LanguageValuePurger::purge($module, $itemId);
         }
-    }
-
-    /**
-     * 是否清理多语言记录；无多语言的模块（如 store）覆写返回 false。
-     *
-     * @return bool
-     */
-    protected function shouldPurgeLanguage()
-    {
-        return !empty(Config::get('features.language', false));
     }
 
     /**

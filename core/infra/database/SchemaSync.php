@@ -1537,6 +1537,39 @@ class SchemaSync
     }
 
     /**
+     * 将列移动到指定列之后（列序对齐）。
+     *
+     * 标准结构同步只比对列定义与存在性，不调整既有列的位置；需要按标准顺序整理
+     * 「历史新增但落在表头」的次要列时显式调用。位置已正确时不执行 DDL，避免重建表。
+     *
+     * @param string $table 裸表名
+     * @param string $column 待移动列
+     * @param string $afterColumn 目标前驱列
+     * @return bool 列序最终是否正确（列缺失时返回 false，交由补列逻辑处理）
+     */
+    public function moveColumnAfter($table, $column, $afterColumn)
+    {
+        if (!DB::tableExist($table) || !DB::fieldExist($table, $column) || !DB::fieldExist($table, $afterColumn)) {
+            return false;
+        }
+
+        $columns = $this->introspectColumns($table);
+        $name = strtolower($column);
+        $after = strtolower($afterColumn);
+        if (!isset($columns[$name]) || !isset($columns[$after])) {
+            return false;
+        }
+        if ((int) $columns[$name]['ORDINAL_POSITION'] === (int) $columns[$after]['ORDINAL_POSITION'] + 1) {
+            return true;
+        }
+
+        $this->log('调整列序：' . $table . '.' . $column . ' AFTER ' . $afterColumn);
+        return $this->exec('ALTER TABLE ' . DB::tableName($table) . ' MODIFY '
+            . $this->currentColumnDefinition($columns[$name])
+            . ' AFTER `' . $columns[$after]['COLUMN_NAME'] . '`');
+    }
+
+    /**
      * INT unix 时间戳列迁为 DATETIME（含值转换、旧列索引清理、零日期清洗）。
      * 旧列与新列同名时走临时列中转（类型已是 datetime/timestamp 时直接跳过）。
      *

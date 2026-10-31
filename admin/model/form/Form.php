@@ -14,6 +14,7 @@
 
 namespace Dou\Admin\Model\Form;
 
+use Dou\Admin\Model\Concerns\PurgesRelatedOnDelete;
 use Dou\Core\Orm\Model;
 
 if (!defined('IN_DOUCO')) {
@@ -25,6 +26,8 @@ if (!defined('IN_DOUCO')) {
  */
 class Form extends Model
 {
+    use PurgesRelatedOnDelete;
+
     /** @var string */
     protected $table = 'form';
 

@@ -14,6 +14,7 @@
 
 namespace Dou\Admin\Model\Product;
 
+use Dou\Admin\Model\Concerns\PurgesRelatedOnDelete;
 use Dou\Core\Model\Concerns\HasCategoryTree;
 use Dou\Core\Orm\Model;
 
@@ -27,6 +28,7 @@ if (!defined('IN_DOUCO')) {
 class ProductCategory extends Model
 {
     use HasCategoryTree;
+    use PurgesRelatedOnDelete;
 
     /**
      * 对应的数据表名。

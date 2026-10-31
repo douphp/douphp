@@ -95,9 +95,10 @@ interface PluginServiceContract
     /**
      * 小程序/API 默认支付方式标识（offlinepay 优先，否则 wxpay）。
      *
+     * @param string $currency 目标币种；为空时不按币种过滤（保持旧行为）
      * @return string
      */
-    public function defaultPaymentSlug();
+    public function defaultPaymentSlug($currency = '');
 
     /**
      * 是否启用了第三方登录插件（connect 分组下有记录）。

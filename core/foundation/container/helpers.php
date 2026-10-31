@@ -27,6 +27,7 @@ use Dou\Core\Foundation\Locale\Locale;
 use Dou\Core\Infra\Security\Xss;
 use Dou\Core\Service\Attachment\AttachmentService;
 use Dou\Core\Service\Audit\AuditService;
+use Dou\Core\Service\Currency\CurrencyService;
 use Dou\Core\Service\Noop\NullMessageResponder;
 use Dou\Core\Service\User\UserService;
 use Dou\Core\Utility\Other;
@@ -242,6 +243,25 @@ if (!function_exists('language')) {
     function language()
     {
         return app(LanguageContract::class);
+    }
+}
+
+if (!function_exists('currency')) {
+    /**
+     * 货币上下文与金额换算服务（请求作用域复用同一实例）。
+     *
+     * 基准币来自 config.currency_code（默认语言货币），展示/订单币来自当前副语言；
+     * 业务侧优先用 Util::formatPrice() / formatBasePrice()，需要上下文或换算时再调本服务。
+     *
+     * @return CurrencyService
+     */
+    function currency()
+    {
+        static $instance = null;
+        if ($instance === null) {
+            $instance = app(CurrencyService::class);
+        }
+        return $instance;
     }
 }
 

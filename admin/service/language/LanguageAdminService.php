@@ -42,7 +42,7 @@ class LanguageAdminService extends CoreLanguageService implements AdminLanguageC
      * @param string $module
      * @param string|int $itemId
      * @param string|array $fieldList 逗号分隔字段名，或字段名数组
-     * @param array $options draft / targets / labels / has_value / default_pack / exclude_pack / draft_create
+     * @param array $options draft / targets / labels / has_value / default_pack / exclude_pack / draft_create / blank_when_missing
      * @return array
      */
     public function buildLangButtons($module, $itemId = '', $fieldList = '', array $options = array())
@@ -58,6 +58,7 @@ class LanguageAdminService extends CoreLanguageService implements AdminLanguageC
 
         $draft = !empty($options['draft']);
         $draftCreate = !empty($options['draft_create']);
+        $blankWhenMissing = !empty($options['blank_when_missing']);
         $targets = isset($options['targets']) && is_array($options['targets']) ? $options['targets'] : array();
         $labels = isset($options['labels']) && is_array($options['labels']) ? $options['labels'] : array();
         $hasValue = isset($options['has_value']) && is_array($options['has_value']) ? $options['has_value'] : array();
@@ -121,6 +122,10 @@ class LanguageAdminService extends CoreLanguageService implements AdminLanguageC
                         . ' data-draft-source="' . $this->attr($source) . '"'
                         . ' data-trigger-id="' . $this->attr($triggerId) . '"'
                         . ' data-field-type="' . $this->attr($kind) . '"';
+                    if ($blankWhenMissing) {
+                        // 无译文时弹框保持为空，由前端跳过主表单回退
+                        $attrs .= ' data-draft-blank="1"';
+                    }
                     if (!empty($desc['target_type'])) {
                         $attrs .= ' data-draft-target-type="' . $this->attr($desc['target_type']) . '"';
                     }
@@ -151,6 +156,7 @@ class LanguageAdminService extends CoreLanguageService implements AdminLanguageC
                         $attrs .= ' data-draft-release-url="' . $this->attr($releaseUrl) . '"';
                     }
                     $attrs .= ' data-draft-module="' . $this->attr($module) . '"'
+                        . ' data-draft-item-id="' . $this->attr($itemId !== '' && $itemId !== null ? $itemId : '0') . '"'
                         . ' data-draft-slug="' . $this->attr($field) . '"'
                         . ' data-token="' . $this->attr($token) . '"';
 

@@ -26,6 +26,7 @@
     data-file-module="{$cur}"
     data-file-item-id="{$item_id}"
     data-file-draft-token="{$draft_token}"
+    {if $language_pack}data-file-language-pack="{$language_pack}"{/if}
     data-file-editor="cur_editor">
     <span class="btn-file" data-file-pick>{$lang.file_insert_image}</span>
     <span class="file-status" style="display:none"><img src="images/loader.gif" alt="uploading"/></span>

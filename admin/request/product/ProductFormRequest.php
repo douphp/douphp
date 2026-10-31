@@ -80,8 +80,13 @@ class ProductFormRequest extends FormRequest
             'sort' => 'integer',
             // 仅用于处理内容中远程图片本地化的行为开关，不是 product 表字段
             'content_remote_image_local' => 'boolean',
+            // 主图删除标记：随主表单提交后由 Service 清空字段并回收旧图
+            'image_delete' => '',
             'draft_token' => '',
             'language_draft' => '',
+            // 规格选项：新增页随表单提交的选项行与选项值译文（嵌套数组由服务层校验）
+            'attribute_value' => '',
+            'attribute_value_lang' => '',
         );
 
         if ($this->scene === 'store') {

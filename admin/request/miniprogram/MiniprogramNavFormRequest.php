@@ -50,6 +50,8 @@ class MiniprogramNavFormRequest extends FormRequest
             'guide' => 'max:500',
             'type' => 'required|max:64',
             'sort' => 'integer',
+            // 图标删除标记：随主表单提交后由 Service 清空字段并回收旧图
+            'icon_delete' => '',
         );
 
         if ($this->scene === 'update') {

@@ -22,6 +22,7 @@ $_LANG['article_tree'] = '文章分类';
 $_LANG['article_news'] = '最新文章';
 $_LANG['article_recommend'] = '推荐文章';
 $_LANG['article_more'] = '更多文章';
+$_LANG['article_read_more'] = '了解更多';
 $_LANG['article_previous'] = '上一篇';
 $_LANG['article_next'] = '下一篇';
 $_LANG['article_related'] = '相关文章';

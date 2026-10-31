@@ -39,7 +39,8 @@ return [
     'miniprogram_no_handle' => ['plugin', 'language', 'weixin', 'attribute', 'email'],
 
     // 不进前台主导航目标下拉的 single 模块（系统型 / 容器型，无前台分类入口）
-    'nav_hidden_single' => ['plugin', 'language'],
+    // sms：仅后台短信配置，无前台页面与路由，不得作为导航跳转目标
+    'nav_hidden_single' => ['plugin', 'language', 'sms'],
 
     // 后台菜单 / 工作台 / 首页统计隐藏的系统级 single 模块
     'admin_hidden_single' => ['language'],

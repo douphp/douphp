@@ -17,6 +17,7 @@ namespace Dou\Admin\Service\Metadata;
 use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Service\Attachment\AttachmentUploadOptions;
+use Dou\Core\Service\Attachment\LanguagePath;
 use Dou\Core\Service\BaseService;
 use Dou\Core\Service\Metadata\MetadataModules;
 use Dou\Core\Service\Metadata\MetadataSchema;
@@ -67,7 +68,9 @@ class MetadataDraftService extends BaseService
             throw new DomainException(lang('illegal'));
         }
 
-        $options = AttachmentUploadOptions::create()->withUploader('admin', $adminId);
+        $options = AttachmentUploadOptions::create()
+            ->withUploader('admin', $adminId)
+            ->withLanguagePack(LanguagePath::normalize(isset($data['language_pack']) ? $data['language_pack'] : ''));
         if ($field['type'] === 'file') {
             $effective = MetadataSchema::effectiveFileOptions($field);
             $options->withAllowExtensions($effective['extensions'])->withUploadMaxKb($effective['max_kb']);

@@ -76,6 +76,20 @@ class ProductService extends BaseService
     }
 
     /**
+     * 属性模块是可选模块：缺失时返回 null，规格选项能力整体降级。
+     *
+     * @return \Dou\Admin\Service\Attribute\AttributeService|null
+     */
+    private function attributeService()
+    {
+        if (!Module::has('attribute') || !class_exists('Dou\\Admin\\Service\\Attribute\\AttributeService')) {
+            return null;
+        }
+
+        return app('Dou\\Admin\\Service\\Attribute\\AttributeService');
+    }
+
+    /**
      * 列表页数据：分页查询并补齐模板展示字段（分类名、图片、会员价档位等）。
      *
      * @param int $catId
@@ -184,6 +198,11 @@ class ProductService extends BaseService
             throw new DomainException(lang('illegal'), route('admin.product'));
         }
 
+        // 先解析规格选项（含分类校验），再进入主图/正文/多语言等有副作用的处理
+        $attributeService = $this->attributeService();
+        $attributePlan = $attributeService ? $attributeService->beginPending('product', $data, 0) : null;
+        unset($data['attribute_value'], $data['attribute_value_lang']);
+
         $dou_user = (Config::get('features.user', false) && user()) ? user() : null;
         if (!empty($data['level_price']) && $dou_user) {
             $data['level_price'] = $this->pricingService->levelPrice($data['level_price']);
@@ -209,7 +228,7 @@ class ProductService extends BaseService
         unset($data['language_draft']);
 
         try {
-            $newId = (int) DB::transaction(function () use ($data, $image, $draftToken, $adminId, $metadataPlan, $languagePlan) {
+            $newId = (int) DB::transaction(function () use ($data, $image, $draftToken, $adminId, $metadataPlan, $languagePlan, $attributeService, $attributePlan) {
                 $product = Product::create($data);
                 if (!$product) {
                     throw new DomainException(lang('illegal'), route('admin.product'));
@@ -220,6 +239,9 @@ class ProductService extends BaseService
                 }
 
                 $this->languageDraft->commit($languagePlan, $newId, $adminId);
+                if ($attributeService && $attributePlan) {
+                    $attributeService->commitPending($attributePlan, $newId);
+                }
                 attachment()->claimByToken('product', $draftToken, $newId, 'admin', $adminId);
                 $this->metadataCommit($metadataPlan, $newId, $adminId);
                 if ($image !== '' && attachment()->adopt('product', $image, $newId, 'admin', $adminId) < 1) {
@@ -293,11 +315,19 @@ class ProductService extends BaseService
         if (!$product) {
             throw new DomainException(lang('item_not_exist'), route('admin.product'));
         }
+        $productAttributes = $product->getAttributes();
+        $oldImageNumber = isset($productAttributes['image']) ? (string) $productAttributes['image'] : '';
+
+        // 先解析译文（校验 value_id 归属），再进入主图/正文等有副作用的处理
+        $attributeService = $this->attributeService();
+        $attributePlan = $attributeService ? $attributeService->beginPending('product', $data, $id) : null;
+        unset($data['attribute_value'], $data['attribute_value_lang']);
 
         $metadataPlan = $this->metadataBegin('product', $data, $id, $this->metadataExistingRaw($product), $adminId);
         $languagePlan = $this->languageDraft->begin('product', $data, $id, $adminId);
         unset($data['language_draft']);
         $image = attachment()->store('product', $id, UploadedFile::fromGlobals('image'), 'main', AttachmentUploadOptions::create()->withThumbnail(Config::get('site.thumb_width', 0), Config::get('site.thumb_height', 0))->withUploader('admin', $adminId));
+        $deleteImage = ($image === '' && !empty($data['image_delete']));
         $dou_user = (Config::get('features.user', false) && user()) ? user() : null;
         if (!empty($data['level_price']) && $dou_user) {
             $data['level_price'] = $this->pricingService->levelPrice($data['level_price']);
@@ -310,15 +340,20 @@ class ProductService extends BaseService
         $data['content'] = $content;
         if ($image) {
             $data['image'] = $image;
+        } elseif ($deleteImage) {
+            $data['image'] = '';
         }
         if ($metadataPlan !== null) {
             $data['metadata'] = $metadataPlan['json'];
         }
 
         try {
-            DB::transaction(function () use ($product, $data, $metadataPlan, $id, $adminId, $languagePlan) {
+            DB::transaction(function () use ($product, $data, $metadataPlan, $id, $adminId, $languagePlan, $attributeService, $attributePlan) {
                 $product->fill($data, 'update')->save();
                 $this->languageDraft->commit($languagePlan, $id, $adminId);
+                if ($attributeService && $attributePlan) {
+                    $attributeService->commitPending($attributePlan, $id);
+                }
                 $this->metadataCommit($metadataPlan, $id, $adminId);
             });
         } catch (\Exception $e) {
@@ -329,6 +364,9 @@ class ProductService extends BaseService
 
         $this->metadataPurge($metadataPlan, $id);
         $this->languageDraft->purge($languagePlan, $id);
+        if ($deleteImage && $oldImageNumber !== '') {
+            attachment()->delete($oldImageNumber);
+        }
         audit()->writeAdminLog($adminId, AdminLogAction::UPDATE, 1, (string) $data['title']);
     }
 

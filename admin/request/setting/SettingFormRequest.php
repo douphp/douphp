@@ -15,6 +15,7 @@
 namespace Dou\Admin\Request\Setting;
 
 use Dou\Admin\Model\Setting\Setting;
+use Dou\Core\Domain\Currency\CurrencyCatalog;
 use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Web\Http\FormRequest;
 
@@ -47,7 +48,7 @@ class SettingFormRequest extends FormRequest
     public function validated()
     {
         try {
-            return parent::validated();
+            $data = parent::validated();
         } catch (DomainException $e) {
             if ($e->getBackUrl() !== '') {
                 throw $e;
@@ -61,6 +62,17 @@ class SettingFormRequest extends FormRequest
                 $e->hasErrors() ? $e->getErrors() : array()
             );
         }
+
+        // 基准币 = 默认语言货币：小数位不能超过该币种 ISO 小数位（如 JPY 只能 0 位）
+        if (isset($data['currency_code']) && $data['currency_code'] !== '') {
+            $code = strtoupper(trim((string) $data['currency_code']));
+            $decimals = isset($data['currency_decimal']) ? $data['currency_decimal'] : '';
+            if (!CurrencyCatalog::has($code) || !CurrencyCatalog::isValidDecimals($code, $decimals)) {
+                throw new DomainException(lang('config_currency_invalid'), route('admin.setting'));
+            }
+        }
+
+        return $data;
     }
 
     /**
@@ -83,6 +95,15 @@ class SettingFormRequest extends FormRequest
             $rules['language'] = '';
         } else {
             $rules['language'] = 'required|regex:/^[a-z_]+$/';
+        }
+
+        // 仅当站点存在对应 config 行时校验，避免未升级站点保存设置被必填卡住
+        $configNames = array_keys($model->fetchAllConfigFieldRules());
+        if (in_array('currency_code', $configNames, true)) {
+            $rules['currency_code'] = 'required|regex:/^[A-Z]{3}$/';
+        }
+        if (in_array('currency_decimal', $configNames, true)) {
+            $rules['currency_decimal'] = 'required|integer';
         }
 
         return $rules;

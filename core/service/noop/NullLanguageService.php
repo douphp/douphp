@@ -16,6 +16,7 @@ namespace Dou\Core\Service\Noop;
 
 use Dou\Admin\Contract\AdminLanguageContract;
 use Dou\Core\Service\BaseService;
+use Dou\Core\Support\LanguageValuePurger;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
@@ -125,7 +126,8 @@ class NullLanguageService extends BaseService implements AdminLanguageContract
     }
 
     /**
-     * Null 实现：不操作 language_value，不删除文件。
+     * 功能关闭 / 模块缺失时仍执行删除清理：直接按 module + item_id 清 language_value，
+     * 避免历史语言数据随内容删除后残留（无 language_value 表时自动跳过）。
      *
      * @param string $module
      * @param string|int $itemId
@@ -133,7 +135,7 @@ class NullLanguageService extends BaseService implements AdminLanguageContract
      */
     public function deleteLang($module = '', $itemId = '')
     {
-        return;
+        LanguageValuePurger::purge($module, $itemId);
     }
 
     /**

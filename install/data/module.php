@@ -21,7 +21,7 @@ return array (
         'language',
         'form',
     ),
-    'link_metadata' => array(
+    'link_metadata' => array (
         'product',
         'article',
     ),

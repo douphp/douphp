@@ -143,7 +143,13 @@ class WxpayNotifyController
                 $this->respond(false, 'order not found');
             }
 
-            $expectedFee = (int) round((float) $order['order_amount'] * 100);
+            // 微信支付仅支持 CNY：旧在途单若为其它币种直接拒绝，避免按错误最小单位对账
+            if (currency()->contextForOrder($order)['code'] !== 'CNY') {
+                Log::error('wxpay notify currency not supported', array('channel' => 'pay', 'order_sn' => $orderSn));
+                $this->respond(false, 'currency not supported');
+            }
+
+            $expectedFee = (int) round(currency()->orderAmount($order) * 100);
             if ($expectedFee !== $paidFee) {
                 Log::error('wxpay notify amount mismatch', array('channel' => 'pay', 'order_sn' => $orderSn));
                 $this->respond(false, 'amount mismatch');

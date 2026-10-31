@@ -20,6 +20,7 @@ use Dou\Admin\Service\Menu\AdminTabResolver;
 use Dou\Core\Controller\BaseController as CoreBaseController;
 use Dou\Core\Facade\Session;
 use Dou\Core\Foundation\Configuration\Config;
+use Dou\Core\Service\Noop\NullLanguageDraftService;
 use Dou\Core\Support\Util;
 use Dou\Core\Web\Http\ApiResponse;
 use Dou\Core\Web\Http\Response;
@@ -398,10 +399,17 @@ abstract class BaseController extends CoreBaseController
     /**
      * 原生字段多语言草稿服务（按钮 + 草稿初值）。
      *
-     * @return \Dou\Admin\Service\Language\LanguageDraftService
+     * language 模块文件缺失（未安装 / 升级包剔除 / 已卸载）时回退 Null 实现，
+     * 使 buildFormState 仍返回空按钮与空草稿，控制器侧无需判空。
+     *
+     * @return \Dou\Admin\Service\Language\LanguageDraftService|NullLanguageDraftService
      */
     protected function languageDraft()
     {
+        if (!class_exists('Dou\\Admin\\Service\\Language\\LanguageDraftService')) {
+            return new NullLanguageDraftService();
+        }
+
         return app(\Dou\Admin\Service\Language\LanguageDraftService::class);
     }
 }

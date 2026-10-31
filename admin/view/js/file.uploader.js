@@ -335,6 +335,7 @@
         body.append('draft_token', attr(container, 'data-file-draft-token', ''));
         body.append('token', token());
         body.append('img_width', attr(container, 'data-file-img-width', ''));
+        body.append('language_pack', attr(container, 'data-file-language-pack', ''));
 
         return body;
     }

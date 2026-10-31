@@ -16,6 +16,7 @@ namespace Dou\Admin\Service\Setting;
 
 use Dou\Admin\Model\Setting\Setting;
 use Dou\Admin\Service\Menu\AdminTabResolver;
+use Dou\Core\Domain\Currency\CurrencyCatalog;
 use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Exception\RedirectException;
@@ -295,6 +296,19 @@ class SettingService extends BaseService
 
             if ($row['name'] == 'open_icon') {
                 $box = $this->formatConfigOption('config_open_icon_', array('close', 'image', 'text'));
+            }
+
+            if ($row['name'] == 'currency_code') {
+                $box = CurrencyCatalog::options();
+            }
+
+            if ($row['name'] == 'currency_decimal') {
+                $baseCode = (string) Config::get('site.currency_base_code', 'CNY');
+                $maxDecimals = CurrencyCatalog::defaultDecimals($baseCode);
+                $box = array();
+                for ($i = 0; $i <= $maxDecimals; $i++) {
+                    $box[] = array('value' => (string) $i, 'name' => (string) $i);
+                }
             }
 
             $cueKey = 'config_' . $row['name'] . '_cue';

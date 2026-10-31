@@ -269,10 +269,10 @@ class Product extends Model
     }
 
     /**
-     * 删除商品前：清理本条目全部文件记录（主图 / 图库 / 附件）与多语言记录。
+     * 删除商品前：清理本条目全部文件记录（主图 / 图库 / 附件）、多语言记录与规格选项。
      *
      * 默认钩子只删 image 主图，图库与附件会变成孤儿文件；这里按 module + item_id
-     * 遍历 dou_file 全量删除（type 不限）。
+     * 遍历 dou_file 全量删除（type 不限）。规格选项行与选项值译文也在此一并清理。
      *
      * @return void
      */
@@ -283,6 +283,47 @@ class Product extends Model
         }
         $this->purgeMetadataOnDelete();
         $this->purgeLanguageOnDelete();
+        self::deleteAttributeValues($this->getKey());
+    }
+
+    /**
+     * 删除商品前：清理该商品的规格选项行、选项图片与选项值译文。
+     *
+     * @param string|int $productId
+     * @return void
+     */
+    public static function deleteAttributeValues($productId)
+    {
+        $productId = (int) $productId;
+        if ($productId <= 0 || !DB::tableExist('attribute_value')) {
+            return;
+        }
+
+        $rows = DB::table('attribute_value')
+            ->field('id, image')
+            ->where('module', 'product')
+            ->where('item_id', $productId)
+            ->select();
+        $valueIds = array();
+        foreach ((array) $rows as $row) {
+            $valueIds[] = (int) $row['id'];
+            if (!empty($row['image'])) {
+                attachment()->delete($row['image']);
+            }
+        }
+
+        // 选项值译文只有文本类型，按 value_id 批量直删，避免 language 功能关闭时残留孤儿行
+        if (!empty($valueIds) && DB::tableExist('language_value')) {
+            DB::table('language_value')
+                ->where('module', 'attribute_value')
+                ->where('item_id', 'IN', $valueIds)
+                ->delete();
+        }
+
+        DB::table('attribute_value')
+            ->where('module', 'product')
+            ->where('item_id', $productId)
+            ->delete();
     }
 
     /**

@@ -8,7 +8,8 @@
  *   file_number   已存图附件号，用于删除 / 原路径裁剪
  *   hidden_name   可选：附件号回写字段名（元数据槽位用；不传则不回写）
  *   crop_ratio    裁剪比例 "W/H"，缺省用站点缩略图比例
- *   defer_delete  1 = 清空时不删服务端文件（由业务保存时统一处理）
+ *   defer_delete  1 = 清空时不删服务端文件，由业务保存时统一处理（元数据槽位）
+ *                非 1 时输出 {$name}_delete 隐藏域：删除只标记，随主表单提交后由业务层删旧图并清空字段
  *   thumb_crop    裁剪复选是否默认勾选
  *
  * 依赖：js/common.js 的 douFileImage.init(root)（幂等，弹窗 / AJAX 刷新后可重调）、
@@ -20,6 +21,7 @@
 -->
 <div class="file-image{if $value} file-image-filled{/if}" data-initial-src="{$value}" data-initial-number="{$file_number}" data-crop-ratio="{if $crop_ratio}{$crop_ratio}{else}{if $site.thumb_width && $site.thumb_height}{$site.thumb_width}/{$site.thumb_height}{/if}{/if}" data-defer-delete="{if $defer_delete}1{else}0{/if}">
  <!-- {if $hidden_name} --><input type="hidden" class="file-number" name="{$hidden_name}" value="{$file_number}" /><!-- {/if} -->
+ <!-- {if $defer_delete neq 1} --><input type="hidden" class="file-delete-flag" name="{$name}_delete" value="0" /><!-- {/if} -->
  <div class="file-image-stage">
   <label for="{$name}" class="file-image-label"><i class="file-placeholder bi-plus-lg"></i><!-- {if $value} --><img class="file-image-preview" src="{$value}" alt="" /><!-- {else} --><img class="file-image-preview" alt="" /><!-- {/if} --><input type="file" id="{$name}" name="{$name}" accept="image/*" /></label>
   <div class="file-image-mask">

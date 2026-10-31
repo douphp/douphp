@@ -256,8 +256,11 @@ class NavService extends BaseService
 
         if ($openIcon === 'image') {
             $newIcon = attachment()->store('nav', $id, UploadedFile::fromGlobals('icon'), 'main', AttachmentUploadOptions::create()->withUploader('admin', (int) auth('admin')->id()));
+            $deleteIcon = ($newIcon === '' && !empty($data['icon_delete']));
             if ($newIcon !== '') {
                 $update_data['icon'] = $newIcon;
+            } elseif ($deleteIcon) {
+                $update_data['icon'] = '';
             }
         } elseif ($openIcon === 'text') {
             $update_data['icon'] = isset($data['icon']) ? (string) $data['icon'] : '';
@@ -274,6 +277,13 @@ class NavService extends BaseService
         }
 
         $this->languageDraftPurge($languagePlan, $id);
+        if (isset($deleteIcon) && $deleteIcon) {
+            $navAttributes = $nav->getAttributes();
+            $oldIconNumber = isset($navAttributes['icon']) ? (string) $navAttributes['icon'] : '';
+            if ($oldIconNumber !== '') {
+                attachment()->delete($oldIconNumber);
+            }
+        }
         audit()->writeAdminLog($adminId, AdminLogAction::UPDATE, 1, (string) $update_data['name']);
     }
 
@@ -301,7 +311,6 @@ class NavService extends BaseService
         }
 
         if (isset($post['confirm'])) {
-            language()->deleteLang('nav', (int) $id);
             audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::DELETE, 1, (string) $nav_info['name']);
             Nav::destroy((int) $id);
 

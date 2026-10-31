@@ -36,7 +36,7 @@
    <block wx:if="{{features.user && features.comment}}">
    <view class="head">{{lang.comment}}</view>
    <view class="comment-list">
-    <view class="dl{{comment.if_read == '0' ? 'unread' : ''}}" wx:for="{{comment_list}}" wx:key="index" wx:for-item="comment">
+    <view class="dl" wx:for="{{comment_list}}" wx:key="index" wx:for-item="comment">
      <view class="dt">
       <text class="span">{{comment.created_at}}</text>
       <text>{{comment.nickname}}</text>

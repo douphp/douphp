@@ -39,6 +39,9 @@ class Language extends Model
     protected $fillable = array(
         'name',
         'language_pack',
+        'currency_code',
+        'currency_rate',
+        'currency_decimal',
         'site_name',
         'site_title',
         'site_keywords',

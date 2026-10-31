@@ -180,7 +180,7 @@ class PricingService extends BaseService
 
         $discounted = number_format(
             $item['price'] * ($userLevel['good_discount'] / 100),
-            Config::get('site.price_decimal', 0),
+            currency()->baseDecimals(),
             '.',
             ''
         );

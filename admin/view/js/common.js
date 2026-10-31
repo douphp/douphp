@@ -190,6 +190,7 @@ $(function () {
     var draftReleaseUrl = String(box.data("draft-release-url") || "");
     var draftModule = String(box.data("draft-module") || "");
     var draftToken = String(box.data("draft-token") || "");
+    var draftLang = String(box.data("draft-lang") || "");
     var draftMode = draftUploadUrl !== "";
     var $draftModal = box.closest(".dou-modal");
     var pendingDraftNumber = "";
@@ -278,6 +279,7 @@ $(function () {
 
     function restoreInitial() {
       hasLocalFile = false;
+      box.find(".file-delete-flag").val("0");
       if (initialSrc) {
         showPreview(initialSrc);
       } else {
@@ -303,6 +305,7 @@ $(function () {
 
     function applyLocalFile(file) {
       hasLocalFile = true;
+      box.find(".file-delete-flag").val("0");
       if (numberInput.length) {
         numberInput.val("");
       }
@@ -387,6 +390,7 @@ $(function () {
       formData.append("module", draftModule);
       formData.append("slug", String(box.data("draft-slug") || ""));
       formData.append("token", draftToken);
+      formData.append("language_pack", draftLang);
       box.addClass("file-image-uploading");
 
       $.ajax({
@@ -431,6 +435,9 @@ $(function () {
           flashPreview(box);
           refreshCropAction();
           syncDraftState(initialNumber, initialSrc, true);
+          if ($draftModal.length) {
+            $draftModal.data("draft-file-deleted", false);
+          }
         },
         error: function () {
           box.removeClass("file-image-uploading");
@@ -579,6 +586,9 @@ $(function () {
         showEmpty();
         refreshCropAction();
         syncDraftState("", "", true);
+        if ($draftModal.length) {
+          $draftModal.data("draft-file-deleted", true);
+        }
         return;
       }
 
@@ -588,17 +598,29 @@ $(function () {
       }
 
       if (initialNumber) {
-        if (!deferDelete && window.douFileUploader) {
-          // 只删不回填：单图控件的列表回填由本控件自己完成
-          window.douFileUploader.remove(initialNumber);
+        if (deferDelete) {
+          initialSrc = "";
+          initialNumber = "";
+          box.data("initial-src", "").data("initial-number", "");
+          if (numberInput.length) {
+            numberInput.val("");
+          }
+          showEmpty();
+          refreshCropAction();
+          return;
         }
+
+        // 只标记待删：真正删除与字段清空由业务层在主表单保存时处理
+        box.find(".file-delete-flag").val("1");
         initialSrc = "";
         initialNumber = "";
-        box.data("initial-src", "");
-        box.data("initial-number", "");
+        box.data("initial-src", "").data("initial-number", "");
         if (numberInput.length) {
           numberInput.val("");
         }
+        showEmpty();
+        refreshCropAction();
+        return;
       }
 
       showEmpty();
@@ -2264,6 +2286,7 @@ window.douTab = {
               itemId: itemId,
               field: field,
               token: token,
+              draftToken: $trigger.closest("form").find('input[name="draft_token"]').first().val() || "",
               type: type,
               options: options,
             }));
@@ -2343,7 +2366,11 @@ window.douTab = {
         ctx.module +
         '" data-file-item-id="' +
         ctx.itemId +
-        '" data-file-draft-token="" data-file-editor="' +
+        '" data-file-draft-token="' +
+        escapeHtml(ctx.draftToken || "") +
+        '" data-file-language-pack="' +
+        escapeHtml(ctx.languagePack || "") +
+        '" data-file-editor="' +
         cur_editor +
         '"><span class="btn-file" data-file-pick>' +
         lang("file_insert_image") +
@@ -2712,6 +2739,21 @@ window.douTab = {
     var override = draftHasOverride($trigger);
     var $scope = $trigger.closest("form");
 
+    // 未添加译文且调用方要求空态时，不回退主表单：
+    // 多语言是“有添加才有”，空值表示该语言尚未创建这条翻译。
+    if (!override && $trigger.attr("data-draft-blank") === "1") {
+      if (kind === "image" || kind === "file") {
+        return { number: "", url: "" };
+      }
+      if (kind === "checkbox") {
+        return [];
+      }
+      if (kind === "options") {
+        return {};
+      }
+      return "";
+    }
+
     if (kind === "editor") {
       var targetType = $trigger.attr("data-draft-target-type") || "input";
       if (targetType === "editor") {
@@ -2940,7 +2982,8 @@ window.douTab = {
     var target = $trigger.attr("data-draft-target") || "";
     var $scope = $trigger.closest("form");
 
-    if ($modal && (kind === "image" || kind === "file") && $modal.data("draft-file-changed")) {
+    if ($modal && (kind === "image" || kind === "file")
+        && ($modal.data("draft-file-changed") || $modal.data("draft-file-deleted"))) {
       var releaseUrl = $trigger.attr("data-draft-release-url") || route("admin.metadata.draft.release");
       var number = $modal.data("draft-number");
       if (number) {
@@ -2955,7 +2998,7 @@ window.douTab = {
           dataType: "json",
         });
       }
-      $modal.data("draft-file-changed", false).data("draft-number", "");
+      $modal.data("draft-file-changed", false).data("draft-number", "").data("draft-file-deleted", false);
     }
 
     if (kind === "editor") {
@@ -2989,6 +3032,24 @@ window.douTab = {
     } catch (e) {
       return a === b;
     }
+  }
+
+  /**
+   * 富文本空值归一：UEditor 等空内容可能返回 <p><br></p>，
+   * 空态弹框不得把它当成一次真实输入。
+   *
+   * @param {*} value
+   * @return {boolean}
+   */
+  function draftHtmlIsBlank(value) {
+    if (typeof value !== "string") {
+      return false;
+    }
+    var text = value
+      .replace(/<[^>]*>/g, "")
+      .replace(/&nbsp;/gi, " ")
+      .replace(/[\s\u00a0]+/g, "");
+    return text === "";
   }
 
   function draftReadFormValue($modal, $trigger) {
@@ -3059,21 +3120,44 @@ window.douTab = {
     var kind = $trigger.attr("data-draft-kind") || "text";
     var source = $trigger.attr("data-draft-source") || "";
     var $scope = $trigger.closest("form");
+    var blank = $trigger.attr("data-draft-blank") === "1" && !draftHasOverride($trigger);
+    var blankOption = blank ? '<option value=""></option>' : "";
     var html = "";
 
     if (kind === "editor") {
       var editorId = "draftLangEditor" + Date.parse(new Date());
       var editorValue = typeof initial === "string" ? initial : "";
-      if (typeof cur_editor !== "undefined" && cur_editor === "vditor") {
-        html =
+      var editorModule = $trigger.attr("data-draft-module") || "";
+      var editorItemId = $trigger.attr("data-draft-item-id") || "0";
+      var editorDraftToken = $scope.find('input[name="draft_token"]').first().val() || "";
+      var editorLang = $trigger.attr("data-lang") || "";
+      var editorKind = typeof cur_editor !== "undefined" ? cur_editor : "ueditor";
+      var editorHtml;
+      if (editorKind === "vditor") {
+        editorHtml =
           '<div class="editor-content low"><div id="' + editorId + '" class="editor-class"></div>' +
           '<textarea id="' + editorId + 'Textarea" style="display:none">' + escapeHtml(editorValue) + "</textarea>" +
           "<script type=\"text/javascript\">initEditor('" + editorId + "')</script></div>";
       } else {
-        html =
+        editorHtml =
           '<script id="' + editorId + '" type="text/plain" class="editor-class">' + editorValue + "</script>" +
           "<script type=\"text/javascript\">initEditor('" + editorId + "', '200')</script>";
       }
+      var editorToolbar =
+        '<div class="editor-bar"><div class="editor-bar-left">' +
+        '<div id="' + editorId + 'File" class="editor-btn"' +
+        ' data-file-type="content"' +
+        ' data-file-prefix="' + editorId + '"' +
+        ' data-file-module="' + escapeHtml(editorModule) + '"' +
+        ' data-file-item-id="' + escapeHtml(editorItemId) + '"' +
+        ' data-file-draft-token="' + escapeHtml(editorDraftToken) + '"' +
+        ' data-file-language-pack="' + escapeHtml(editorLang) + '"' +
+        ' data-file-editor="' + escapeHtml(editorKind) + '">' +
+        '<span class="btn-file" data-file-pick>' +
+        escapeHtml(typeof lang === "function" ? lang("file_insert_image") : "Insert image") +
+        '</span><span class="file-status" style="display:none"><img src="images/loader.gif" alt="uploading"/></span>' +
+        "</div></div></div>";
+      html = '<div id="' + editorId + 'Editor" class="editor">' + editorToolbar + editorHtml + "</div>";
       return (
         '<form class="dou-modal-lang-form dou-modal-lang-draft" data-draft-editor-id="' + editorId + '">' +
         '<div class="form"><div class="form-item"><div class="input-block">' + html + "</div></div></div></form>"
@@ -3082,7 +3166,7 @@ window.douTab = {
 
     if (kind === "image" || kind === "file") {
       var accept = $trigger.attr("data-draft-accept") || (kind === "image" ? "image/*" : "");
-      var previewUrl = initial && initial.url ? initial.url : ($trigger.attr("data-draft-preview") || "");
+      var previewUrl = initial && initial.url ? initial.url : (blank ? "" : ($trigger.attr("data-draft-preview") || ""));
       var number = initial && initial.number ? initial.number : "";
 
       if (kind === "image") {
@@ -3102,6 +3186,7 @@ window.douTab = {
           ' data-draft-release-url="' + escapeHtml($trigger.attr("data-draft-release-url") || "") + '"' +
           ' data-draft-module="' + escapeHtml($trigger.attr("data-draft-module") || "") + '"' +
           ' data-draft-slug="' + escapeHtml($trigger.attr("data-draft-slug") || "") + '"' +
+          ' data-draft-lang="' + escapeHtml($trigger.attr("data-lang") || "") + '"' +
           ' data-draft-token="' + escapeHtml($trigger.attr("data-token") || "") + '"';
         html =
           '<div class="file-image' + (previewUrl ? " file-image-filled" : "") + '"' + draftAttrs + '>' +
@@ -3169,7 +3254,7 @@ window.douTab = {
           } catch (e) {}
         }
       }
-      html = '<select name="value" class="select">' + optionsHtml + "</select>";
+      html = '<select name="value" class="select">' + blankOption + optionsHtml + "</select>";
     } else if (kind === "radio" || kind === "checkbox") {
       var $source = draftElements(source, $scope);
       var currentValues = Array.isArray(initial) ? initial : (initial === "" || initial === null ? [] : [String(initial)]);
@@ -3185,7 +3270,7 @@ window.douTab = {
       });
     } else if (kind === "switch") {
       html =
-        '<select name="value" class="select">' +
+        '<select name="value" class="select">' + blankOption +
         '<option value="0"' + (String(initial) === "0" ? ' selected="selected"' : "") + ">" +
         escapeHtml(typeof lang === "function" ? lang("no") : "No") + "</option>" +
         '<option value="1"' + (String(initial) === "1" ? ' selected="selected"' : "") + ">" +
@@ -3221,6 +3306,7 @@ window.douTab = {
       formData.append("module", $trigger.attr("data-draft-module") || "");
       formData.append("slug", $trigger.attr("data-draft-slug") || "");
       formData.append("token", $trigger.attr("data-token") || "");
+      formData.append("language_pack", $trigger.attr("data-lang") || "");
 
       $modal.find(".draft-file-preview").html('<span class="cue">uploading...</span>');
       $.ajax({
@@ -3288,13 +3374,21 @@ window.douTab = {
       }
       var initial = $modal.data("draft-initial");
       var value = draftReadFormValue($modal, $trigger);
+      var fileKind = kind === "image" || kind === "file";
+      var initialNumber = initial && initial.number ? String(initial.number) : "";
+      var currentNumber = value && value.number ? String(value.number) : "";
+      var fileChanged = !!$modal.data("draft-file-changed") || !!$modal.data("draft-file-deleted");
 
-      if ((kind === "image" || kind === "file") && !$modal.data("draft-file-changed")) {
+      if (fileKind && !fileChanged && currentNumber === initialNumber) {
         close();
         return;
       }
-      if (kind !== "image" && kind !== "file" &&
-          !draftHasOverride($trigger) && draftValuesEqual(value, initial)) {
+      if (!fileKind && kind === "editor" && !draftHasOverride($trigger)
+          && $trigger.attr("data-draft-blank") === "1" && draftHtmlIsBlank(value)) {
+        close();
+        return;
+      }
+      if (!fileKind && !draftHasOverride($trigger) && draftValuesEqual(value, initial)) {
         close();
         return;
       }
@@ -3646,6 +3740,109 @@ window.douTab = {
     hide: hide,
     toggle: toggle,
     destroy: destroy,
+  };
+})(window, jQuery);
+
+/**
+ * 通用折叠（douCollapse）：声明式开合任意面板（表单高级配置、表格行内详情等）。
+ *
+ * 声明式：
+ *   <a href="javascript:;" class="dou-collapse-toggle"
+ *      data-dou-toggle="collapse" data-dou-target="#panel-id"
+ *      aria-expanded="false"><i class="bi bi-chevron-right"></i> 高级配置</a>
+ *   <div id="panel-id" class="dou-collapse">...</div>
+ *   展开态：面板追加 is-open，收起态由 .dou-collapse:not(.is-open) 隐藏（tr 展开后自然还原 table-row）。
+ * 编程式：
+ *   douCollapse.toggle($trigger) / show($trigger) / hide($trigger) / init(root)
+ *
+ * 约定：
+ *   - data-dou-target 为面板 CSS 选择器，省略时回退触发器 href="#id"；
+ *   - 初始开合以服务端是否渲染 is-open 为准，脚本只处理点击与状态同步；
+ *   - 触发器内 i.bi 箭头随开合在 bi-chevron-down / bi-chevron-right 间切换；
+ *   - AJAX 插入的新触发器无需重新绑定（点击走委托），需要同步图标/aria 时调 init(root)。
+ */
+(function (global, $) {
+  "use strict";
+
+  var ICON_OPEN = "bi-chevron-down";
+  var ICON_CLOSED = "bi-chevron-right";
+
+  function resolvePanel($trigger) {
+    var selector = $trigger.attr("data-dou-target");
+    if (!selector) {
+      var href = $trigger.attr("href") || "";
+      selector = href.charAt(0) === "#" ? href : "";
+    }
+    if (!selector) {
+      return $();
+    }
+    var $panel = $(selector);
+    return $panel.length ? $panel.first() : $();
+  }
+
+  function isOpen($panel) {
+    return $panel.hasClass("is-open");
+  }
+
+  function sync($trigger, open) {
+    $trigger.attr("aria-expanded", open ? "true" : "false");
+    var $icon = $trigger.find("i.bi").first();
+    if ($icon.length) {
+      $icon.toggleClass(ICON_OPEN, open).toggleClass(ICON_CLOSED, !open);
+    }
+  }
+
+  function setOpen($trigger, open) {
+    var $panel = resolvePanel($trigger);
+    if (!$panel.length) {
+      return;
+    }
+    $panel.toggleClass("is-open", open);
+    sync($trigger, open);
+  }
+
+  function toggle($trigger) {
+    var $panel = resolvePanel($trigger);
+    if (!$panel.length) {
+      return;
+    }
+    setOpen($trigger, !isOpen($panel));
+  }
+
+  function show($trigger) {
+    setOpen($trigger, true);
+  }
+
+  function hide($trigger) {
+    setOpen($trigger, false);
+  }
+
+  function init(root) {
+    $(root || document)
+      .find('[data-dou-toggle="collapse"]')
+      .each(function () {
+        var $trigger = $(this);
+        var $panel = resolvePanel($trigger);
+        if ($panel.length) {
+          sync($trigger, isOpen($panel));
+        }
+      });
+  }
+
+  $(document).on("click", '[data-dou-toggle="collapse"]', function (e) {
+    e.preventDefault();
+    toggle($(this));
+  });
+
+  $(function () {
+    init(document);
+  });
+
+  global.douCollapse = {
+    toggle: toggle,
+    show: show,
+    hide: hide,
+    init: init,
   };
 })(window, jQuery);
 

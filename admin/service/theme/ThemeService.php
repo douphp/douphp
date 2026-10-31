@@ -185,14 +185,6 @@ class ThemeService extends BaseService
             $repository = new \Dou\Core\Service\Snapshot\SnapshotRepository(ROOT_PATH);
             $repository->deleteByScope('theme', $slug);
         }
-
-        $rows = Theme::selectDataRowsByThemeOrdered($slug);
-        foreach ($rows as $row) {
-            if (!empty($row['image'])) {
-                attachment()->delete($row['image']);
-            }
-        }
-        Theme::deleteDataByTheme($slug);
     }
 
     /**

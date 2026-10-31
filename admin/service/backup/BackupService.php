@@ -230,6 +230,11 @@ class BackupService extends BaseService
             if (!is_array($tables) || !$tables) {
                 throw new DomainException(lang('backup_no_select'), route('admin.backup'));
             }
+            // 新备份独占该文件名：先把同名旧备份（无后缀单卷 / 全部分卷 / zip 包）整体清掉。
+            // 页面上的文件名是打开备份页时生成的，用户沿用旧页面重复提交会与既有备份同名；
+            // 数据变少后本次写出的卷数更少，旧的高号分卷若残留，恢复链会按卷号连续取文件，
+            // 把旧备份的后续卷一并导入，造成新旧数据混装。
+            $this->purgeBackupSet($filename);
             $cache_file = STORAGE_PATH . 'backup/tables.php';
             $content = "<?php\r\n\$data = " . var_export($tables, true) . ";\r\n?>";
             file_put_contents($cache_file, $content, LOCK_EX);
@@ -297,8 +302,13 @@ class BackupService extends BaseService
         if (trim($sqldump)) {
             $sqldump = DbDumpService::headerComment(ROOT_URL, Config::get('site.douphp_version', '')) . $sqldump;
 
-            $needsVolumeSuffix = ((int) $totalsize >= (int) $vol_size) || (int) $volid > 1;
-            $sql_filename = $needsVolumeSuffix
+            // 是否还有下一卷：for 正常跑完时 $nextTableid 会推进到表总数，被字节预算截断时
+            // 停在当前表下标。卷后缀只由这个事实决定，不再用库大小（Data_length +
+            // Index_length，含索引与 InnoDB 空间碎片）估算——数据删减后物理大小仍可能高于
+            // 分卷设定，会把单卷备份硬命名成 _1；而估算偏小又会漏掉后续卷的 _1 起点，
+            // 恢复链从无后缀文件开始就找不到续卷。
+            $hasMore = $nextTableid < $tablenumber;
+            $sql_filename = ((int) $volid > 1 || $hasMore)
                 ? $filename . '_' . $volid . '.sql'
                 : $filename . '.sql';
             $action_filename = $sql_filename;
@@ -308,7 +318,9 @@ class BackupService extends BaseService
             if (!is_writable(STORAGE_PATH . 'backup/')) {
                 throw new DomainException(lang('backup_no_save'), route('admin.backup'));
             }
-            file_put_contents($bakfile, $sqldump);
+            if (file_put_contents($bakfile, $sqldump) === false) {
+                throw new DomainException(lang('backup_no_save'), route('admin.backup'));
+            }
             @chmod($bakfile, 0777);
 
             lang_set('backup_file_success', preg_replace('/d%/Ums', $action_filename, lang('backup_file_success')));
@@ -320,15 +332,36 @@ class BackupService extends BaseService
                 'confirm_url' => '',
             );
         } else {
-            $volFiles = $this->globVolumeFiles($filename, 'sql');
             $targetSql = STORAGE_PATH . 'backup/' . $filename . '.sql';
-            // 仅一卷时去掉 _1；同名 .sql 已存在则先删再 rename，与不分卷路径覆盖语义一致
-            if (count($volFiles) === 1
+
+            // 收尾时 $volid 已是「下一个待写卷号」：本次写出的卷号必然都小于它，
+            // 不小于它的同名分卷只可能来自更早的备份，必须清掉，否则恢复链按卷号
+            // 连续取文件时会把旧卷一起导入（首轮清理失败时的兜底）。
+            foreach ($this->globVolumeFiles($filename, 'sql') as $volFile) {
+                if (preg_match('/_([0-9]+)\.sql$/', basename($volFile), $volMatch)
+                    && (int) $volMatch[1] >= (int) $volid) {
+                    @unlink($volFile);
+                }
+            }
+            $volFiles = $this->globVolumeFiles($filename, 'sql');
+
+            if ((int) $volid === 2 && file_exists($targetSql)) {
+                // 本次写出的是无后缀单卷（首轮已导完全部表）：残余的 _序号 卷都是旧备份
+                foreach ($volFiles as $volFile) {
+                    @unlink($volFile);
+                }
+                $volFiles = array();
+            } elseif ((int) $volid === 2 && count($volFiles) === 1
                 && preg_match('/_1\.sql$/', basename($volFiles[0]))) {
+                // 本次只有一卷（_1）：去掉后缀；同名 .sql 已存在则先删再 rename，与不分卷路径覆盖语义一致
                 if (file_exists($targetSql)) {
                     @unlink($targetSql);
                 }
                 @rename($volFiles[0], $targetSql);
+                $volFiles = array();
+            } elseif ((int) $volid > 2 && file_exists($targetSql)) {
+                // 本次是多卷备份：无后缀同名文件属于更早的备份，删掉避免列表出现两条同名记录
+                @unlink($targetSql);
             }
             @unlink(STORAGE_PATH . 'backup/tables.php');
 
@@ -400,7 +433,7 @@ class BackupService extends BaseService
 
         $showname = $this->isBackupFile(Arr::get($req, 'showname', ''))
             ? $req['showname']
-            : preg_replace('/_([0-9])+/Ums', '', $sql_filename);
+            : preg_replace('/_[0-9]+(\.sql|\.zip)$/i', '$1', $sql_filename);
 
         if (FileHelper::extension($sql_filename) === 'zip') {
             if (Zip::extract(STORAGE_PATH . 'backup/' . $sql_filename, ROOT_PATH, self::$restoreAllowRules, self::$restoreDeniedExtensions)) {
@@ -416,9 +449,17 @@ class BackupService extends BaseService
             }
         }
 
-        preg_match('/(.*)_([0-9])+\.sql$/', $sql_filename, $match);
+        // 分卷名解析：数字组必须整段捕获（原写法 ([0-9])+ 只保留末位数字，X_12.sql
+        // 会被拆成 X_1 + 12，拼出的 X_1_1.sql 不存在，恢复就此误判为完成）。
+        // 未带 volid 时从文件名里的卷号续跑：首卷缺失时列表行可能是 _2，强行从 _1
+        // 找起同样会「找不到就算完成」，结果一卷都没导入。
+        $match = array();
+        $volid = 0;
+        preg_match('/^(.+)_([0-9]+)\.sql$/i', $sql_filename, $match);
         if ($match) {
-            $volid = !empty($req['volid']) ? $req['volid'] : 1;
+            $volid = isset($req['volid']) && (int) $req['volid'] > 0
+                ? (int) $req['volid']
+                : (int) $match[2];
             $sql_filename = $match[1] . '_' . $volid . '.sql';
         }
 
@@ -427,8 +468,9 @@ class BackupService extends BaseService
 
         if ($match) {
             if (file_exists($file_path)) {
-                if ((int) $volid === 1) {
-                    // 分卷链起点：清空上一轮恢复遗留的失败累计
+                // 分卷链起点（点开列表行的那一次请求不带 volid）：清空上一轮恢复遗留的失败累计。
+                // 不能再用 volid === 1 判定：首卷丢失时列表行可能是 _2，从 _2 起恢复同样属于链起点。
+                if (empty($req['volid'])) {
                     Session::del('backup_restore_failed');
                 }
                 $failed = 0;
@@ -580,6 +622,34 @@ class BackupService extends BaseService
         }
 
         return $targets;
+    }
+
+    /**
+     * 清理同名旧备份（无后缀单卷 / 全部分卷 / zip 包），让本次备份独占该文件名。
+     *
+     * 备份文件名既可由页面输入框指定，也会在用户沿用旧备份页表单重复提交时保持不变；
+     * 数据变少后本次写出的卷数可能少于旧备份，旧的高号分卷若不清掉，恢复链会按卷号
+     * 连续取文件，把旧备份的后续卷一并导入（表现为「恢复后出现早已删除的数据」）。
+     *
+     * @param string $filename 不含扩展名的备份文件名
+     * @return void
+     */
+    protected function purgeBackupSet($filename)
+    {
+        $filename = (string) $filename;
+        if ($filename === '') {
+            return;
+        }
+
+        foreach (array($filename . '.sql', $filename . '.zip') as $name) {
+            $file = STORAGE_PATH . 'backup/' . $name;
+            if (is_file($file)) {
+                @unlink($file);
+            }
+        }
+        foreach ($this->globVolumeFiles($filename, 'sql') as $volume) {
+            @unlink($volume);
+        }
     }
 
     /**

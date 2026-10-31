@@ -583,6 +583,7 @@ class DataService extends BaseService
         if (!$row) {
             throw new DomainException(lang('illegal'), route('admin.data'));
         }
+        $oldImageNumber = isset($row['image']) ? (string) $row['image'] : '';
 
         // 已入库记录的归属模板以库中值为准（小程序分组记录存的是 miniprogram_code）
         $theme = (string) $row['theme'] !== '' ? (string) $row['theme'] : $this->themeForGroup($row['data_group']);
@@ -594,6 +595,7 @@ class DataService extends BaseService
             attachment()->renameStoredFile($row['image'], $code);
         }
         $image = attachment()->store('data', $id, UploadedFile::fromGlobals('image'), 'main', AttachmentUploadOptions::create()->withBasename($code)->withDirectory($this->uploadDirectory($row['data_group'], $theme))->withUploader('admin', $adminId));
+        $deleteImage = ($image === '' && !empty($post['image_delete']));
 
         $updateData = array(
             'name' => $name,
@@ -604,6 +606,8 @@ class DataService extends BaseService
         );
         if ($image) {
             $updateData['image'] = $image;
+        } elseif ($deleteImage) {
+            $updateData['image'] = '';
         }
 
         try {
@@ -617,6 +621,9 @@ class DataService extends BaseService
         }
 
         $this->languageDraftPurge($languagePlan, $id);
+        if ($deleteImage && $oldImageNumber !== '') {
+            attachment()->delete($oldImageNumber);
+        }
         $backUrl = $this->backUrl($row['data_group'], $row['data_item']);
         audit()->writeAdminLog($adminId, AdminLogAction::UPDATE, 1, (string) $name);
         return $backUrl;
@@ -647,7 +654,6 @@ class DataService extends BaseService
             throw new DomainException(lang('illegal'), route('admin.data'));
         }
         attachment()->delete($data['image']);
-        language()->deleteLang('data', (int) $id);
         $backUrl = $this->backUrl($data['data_group'], $data['data_item']);
         audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::DELETE, 1, (string) $data['name']);
         Data::deleteById((int) $id);

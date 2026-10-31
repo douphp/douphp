@@ -74,14 +74,14 @@
         <div class="buy-box">
          <form action="{url link='order.cart.store'}" method="post">
           <!-- {if $features.attribute && $product.attribute_list} -->
-          <div class="attribute-list" data-price="{$product.price}" data-sale_price="{$product.sale_price.format}">
+          <div class="attribute-list" data-price="{$product.price}" data-sale_price="{$product.sale_price.format}" data-decimals="{$site.currency_decimal}">
            <!-- {foreach from=$product.attribute_list item=attribute} -->
            <dl>
             <dt>{$attribute.name}</dt>
             <dd class="radio-box">
              <!-- {foreach from=$attribute.value_list name=value_list item=item} -->
              <label title="{$item.remark}" for="att_{$attribute.att_id}_{$item.id}">
-              <input type="radio" name="att_{$attribute.att_id}" id="att_{$attribute.att_id}_{$item.id}" value="{$item.id}" {if $item@first} checked="true" {/if} data-money="{$item.price_change}">
+              <input type="radio" name="att_{$attribute.att_id}" id="att_{$attribute.att_id}_{$item.id}" value="{$item.id}" {if $item@first} checked="true" {/if} data-money="{$item.price_change_display}">
               <span><!-- {if $item.image} --><i><img src="{$item.image}" /></i><!-- {/if} --><em>{$item.value}{$item.price_change_format}</em></span> </label>
              <!-- {/foreach} -->
             </dd>

@@ -66,6 +66,25 @@ class ProductController extends BaseController
     }
 
     /**
+     * 属性区 HTML：属性模块是可选模块，缺失时整体降级为空串。
+     *
+     * @param string $module
+     * @param int|string $categoryId
+     * @param int|string $itemId
+     * @param string $mode create|edit
+     * @return string
+     */
+    private function buildAttributeBox($module, $categoryId, $itemId, $mode)
+    {
+        if (!Module::has('attribute') || !class_exists('Dou\\Admin\\Service\\Attribute\\AttributeService')) {
+            return '';
+        }
+
+        return app('Dou\\Admin\\Service\\Attribute\\AttributeService')
+            ->buildBoxHtml($module, $categoryId, $itemId, $mode);
+    }
+
+    /**
      * 商品列表
      *
      * @param Request $request
@@ -130,6 +149,8 @@ class ProductController extends BaseController
             'btn_lang' => $languageForm['btn_lang'],
             'lang_drafts' => $languageForm['lang_drafts'],
             'metadata_form' => $this->metadataFormBuilder->build('product', '', 0),
+            'attribute_box' => $this->buildAttributeBox('product', 0, 0, 'create'),
+            'attribute_mode' => 'create',
             'data_list' => $dataList,
         ]);
     }
@@ -171,11 +192,6 @@ class ProductController extends BaseController
             throw new DomainException(lang('item_not_exist'), route('admin.product'));
         }
 
-        $attribute = Module::make('attribute');
-        $attributeList = $attribute
-            ? $attribute->getAttributeList('product', $product['category_id'], $product['id'], 'html')
-            : '';
-
         $dataList = data()->query('product', (string) $id);
 
         $userLevelOption = Module::make('user.user_level_option_builder');
@@ -197,7 +213,8 @@ class ProductController extends BaseController
             'btn_lang' => $languageForm['btn_lang'],
             'lang_drafts' => $languageForm['lang_drafts'],
             'metadata_form' => $this->metadataFormBuilder->build('product', isset($product['metadata']) ? $product['metadata'] : '', $id),
-            'attribute_list' => $attributeList,
+            'attribute_box' => $this->buildAttributeBox('product', $product['category_id'], $id, 'edit'),
+            'attribute_mode' => 'edit',
             'data_list' => $dataList,
         ]);
     }

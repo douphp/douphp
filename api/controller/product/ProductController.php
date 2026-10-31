@@ -19,6 +19,7 @@ use Dou\Core\Facade\RouteId;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Foundation\Extension\Module;
+use Dou\Core\Service\Coupon\CouponService as CouponCore;
 use Dou\Core\Support\Util;
 use Dou\Core\Web\Http\ApiResponse;
 use Dou\Core\Web\Http\Request;
@@ -107,7 +108,11 @@ class ProductController extends BaseController
 
         $coupon = Module::make('coupon');
         if ($coupon) {
-            $data['coupon_list'] = $coupon->getCouponList((int) auth('api')->id());
+            $data['coupon_list'] = $coupon->getCouponList((int) auth('api')->id(), array(
+                'module' => 'product',
+                'item_id' => isset($product['id']) ? (int) $product['id'] : 0,
+                'category_ids' => CouponCore::categoryPath(isset($product['category_id']) ? (int) $product['category_id'] : 0),
+            ));
         }
 
         return ApiResponse::success($data);

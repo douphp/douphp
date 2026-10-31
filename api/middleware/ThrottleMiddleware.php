@@ -47,12 +47,22 @@ class ThrottleMiddleware extends AbstractThrottleMiddleware
         'consultation/store' => array('max' => 5, 'window' => 300),
         'email/store' => array('max' => 5, 'window' => 300),
 
+        // 评论发表与评论图片上传：会员身份写接口同样按 IP 收敛，防批量灌水与存储滥用
+        'comment/user/store' => array('max' => 10, 'window' => 60),
+        'comment/user/filebox' => array('max' => 20, 'window' => 60),
+
         // 防伪码查询放宽（扫多个 SN 的合法场景），但收敛批量枚举。
         'sn/search' => array('max' => 20, 'window' => 60),
 
         // LLM 成本端点：防滥用刷量。
         'chat/stream' => array('max' => 20, 'window' => 60),
         'chat/new_session' => array('max' => 10, 'window' => 60),
+
+        // 余额核销 / 付款码 / 提现申请：防止高频扣款与枚举
+        'money/work/use' => array('max' => 30, 'window' => 60),
+        'money/work/search' => array('max' => 60, 'window' => 60),
+        'money/user/pay_code' => array('max' => 30, 'window' => 60),
+        'withdraw/user/apply_post' => array('max' => 5, 'window' => 300),
     );
 
     /**

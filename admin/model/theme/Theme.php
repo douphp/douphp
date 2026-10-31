@@ -60,26 +60,6 @@ class Theme extends Model
     }
 
     /**
-     * @param string $slug
-     * @return array
-     */
-    public static function selectDataRowsByThemeOrdered($slug)
-    {
-        $rows = DB::table('data')->where('theme', $slug)->order('sort ASC, id ASC')->select();
-
-        return is_array($rows) ? $rows : array();
-    }
-
-    /**
-     * @param string $slug
-     * @return void
-     */
-    public static function deleteDataByTheme($slug)
-    {
-        DB::table('data')->where('theme', $slug)->delete();
-    }
-
-    /**
      * @return bool 是否存在 theme_support_module 参数行
      */
     public static function supportModuleParameterExists()

@@ -216,6 +216,7 @@ class MiniprogramNavService extends BaseService
         $adminId = (int) auth('admin')->id();
         $languagePlan = $this->languageDraftBegin('nav', $data, $id, $adminId);
         $new_icon = attachment()->store('nav', $id, UploadedFile::fromGlobals('icon'), 'main', AttachmentUploadOptions::create()->withUploader('admin', $adminId));
+        $deleteIcon = ($new_icon === '' && !empty($data['icon_delete']));
         $update_data = array(
             'name' => $data['name'],
             'status' => isset($data['status']) ? Num::toIntOrZero($data['status']) : 0,
@@ -223,6 +224,8 @@ class MiniprogramNavService extends BaseService
         );
         if ($new_icon) {
             $update_data['icon'] = $new_icon;
+        } elseif ($deleteIcon) {
+            $update_data['icon'] = '';
         }
         $navMenuRaw = isset($data['nav_menu']) ? trim((string) $data['nav_menu']) : '';
         if ($navMenuRaw !== '') {
@@ -238,6 +241,8 @@ class MiniprogramNavService extends BaseService
         if (!$model) {
             throw new DomainException(lang('illegal'), route('admin.miniprogram.nav'));
         }
+        $modelAttributes = $model->getAttributes();
+        $oldIconNumber = isset($modelAttributes['icon']) ? (string) $modelAttributes['icon'] : '';
         try {
             DB::transaction(function () use ($model, $update_data, $id, $adminId, $languagePlan) {
                 $model->fill($update_data, 'update')->save();
@@ -249,6 +254,9 @@ class MiniprogramNavService extends BaseService
         }
 
         $this->languageDraftPurge($languagePlan, $id);
+        if ($deleteIcon && $oldIconNumber !== '') {
+            attachment()->delete($oldIconNumber);
+        }
         $this->miniprogramService->syncMiniprogramConfig();
         audit()->writeAdminLog($adminId, AdminLogAction::UPDATE, 1, (string) $data['name'], 'miniprogram_nav');
     }
@@ -272,7 +280,6 @@ class MiniprogramNavService extends BaseService
         }
         $back = route('admin.miniprogram.nav', array(), array('query' => array('type' => $nav['type'])));
         if (isset($post['confirm'])) {
-            language()->deleteLang('nav', $id);
             audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::DELETE, 1, (string) $nav['name'], 'miniprogram_nav');
             MiniprogramNav::destroy($id);
             $this->miniprogramService->syncMiniprogramConfig();

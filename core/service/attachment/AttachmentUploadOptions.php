@@ -39,6 +39,7 @@ if (!defined('IN_DOUCO')) {
  *   allowExtensions- 允许扩展名（逗号分隔），空表示走 disk 配置默认
  *   uploadMaxKb    - 上传字节上限（KB），0 表示走 disk 默认
  *   imageQuality   - 图片输出质量 0-100，0 表示走 disk 默认
+ *   languagePack   - 语言包名；非空时磁盘 root 插入语言目录（images/{pack}/…）
  */
 class AttachmentUploadOptions
 {
@@ -74,6 +75,9 @@ class AttachmentUploadOptions
 
     /** @var int */
     private $imageQuality = 0;
+
+    /** @var string */
+    private $languagePack = '';
 
     /** @var string */
     private $businessField = '';
@@ -224,6 +228,27 @@ class AttachmentUploadOptions
         $this->imageQuality = (int) $quality;
 
         return $this;
+    }
+
+    /**
+     * 指定语言包：图片落到 images/{pack}/ 下；空串保持主目录。
+     *
+     * @param string $pack
+     * @return $this
+     */
+    public function withLanguagePack($pack)
+    {
+        $this->languagePack = (string) $pack;
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getLanguagePack()
+    {
+        return $this->languagePack;
     }
 
     /**

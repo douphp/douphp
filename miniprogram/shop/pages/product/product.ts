@@ -216,7 +216,13 @@ Page({
           dataBox = data.comment_list
         }
 
-        that.setData({ comment_list: dataBox, loadpage: false })
+        // 后端返回真实页码/总页数时按页数收敛，避免空页后再多发一次请求
+        const patch: Record<string, any> = { comment_list: dataBox, loadpage: false }
+        if (data.page_count && data.page && data.page >= data.page_count) {
+          patch.nomore = true
+        }
+
+        that.setData(patch)
       })
       .catch(function (err) {
         that.setData({ loadpage: false })

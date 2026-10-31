@@ -127,6 +127,38 @@
         </div>
        </div>
        <div class="form-item">
+        <div class="form-label">{$lang.language_currency}</div>
+        <div class="input-block">
+         <select class="select" name="currency_code" id="currencyCode" data-base-code="{$currency_base.code}" onchange="douCurrencyChange()">
+          <option value="">{$lang.language_currency_follow_base}（{$currency_base.code} {$currency_base.symbol}）</option>
+          <!-- {foreach from=$currency_list item=currency} -->
+          <option value="{$currency.value}" data-decimals="{$currency.decimals}"{if $language.currency_code eq $currency.value} selected="selected"{/if}>{$currency.name}</option>
+          <!-- {/foreach} -->
+         </select>
+         <p class="cue">{$lang.language_currency_cue}</p>
+        </div>
+       </div>
+       <div id="currencyIndependentFields"{if !$language.currency_enabled} class="hidden"{/if}>
+        <div class="form-item">
+         <div class="form-label">{$lang.language_currency_rate}</div>
+         <div class="input-block">
+          <input type="text" name="currency_rate" id="currencyRate" value="{$language.currency_rate}" size="20" class="input" />
+          <p class="cue">{$lang.language_currency_rate_cue}</p>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.language_currency_decimal}</div>
+         <div class="input-block">
+          <select class="select" name="currency_decimal" id="currencyDecimal">
+           <!-- {foreach from=$currency_decimal_list item=decimal} -->
+           <option value="{$decimal}"{if $language.currency_decimal eq $decimal} selected="selected"{/if}>{$decimal}</option>
+           <!-- {/foreach} -->
+          </select>
+          <p class="cue">{$lang.language_currency_decimal_cue}</p>
+         </div>
+        </div>
+       </div>
+       <div class="form-item">
         <div class="form-label">{$lang.sort}</div>
         <div class="input-block"><input type="text" name="sort" value="{if $language.sort}{$language.sort}{else}50{/if}" size="5" class="input" /></div>
        </div>
@@ -150,5 +182,44 @@
   </div>
  {include file="inc/footer.tpl"}
  </div>
+ <script type="text/javascript">
+ {literal}
+ function douCurrencyChange() {
+     var select = document.getElementById('currencyCode');
+     if (!select) {
+         return;
+     }
+     var option = select.options[select.selectedIndex];
+     var baseCode = select.getAttribute('data-base-code') || '';
+     var maxDecimals = option ? parseInt(option.getAttribute('data-decimals'), 10) : NaN;
+     if (isNaN(maxDecimals)) {
+         maxDecimals = 2;
+     }
+     // 未启用独立货币（留空或等于基准币）时完全跟随基准币，汇率与价格小数位数整组隐藏
+     var independent = select.value !== '' && select.value !== baseCode;
+     var fields = document.getElementById('currencyIndependentFields');
+     if (fields) {
+         var className = ' ' + fields.className + ' ';
+         if (!independent && className.indexOf(' hidden ') === -1) {
+             fields.className = fields.className === '' ? 'hidden' : fields.className + ' hidden';
+         } else if (independent && className.indexOf(' hidden ') !== -1) {
+             fields.className = className.replace(' hidden ', ' ').replace(/^\s+|\s+$/g, '');
+         }
+     }
+
+     var decimalSelect = document.getElementById('currencyDecimal');
+     if (decimalSelect) {
+         for (var i = 0; i < decimalSelect.options.length; i++) {
+             var value = parseInt(decimalSelect.options[i].value, 10);
+             decimalSelect.options[i].disabled = value > maxDecimals;
+         }
+         if (parseInt(decimalSelect.value, 10) > maxDecimals) {
+             decimalSelect.value = String(maxDecimals);
+         }
+     }
+ }
+ douCurrencyChange();
+ {/literal}
+ </script>
 </body>
 </html>
