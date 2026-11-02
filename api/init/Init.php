@@ -18,8 +18,6 @@ use Dou\Api\Facade\Auth;
 use Dou\Api\Service\Miniprogram\MiniprogramCatalogQuery;
 use Dou\Core\Bootstrap\SiteBootstrap;
 use Dou\Core\Bootstrap\SystemBootstrap;
-use Dou\Core\Contract\LanguageContract;
-use Dou\Core\Contract\PluginServiceContract;
 use Dou\Core\Foundation\Api\ApiCodes;
 use Dou\Core\Foundation\Auth\GuestGuard;
 use Dou\Core\Foundation\Configuration\Config;
@@ -161,9 +159,8 @@ class Init
 
         $container = Container::getInstance();
 
-        // 语言契约（Provider 解析；features 尚未就绪时落到 Null 占位，下方 features 设置后再 make）
+        // 语言契约（Provider 惰性工厂：features 就绪后下方重注册，首次 language() 调用才解析）
         ProviderRegistry::registerAll($container);
-        $container->instance(LanguageContract::class, $container->make(LanguageContract::class));
 
         $this->instantiateCommonFactories();
 
@@ -202,15 +199,11 @@ class Init
         // 会员衍生模块依赖检查（清单由 Module::userDerivedFeatures() 提供；阻断由 Router 闸住，本处仅记录警告）。
         $this->warnFeaturesRequireUser();
 
-        // features.language 此刻已生效，重新解析语言契约：开启且模块在 → 真实现；否则保留 Null
-        // bootCore 早期已 instance() 锁了 Null 占位（且按容器「instance 覆盖 factory」语义清掉了原 factory），
-        // 这里必须重新跑 ProviderRegistry 注册回 factory，才能让 make() 基于最新 features 拉到真实现。
-        // PluginServiceContract 同理。
+        // features.language 此刻已生效：重注册一次 Provider，工厂闭包按最新 features 判定
+        // 真实现还是 Null；不在此处 make()，首次真正调用 language() / plugin() 时才解析。
         ProviderRegistry::registerAll($container);
-        $container->instance(LanguageContract::class, $container->make(LanguageContract::class));
 
         // 通用 Domain 服务
-        $container->instance(PluginServiceContract::class, $container->make(PluginServiceContract::class));
         $container->instance(MiniprogramNavigationBuilder::class, new MiniprogramNavigationBuilder());
 
         // API 端 ViewModel 注册容器（无终止提示页；message() 解析到 NullMessageResponder）

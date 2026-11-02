@@ -171,9 +171,10 @@ class AdminMenuRegistry
     /**
      * 侧栏节点定义（按渲染节分组）。
      *
-     * 节序即渲染序：top（首页）→ main（基础三项）→ item（全能内容）→ bot（底部族）。
+     * 节序即渲染序：top（首页）→ main（基础三项）→ bot（底部族）。
      * 节点匹配域：link 推导主域 + 显式 'match' 附加兼管域（见 AdminNavResolver::normalizeNode）。
-     * 栏目 / 单页 / 页面树 / 商品分类为动态节点，由 WorkspaceBuilder 生成，不进本表。
+     * 栏目 / 单页 / 页面树为动态节点，由 WorkspaceBuilder 生成；栏目模块的高亮节点由
+     * {@see AdminNavResolver::moduleSidebarNodes()} 按模块账本派生，均不进本表。
      *
      * @return array<string, array<string, array>>
      */
@@ -208,18 +209,6 @@ class AdminMenuRegistry
                 'page' => array(
                     'id' => 'page', 'name' => 'menu_page', 'icon' => 'page',
                     'link' => 'admin.page', 'permission' => 'page',
-                ),
-            ),
-            'item' => array(
-                'item_category' => array(
-                    'id' => 'item_category', 'name' => 'item_category', 'icon' => 'article_cat',
-                    'link' => 'admin.item.category',
-                    'when' => array('feature' => 'item'),
-                ),
-                'item' => array(
-                    'id' => 'item', 'name' => 'item', 'icon' => 'article',
-                    'link' => 'admin.item',
-                    'when' => array('feature' => 'item'), 'omit_when' => 'item_menu',
                 ),
             ),
             'bot' => array(

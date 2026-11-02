@@ -27,7 +27,6 @@ use Dou\Admin\Service\Workspace\UpdateBadgeBuilder;
 use Dou\Admin\Service\Workspace\WorkspaceBuilder;
 use Dou\Core\Bootstrap\SiteBootstrap;
 use Dou\Core\Bootstrap\SystemBootstrap;
-use Dou\Core\Contract\PluginServiceContract;
 use Dou\Core\Facade\Session;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Container\Container;
@@ -142,12 +141,11 @@ class Init
         $adminAuth = new AuthService();
         $this->registerAuthGuard('admin', $adminAuth);
         ProviderRegistry::registerAll($container);
-        $adminLanguage = $container->make(AdminLanguageContract::class);
-        $container->instance(AdminLanguageContract::class, $adminLanguage);
-        $container->instance(\Dou\Core\Contract\LanguageContract::class, $adminLanguage);
+        // 语言契约改为别名：解析推迟到首次 language() 调用；
+        // 此处不 make()，避免启动期加载模块类（模块滞后升级时是声明期致命错误，无法捕获）。
+        $container->alias(\Dou\Core\Contract\LanguageContract::class, AdminLanguageContract::class);
 
         // 通用 Domain 服务
-        $container->instance(PluginServiceContract::class, $container->make(PluginServiceContract::class));
         $container->instance(MiniprogramNavigationBuilder::class, new MiniprogramNavigationBuilder());
 
         // 后台「提示页 + 跳转 + 终止」实现
@@ -246,17 +244,10 @@ class Init
         // 会员衍生模块依赖检查（清单由 Module::userDerivedFeatures() 提供；阻断由 Router 闸住，本处仅记录警告）。
         $this->warnFeaturesRequireUser();
 
-        // features.language 此刻已生效，重新解析后台语言契约：开启且模块在 → 真实现；否则保留 Null
-        // Init.bootCore 早期已 instance() 锁了 Null 占位（且按容器「instance 覆盖 factory」语义清掉了原 factory），
-        // 这里必须重新跑一次 ProviderRegistry 注册回 factory，才能让 make() 基于最新 features 拉到真实现。
-        // 重注册 factory 也会一并清掉 instantiateCoreObjects 阶段 instance() 锁住的 PluginServiceContract 单例，
-        // 因此随即把它重新 make + instance 回单例，避免 plugin() 之后每次走 factory 生成新实例。
+        // 语言 / 插件契约均为惰性工厂：features 生效后重注册一次，工厂闭包按最新 features
+        // 判定真实现还是 Null；此处不做 make()，首次真正调用 language() / plugin() 时才解析。
         $container = Container::getInstance();
         ProviderRegistry::registerAll($container);
-        $adminLanguage = $container->make(AdminLanguageContract::class);
-        $container->instance(AdminLanguageContract::class, $adminLanguage);
-        $container->instance(\Dou\Core\Contract\LanguageContract::class, $adminLanguage);
-        $container->instance(PluginServiceContract::class, $container->make(PluginServiceContract::class));
 
         // 主题图片尺寸配置：先于语言包读取——lang common.lang.php 依赖 $_SETTING['theme'] 拼缩略图/LOGO cue；
         // 视图变量 $setting.theme 仍由 ViewVars 在语言包就绪后装配（自动文案依赖 lang()）
@@ -273,12 +264,17 @@ class Init
         $container->instance(NavCategorySyncService::class, new NavCategorySyncService());
         $container->instance(CacheClearService::class, new CacheClearService());
 
-        // 会员模块（类由云模块安装到 core/service/user/，未安装时跳过）
+        // 会员模块（类由云模块安装到 core/service/user/）：惰性工厂，首次解析时才加载模块类；
+        // 后台首页等不涉及会员的页面不再因模块版本较旧而中断（与 plugin / language 同策略）。
         if (!empty($features['user'])) {
-            $userService = \Dou\Core\Foundation\Extension\Module::make('user');
-            if ($userService !== null) {
-                $container->instance(\Dou\Core\Service\User\UserService::class, $userService);
-            }
+            $container->factory(\Dou\Core\Service\User\UserService::class, function ($c) {
+                unset($c);
+                $userService = \Dou\Core\Foundation\Extension\Module::make('user');
+                if ($userService === null) {
+                    throw new \RuntimeException('User module service is unavailable.');
+                }
+                return $userService;
+            });
         }
 
         // 短信服务（仅在 core/library/sms 存在时给模板打开短信验证码开关，
@@ -345,7 +341,6 @@ class Init
         $workspaceRequest = $container->make(\Dou\Core\Web\Http\Request::class);
         $engine->assign('workspace', $container->make(WorkspaceBuilder::class)->build(
             (string) $workspaceRequest->routeModule(),
-            (string) $workspaceRequest->route('category_id', ''),
             (string) $workspaceRequest->route('id', ''),
             // 预置模块详情 slug：仅 module=preinstall 时被侧栏预置项消费（builder 内守卫）
             (string) $workspaceRequest->route('slug', '')

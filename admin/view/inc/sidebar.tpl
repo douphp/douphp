@@ -21,18 +21,6 @@
    <li{if $nav.sidebar.page.is_active} class="cur"{/if} data-id="page"><a href="{url link='admin.page'}"><i class="{$workspace.menu_icon_map.page}"></i><em>{$lang.menu_page}</em></a></li>
    <!-- {/if} -->
   </ul>
-  <!-- {if $features.item} 全能内容模块判断 -->
-  <ul>
-   <li{if $nav.sidebar.item_category.is_active} class="cur"{/if} data-id="item_category"><a href="{url link='admin.item.category'}"><i class="{$workspace.menu_icon_map.article_cat}"></i><em>{$lang.item_category}</em></a></li>
-   <!-- {if !$workspace.menu_item} -->
-   <li{if $nav.sidebar.item.is_active} class="cur"{/if} data-id="item"><a href="{url link='admin.item'}"><i class="{$workspace.menu_icon_map.article}"></i><em>{$lang.item}</em></a></li>
-   <!-- {else} -->
-   <!-- {foreach from=$workspace.menu_item item=menu} -->
-   <li{if $menu.is_active} class="cur"{/if} data-id="item"><a href="{$menu.url}"><i class="{$workspace.menu_icon_map.article}"></i><em>{$menu.name}</em></a></li>
-   <!-- {/foreach} -->
-   <!-- {/if} -->
-  </ul>
-  <!-- {/if} 全能内容模块判断 -->
   <!-- {if !$workspace.menu_column && !$workspace.menu_single} 如果没有模块则调用单页面菜单 -->
   <!-- {foreach from=$workspace.menu_simple item=menu} -->
   <ul>
@@ -46,7 +34,6 @@
   <!-- {if $workspace.menu_column} -->
   <ul>
    <!-- {foreach from=$workspace.menu_column item=menu} -->
-   <!-- {if $menu.name neq 'item'} -->
    <!-- {if $menu.lang} -->
    <li class="{if $nav.sidebar[$menu.name].is_active}cur {/if}has-sub" data-id="{$menu.name}"><a href="{$menu.url}"><i class="{$menu.icon}"></i><em>{$menu.lang}</em></a>
     <!-- {if $menu.lang_category} -->
@@ -58,7 +45,6 @@
    </li>
    <!-- {elseif $menu.lang_category} -->
    <li data-id="{$menu.name_category}"><a href="{$menu.url_category}"><i class="{$menu.icon_category}"></i><em>{$menu.lang_category}</em></a></li>
-   <!-- {/if} -->
    <!-- {/if} -->
    <!-- {/foreach} -->
   </ul>

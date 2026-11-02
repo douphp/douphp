@@ -21,7 +21,6 @@ use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Extension\Module;
 use Dou\Core\Service\BaseService;
 use Dou\Core\Support\MenuIconMap;
-use Dou\Core\Support\Util;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
@@ -36,7 +35,7 @@ if (!defined('IN_DOUCO')) {
  * 活跃态协议（与 $nav 契约配合）：
  *   - 栏目 / 单页节点（menu_column / menu_single）：不携带活跃态，侧栏按模块短名索引
  *     中央解析结果 $nav.sidebar[<模块名>]，保证控制器层 override 生效；
- *   - 商品分类行（menu_item）与页面树（menu_simple）：记录驱动动态节点，路由阶段无法解析，
+ *   - 页面树（menu_simple）：记录驱动动态节点，路由阶段无法解析，
  *     由本类在枚举的同一次遍历中就地计算 is_active（$nav.sidebar 不含这些逐行 id）；
  *   - 预置模块行（menu_preinstall）：同路由名不同 slug 的路由参数无法被 $nav.sidebar 区分，
  *     同样由本类按当前 slug 就地计算 is_active；header 槽位（header_preinstall，如 language）
@@ -70,14 +69,13 @@ class WorkspaceBuilder extends BaseService
      * 本服务自身不读 Request。
      *
      * @param string $currentModule 当前路由 module（dispatch 之前可传空串）
-     * @param string $catId 当前 URL 选中的商品分类 category_id（查询参数，由调用方从 Request 取好传入，用于侧栏高亮）
      * @param string $pageId 当前 URL 选中的单页 id（路由参数，仅 module=page 时消费，用于页面树高亮）
      * @param string $preinstallSlug 当前 URL 选中的预置模块 slug（路由参数，仅 preinstall 详情页消费，用于预置项高亮）
      * @return array
      */
-    public function build($currentModule = '', $catId = '', $pageId = '', $preinstallSlug = '')
+    public function build($currentModule = '', $pageId = '', $preinstallSlug = '')
     {
-        $memoKey = $currentModule . "\0" . $catId . "\0" . $pageId . "\0" . $preinstallSlug;
+        $memoKey = $currentModule . "\0" . $pageId . "\0" . $preinstallSlug;
         if (isset(self::$buildMemo[$memoKey])) {
             return self::$buildMemo[$memoKey];
         }
@@ -98,7 +96,6 @@ class WorkspaceBuilder extends BaseService
             ),
             $this->adminThemeFlags()
         );
-        $workspace['menu_item'] = $this->buildItemCategoryMenu((string) $currentModule, (string) $catId);
         $workspace['menu_permission'] = $this->buildBasicMenuPermission();
         // 预置项高亮仅认预置详情路由（plugin 等模块也有 slug 参数，不参与高亮）
         $workspace['menu_preinstall'] = $this->buildPreinstallMenu($currentModule === 'preinstall' ? (string) $preinstallSlug : '');
@@ -185,6 +182,10 @@ class WorkspaceBuilder extends BaseService
     /**
      * 单模块侧栏角标：目前只有评论需要「管理员未读」计数，其余模块返回 0（不渲染）。
      *
+     * 后台每个页面都会走这里，因此只认 method_exists 的探测结果：
+     * comment 模块版本较旧（类已在磁盘、方法还没下发）时角标静默归零，
+     * 不允许装饰性数据把整个后台外壳拖垮。
+     *
      * @param string $module
      * @return int
      */
@@ -195,8 +196,11 @@ class WorkspaceBuilder extends BaseService
         }
 
         $comment = Module::make('comment');
+        if ($comment === null || !method_exists($comment, 'unreadCount')) {
+            return 0;
+        }
 
-        return $comment !== null ? (int) $comment->unreadCount() : 0;
+        return (int) $comment->unreadCount();
     }
 
     /**
@@ -252,46 +256,6 @@ class WorkspaceBuilder extends BaseService
         }
 
         return $menuPage;
-    }
-
-    /**
-     * 商品分类工作台条目。
-     *
-     * @param string $currentModule 当前路由 module，由 build() 传入
-     * @param string $catId 当前 URL 选中的商品分类 category_id，由 build() 传入（侧栏高亮判定）
-     * @return array
-     */
-    private function buildItemCategoryMenu($currentModule, $catId = '')
-    {
-        $categoryList = array();
-
-        if (Config::get('features.item', false)) {
-            $rows = DB::table('item_category')
-                ->where('parent_id', 0)
-                ->order('sort ASC, id ASC')
-                ->select();
-            foreach ((array) $rows as $row) {
-                $row = language()->langBox($row, 'item_category', 'name');
-                $rowCatId = isset($row['id']) ? $row['id'] : 0;
-                $addTime = Util::toTimestamp(isset($row['created_at']) ? $row['created_at'] : null);
-
-                $isActive = $rowCatId == $catId && $currentModule == 'item' ? true : false;
-
-                $categoryList[] = array(
-                    'category_id' => $rowCatId,
-                    'name' => isset($row['name']) ? $row['name'] : '',
-                    'icon' => attachment()->url(isset($row['icon']) ? $row['icon'] : ''),
-                    'slug' => isset($row['slug']) ? $row['slug'] : '',
-                    // is_active 为 $nav 契约字段；cur 为迁移期旧字段（模板切换后移除）
-                    'cur' => $isActive,
-                    'is_active' => $isActive,
-                    'created_at' => $addTime !== null ? date('Y-m-d', $addTime) : '',
-                    'url' => route('admin.item', array('category_id' => $rowCatId)),
-                );
-            }
-        }
-
-        return $categoryList;
     }
 
     /**

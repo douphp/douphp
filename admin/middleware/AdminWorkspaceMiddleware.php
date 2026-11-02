@@ -84,7 +84,6 @@ class AdminWorkspaceMiddleware implements MiddlewareInterface
         $engine->assign('global_admin', $admin);
         $engine->assign('workspace', $this->workspaceBuilder->build(
             (string) $request->routeModule(),
-            (string) $request->route('category_id', ''),
             // 单页编辑 id：仅 module=page 时被页面树消费（builder 内守卫）
             (string) $request->route('id', ''),
             // 预置模块详情 slug：仅 module=preinstall 时被侧栏预置项消费（builder 内守卫）
