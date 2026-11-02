@@ -69,6 +69,7 @@ class NavController extends BaseController
     {
         $defaultData = $this->navService->buildNavDefaultData();
         $listData = $this->navService->buildNavListData('middle');
+        $langFormState = $this->languageDraft()->buildFormState('nav', '');
         return $this->view('nav.htm', [
             'ur_here' => lang('nav'),
             'page_actions' => array(
@@ -78,8 +79,8 @@ class NavController extends BaseController
             'nav_info' => $defaultData['nav_info'],
             'catalog_list' => $this->navService->buildNavTargetList('', '', 'nav'),
             'nav_list' => $listData['nav_list'],
-            'btn_lang' => ($this->languageDraft()->buildFormState('nav', ''))['btn_lang'],
-            'lang_drafts' => ($this->languageDraft()->buildFormState('nav', ''))['lang_drafts'],
+            'btn_lang' => $langFormState['btn_lang'],
+            'lang_drafts' => $langFormState['lang_drafts'],
         ]);
     }
 
@@ -117,6 +118,7 @@ class NavController extends BaseController
         }
 
         $listData = $this->navService->buildNavListData($navInfo['type'], (string) $id);
+        $langFormState = $this->languageDraft()->buildFormState('nav', $id);
         return $this->view('nav.htm', [
             'ur_here' => lang('nav'),
             'page_actions' => array(
@@ -126,8 +128,8 @@ class NavController extends BaseController
             'catalog_list' => $this->navService->buildNavTargetList($navInfo['module'], $navInfo['guide'], 'nav'),
             'nav_list' => $listData['nav_list'],
             'nav_info' => $navInfo,
-            'btn_lang' => ($this->languageDraft()->buildFormState('nav', $id))['btn_lang'],
-            'lang_drafts' => ($this->languageDraft()->buildFormState('nav', $id))['lang_drafts'],
+            'btn_lang' => $langFormState['btn_lang'],
+            'lang_drafts' => $langFormState['lang_drafts'],
         ]);
     }
 

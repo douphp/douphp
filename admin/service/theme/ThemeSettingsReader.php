@@ -16,21 +16,19 @@ namespace Dou\Admin\Service\Theme;
 
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Service\BaseService;
-use Dou\Core\Support\ViewVars;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
 }
 
 /**
- * 读取主题 inc/..setting.php 并标准化为结构数组。
+ * 读取主题 `ext/setting.json` 并标准化为结构数组。
  *
- * 标准格式（PHP return array）：
- *   'product_img' => array('width' => 1000, 'height' => 1000, 'note' => '补充提示', 'tip' => '手工文案')
+ * 文件格式（JSON 对象，键为声明项）：
+ *   {
+ *       "product_img": {"width": 1000, "height": 1000, "note": "补充提示", "tip": "手工文案"}
+ *   }
  * 其中 width/height 为裁剪工具预填的固定尺寸；tip 存在时覆盖自动生成的文字说明。
- *
- * 旧格式（行文本 key:value）自动转换：能抽出宽高的行转为 width/height，
- * 原行文本整体写入 tip（保持老主题界面文案一字不变）。
  *
  * 用于后台填充 setting.theme.*_img_size 等模块缩略图尺寸提示与裁剪预设。
  */
@@ -57,28 +55,30 @@ class ThemeSettingsReader extends BaseService
     }
 
     /**
-     * 读取主题 inc/..setting.php（新标准数组格式 / 旧行文本格式均支持）。
+     * 读取主题 `ext/setting.json`。
      *
      * @param string $theme 空则取当前站点主题
-     * @return array|false 文件不存在返回 false；存在返回 ['theme' => [key => item]]，
+     * @return array|false 文件不存在或 JSON 非法时返回 false；否则返回 ['theme' => [key => item]]，
      *                     item = ['width' => int, 'height' => int, 'note' => string, 'tip' => string]
      */
     public function read($theme = '')
     {
         $theme = $theme ? $theme : Config::get('site.site_theme', '');
-        $settingFile = ROOT_PATH . 'theme/' . $theme . '/inc/..setting.php';
-        if (!file_exists($settingFile)) {
+        $settingFile = ROOT_PATH . 'theme/' . $theme . '/ext/setting.json';
+        if (!is_file($settingFile)) {
             return false;
         }
 
-        $loaded = include $settingFile;
-        if (is_array($loaded)) {
-            $items = $this->normalizeItems($loaded);
-        } else {
-            $items = $this->parseLegacyLines($settingFile);
+        $content = @file_get_contents($settingFile);
+        if ($content === false || trim($content) === '') {
+            return false;
+        }
+        $decoded = json_decode($content, true);
+        if (!is_array($decoded)) {
+            return false;
         }
 
-        return array('theme' => $items);
+        return array('theme' => $this->normalizeItems($decoded));
     }
 
     /**
@@ -123,50 +123,6 @@ class ThemeSettingsReader extends BaseService
                 'height' => $this->positiveInt(isset($value['height']) ? $value['height'] : 0),
                 'note' => isset($value['note']) ? (string) $value['note'] : '',
                 'tip' => isset($value['tip']) ? (string) $value['tip'] : '',
-            );
-        }
-
-        return $items;
-    }
-
-    /**
-     * 旧行文本格式（每行 key:value）→ 标准化 item 表。
-     *
-     * 宽高从文案反抽（ViewVars::parseWidthHeightHint），原行文本整体作为 tip 保留。
-     *
-     * @param string $settingFile
-     * @return array
-     */
-    private function parseLegacyLines($settingFile)
-    {
-        $items = array();
-        $content = file($settingFile);
-        foreach ((array) $content as $line) {
-            $line = trim($line);
-            if ($line === '' || strpos($line, ':') === false) {
-                continue;
-            }
-            $arr = explode(':', $line);
-            $key = $this->normalizeKey(trim($arr[0]));
-            $text = trim(implode(':', array_slice($arr, 1)));
-            if ($key === '' || $text === '') {
-                continue;
-            }
-
-            $width = 0;
-            $height = 0;
-            $pair = ViewVars::parseWidthHeightHint($text);
-            if ($pair !== '') {
-                $parts = explode('/', $pair);
-                $width = (int) $parts[0];
-                $height = (int) $parts[1];
-            }
-
-            $items[$key] = array(
-                'width' => $width,
-                'height' => $height,
-                'note' => '',
-                'tip' => $text,
             );
         }
 

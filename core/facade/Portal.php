@@ -14,6 +14,7 @@
 
 namespace Dou\Core\Facade;
 
+use Dou\Core\Foundation\Auth\AuthManager;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Module\ModuleModelResolver;
 use Dou\Core\Service\Metadata\MetadataValues;
@@ -28,7 +29,7 @@ if (!defined('IN_DOUCO')) {
 }
 
 /**
- * 门户静态门面：前台主题脚本（inc/..from_theme.php）与小程序扩展脚本
+ * 门户静态门面：前台主题脚本（ext/boot.php）与小程序扩展脚本
  * （inc/..from_miniprogram.php）共用的统一入口，以 Portal::xxx() 调用模板赋值、
  * 路由上下文、多语言、站点装饰位、内容列表、分类树等能力。
  *
@@ -51,8 +52,29 @@ class Portal
     /** @var string 当前路由动作名 */
     private static $routeAction = '';
 
-    /** @var array 模板标签（{list}/{category}）请求级结果缓存：module + props => rows */
+    /** @var array 模板标签（{list}/{category}）请求级结果缓存：module + userId + props => rows */
     private static $tagCache = array();
+
+    /**
+     * 当前前台会员 ID；非 front 上下文（API / 小程序扩展脚本）返回 0。
+     *
+     * {@see AuthManager::guard()} 对未注册 guard 直接抛 RuntimeException，故必须先用
+     * has('front') 守卫；front/init/Init.php 以 GuestGuard 兜底，保证 front 侧始终可解析
+     * （游客 id() = 0）。
+     *
+     * @return int
+     */
+    private static function frontMemberId()
+    {
+        $mgr = app(AuthManager::class);
+        if (!$mgr->has('front')) {
+            return 0;
+        }
+
+        $guard = $mgr->guard('front');
+
+        return method_exists($guard, 'id') ? (int) $guard->id() : 0;
+    }
 
     /**
      * 写入门户上下文（赋值目标 + 当前路由），include 扩展脚本前调用一次。
@@ -273,7 +295,8 @@ class Portal
      * support / course / download / gallery / cases / video / item）。
      * 无分类的单模块请改用 singleList()。
      *
-     * 会员视图固定为游客视图（userId = 0），列表不挂 forUser scope。
+     * 价格 / 会员价按会员视图输出：默认按当前前台会员挂 forUser scope（补 price 格式化 /
+     * sale_price / favorites）；显式传 0 可强制游客视图，传正整数指定会员。
      *
      * @param string $module
      * @param string|int $catId 'ALL' / '' / null = 不按分类过滤；其它值经 scopeFilterByCategory 展开子孙
@@ -281,9 +304,10 @@ class Portal
      * @param string $sort 自定义排序前缀（追加 id DESC）；空 = 仅 id DESC
      * @param array $extraScopes 追加的无参 scope 名数组（method_exists 守卫未命中时 silently skip）
      * @param int $excerptLength 列表 description 截字长度（<=0 透传不截）
+     * @param int|null $userId null = 当前前台会员；0 = 游客视图；正整数 = 指定会员
      * @return array
      */
-    public static function columnList($module, $catId = 'ALL', $limit = 0, $sort = '', array $extraScopes = array(), $excerptLength = 200)
+    public static function columnList($module, $catId = 'ALL', $limit = 0, $sort = '', array $extraScopes = array(), $excerptLength = 200, $userId = null)
     {
         if (!Config::get('features.' . $module, false)) {
             return array();
@@ -294,9 +318,15 @@ class Portal
             return array();
         }
 
+        $userId = $userId === null ? self::frontMemberId() : (int) $userId;
+
         $schema = method_exists($cls, 'moduleSchema') ? $cls::moduleSchema() : array();
 
         $query = $cls::with('category');
+
+        if (method_exists($cls, 'scopeForUser')) {
+            $query->forUser($userId);
+        }
 
         if (!empty($schema['hasStatus']) && method_exists($cls, 'scopePublished')) {
             $query->published();
@@ -335,9 +365,10 @@ class Portal
      * @param int|string $limit 0 / '' 不限制
      * @param string $sort 自定义排序前缀（追加 id DESC）；空 = 仅 id DESC
      * @param int $excerptLength 列表 description 截字长度（<=0 透传不截）
+     * @param int|null $userId null = 当前前台会员；0 = 游客视图；正整数 = 指定会员
      * @return array
      */
-    public static function singleList($module, $limit = 0, $sort = '', $excerptLength = 200)
+    public static function singleList($module, $limit = 0, $sort = '', $excerptLength = 200, $userId = null)
     {
         if (!Config::get('features.' . $module, false)) {
             return array();
@@ -348,7 +379,13 @@ class Portal
             return array();
         }
 
+        $userId = $userId === null ? self::frontMemberId() : (int) $userId;
+
         $query = $cls::query();
+
+        if (method_exists($cls, 'scopeForUser')) {
+            $query->forUser($userId);
+        }
 
         if (method_exists($cls, 'scopePublished')) {
             $query->published();
@@ -417,22 +454,28 @@ class Portal
      * 分类树 + 每个分类（含全部子孙分类）的内容列表；未命中分类 Model 返回空数组。
      *
      * 各节点 list 为该分类及全部子孙分类内容的合并（对齐 {list} cat= 子树语义），
-     * 合并后按 id DESC 截取每类 $itemNumber 条。会员视图固定 userId = 0。
+     * 合并后按 id DESC 截取每类 $itemNumber 条。
+     *
+     * 各节点 list 的价格 / 会员价按会员视图输出：默认按当前前台会员取数，
+     * 显式传 0 可强制游客视图。
      *
      * @param string $module
      * @param int $itemNumber 每分类内容条数（0 = 不附内容）
      * @param bool $includeChildren true 时递归挂载 child
      * @param int $excerptLength 每分类 list / child.list 内容行 description 截字长度（<=0 透传不截）
+     * @param int|null $userId null = 当前前台会员；0 = 游客视图；正整数 = 指定会员
      * @return array
      */
-    public static function categoryTreeWithItems($module, $itemNumber = 5, $includeChildren = false, $excerptLength = 200)
+    public static function categoryTreeWithItems($module, $itemNumber = 5, $includeChildren = false, $excerptLength = 200, $userId = null)
     {
         $cls = app(ModuleModelResolver::class)->categoryModelClassFor($module);
         if ($cls === null || !method_exists($cls, 'withItems')) {
             return array();
         }
 
-        $tree = $cls::withItems((int) $itemNumber, 0, (bool) $includeChildren, 0);
+        $userId = $userId === null ? self::frontMemberId() : (int) $userId;
+
+        $tree = $cls::withItems((int) $itemNumber, 0, (bool) $includeChildren, $userId);
         MetadataValues::decorateTree($module, $tree);
 
         return self::applyDescriptionExcerptToTree($tree, $excerptLength);
@@ -447,7 +490,9 @@ class Portal
      * - 其余（业务单模块如 order / user、未知模块）→ 空数组，不抛错。
      *
      * sort 仅接受「字段名 ASC|DESC」逗号序列（防 ORDER BY 注入），不合法时忽略走默认 id DESC。
-     * 同请求内按 module + props 缓存，同页重复块不重复查询。
+     * 同请求内按 module + userId + props 缓存，同页重复块不重复查询。
+     *
+     * 会员视图：默认按当前前台会员取数（会员等级价 / 促销价生效），模板无需额外属性。
      *
      * @param string $module
      * @param array $props cat / limit / sort / excerpt
@@ -460,7 +505,8 @@ class Portal
             return array();
         }
 
-        $cacheKey = 'list:' . $module . ':' . serialize($props);
+        $userId = self::frontMemberId();
+        $cacheKey = 'list:' . $module . ':' . $userId . ':' . serialize($props);
         if (array_key_exists($cacheKey, self::$tagCache)) {
             return self::$tagCache[$cacheKey];
         }
@@ -472,10 +518,10 @@ class Portal
         $rows = array();
         if (in_array($module, (array) Config::get('module.column_module', array()), true)) {
             $catId = isset($props['cat']) ? $props['cat'] : 'ALL';
-            $rows = self::columnList($module, $catId, $limit, $sort, array(), $excerpt);
+            $rows = self::columnList($module, $catId, $limit, $sort, array(), $excerpt, $userId);
         } elseif (in_array($module, (array) Config::get('module.single_module', array()), true)
             && self::isListableSingle($module)) {
-            $rows = self::singleList($module, $limit, $sort, $excerpt);
+            $rows = self::singleList($module, $limit, $sort, $excerpt, $userId);
         }
 
         self::$tagCache[$cacheKey] = $rows;
@@ -500,7 +546,7 @@ class Portal
             return array();
         }
 
-        $cacheKey = 'category:' . $module . ':' . serialize($props);
+        $cacheKey = 'category:' . $module . ':' . self::frontMemberId() . ':' . serialize($props);
         if (array_key_exists($cacheKey, self::$tagCache)) {
             return self::$tagCache[$cacheKey];
         }

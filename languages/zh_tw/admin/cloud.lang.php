@@ -87,6 +87,9 @@ $_LANG['cloud_module_version_missing'] = '缺少模組版本資訊，請從官�
 $_LANG['cloud_module_manifest_missing'] = '模組包缺少 _action/manifest.php，請重新打包';
 $_LANG['cloud_module_mini_version_missing_log'] = '未提供最低系統版本，跳過版本門檻校驗';
 
+// 擴充初始化物料（_action/resources）
+$_LANG['cloud_theme_init_deprecated'] = '該模板包仍使用舊版 _init 初始化目錄，演示資料已跳過；請重新打包為 _action/resources（images + sql）。';
+
 // 線上安裝多步流程（cloud/install）
 $_LANG['cloud_install_retry'] = '重新安裝';
 $_LANG['cloud_install_session_missing'] = '安裝會話已過期或不存在，請返回安裝入口重新發起';

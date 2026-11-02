@@ -78,6 +78,7 @@ class NavController extends BaseController
         $this->miniprogramNavService->buildMiniprogramNavCreateData($type);
 
         lang_set('order', '购物车');
+        $langFormState = $this->languageDraft()->buildFormState('nav', '');
         return $this->view('miniprogram.htm', [
             'ur_here' => lang('miniprogram_nav'),
             'page_actions' => array(
@@ -88,8 +89,8 @@ class NavController extends BaseController
             'type' => $type,
             'type_name' => lang('miniprogram_nav_' . $type),
             'catalog_list' => $this->miniprogramNavService->buildNavCatalogDefaultList(),
-            'btn_lang' => ($this->languageDraft()->buildFormState('nav', ''))['btn_lang'],
-            'lang_drafts' => ($this->languageDraft()->buildFormState('nav', ''))['lang_drafts'],
+            'btn_lang' => $langFormState['btn_lang'],
+            'lang_drafts' => $langFormState['lang_drafts'],
             'nav_info' => array('icon' => ''),
             'nav' => $this->pageNav(),
         ]);

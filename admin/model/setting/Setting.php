@@ -58,6 +58,26 @@ class Setting extends Model
     }
 
     /**
+     * 供表单校验：config 表 name => tab（判断字段是否渲染在当前提交 Tab 的表单内）。
+     *
+     * @return array
+     */
+    public static function fetchConfigTabs()
+    {
+        $rows = DB::table('config')->field('name,tab')->select();
+        $tabs = array();
+        foreach ((array) $rows as $row) {
+            $name = isset($row['name']) ? $row['name'] : '';
+            if ($name === '') {
+                continue;
+            }
+            $tabs[$name] = isset($row['tab']) ? (string) $row['tab'] : '';
+        }
+
+        return $tabs;
+    }
+
+    /**
      * 供表单校验：parameter 表行对应 POST 键 _parameter_{name}。
      *
      * @return array

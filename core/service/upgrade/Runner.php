@@ -32,8 +32,8 @@ if (!defined('IN_DOUCO')) {
  *   S1 配置合并：Dou\Upgrade\Lib\ConfigMerge::run（升级包基准 x 站点现行文件）
  *   S2 版本链：VersionRegistry 发现待执行版本（ver >= current，含当前版本，重跑幂等）
  *   S3 结构同步引擎就绪（core/infra/database/SchemaSync，单一权威源；缺失即抛错终止）
- *   S4 dou_config 表重建：读旧值快照 -> 按标准结构完全重建 -> 导入默认行 -> 回灌 +
- *      保留旧站独有配置行（详见 SchemaSync::rebuildTableFromStandard）
+ *   S4 dou_config 表重建：读旧值快照 -> 按标准结构完全重建 -> 导入默认行 -> 回灌同名行 value；
+ *      标准外的历史遗留行不保留，重建后表内容与 config.sql 严格对齐
  *   S5 配置早回灌（不含版本号与 update_date）——消除"纯默认配置"窗口；失败即抛错
  *   S6 update_date 早写安全网（库真值 ∪ boot 快照）——避免进程中断后"重试污染"
  *   S7 组装 upSql（回灌 + 版本号 + 一次性修正），版本号刻意留到流程末尾写
@@ -120,7 +120,9 @@ class Runner
         // S3 结构同步引擎就绪（core 单一权威源：升级包已先覆盖系统文件，再执行本程序）
         $schema = $this->bootstrapSchemaEngine();
 
-        // S4 dou_config 表重建：读旧值快照 -> 按标准结构完全重建 -> 导入默认行 -> 回灌 + 保留旧站独有行
+        // S4 dou_config 表重建：读旧值快照 -> 按标准结构完全重建 -> 导入默认行 -> 回灌同名行 value
+        //    （语义即「删表 -> 按最新标准生成 -> 回灌数据」：标准外的历史遗留行随 DROP 一并消失，
+        //    不再插回，保证重建后表内容与 config.sql 严格对齐）
         $schema->rebuildTableFromStandard('config', $this->schemaFile('config.sql'), $this->schemaFile('config.sql'));
 
         // S5 配置早回灌（不含版本号与 update_date）：重建刚返回就立即把站点真实配置写回，

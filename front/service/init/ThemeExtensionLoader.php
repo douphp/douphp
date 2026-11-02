@@ -27,7 +27,7 @@ if (!defined('IN_DOUCO')) {
 /**
  * 主题扩展加载器。
  *
- * 负责加载主题包内的 `inc/..from_theme.php`：在 {@see \Dou\Front\Foundation\Routing\Router::dispatch()}
+ * 负责加载主题包内的 `ext/boot.php`：在 {@see \Dou\Front\Foundation\Routing\Router::dispatch()}
  * 解析出当前 `module/action` 之后、控制器执行之前调用，以便主题脚本能基于当前路由分支决定要塞什么数据。
  *
  * 主题脚本一律以静态门面 {@see Portal} 访问能力（`Portal::columnList()` / `Portal::singleList()` /
@@ -37,7 +37,7 @@ if (!defined('IN_DOUCO')) {
 class ThemeExtensionLoader extends BaseService
 {
     /**
-     * 在当前路由已知后加载主题 `inc/..from_theme.php`（若存在且通过 SQL 关键字白名单）。
+     * 在当前路由已知后加载主题 `ext/boot.php`（若存在且通过 SQL 关键字白名单）。
      *
      * 调用时机由 {@see \Dou\Front\Foundation\Routing\Router::dispatch()} 控制，
      * 确保 Request 已写入 routeModule/routeAction；以便主题脚本依据当前路由分支
@@ -54,7 +54,7 @@ class ThemeExtensionLoader extends BaseService
         }
 
         $engine = app(DouView::class);
-        $path = $engine->template_dir . '/inc/..from_theme.php';
+        $path = $engine->template_dir . '/ext/boot.php';
         if (!file_exists($path)) {
             return;
         }

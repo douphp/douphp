@@ -1061,13 +1061,9 @@ class InstallService extends BaseService
         $itemZip = $this->cacheDir . $cloudId . '.zip';
         $itemDir = $this->cacheDir . $cloudId;
         $sqlInstallFile = $this->rootDir . 'storage/backup/' . $cloudId . '.sql';
-        $actionDir = $this->rootDir . '_action/';
-        $actionInstallFile = $actionDir . 'install.php';
+        $materialsRoot = $this->resolveMaterialsRoot($type, $cloudId);
         $updateDir = $this->rootDir . '_update/';
         $updateFile = $updateDir . 'action.php';
-        $themeInitDir = $this->rootDir . 'theme/' . $cloudId . '/_init/';
-        $themeInitFile = $themeInitDir . 'action.php';
-        $themeInitImage = $themeInitDir . 'images/';
         $installedDir = STORAGE_PATH . 'install/records/';
 
         if ($type === 'module') {
@@ -1079,17 +1075,20 @@ class InstallService extends BaseService
             }
         }
 
-        if ($type === 'module' && !$preApplyFailed) {
-            // 模块包统一 _action/；站点根 _update/ 归系统升级专用，模块流程不得触碰
-            if (is_dir($actionDir)) {
-                FileHelper::delDir($actionDir);
+        if (!$preApplyFailed) {
+            // 上一次失败残留的物料目录必须先清掉，否则会被本次当作新包执行
+            if ($materialsRoot !== '' && is_dir($materialsRoot)) {
+                FileHelper::delDir($materialsRoot);
             }
-            // 误带的旧目录只在解压临时目录内移除，避免覆盖站点系统升级物料
-            if (is_dir($itemDir . '/_update/')) {
-                FileHelper::delDir($itemDir . '/_update/');
+            if ($type === 'module') {
+                // 模块包统一 _action/；站点根 _update/ 归系统升级专用，模块流程不得触碰
+                // 误带的旧目录只在解压临时目录内移除，避免覆盖站点系统升级物料
+                if (is_dir($itemDir . '/_update/')) {
+                    FileHelper::delDir($itemDir . '/_update/');
+                }
+            } elseif (file_exists($updateDir)) {
+                FileHelper::delDir($updateDir);
             }
-        } elseif ($type !== 'module' && file_exists($updateDir)) {
-            FileHelper::delDir($updateDir);
         }
 
         $copyFailed = array();
@@ -1161,14 +1160,15 @@ class InstallService extends BaseService
                                 $this->changeMiniprogramConfigFile();
                             }
 
-                            // 全新安装 / 本地安装：执行模块自带的安装初始化脚本（_action/install.php）
-                            if (!$wrong && is_file($actionInstallFile)) {
+                            // 全新安装 / 本地安装：执行模块初始化物料
+                            // （resources/sql/install.sql + resources/images + install.php）
+                            if (!$wrong && is_dir($materialsRoot)) {
                                 $moduleMeta = array(
                                     'module' => $manifest['module'],
                                     'version' => (string) $moduleVersion,
                                     'min_core' => '',
                                 );
-                                $this->runModuleInstallInit($cloudId, $moduleType, $actionDir, $actionInstallFile, $wrong, $moduleMeta, (string) $moduleVersion);
+                                $this->runModuleInstallInit($cloudId, $moduleType, $materialsRoot, $wrong, $moduleMeta, (string) $moduleVersion);
                             }
 
                             // 模块「安装」成功后记录云端下发的版本；local 不写账本
@@ -1182,16 +1182,23 @@ class InstallService extends BaseService
                         }
                     }
                 } elseif (!$wrong) {
-                    $this->runModuleUpgrade($actionDir, $wrong, $manifest['module'], (string) $moduleVersion);
+                    $this->runModuleUpgrade($materialsRoot, $wrong, $manifest['module'], (string) $moduleVersion);
                 }
             }
         } elseif ($type === 'system' || $type === 'miniprogram' || $type === 'dou') {
             $this->includeOptionalScript($updateFile, $wrong);
-        } elseif ($type === 'theme' && $mode !== 'update') {
-            if (file_exists($themeInitDir)) {
-                $this->includeOptionalScript($themeInitFile, $wrong);
-                FileHelper::copyDir($themeInitImage, $this->rootDir . 'images/');
+        } elseif ($type === 'theme') {
+            if (!$wrong) {
+                // 主题物料：resources/images 镜像 + resources/sql（install/update）+ 钩子
+                $this->runExtensionSeed('theme', $cloudId, $mode, $materialsRoot, $wrong);
             }
+            if (!$wrong) {
+                // 结构数据兜底：按模板里的 {$data.x.y|default:""} 声明补建缺失条目
+                $this->syncThemeTemplateData($cloudId);
+            }
+            $this->dropLegacyThemeInit($cloudId);
+            // 主题文件已整体替换：无论是否带 _action 都要让模板重新编译
+            $this->cacheClear->clearCache(STORAGE_PATH . 'cache/template');
         }
 
         if ($wrong && !$preApplyFailed) {
@@ -1213,14 +1220,15 @@ class InstallService extends BaseService
         @unlink($sqlInstallFile);
         if ($type === 'module') {
             // 模块流程只清理本次已准备的 _action/；预校验失败时站点 _action/ 未被触碰
-            if ($moduleFilesPrepared) {
-                FileHelper::delDir($actionDir);
+            if ($moduleFilesPrepared && is_dir($materialsRoot)) {
+                FileHelper::delDir($materialsRoot);
             }
         } else {
             FileHelper::delDir($updateDir);
-        }
-        if (!$preApplyFailed) {
-            FileHelper::delDir($themeInitDir);
+            // 主题物料装在主题目录内，装/升结束即删除（与模块包 _action/ 同语义）
+            if ($materialsRoot !== '' && is_dir($materialsRoot)) {
+                FileHelper::delDir($materialsRoot);
+            }
         }
 
         if ($wrong) {
@@ -1289,21 +1297,23 @@ class InstallService extends BaseService
     }
 
     /**
-     * 模块安装初始化：执行站点根 _action/install.php（仅全新安装 / 本地安装）。
+     * 模块安装初始化：执行模块 _action/ 的初始化物料（仅全新安装 / 本地安装）。
+     *
+     * 实际执行由核心 SeedRunner 统一编排（resources/sql/install.sql -> resources/images
+     * -> install.php），本方法只负责构造模块专属的兼容变量。
      *
      * 注入变量：$cloudId、$moduleType、$prefix、$moduleMeta、$moduleId、$moduleVersion、
-     * $materialsRoot（供 resources/ 引用）、$wrong（引用共享，可直接追加错误）。
+     * $materialsRoot（供 resources/ 引用）、$seed、$wrong（引用共享，可直接追加错误）。
      *
      * @param string $cloudId
      * @param string $moduleType
-     * @param string $actionDir 站点根 _action/（结尾带 /）
-     * @param string $file
+     * @param string $materialsRoot 站点根 _action/（结尾带 /）
      * @param array $wrong
      * @param array $moduleMeta 由 manifest + 云端版本构造的元信息
      * @param string $moduleVersion 云端下发的模块版本
      * @return void
      */
-    private function runModuleInstallInit($cloudId, $moduleType, $actionDir, $file, array &$wrong, array $moduleMeta = array(), $moduleVersion = '')
+    private function runModuleInstallInit($cloudId, $moduleType, $materialsRoot, array &$wrong, array $moduleMeta = array(), $moduleVersion = '')
     {
         $moduleId = isset($moduleMeta['module']) && (string) $moduleMeta['module'] !== ''
             ? (string) $moduleMeta['module']
@@ -1319,15 +1329,134 @@ class InstallService extends BaseService
             $moduleMeta['min_core'] = '';
         }
 
-        $this->includeScriptInScope($file, array(
+        $this->runExtensionSeed('module', $cloudId, 'install', $materialsRoot, $wrong, array(
             'cloudId' => (string) $cloudId,
             'moduleType' => (string) $moduleType,
-            'prefix' => DB::getPrefix(),
             'moduleMeta' => $moduleMeta,
             'moduleId' => $moduleId,
             'moduleVersion' => $moduleVersion,
-            'materialsRoot' => $actionDir,
-        ), $wrong, false, false);
+        ));
+    }
+
+    /**
+     * 按扩展类型解析物料根目录（模块站点根 _action/；主题 theme/<slug>/_action/）。
+     *
+     * 本朝只接 module / theme；其它类型返回空串（不参与 seed）。
+     *
+     * @param string $type
+     * @param string $cloudId
+     * @return string 结尾带 /；不参与的类型返回空串
+     */
+    private function resolveMaterialsRoot($type, $cloudId)
+    {
+        if ($type === 'module') {
+            return $this->rootDir . '_action/';
+        }
+        if ($type === 'theme') {
+            return $this->rootDir . 'theme/' . $cloudId . '/_action/';
+        }
+
+        return '';
+    }
+
+    /**
+     * 调用核心 SeedRunner 执行扩展初始化（物料不存在时直接返回）。
+     *
+     * @param string $type module|theme
+     * @param string $cloudId
+     * @param string $mode install|local|update
+     * @param string $materialsRoot 物料根（结尾带 /）
+     * @param array $wrong
+     * @param array $extraVars 额外注入钩子的兼容变量
+     * @return void
+     */
+    private function runExtensionSeed($type, $cloudId, $mode, $materialsRoot, array &$wrong, array $extraVars = array())
+    {
+        if ($materialsRoot === '' || !is_dir($materialsRoot)) {
+            return;
+        }
+        if (!class_exists('Dou\\Core\\Service\\Extension\\SeedRunner')) {
+            $wrong[] = ($type === 'theme' ? '主题' : '模块') . '初始化失败：主系统缺少扩展初始化引擎'
+                . ' core/service/extension/SeedRunner.php，请先升级主系统。';
+            return;
+        }
+
+        $phase = $mode === 'update' ? 'update' : 'install';
+        $runner = null;
+        $caught = null;
+        $bufferLevel = ob_get_level();
+        ob_start();
+        try {
+            $runner = new \Dou\Core\Service\Extension\SeedRunner($this->rootDir, $materialsRoot, $type, $cloudId);
+            $runner->run($phase, (string) $mode, $wrong, $extraVars);
+        } catch (\Exception $e) {
+            $caught = $e;
+        } catch (\Throwable $e) {
+            // PHP 7+ Error（如 class not found）不继承 Exception；5.6 无 Throwable，本分支不匹配。
+            $caught = $e;
+        }
+        while (ob_get_level() > $bufferLevel) {
+            ob_end_clean();
+        }
+
+        if ($runner !== null) {
+            foreach ($runner->notes() as $note) {
+                $note = trim((string) $note);
+                if ($note !== '') {
+                    $this->installNotes[] = $note;
+                }
+            }
+        }
+        if ($caught !== null) {
+            $wrong[] = $caught->getMessage();
+        }
+    }
+
+    /**
+     * 按模板声明补建主题缺失的结构数据（只补缺失、不覆盖已有）。
+     *
+     * 主题装/升后执行：即使包内没有 install.sql，也不至于前台白屏；
+     * 失败只记步骤日志，不把整次安装判失败。
+     *
+     * @param string $cloudId 主题 slug
+     * @return void
+     */
+    private function syncThemeTemplateData($cloudId)
+    {
+        if (!class_exists('Dou\\Admin\\Service\\Data\\TemplateDataScanner')) {
+            return;
+        }
+
+        try {
+            $scanner = new \Dou\Admin\Service\Data\TemplateDataScanner();
+            $result = $scanner->sync($cloudId);
+            if (!empty($result['inserted'])) {
+                $this->installNotes[] = '已按模板声明补齐数据 ' . (int) $result['inserted'] . ' 条。';
+            }
+        } catch (\Exception $e) {
+            $this->installNotes[] = '模板声明数据同步失败：' . $e->getMessage();
+        } catch (\Throwable $e) {
+            $this->installNotes[] = '模板声明数据同步失败：' . $e->getMessage();
+        }
+    }
+
+    /**
+     * 清理旧版主题初始化目录 _init/（已废弃：演示数据改用 _action/resources/sql）。
+     *
+     * 不阻断安装，只在步骤日志里明确告知“旧包未带演示数据”。
+     *
+     * @param string $cloudId 主题 slug
+     * @return void
+     */
+    private function dropLegacyThemeInit($cloudId)
+    {
+        $legacyDir = $this->rootDir . 'theme/' . $cloudId . '/_init/';
+        if (!is_dir($legacyDir)) {
+            return;
+        }
+
+        $this->installNotes[] = lang('cloud_theme_init_deprecated');
+        FileHelper::delDir($legacyDir);
     }
 
     /**

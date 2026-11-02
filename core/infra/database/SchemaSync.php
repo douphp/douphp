@@ -1746,19 +1746,23 @@ class SchemaSync
     }
 
     // =================================================================
-    // config 表重建（读旧值 -> 完全重建 -> 回灌 + 保留旧站独有行）
+    // config 表重建（读旧值 -> 完全重建 -> 回灌同名行；标准外的旧行一律丢弃）
     // =================================================================
 
     /**
      * 按标准结构完全重建指定表并回灌数据（config 表专用策略）。
      *
      * 流程：SELECT * 全行快照 -> DROP -> 按标准 CREATE -> 导入默认行（$defaultsFile）
-     *       -> 回灌：同名行恢复 value 值；旧站独有行按快照完整插回（保留自定义配置）。
+     *       -> 回灌：仅同名行恢复 value 值。
+     *
+     * 结果与标准文件严格对齐：重建后表内只含标准行，标准外的历史遗留行（如 1.x 的
+     * mobile_* / close_mobile / chat 等）不插回——本方法语义就是「删表 -> 按最新标准
+     * 生成 -> 回灌数据」，从旧站继承的只有同名行的 value。
      *
      * @param string $table 裸表名（config）
      * @param string $standardFile 结构标准文件（其中须含该表 CREATE TABLE）
      * @param string $defaultsFile 默认行数据文件（INSERT 语句）
-     * @return array array('rows_before' => n, 'defaults' => n, 'restored' => n, 'kept' => n)
+     * @return array array('rows_before' => n, 'defaults' => n, 'restored' => n, 'dropped' => n)
      */
     public function rebuildTableFromStandard($table, $standardFile, $defaultsFile)
     {
@@ -1833,43 +1837,33 @@ class SchemaSync
             $this->error('config 默认行部分灌入失败（成功 ' . $defaultCount . ' / 共 ' . count($inserts) . '）');
         }
 
-        // 回灌旧值：同名恢复 value；旧站独有行完整插回
+        // 回灌旧值：仅同名行恢复 value。表已按标准重建，标准外的历史遗留行随 DROP 一并消失、
+        // 不再插回——重建语义就是「删表 -> 按最新标准生成 -> 回灌数据」，结果必须与
+        // config.sql 严格对齐；否则遗留行会让每次升级后的表内容都与标准产生漂移。
         $restored = 0;
-        $kept = 0;
+        $droppedKeys = array();
         foreach ($oldRows as $row) {
             $key = isset($row['name']) ? (string) $row['name'] : '';
             if ($key === '') {
                 continue;
             }
-            if (isset($defaultKeys[$key])) {
-                if (array_key_exists('value', $row)) {
-                    $this->exec('UPDATE ' . $actual . " SET `value` = '" . DB::escapeString((string) $row['value']) . "'"
-                        . " WHERE `name` = '" . DB::escapeString($key) . "'");
-                    $restored++;
-                }
+            if (!isset($defaultKeys[$key])) {
+                $droppedKeys[] = $key;
                 continue;
             }
-            // 旧站独有行：按快照完整插回（仅取标准表中存在的列）
-            $cols = array();
-            $vals = array();
-            foreach ($columnNames as $colName) {
-                if ($colName === 'id') {
-                    continue; // 自增列不强制保留
-                }
-                if (array_key_exists($colName, $row)) {
-                    $cols[] = $colName;
-                    $vals[] = "'" . DB::escapeString((string) $row[$colName]) . "'";
-                }
-            }
-            if (empty($cols)) {
-                continue;
-            }
-            if ($this->exec('INSERT INTO ' . $actual . ' (' . $this->quoteColumnList($cols) . ') VALUES (' . implode(', ', $vals) . ')')) {
-                $kept++;
+            if (array_key_exists('value', $row)) {
+                $this->exec('UPDATE ' . $actual . " SET `value` = '" . DB::escapeString((string) $row['value']) . "'"
+                    . " WHERE `name` = '" . DB::escapeString($key) . "'");
+                $restored++;
             }
         }
-        $this->log('config 表重建完成：默认行 ' . $defaultCount . '，回灌 ' . $restored . '，保留旧站独有行 ' . $kept);
-        return array('rows_before' => count($oldRows), 'defaults' => $defaultCount, 'restored' => $restored, 'kept' => $kept);
+        $droppedNote = '，丢弃标准外旧行 ' . count($droppedKeys);
+        if (!empty($droppedKeys)) {
+            $shown = array_slice($droppedKeys, 0, 20);
+            $droppedNote .= '（' . implode(', ', $shown) . (count($droppedKeys) > count($shown) ? ' …' : '') . '）';
+        }
+        $this->log('config 表重建完成：默认行 ' . $defaultCount . '，回灌 ' . $restored . $droppedNote);
+        return array('rows_before' => count($oldRows), 'defaults' => $defaultCount, 'restored' => $restored, 'dropped' => count($droppedKeys));
     }
 
     /**

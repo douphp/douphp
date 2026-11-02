@@ -155,7 +155,7 @@ class FrontResolver
     }
 
     /**
-     * 在控制器执行之前加载主题包 inc/..from_theme.php（此时 routeModule/routeAction 已确定）。
+     * 在控制器执行之前加载主题包 ext/boot.php（此时 routeModule/routeAction 已确定）。
      *
      * @param Container $container
      * @param string $routeModule

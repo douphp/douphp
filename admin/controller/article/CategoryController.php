@@ -70,6 +70,7 @@ class CategoryController extends BaseController
      */
     public function create()
     {
+        $langFormState = $this->languageDraft()->buildFormState('article_category', '');
         return $this->view('article_category.htm', [
             'ur_here' => lang('article_category_create'),
             'page_actions' => array(
@@ -78,8 +79,8 @@ class CategoryController extends BaseController
             'rec' => 'create',
             'article_category' => ArticleCategory::flat(),
             'cat_info' => $this->categoryService->buildCategoryDefaultData(),
-            'btn_lang' => ($this->languageDraft()->buildFormState('article_category', ''))['btn_lang'],
-            'lang_drafts' => ($this->languageDraft()->buildFormState('article_category', ''))['lang_drafts'],
+            'btn_lang' => $langFormState['btn_lang'],
+            'lang_drafts' => $langFormState['lang_drafts'],
         ]);
     }
 
@@ -121,6 +122,7 @@ class CategoryController extends BaseController
             throw new DomainException(lang('illegal'), route('admin.article.category'));
         }
 
+        $langFormState = $this->languageDraft()->buildFormState('article_category', $catId);
         return $this->view('article_category.htm', [
             'ur_here' => lang('article_category_edit'),
             'page_actions' => array(
@@ -129,8 +131,8 @@ class CategoryController extends BaseController
             'rec' => 'edit',
             'cat_info' => $catInfo,
             'article_category' => ArticleCategory::flat($catId),
-            'btn_lang' => ($this->languageDraft()->buildFormState('article_category', $catId))['btn_lang'],
-            'lang_drafts' => ($this->languageDraft()->buildFormState('article_category', $catId))['lang_drafts'],
+            'btn_lang' => $langFormState['btn_lang'],
+            'lang_drafts' => $langFormState['lang_drafts'],
         ]);
     }
 

@@ -89,6 +89,7 @@ class PageController extends BaseController
 
         $bundle = $this->pageService->buildPageDefaultData();
 
+        $langFormState = $this->languageDraft()->buildFormState('page', '');
         return $this->view('page.htm', [
             'ur_here' => lang('page_create'),
             'page_actions' => array(
@@ -102,8 +103,8 @@ class PageController extends BaseController
             'item_content' => $bundle['item_content'],
             'download' => $this->pageService->buildPageDownloadData(0),
             'metadata_form' => $this->metadataFormBuilder->build('page', '', 0),
-            'btn_lang' => ($this->languageDraft()->buildFormState('page', ''))['btn_lang'],
-            'lang_drafts' => ($this->languageDraft()->buildFormState('page', ''))['lang_drafts'],
+            'btn_lang' => $langFormState['btn_lang'],
+            'lang_drafts' => $langFormState['lang_drafts'],
         ]);
     }
 
@@ -157,6 +158,7 @@ class PageController extends BaseController
         );
         $pageActions[] = array('href' => route('admin.page'), 'text' => lang('page_list'), 'style' => '');
 
+        $langFormState = $this->languageDraft()->buildFormState('page', $id);
         return $this->view('page.htm', [
             'ur_here' => lang('page_edit'),
             'page_actions' => $pageActions,
@@ -168,8 +170,8 @@ class PageController extends BaseController
             'page' => $page,
             'download' => $this->pageService->buildPageDownloadData($id),
             'metadata_form' => $this->metadataFormBuilder->build('page', isset($page['metadata']) ? $page['metadata'] : '', $id),
-            'btn_lang' => ($this->languageDraft()->buildFormState('page', $id))['btn_lang'],
-            'lang_drafts' => ($this->languageDraft()->buildFormState('page', $id))['lang_drafts'],
+            'btn_lang' => $langFormState['btn_lang'],
+            'lang_drafts' => $langFormState['lang_drafts'],
             'data_list' => $dataList,
         ]);
     }

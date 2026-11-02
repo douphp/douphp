@@ -96,6 +96,7 @@ class ArticleController extends BaseController
 
         $article = $this->articleService->buildArticleDefaultData();
 
+        $langFormState = $this->languageDraft()->buildFormState('article', '');
         return $this->view('article.htm', [
             'ur_here' => lang('article_create'),
             'page_actions' => array(
@@ -108,8 +109,8 @@ class ArticleController extends BaseController
             'item_content' => '',
             'article' => $article,
             'metadata_form' => $this->metadataFormBuilder->build('article', '', 0),
-            'btn_lang' => ($this->languageDraft()->buildFormState('article', ''))['btn_lang'],
-            'lang_drafts' => ($this->languageDraft()->buildFormState('article', ''))['lang_drafts'],
+            'btn_lang' => $langFormState['btn_lang'],
+            'lang_drafts' => $langFormState['lang_drafts'],
         ]);
     }
 
@@ -153,6 +154,7 @@ class ArticleController extends BaseController
             throw new DomainException(lang('illegal'), route('admin.article'));
         }
 
+        $langFormState = $this->languageDraft()->buildFormState('article', $id);
         return $this->view('article.htm', [
             'ur_here' => lang('article_edit'),
             'page_actions' => array(
@@ -165,8 +167,8 @@ class ArticleController extends BaseController
             'item_content' => $article['item_content'],
             'article' => $article,
             'metadata_form' => $this->metadataFormBuilder->build('article', isset($article['metadata']) ? $article['metadata'] : '', $id),
-            'btn_lang' => ($this->languageDraft()->buildFormState('article', $id))['btn_lang'],
-            'lang_drafts' => ($this->languageDraft()->buildFormState('article', $id))['lang_drafts'],
+            'btn_lang' => $langFormState['btn_lang'],
+            'lang_drafts' => $langFormState['lang_drafts'],
         ]);
     }
 

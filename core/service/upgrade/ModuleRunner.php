@@ -14,8 +14,6 @@
 
 namespace Dou\Core\Service\Upgrade;
 
-use Dou\Core\Facade\DB;
-
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
 }
@@ -27,9 +25,11 @@ if (!defined('IN_DOUCO')) {
  *   - manifest.php ：module / type / install / flags 安装清单（由 InstallService 读取，本类不处理）
  *   - upgrade.php  ：模块特有升级语句（仅升级时执行）
  *   - install.php  ：模块安装初始化（由 InstallService 在安装时执行，本类不处理）
- *   - resources/   ：可选资源，脚本用 $materialsRoot . 'resources/...' 引用
+ *   - resources/sql/upgrade.sql ：升级期增量演示数据（只允许补齐/新增，由 SeedRunner 执行）
+ *   - resources/images/         ：升级期补充素材，镜像到站点根 images/（目标已存在则跳过）
+ *   - resources/                ：其它物料，脚本用 $materialsRoot . 'resources/...' 引用
  *
- * 本类只负责通用编排：版本门卫 -> include upgrade.php -> 写版本账本 -> 清模板缓存；
+ * 本类只负责通用编排：版本门卫 -> SeedRunner（素材 / SQL / upgrade.php）-> 写版本账本 -> 清模板缓存；
  * 模块版本由云端下发的链接/install-resolve 提供，不再读取包内 version.php。
  * 执行完成后 _action/ 由 InstallService 整目录删除。
  */
@@ -107,15 +107,23 @@ class ModuleRunner
                 . '）低于已安装版本（' . $installedVersion . '），已拒绝执行降级，请使用更新的模块包。');
         }
 
-        $payload = $this->materialsRoot . 'upgrade.php';
-        if (is_file($payload)) {
-            self::includePayload($payload, array(
-                'prefix' => DB::getPrefix(),
-                'moduleMeta' => $moduleMeta,
-                'moduleId' => $moduleId,
-                'moduleVersion' => $moduleVersion,
-                'materialsRoot' => $this->materialsRoot,
-            ));
+        // 升级载荷由核心 SeedRunner 统一编排：resources/images -> resources/sql/upgrade.sql -> upgrade.php
+        // （升级期的数据库改动不可回滚，故 upgrade.sql 只允许补齐/新增）
+        if (!class_exists('Dou\\Core\\Service\\Extension\\SeedRunner')) {
+            throw new \RuntimeException($moduleId . ' 模块升级失败：缺少主系统扩展初始化引擎 core/service/extension/SeedRunner.php，请先升级主系统。');
+        }
+
+        $wrong = array();
+        $runner = new \Dou\Core\Service\Extension\SeedRunner($this->rootPath, $this->materialsRoot, 'module', $moduleId);
+        $runner->run('update', 'update', $wrong, array(
+            'cloudId' => $moduleId,
+            'moduleType' => '',
+            'moduleMeta' => $moduleMeta,
+            'moduleId' => $moduleId,
+            'moduleVersion' => $moduleVersion,
+        ));
+        if ($wrong) {
+            throw new \RuntimeException(implode('；', $wrong));
         }
 
         // 版本落库放在载荷成功之后：载荷抛错时保持旧版本，便于重试与快照还原
@@ -130,20 +138,5 @@ class ModuleRunner
             'from' => $installedVersion,
             'to' => $moduleVersion,
         );
-    }
-
-    /**
-     * 在隔离作用域内 include 升级脚本（静态方法不暴露 $this）。
-     *
-     * 注入变量：$prefix、$moduleMeta、$moduleId、$moduleVersion、$materialsRoot。
-     *
-     * @param string $file
-     * @param array $vars
-     * @return void
-     */
-    private static function includePayload($file, array $vars)
-    {
-        extract($vars, EXTR_SKIP);
-        include $file;
     }
 }

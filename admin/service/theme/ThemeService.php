@@ -15,10 +15,14 @@
 namespace Dou\Admin\Service\Theme;
 
 use Dou\Admin\Facade\Cloud;
+use Dou\Admin\Model\Data\Data;
 use Dou\Admin\Model\Theme\Theme;
 use Dou\Admin\Service\Cache\CacheClearService;
 use Dou\Admin\Service\Cloud\CloudService;
+use Dou\Core\Facade\DB;
+use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Service\BaseService;
+use Dou\Core\Service\Data\DataTemplate;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Support\Check;
 use Dou\Core\Support\FileHelper;
@@ -168,15 +172,33 @@ class ThemeService extends BaseService
     }
 
     /**
+     * 删除主题：目录 + 该主题全部数据（dou_data 作用域）与素材。
+     *
+     * 数据回收按 dou_data.theme 作用域执行，不依赖安装期写的任何记录：
+     * 逐行/批量 Data::destroy() 复用 PurgesRelatedOnDelete（附件行 + 物理文件 + 缩略图 +
+     * 多语言 + 扩展字段），事务提交后清空 images/data/<slug>/。
+     *
      * @param string $slug
      * @return void
+     * @throws DomainException 删除默认主题 / 当前启用主题时抛出
      */
     public function deleteTheme($slug)
     {
+        $slug = (string) $slug;
         $theme_array = FileHelper::getSubdirs(ROOT_PATH . 'theme/');
         if (!in_array($slug, $theme_array, true)) {
             return;
         }
+        if ($slug === 'default') {
+            // 默认主题是 enableTheme() 的拷贝基准，删了会导致后续主题无法启用
+            throw new DomainException(lang('theme_delete_default_denied'), route('admin.theme'));
+        }
+        if ($slug === (string) Config::get('site.site_theme', '')) {
+            throw new DomainException(lang('theme_delete_current_denied'), route('admin.theme'));
+        }
+
+        // 先回收数据：失败时不删目录，便于重试
+        $this->purgeThemeData($slug);
 
         FileHelper::delDir(ROOT_PATH . 'theme/' . $slug);
         $this->cloud->changeUpdateDate('theme', $slug, true);
@@ -185,6 +207,38 @@ class ThemeService extends BaseService
             $repository = new \Dou\Core\Service\Snapshot\SnapshotRepository(ROOT_PATH);
             $repository->deleteByScope('theme', $slug);
         }
+
+        $this->cacheClear->clearCache(STORAGE_PATH . 'cache/template');
+    }
+
+    /**
+     * 删除指定主题的全部数据与素材（按 dou_data.theme 作用域）。
+     *
+     * 必须排除 data_group='miniprogram'：该分组的 theme 列存的是小程序模板包标识
+     * （DataTemplate::codeForGroup），与网站主题可能同名（如都叫 default）。
+     *
+     * @param string $slug 主题目录名
+     * @return void
+     */
+    private function purgeThemeData($slug)
+    {
+        $rows = DB::table('data')->where('theme', (string) $slug)->field('id, data_group')->select();
+        $ids = array();
+        foreach ((array) $rows as $row) {
+            if ((string) $row['data_group'] === DataTemplate::MINIPROGRAM_GROUP) {
+                continue;
+            }
+            $ids[] = (int) $row['id'];
+        }
+
+        if ($ids) {
+            DB::transaction(function () use ($ids) {
+                Data::destroy($ids);
+            });
+        }
+
+        // 主题私有素材目录（布局见 admin/service/data/DataService::uploadDirectory）
+        FileHelper::delDir(ROOT_PATH . 'images/data/' . $slug);
     }
 
     /**

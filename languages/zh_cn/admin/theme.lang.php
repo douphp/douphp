@@ -23,6 +23,8 @@ $_LANG['theme_installed'] = '可用模板';
 $_LANG['theme_delete'] = '删除模板';
 $_LANG['theme_no_allow'] = '未经授权不可使用';
 $_LANG['theme_no_support_module_hide'] = '隐藏当前模板不支持的模块';
+$_LANG['theme_delete_current_denied'] = '当前启用的模板不可删除，请先启用其他模板';
+$_LANG['theme_delete_default_denied'] = '默认模板不可删除（其他模板的启用以它为拷贝基准）';
 
 // 参数设置项
 $_LANG['theme_support_module_lang'] = '当前启用模板支持的模块';

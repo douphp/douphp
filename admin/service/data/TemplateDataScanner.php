@@ -61,7 +61,7 @@ class TemplateDataScanner extends BaseService
     );
 
     /**
-     * 扫描当前主题模板，把缺失的 data 行自动补建。
+     * 扫描当前启用主题模板，把缺失的 data 行自动补建。
      *
      * 入口由 SiteHomeController::sync() 调用，要求后台鉴权上下文（写 admin log）。
      *
@@ -75,7 +75,21 @@ class TemplateDataScanner extends BaseService
      */
     public function syncCurrentTheme()
     {
-        $theme = (string) Config::get('site.site_theme', '');
+        return $this->sync((string) Config::get('site.site_theme', ''));
+    }
+
+    /**
+     * 扫描指定主题模板，把缺失的 data 行自动补建（主题装/升后的结构数据兜底）。
+     *
+     * 与 syncCurrentTheme() 的差异仅在于目标主题：主题安装时站点尚未切换到新主题，
+     * 而模板声明已经落盘，因此需要按 slug 直接扫。只补缺失 code，绝不覆盖已有内容。
+     *
+     * @param string $theme 主题目录名（空串或目录不存在时返回空结果）
+     * @return array 结构同 {@see syncCurrentTheme()}
+     */
+    public function sync($theme)
+    {
+        $theme = (string) $theme;
         // ROOT_PATH 已用 '/' 归一化（见 core/bootstrap.php），这里统一用 '/' 拼接
         $themeDir = ROOT_PATH . 'theme/' . $theme;
         if ($theme === '' || !is_dir($themeDir)) {

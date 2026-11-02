@@ -23,6 +23,8 @@ $_LANG['theme_installed'] = '可用樣板';
 $_LANG['theme_delete'] = '刪除樣板';
 $_LANG['theme_no_allow'] = '未經授權不可使用';
 $_LANG['theme_no_support_module_hide'] = '隱藏當前樣板不支援的模組';
+$_LANG['theme_delete_current_denied'] = '當前啟用的樣板不可刪除，請先啟用其他樣板';
+$_LANG['theme_delete_default_denied'] = '預設樣板不可刪除（其他樣板的啟用以它為複製基準）';
 
 // 參數設定項
 $_LANG['theme_support_module_lang'] = '當前啟用樣板支援的模組';

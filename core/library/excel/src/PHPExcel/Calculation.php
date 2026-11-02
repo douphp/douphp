@@ -3368,7 +3368,7 @@ class PHPExcel_Calculation
                             $val = (float) $val;
                         } else {
 //                            echo 'Casting '.$val.' to integer<br />';
-                            $val = (integer) $val;
+                            $val = (int) $val;
                         }
                     } elseif (isset(self::$excelConstants[trim(strtoupper($val))])) {
                         $excelConstant = trim(strtoupper($val));

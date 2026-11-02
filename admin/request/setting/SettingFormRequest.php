@@ -15,6 +15,7 @@
 namespace Dou\Admin\Request\Setting;
 
 use Dou\Admin\Model\Setting\Setting;
+use Dou\Admin\Service\Menu\AdminTabResolver;
 use Dou\Core\Domain\Currency\CurrencyCatalog;
 use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Web\Http\FormRequest;
@@ -99,13 +100,45 @@ class SettingFormRequest extends FormRequest
 
         // 仅当站点存在对应 config 行时校验，避免未升级站点保存设置被必填卡住
         $configNames = array_keys($model->fetchAllConfigFieldRules());
-        if (in_array('currency_code', $configNames, true)) {
+        $configTabs = $model->fetchConfigTabs();
+        if (in_array('currency_code', $configNames, true) && $this->fieldInSubmittedTab($configTabs, 'currency_code', $tabRoute)) {
             $rules['currency_code'] = 'required|regex:/^[A-Z]{3}$/';
         }
-        if (in_array('currency_decimal', $configNames, true)) {
+        if (in_array('currency_decimal', $configNames, true) && $this->fieldInSubmittedTab($configTabs, 'currency_decimal', $tabRoute)) {
             $rules['currency_decimal'] = 'required|integer';
         }
 
         return $rules;
+    }
+
+    /**
+     * 字段是否渲染在当前提交 Tab 的表单内。
+     *
+     * 普通设置页一个表单渲染全部 config_group 分组；开发者入口（?dou，提交 tab=developer）
+     * 只渲染 tab=developer 的行。其余分组的字段（如 display 分组的货币项）与 tab 为空的
+     * hidden 行都不在表单内，提交数据中天然缺失，硬编码必填会把保存卡住。
+     *
+     * @param array $configTabs config.name => tab
+     * @param string $name
+     * @param string $tabRoute
+     * @return bool
+     */
+    private function fieldInSubmittedTab(array $configTabs, $name, $tabRoute)
+    {
+        $tab = isset($configTabs[$name]) ? $configTabs[$name] : '';
+        if ($tab === '') {
+            return false;
+        }
+
+        if ($tabRoute === 'developer') {
+            return $tab === 'developer';
+        }
+
+        $groups = AdminTabResolver::configGroupKeys('setting');
+        if (empty($groups)) {
+            $groups = array('main', 'customer', 'display', 'seo', 'mail');
+        }
+
+        return in_array($tab, $groups, true);
     }
 }

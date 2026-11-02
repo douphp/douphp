@@ -64,7 +64,10 @@ class CurrencyCatalog
      */
     public static function has($code)
     {
-        return isset(self::CURRENCIES[strtoupper(trim((string) $code))]);
+        // 注意：isset() 只能作用于变量，self::CURRENCIES 是类常量，
+        // PHP 7.0 之前写作 isset(self::CURRENCIES[$code]) 会触发编译期致命错误，
+        // 全版本统一下改用 array_key_exists。
+        return array_key_exists(strtoupper(trim((string) $code)), self::CURRENCIES);
     }
 
     /**
@@ -105,7 +108,7 @@ class CurrencyCatalog
             $code = 'CNY';
         }
 
-        if (isset(self::CURRENCIES[$code])) {
+        if (array_key_exists($code, self::CURRENCIES)) {
             $row = self::CURRENCIES[$code];
             return array(
                 'code' => $code,

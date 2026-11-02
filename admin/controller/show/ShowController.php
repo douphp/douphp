@@ -54,13 +54,14 @@ class ShowController extends BaseController
 
         $listData = $this->showService->buildShowListData($type);
 
+        $langFormState = $this->languageDraft()->buildFormState('show', '');
         return $this->view('show.htm', [
             'ur_here' => lang('show'),
             'page_cue' => '<p>' . lang('show_cue') . '</p>',
             'rec' => 'default',
             'show_list' => $listData['list'],
-            'btn_lang' => ($this->languageDraft()->buildFormState('show', ''))['btn_lang'],
-            'lang_drafts' => ($this->languageDraft()->buildFormState('show', ''))['lang_drafts'],
+            'btn_lang' => $langFormState['btn_lang'],
+            'lang_drafts' => $langFormState['lang_drafts'],
             'show' => $this->showService->buildShowDefaultData(),
             'id' => '',
         ]);
@@ -115,6 +116,7 @@ class ShowController extends BaseController
 
         $listData = $this->showService->buildShowListData($type);
 
+        $langFormState = $this->languageDraft()->buildFormState('show', $id);
         return $this->view('show.htm', [
             'ur_here' => lang('show'),
             'page_cue' => '<p>' . lang('show_cue') . '</p>',
@@ -122,8 +124,8 @@ class ShowController extends BaseController
             'show_list' => $listData['list'],
             'id' => $id,
             'show' => $show,
-            'btn_lang' => ($this->languageDraft()->buildFormState('show', $id))['btn_lang'],
-            'lang_drafts' => ($this->languageDraft()->buildFormState('show', $id))['lang_drafts'],
+            'btn_lang' => $langFormState['btn_lang'],
+            'lang_drafts' => $langFormState['lang_drafts'],
         ]);
     }
 
