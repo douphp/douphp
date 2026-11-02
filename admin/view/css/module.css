@@ -39,7 +39,7 @@
   margin-bottom: 3px;
 }
 
-/* 云端扩展列表：按子分类分组（仅模块页，三列网格见 cloud.css 的 .cloud-list--grid）
+/* 云端扩展列表：按子分类分组（仅模块页，三列网格见 cloud.css 的 .cloud-extend-list）
 ----------------------------------------------- */
 #module .cloud-extend-group-title {
   font-size: 18px;

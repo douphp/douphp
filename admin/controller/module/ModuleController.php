@@ -71,7 +71,6 @@ class ModuleController extends BaseController
             'rec' => 'default',
             'cloud_extend' => $cloudExtend,
             'cloud_extend_groups' => $groups,
-            'cloud_list_class' => 'cloud-list--grid',
             'cloud_extend_hide_min_version' => true,
             // 模块页按子分类分组展示，筛选栏（适配系统）在分组视图下无意义，直接隐藏
             'cloud_extend_hide_filter' => true,

@@ -92,32 +92,40 @@
 .cloud .cloud-filter-tabs a.cloud-tab-active {
   color: #19b4ea;
 }
-/* -- 扩展卡片列表（文本布局） -- */
+/* -- 扩展卡片列表（文本布局，三列网格） -- */
 .cloud .cloud-extend-list {
   zoom: 1;
   overflow: hidden;
-  padding: 15px 0;
+  padding: 15px 0 0;
 }
 .cloud .cloud-extend-list .cloud-extend-box {
-  width: 50%;
+  width: 33.3333%;
   float: left;
+  padding-right: 20px;
+  box-sizing: border-box;
+}
+.cloud .cloud-extend-list .cloud-extend-box:nth-child(3n) {
+  padding-right: 0;
 }
 .cloud .cloud-extend-list .cloud-extend-box.cloud-extend-box--col .cloud-extend-item {
-  margin-right: 20px;
+  margin-right: 0;
 }
-.cloud .cloud-extend-list .cloud-extend-box.cloud-extend-box--left .cloud-extend-item {
-  margin-left: 20px;
+@media (max-width: 1200px) {
+  .cloud .cloud-extend-list .cloud-extend-box {
+    width: 50%;
+  }
+  .cloud .cloud-extend-list .cloud-extend-box:nth-child(3n) {
+    padding-right: 20px;
+  }
+  .cloud .cloud-extend-list .cloud-extend-box:nth-child(2n) {
+    padding-right: 0;
+  }
 }
 @media (max-width: 768px) {
   .cloud .cloud-extend-list .cloud-extend-box {
     width: auto;
     float: none;
-  }
-  .cloud .cloud-extend-list .cloud-extend-box.cloud-extend-box--col .cloud-extend-item {
-    margin-right: 0;
-  }
-  .cloud .cloud-extend-list .cloud-extend-box.cloud-extend-box--left .cloud-extend-item {
-    margin-left: 0;
+    padding-right: 0;
   }
 }
 .cloud .cloud-extend-list .cloud-extend-item {
@@ -133,10 +141,14 @@
   padding: 15px;
   line-height: 24px;
 }
+/* 卡片名称比分组标题小一档，拉开视觉层级 */
 .cloud .cloud-extend-list .cloud-extend-item .cloud-extend-head .cloud-extend-name {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: bold;
   height: 25px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .cloud .cloud-extend-list .cloud-extend-item .cloud-extend-head .cloud-extend-name em {
   display: inline-block;
@@ -230,52 +242,6 @@
   color: #fff;
   background-color: #19b4ea;
   border-color: #19b4ea;
-}
-/* -- 三列网格变体（模块 / 插件安装页） -- */
-.cloud .cloud-list--grid .cloud-extend-list {
-  padding: 15px 0 0;
-}
-.cloud .cloud-list--grid .cloud-extend-list .cloud-extend-box {
-  width: 33.3333%;
-  padding-right: 20px;
-  box-sizing: border-box;
-}
-.cloud .cloud-list--grid .cloud-extend-list .cloud-extend-box:nth-child(3n) {
-  padding-right: 0;
-}
-.cloud .cloud-list--grid .cloud-extend-list .cloud-extend-box.cloud-extend-box--col .cloud-extend-item {
-  margin-right: 0;
-}
-/* 卡片名称比分组标题小一档，拉开视觉层级 */
-.cloud .cloud-list--grid .cloud-extend-list .cloud-extend-item .cloud-extend-head .cloud-extend-name {
-  font-size: 16px;
-  height: 25px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.cloud .cloud-list--grid .cloud-extend-list .cloud-extend-item .cloud-extend-head .cloud-extend-name em {
-  font-size: 12px;
-  line-height: 22px;
-  padding: 0 10px;
-  margin-left: 8px;
-}
-@media (max-width: 1200px) {
-  .cloud .cloud-list--grid .cloud-extend-list .cloud-extend-box {
-    width: 50%;
-  }
-  .cloud .cloud-list--grid .cloud-extend-list .cloud-extend-box:nth-child(3n) {
-    padding-right: 20px;
-  }
-  .cloud .cloud-list--grid .cloud-extend-list .cloud-extend-box:nth-child(2n) {
-    padding-right: 0;
-  }
-}
-@media (max-width: 768px) {
-  .cloud .cloud-list--grid .cloud-extend-list .cloud-extend-box {
-    width: 100%;
-    padding-right: 0;
-  }
 }
 /* -- 模板图片网格 -- */
 .cloud .cloud-theme-list {
