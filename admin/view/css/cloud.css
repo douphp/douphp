@@ -192,6 +192,91 @@
   float: right;
   color: #999;
 }
+/* -- 安装状态标识（模块 / 插件 / 模板云列表共用，仅两态：未安装灰 / 已安装绿） -- */
+.cloud .cloud-extend-list .cloud-extend-item .cloud-extend-head .cloud-extend-state {
+  float: right;
+  padding: 0 8px;
+  font-size: 12px;
+  line-height: 20px;
+  color: #888;
+  background: #fff;
+  border: 1px solid #d5d5d5;
+}
+.cloud .cloud-extend-list .cloud-extend-item .cloud-extend-head .cloud-extend-state--install {
+  color: #999;
+  background: #f5f5f5;
+  border-color: #e0e0e0;
+}
+.cloud .cloud-extend-list .cloud-extend-item .cloud-extend-head .cloud-extend-state--installed {
+  color: #389e0d;
+  background: #f0f9eb;
+  border-color: #b7eb8f;
+}
+/* 已安装：卡片弱化，名称与安装按钮转灰 */
+.cloud .cloud-extend-list .cloud-extend-item--installed {
+  background-color: #fafafa;
+  border-color: #e6e6e6;
+}
+.cloud .cloud-extend-list .cloud-extend-item--installed .cloud-extend-name {
+  color: #666;
+}
+.cloud .cloud-extend-list .cloud-extend-item--installed .cloud-extend-actions em {
+  color: #999;
+  background-color: #f0f0f0;
+  border-color: #e0e0e0;
+}
+/* 待更新：仅高亮更新按钮，不整卡高亮 */
+.cloud .cloud-extend-list .cloud-extend-item--update .cloud-extend-actions a:first-of-type {
+  color: #fff;
+  background-color: #19b4ea;
+  border-color: #19b4ea;
+}
+/* -- 三列网格变体（模块 / 插件安装页） -- */
+.cloud .cloud-list--grid .cloud-extend-list {
+  padding: 15px 0 0;
+}
+.cloud .cloud-list--grid .cloud-extend-list .cloud-extend-box {
+  width: 33.3333%;
+  padding-right: 20px;
+  box-sizing: border-box;
+}
+.cloud .cloud-list--grid .cloud-extend-list .cloud-extend-box:nth-child(3n) {
+  padding-right: 0;
+}
+.cloud .cloud-list--grid .cloud-extend-list .cloud-extend-box.cloud-extend-box--col .cloud-extend-item {
+  margin-right: 0;
+}
+/* 卡片名称比分组标题小一档，拉开视觉层级 */
+.cloud .cloud-list--grid .cloud-extend-list .cloud-extend-item .cloud-extend-head .cloud-extend-name {
+  font-size: 16px;
+  height: 25px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cloud .cloud-list--grid .cloud-extend-list .cloud-extend-item .cloud-extend-head .cloud-extend-name em {
+  font-size: 12px;
+  line-height: 22px;
+  padding: 0 10px;
+  margin-left: 8px;
+}
+@media (max-width: 1200px) {
+  .cloud .cloud-list--grid .cloud-extend-list .cloud-extend-box {
+    width: 50%;
+  }
+  .cloud .cloud-list--grid .cloud-extend-list .cloud-extend-box:nth-child(3n) {
+    padding-right: 20px;
+  }
+  .cloud .cloud-list--grid .cloud-extend-list .cloud-extend-box:nth-child(2n) {
+    padding-right: 0;
+  }
+}
+@media (max-width: 768px) {
+  .cloud .cloud-list--grid .cloud-extend-list .cloud-extend-box {
+    width: 100%;
+    padding-right: 0;
+  }
+}
 /* -- 模板图片网格 -- */
 .cloud .cloud-theme-list {
   padding: 15px 0;
@@ -268,6 +353,21 @@
 .cloud .cloud-theme-list .cloud-theme-card dd.cloud-btn-row .del {
   float: right;
   color: #999;
+}
+/* -- 模板卡片安装状态：只改边框色，区分三态（绿已装 / 蓝可更新 / 默认未装） -- */
+.cloud .cloud-theme-list .cloud-theme-card--installed {
+  border-color: #b7eb8f;
+  background-color: #fafafa;
+}
+.cloud .cloud-theme-list .cloud-theme-card--installed dt {
+  color: #666;
+}
+.cloud .cloud-theme-list .cloud-theme-card--update {
+  border-color: #19b4ea;
+}
+.cloud .cloud-theme-list .cloud-theme-card--update dd.cloud-btn-row span a:first-child {
+  color: #19b4ea;
+  font-weight: bold;
 }
 /* -- 分页 -- */
 .cloud .cloud-pager {
@@ -346,6 +446,23 @@
      避开与上方日志行 margin-bottom 的外边距合并，间距恒定 12px + 16px = 28px -- */
 #dou-install-log .install-action-row {
   padding-top: 16px;
+}
+
+/* -- 更新主页（cloud/update）-- */
+/* 主样式由云端 static/css/update.css 随升级片段下发；以下仅保留区块间距与
+   空状态的本地兜底，避免片段样式加载异常时排版塌陷。 */
+#dou-update .update-section {
+  margin-top: 40px;
+}
+#dou-update .update-section:first-child {
+  margin-top: 0;
+}
+#dou-update .update-empty {
+  border-bottom: 1px solid #d7d7d7;
+  padding: 80px 0 110px 0;
+  color: #999;
+  font-size: 14px;
+  text-align: center;
 }
 
 /*- cloud-frame -*/

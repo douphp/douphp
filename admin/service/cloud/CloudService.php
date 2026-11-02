@@ -422,6 +422,26 @@ class CloudService extends BaseService
     }
 
     /**
+     * 拉取云端 `/update/plugin` 升级提示 HTML 片段（JSON `data.html`）。
+     *
+     * 与模块 / 模板同源：云端以延展目录（extend）与客户端上报的 update_date.plugin
+     * 比对生成升级列表，此处仅透传 HTML，不在本地复刻比较规则。
+     *
+     * @param string $localsite 已 urlencode(serialize(...)) 的站点扩展载荷
+     * @return string
+     */
+    public function fetchPluginUpdateHtml($localsite)
+    {
+        $data = CloudApi::getJson(CloudApi::PATH_UPDATE_PLUGIN, array(
+            'localsite' => (string) $localsite,
+        ));
+        if (!is_array($data) || !isset($data['html'])) {
+            return '';
+        }
+        return (string) $data['html'];
+    }
+
+    /**
      * 拉取云端 `/connect` 各通道可更新数量并落库（JSON 信封解包后的计数字段写入 `update_number`）。
      *
      * 云端连接失败时不写库，保持上次成功值。
@@ -552,6 +572,14 @@ class CloudService extends BaseService
 
         if (!isset($data['items']) || !is_array($data['items'])) {
             $data['items'] = array();
+        }
+
+        // 安装三态（installed / update / install）：由 action.kind 推导，供各扩展列表页差异化展示
+        foreach ($data['items'] as $idx => $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $data['items'][$idx]['state'] = ExtendStateResolver::resolve($item);
         }
 
         if ($baseRoute !== '') {

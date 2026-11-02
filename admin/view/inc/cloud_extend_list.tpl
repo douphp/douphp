@@ -40,9 +40,9 @@
   <div class="cloud-theme-list">
    <!-- {foreach from=$cloud_extend.items item=item} -->
    <!-- {if $cloud_extend.meta.root eq 'mobile'} -->
-   <dl class="cloud-theme-card cloud-theme-card--mobile">
+   <dl class="cloud-theme-card cloud-theme-card--mobile{if $cloud_extend_show_state} cloud-theme-card--{$item.state}{/if}">
     <!-- {else} -->
-    <dl class="cloud-theme-card">
+    <dl class="cloud-theme-card{if $cloud_extend_show_state} cloud-theme-card--{$item.state}{/if}">
      <!-- {/if} -->
      <p class="cloud-theme-thumb"><!-- {if $item.preview_frame_url} --><a href="javascript:void(0)" onclick="douFrame('{$item.title}', '{$item.preview_frame_url}', '{url link='admin.cloud.details'}')"><!-- {/if} --><!-- {if $item.thumb_url} --><img src="{$item.thumb_url}" alt="{$item.title}"><!-- {elseif $item.image} --><img src="{$item.image}" alt="{$item.title}"><!-- {/if} --><!-- {if $item.preview_frame_url} --></a><!-- {/if} --></p>
      <dt>{$item.title} {$item.slug}</dt>

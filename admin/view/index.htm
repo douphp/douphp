@@ -81,7 +81,7 @@
     <!-- {foreach from=$sys_info.folder_exists item=warning} -->
     <div class="warning">{$warning nofilter}</div>
     <!-- {/foreach} -->
-    <!-- {if $unum.system || $unum.module || $unum.theme} -->
+    <!-- {if $unum.system || $unum.module || $unum.theme || $unum.plugin} -->
     <div class="sys-msg"><span>系统有更新</span><a href="{url link='admin.cloud.update'}">进入更新页面</a><a href="{url link='admin.setting' dou=''}" class="last">关闭升级提示<em>（您将错过系统的漏洞修复以及功能升级）</em></a></div>
     <!-- {/if} -->
     <!-- {if $cue_open_ssl} -->

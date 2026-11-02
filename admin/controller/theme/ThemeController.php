@@ -94,6 +94,8 @@ class ThemeController extends BaseController
             ),
             'rec' => 'install',
             'cloud_extend' => $cloudExtend,
+            // 安装状态仅通过卡片边框色区分，保持图片网格布局与文字链接按钮不变
+            'cloud_extend_show_state' => true,
             'cloud_extend_error' => $cloudExtend === null ? lang('cloud_connect_failed') : '',
         ]);
     }

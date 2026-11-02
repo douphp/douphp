@@ -16,6 +16,7 @@ namespace Dou\Admin\Service\Module;
 
 use Dou\Admin\Facade\Cloud;
 use Dou\Admin\Model\Module\Module;
+use Dou\Admin\Service\Cloud\ExtendStateResolver;
 use Dou\Core\Facade\DB;
 use Dou\Core\Facade\Session;
 use Dou\Core\Foundation\Configuration\Config;
@@ -122,7 +123,7 @@ class ModuleService extends BaseService
                 continue;
             }
 
-            $item['state'] = $this->resolveExtendState($item);
+            $item['state'] = ExtendStateResolver::resolve($item);
             $visible[] = $item;
             if (!isset($buckets[$slug])) {
                 $buckets[$slug] = array();
@@ -154,33 +155,6 @@ class ModuleService extends BaseService
         $cloudExtend['items'] = $visible;
 
         return $cloudExtend;
-    }
-
-    /**
-     * 推导单条模块在本站的安装状态（仅模块页展示用）。
-     *
-     * 依据云端 action.kind：installed 为已装且最新，update / buy_then_update 为已装待更新；
-     * vip_renew / vip_buy 同一 kind 兼用于「续费后更新」与「续费后安装」，据文案是否含「更新」区分。
-     *
-     * @param array<string, mixed> $item
-     * @return string installed|update|install
-     */
-    private function resolveExtendState($item)
-    {
-        $kind = isset($item['action']['kind']) ? (string) $item['action']['kind'] : '';
-        $label = isset($item['action']['label']) ? (string) $item['action']['label'] : '';
-
-        if ($kind === 'installed') {
-            return 'installed';
-        }
-        if ($kind === 'update' || $kind === 'buy_then_update') {
-            return 'update';
-        }
-        if ($kind === 'vip_renew' || $kind === 'vip_buy') {
-            return (strpos($label, '更新') !== false) ? 'update' : 'install';
-        }
-
-        return 'install';
     }
 
     /**

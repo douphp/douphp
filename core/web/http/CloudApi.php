@@ -37,6 +37,7 @@ class CloudApi
     const PATH_UPDATE_SYSTEM = '/update/system';
     const PATH_UPDATE_MODULE = '/update/module';
     const PATH_UPDATE_THEME = '/update/theme';
+    const PATH_UPDATE_PLUGIN = '/update/plugin';
     /**
      * 订购扩展客户端 JSON（POST，信封）；与 `PATH_ORDER_EXTEND_CLIENT_HTML` 的 HTML 冻结入口分离。
      */

@@ -314,7 +314,7 @@ class Init
         $engine->assign('cue_open_ssl', false);
         $engine->assign('data_list', array());
         $engine->assign('cloud_list_class', '');
-        // 模块扩展页分类分组 / 最低版本 / 筛选栏 / 安装状态开关：默认关闭，仅模块页注入，避免其他扩展列表页读到未定义变量
+        // 扩展列表页分类分组 / 最低版本 / 筛选栏 / 安装状态开关：默认关闭，由模块 / 插件 / 模板云列表按需开启，避免其他页面读到未定义变量
         $engine->assign('cloud_extend_groups', array());
         $engine->assign('cloud_extend_hide_min_version', false);
         $engine->assign('cloud_extend_hide_filter', false);

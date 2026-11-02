@@ -72,6 +72,9 @@ class UpdateBadgeBuilder extends BaseService
     /**
      * 归一化计数：补齐默认键并计算 system 汇总值。
      *
+     * system = 核心更新 + 补丁 + 模块 + 模板 + 插件，对应侧栏首页角标与首页「系统有更新」提示；
+     * 插件另有自己的菜单角标（$unum.plugin），但同属扩展更新，需计入首页汇总。
+     *
      * @param array $number
      * @return array
      */
@@ -88,7 +91,7 @@ class UpdateBadgeBuilder extends BaseService
             ),
             $number
         );
-        $number['system'] = (int) $number['update'] + (int) $number['patch'] + (int) $number['module'] + (int) $number['theme'];
+        $number['system'] = (int) $number['update'] + (int) $number['patch'] + (int) $number['module'] + (int) $number['theme'] + (int) $number['plugin'];
 
         return $number;
     }

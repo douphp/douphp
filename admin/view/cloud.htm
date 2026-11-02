@@ -84,12 +84,13 @@
   <!-- {/if} -->
   <!-- {if $rec eq 'update'} 更新主页 -->
   {include file="inc/page_header.tpl"}
-  <div id="douUpdate">
-   <div id="systemUpdate">{$system_update_html nofilter}</div>
-   <div id="moduleUpdate">{$module_update_html nofilter}</div>
-   <div id="themeUpdate">{$theme_update_html nofilter}</div>
-   <!-- {if !$system_update_html && !$module_update_html && !$theme_update_html} -->
-   <div class="noUpdate">暂无可用更新</div>
+  <div id="dou-update">
+   {$system_update_html nofilter}
+   {$module_update_html nofilter}
+   {$theme_update_html nofilter}
+   {$plugin_update_html nofilter}
+   <!-- {if !$system_update_html && !$module_update_html && !$theme_update_html && !$plugin_update_html} -->
+   <div class="update-empty">暂无可用更新</div>
    <!-- {/if} -->
   </div>
   <!-- {/if} -->

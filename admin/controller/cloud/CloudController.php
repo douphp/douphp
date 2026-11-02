@@ -895,7 +895,7 @@ class CloudController extends BaseController
     }
 
     /**
-     * 更新主页：服务端直接拉取云端三类升级提示 HTML 与可更新数量。
+     * 更新主页：服务端直接拉取云端四类升级提示 HTML（系统 / 模块 / 模板 / 插件）与可更新数量。
      *
      * 关闭升级（`site.close_update`）时跳过云端调用；
      * `refreshUpdateNumber` 落库的 `update_number` 在下一次后台请求由 UpdateBadgeBuilder 输出到 `$unum`。
@@ -910,11 +910,13 @@ class CloudController extends BaseController
         $systemUpdateHtml = '';
         $moduleUpdateHtml = '';
         $themeUpdateHtml = '';
+        $pluginUpdateHtml = '';
         if (!Config::get('site.close_update', false)) {
             $this->cloudService->refreshUpdateNumber($localsite, $localsystem, true);
             $systemUpdateHtml = $this->cloudService->fetchSystemUpdateHtml($localsystem);
             $moduleUpdateHtml = $this->cloudService->fetchModuleUpdateHtml($localsite);
             $themeUpdateHtml = $this->cloudService->fetchThemeUpdateHtml($localsite);
+            $pluginUpdateHtml = $this->cloudService->fetchPluginUpdateHtml($localsite);
         }
 
         return $this->view('cloud.htm', [
@@ -923,6 +925,7 @@ class CloudController extends BaseController
             'system_update_html' => $systemUpdateHtml,
             'module_update_html' => $moduleUpdateHtml,
             'theme_update_html' => $themeUpdateHtml,
+            'plugin_update_html' => $pluginUpdateHtml,
         ]);
     }
 
