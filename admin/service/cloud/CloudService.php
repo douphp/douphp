@@ -350,22 +350,72 @@ class CloudService extends BaseService
     }
 
     /**
-     * 拉取云端 `/update/system` 升级提示 HTML 片段（JSON `data.html`）。
+     * 拉取云端 `/update/system` 系统升级面板（升级片段 + 顶部信息条片段）。
+     *
+     * 云端在客户端已是最新版时不再返回空串，而是在 `html` 中给出「已是最新版本」提示与
+     * 「重新安装当前版本」入口；`status` 用于区分该片段是升级列表（update）还是最新版提示（latest），
+     * 调用方据此决定是否输出升级风险提示。
      *
      * @param string $localsystem 已 urlencode(serialize(...)) 的系统环境载荷
-     * @return string 成功时为 HTML 片段，云端不可用 / 客户端已是最新版时为空串
+     * @param int $checkAt 本次检查时间戳（云端据此渲染「最后检查时间」）
+     * @return array ok / status / html / info_html；云端不可用时 ok 为 false
      */
-    public function fetchSystemUpdateHtml($localsystem)
+    public function fetchSystemUpdatePanel($localsystem, $checkAt = 0)
     {
         $data = CloudApi::getJson(CloudApi::PATH_UPDATE_SYSTEM, array(
             'localsystem' => (string) $localsystem,
+            'info' => 1,
+            'check_at' => (int) $checkAt,
         ));
-        if (!is_array($data) || !isset($data['html'])) {
-            return '';
+        if (!is_array($data)) {
+            return array('ok' => false, 'status' => '', 'html' => '', 'info_html' => '');
         }
-        $html = (string) $data['html'];
 
-        return $this->stripInstallTypeSystemQueryFromHtml($html);
+        $html = isset($data['html']) ? (string) $data['html'] : '';
+
+        // 剔除后可能只剩首尾空白，归一为空串，便于调用方按「有无内容」判断
+        $html = trim($this->stripInstallTypeSystemQueryFromHtml($this->stripUpdateTipsFromHtml($html)));
+
+        $status = isset($data['status']) ? (string) $data['status'] : '';
+        if ($status !== 'update' && $status !== 'latest') {
+            // 老服务端不返回 status：按片段是否为空判定，与改造前行为一致
+            $status = $html !== '' ? 'update' : '';
+        }
+
+        return array(
+            'ok' => true,
+            'status' => $status,
+            'html' => $html,
+            'info_html' => isset($data['info_html']) ? (string) $data['info_html'] : '',
+        );
+    }
+
+    /**
+     * 拉取云端 `/update/system` 升级提示 HTML 片段（JSON `data.html`）。
+     *
+     * @param string $localsystem 已 urlencode(serialize(...)) 的系统环境载荷
+     * @return string 成功时为 HTML 片段，云端不可用 / 无内容时为空串
+     */
+    public function fetchSystemUpdateHtml($localsystem)
+    {
+        $panel = $this->fetchSystemUpdatePanel($localsystem);
+
+        return $panel['html'];
+    }
+
+    /**
+     * 去掉云端片段携带的备份提示条（该提示改由页头 page_cue 统一输出，避免重复）。
+     *
+     * @param string $html
+     * @return string
+     */
+    private function stripUpdateTipsFromHtml($html)
+    {
+        if ($html === '' || strpos($html, 'class="update-tips"') === false) {
+            return $html;
+        }
+
+        return (string) preg_replace('#<div class="update-tips">.*?</div>\s*#s', '', $html);
     }
 
     /**

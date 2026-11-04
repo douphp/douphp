@@ -113,6 +113,8 @@ $_LANG['set'] = '设置';
 $_LANG['status'] = '状态';
 $_LANG['status_0'] = '隐藏';
 $_LANG['status_1'] = '显示';
+$_LANG['switch_open'] = '开启';
+$_LANG['switch_close'] = '关闭';
 $_LANG['sync_to_nav'] = '同步到自定义导航';
 $_LANG['sync_to_nav_cue'] = '选择同步后，新增或编辑的分类信息会自动同步到自定义导航（注意：如果自定义导航里单独改了名称将会被覆盖）';
 $_LANG['time_start'] = '开始时间';
@@ -264,6 +266,7 @@ $_LANG['help_know'] = '您想了解的几个问题？';
 
 // 设置
 $_LANG['config_setting'] = '设置';
+$_LANG['config_setting_system'] = '系统设置';
 $_LANG['config_setting_main'] = '常规设置';
 $_LANG['config_setting_customer'] = '在线客服';
 $_LANG['config_setting_display'] = '显示设置';

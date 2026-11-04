@@ -112,7 +112,8 @@ class InstallService extends BaseService
     /**
      * 步骤 1：版本校验 + 重复安装校验 + system 授权前置校验。
      *
-     * @param array $params 至少包含 type / cloud_id / mode / version / mini_version
+     * @param array $params 至少包含 type / cloud_id / mode / version / mini_version；
+     *                      可选 source（cloud|offline；offline 表示离线升级：跳过云端授权门禁，失败时不删除本地包）
      * @return array { ok: bool, error: string, logs: string[] }
      */
     public function runPreflight(array $params)
@@ -123,8 +124,16 @@ class InstallService extends BaseService
         $version = isset($params['version']) ? (string) $params['version'] : '';
         $miniVersion = isset($params['mini_version']) ? (string) $params['mini_version'] : '';
         $authStatus = isset($params['auth_status']) ? (string) $params['auth_status'] : 'ok';
+        $source = isset($params['source']) ? (string) $params['source'] : 'cloud';
+
+        // 「本地包来源」：mode=local（模块本地安装页）与 source=offline（离线升级）都不从云端取包，
+        // 因此授权门禁不得阻断流程，失败清理也不得删除用户手工放置的安装包。
+        $isLocalSource = ($mode === 'local') || ($source === 'offline');
 
         $logs = array();
+        if ($source === 'offline' && $mode !== 'local' && lang_has('cloud_offline_skip_auth')) {
+            $logs[] = (string) lang('cloud_offline_skip_auth');
+        }
 
         // 前置检查（core/service/upgrade/PreflightService：全量关键目录写测 + PHP/MySQL 兼容判定 +
         // 扩展检查 + 磁盘余量参考提示；blocked 拒绝、limited/提示写入日志。
@@ -136,7 +145,7 @@ class InstallService extends BaseService
                 $logs[] = (string) $preflightLine;
             }
             if (empty($report['ok'])) {
-                @unlink($this->cacheDir . $cloudId . '.zip');
+                $this->cleanupCachePackage($cloudId, $isLocalSource);
                 return array(
                     'ok' => false,
                     'error' => implode('；', $report['errors']),
@@ -146,7 +155,7 @@ class InstallService extends BaseService
         } else {
             $unwriteable = $this->findUnwriteableDirs();
             if ($unwriteable !== array()) {
-                @unlink($this->cacheDir . $cloudId . '.zip');
+                $this->cleanupCachePackage($cloudId, $isLocalSource);
                 return array(
                     'ok' => false,
                     'error' => sprintf((string) lang('cloud_writeable_denied'), implode('、', $unwriteable)),
@@ -155,10 +164,10 @@ class InstallService extends BaseService
             }
         }
 
-        if ($mode !== 'local' && $authStatus !== '' && $authStatus !== 'ok') {
+        if (!$isLocalSource && $authStatus !== '' && $authStatus !== 'ok') {
             $denial = $this->buildAuthDenial($authStatus);
             if ($denial !== null) {
-                @unlink($this->cacheDir . $cloudId . '.zip');
+                $this->cleanupCachePackage($cloudId, $isLocalSource);
                 return array(
                     'ok' => false,
                     'error' => $denial['error'],
@@ -173,14 +182,14 @@ class InstallService extends BaseService
         if ($type === 'module') {
             // 模块版本是账本/门卫的必需输入：非 local 缺失直接失败；local 允许为空（不写账本）
             if ($mode !== 'local' && $version === '') {
-                @unlink($this->cacheDir . $cloudId . '.zip');
+                $this->cleanupCachePackage($cloudId, $isLocalSource);
                 return array('ok' => false, 'error' => lang('cloud_module_version_missing'), 'logs' => $logs);
             }
             if ($mode !== 'local') {
                 if ($miniVersion !== '') {
                     $wrong = $this->checkMiniVersionSupport($miniVersion);
                     if ($wrong) {
-                        @unlink($this->cacheDir . $cloudId . '.zip');
+                        $this->cleanupCachePackage($cloudId, $isLocalSource);
                         return array('ok' => false, 'error' => $this->joinMessages($wrong), 'logs' => $logs);
                     }
                 } else {
@@ -192,7 +201,7 @@ class InstallService extends BaseService
             $gateVersion = $miniVersion !== '' ? $miniVersion : $version;
             $wrong = $this->checkMiniVersionSupport($gateVersion);
             if ($wrong) {
-                @unlink($this->cacheDir . $cloudId . '.zip');
+                $this->cleanupCachePackage($cloudId, $isLocalSource);
                 return array('ok' => false, 'error' => $this->joinMessages($wrong), 'logs' => $logs);
             }
         }
@@ -200,7 +209,7 @@ class InstallService extends BaseService
         if ($mode === 'install' || $mode === 'local') {
             $wrong = $this->installCheck($type, $cloudId);
             if ($wrong) {
-                @unlink($this->cacheDir . $cloudId . '.zip');
+                $this->cleanupCachePackage($cloudId, $isLocalSource);
                 return array(
                     'ok' => false,
                     'error' => $this->joinMessages($wrong),
@@ -275,9 +284,9 @@ class InstallService extends BaseService
     }
 
     /**
-     * 步骤 2：下载安装包到 cache 目录；local 模式仅校验文件存在。
+     * 步骤 2：下载安装包到 cache 目录；本地包来源（mode=local / source=offline）仅校验目录内的包。
      *
-     * @param array $params 至少包含 type / cloud_id / mode（install_id 用于下载进度文件命名）；须含云端 install-resolve 下发的 download_url（经 {@see filterTrustedInstallDownloadUrl} 白名单校验）
+     * @param array $params 至少包含 type / cloud_id / mode（install_id 用于下载进度文件命名）；在线须含云端 install-resolve 下发的 download_url（经 {@see filterTrustedInstallDownloadUrl} 白名单校验）
      * @return array { ok: bool, error: string, logs: string[] }
      */
     public function runDownload(array $params)
@@ -286,9 +295,10 @@ class InstallService extends BaseService
         $cloudId = isset($params['cloud_id']) ? (string) $params['cloud_id'] : '';
         $mode = isset($params['mode']) ? (string) $params['mode'] : 'install';
         $installId = isset($params['install_id']) ? (string) $params['install_id'] : '';
+        $source = isset($params['source']) ? (string) $params['source'] : 'cloud';
+        $isOffline = ($source === 'offline');
 
         $logs = array();
-        $itemZip = $this->cacheDir . $cloudId . '.zip';
 
         // 下载进度文件：供前端轮询显示百分比（install_id 形态非法时不启用；开始前清掉可能残留的旧文件）
         $progressFile = '';
@@ -297,15 +307,23 @@ class InstallService extends BaseService
             @unlink($progressFile);
         }
 
-        if ($mode === 'local') {
-            if (!is_file($itemZip)) {
-                $msg = lang_has('cloud_local_zip_missing')
-                    ? (string) lang('cloud_local_zip_missing')
-                    : (string) lang('cloud_down_wrong');
-                $logs[] = $msg;
-
-                return array('ok' => false, 'error' => $msg, 'logs' => $logs);
+        // 本地包来源：mode=local（模块本地安装页）与离线升级（source=offline）不走云端下载，
+        // 只校验目录内的安装包；离线场景额外要求「核心包」且版本不得低于当前版本。
+        if ($mode === 'local' || $isOffline) {
+            $verified = $this->verifyLocalPackage($cloudId, $isOffline && $mode !== 'local');
+            if (empty($verified['ok'])) {
+                return array('ok' => false, 'error' => (string) $verified['error'], 'logs' => $verified['logs']);
             }
+            $logs = array_merge($logs, isset($verified['logs']) ? (array) $verified['logs'] : array());
+
+            if ($isOffline && $mode !== 'local') {
+                $gate = $this->checkLocalPackageUpgradable($cloudId);
+                $logs = array_merge($logs, isset($gate['logs']) ? (array) $gate['logs'] : array());
+                if (empty($gate['ok'])) {
+                    return array('ok' => false, 'error' => (string) $gate['error'], 'logs' => $logs);
+                }
+            }
+
             return array('ok' => true, 'error' => '', 'logs' => $logs);
         }
 
@@ -352,7 +370,7 @@ class InstallService extends BaseService
     /**
      * 步骤 3：解压并按 type 同步目录名（theme / miniprogram / m / admin 别名）。
      *
-     * @param array $params 至少包含 type / cloud_id / mode
+     * @param array $params 至少包含 type / cloud_id / mode；可选 source（offline 时解压失败保留安装包）
      * @return array { ok: bool, error: string, logs: string[] }
      */
     public function runUnzip(array $params)
@@ -360,6 +378,7 @@ class InstallService extends BaseService
         $type = isset($params['type']) ? (string) $params['type'] : '';
         $cloudId = isset($params['cloud_id']) ? (string) $params['cloud_id'] : '';
         $mode = isset($params['mode']) ? (string) $params['mode'] : 'install';
+        $isOffline = isset($params['source']) && (string) $params['source'] === 'offline';
 
         $logs = array();
         $logs[] = lang('cloud_unzip_ing');
@@ -374,6 +393,11 @@ class InstallService extends BaseService
             return array('ok' => false, 'error' => $msg, 'logs' => $logs);
         }
 
+        // 上一次失败/中断可能留下同名解压目录：先清空，避免陈旧文件与本次包内容混合。
+        if (is_dir($itemDir)) {
+            FileHelper::delDir($itemDir);
+        }
+
         if (Zip::extract($itemZip, $itemDir)) {
             $this->synchronizeDirname($type, $itemDir, $mode);
 
@@ -386,7 +410,10 @@ class InstallService extends BaseService
                     $envCompat = new \Dou\Core\Service\Upgrade\EnvCompatService();
                     $require = $envCompat->checkPackageRequirements($meta);
                     if (empty($require['ok'])) {
-                        @unlink($itemZip);
+                        // 离线包由用户手工上传：环境不满足时保留安装包，修复环境后可直接重试
+                        if (!$isOffline) {
+                            @unlink($itemZip);
+                        }
                         FileHelper::delDir($itemDir);
                         $msg = implode('；', $require['errors']);
                         $logs[] = $msg;
@@ -398,11 +425,337 @@ class InstallService extends BaseService
             return array('ok' => true, 'error' => '', 'logs' => $logs);
         }
 
-        @unlink($itemZip);
+        // 离线包是用户手工上传的：解压失败只清临时目录，保留安装包供重新上传/重试
+        if (!$isOffline) {
+            @unlink($itemZip);
+        }
         FileHelper::delDir($itemDir);
         $logs[] = lang('cloud_unzip_wrong');
 
         return array('ok' => false, 'error' => lang('cloud_unzip_wrong'), 'logs' => $logs);
+    }
+
+    /**
+     * 包目录（绝对路径，斜杠结尾）：离线页展示放置位置、后续动作共用。
+     *
+     * @return string
+     */
+    public function packageDir()
+    {
+        return $this->cacheDir;
+    }
+
+    /**
+     * 校验包目录内的本地安装包结构（离线升级 / 模块本地安装共用）。
+     *
+     * 顺序：存在性 → ZIP 文件头 → 归档可打开（截断 / 半截上传在此拦下）。
+     * 核心包判定与版本门槛见 {@see checkLocalPackageUpgradable()}。
+     *
+     * @param string $cloudId 包文件名（不含 .zip）
+     * @param bool $isOffline 是否离线升级（仅影响「包缺失」文案）
+     * @param string|null $dir 覆盖包目录（缺省为 cacheDir；供 CLI 烟测）
+     * @return array { ok: bool, error: string, logs: string[] }
+     */
+    public function verifyLocalPackage($cloudId, $isOffline = false, $dir = null)
+    {
+        $dir = $this->normalizePackageDir($dir);
+        $zip = $dir . (string) $cloudId . '.zip';
+
+        if (!is_file($zip)) {
+            $key = $isOffline ? 'cloud_offline_zip_missing' : 'cloud_local_zip_missing';
+            $msg = lang_has($key) ? (string) lang($key) : (string) lang('cloud_down_wrong');
+
+            return array('ok' => false, 'error' => $msg, 'logs' => array($msg));
+        }
+
+        if (!$this->fileLooksLikeZip($zip) || !$this->zipArchiveIsReadable($zip)) {
+            $msg = lang_has('cloud_offline_invalid_zip')
+                ? (string) lang('cloud_offline_invalid_zip')
+                : (string) lang('cloud_unzip_wrong');
+
+            return array('ok' => false, 'error' => $msg, 'logs' => array($msg));
+        }
+
+        return array('ok' => true, 'error' => '', 'logs' => array());
+    }
+
+    /**
+     * 扫描包目录并逐个评估（离线页展示用）。
+     *
+     * @param string|null $dir 覆盖包目录（缺省为 cacheDir；供 CLI 烟测）
+     * @param string|null $currentVersion 覆盖当前版本（缺省读 site.douphp_version；供 CLI 烟测）
+     * @return array { current_version: string, dir: string, items: array }
+     */
+    public function listLocalPackages($dir = null, $currentVersion = null)
+    {
+        $dir = $this->normalizePackageDir($dir);
+        $current = $currentVersion === null ? $this->currentCoreVersion() : (string) $currentVersion;
+
+        $items = array();
+        $files = glob($dir . '*.zip');
+        if (is_array($files)) {
+            sort($files, SORT_STRING);
+            foreach ($files as $file) {
+                if (!is_file($file)) {
+                    continue;
+                }
+                $items[] = $this->evaluatePackage($file, $current);
+            }
+        }
+
+        return array('current_version' => $current, 'dir' => $dir, 'items' => $items);
+    }
+
+    /**
+     * 离线升级的包门槛：必须是核心升级包，且版本不得低于当前版本。
+     *
+     * 与离线页展示使用同一份评估结果，避免「页面允许、服务端拒绝」的口径漂移。
+     *
+     * @param string $cloudId 包文件名（不含 .zip）
+     * @param string|null $dir 覆盖包目录（缺省为 cacheDir；供 CLI 烟测）
+     * @param string|null $currentVersion 覆盖当前版本（供 CLI 烟测）
+     * @return array { ok: bool, error: string, logs: string[] }
+     */
+    public function checkLocalPackageUpgradable($cloudId, $dir = null, $currentVersion = null)
+    {
+        $dir = $this->normalizePackageDir($dir);
+        $current = $currentVersion === null ? $this->currentCoreVersion() : (string) $currentVersion;
+        $zip = $dir . (string) $cloudId . '.zip';
+
+        if (!is_file($zip)) {
+            $msg = $this->offlineLang('cloud_offline_zip_missing');
+
+            return array('ok' => false, 'error' => $msg, 'logs' => array());
+        }
+
+        $item = $this->evaluatePackage($zip, $current);
+        $status = isset($item['status']) ? (string) $item['status'] : '';
+
+        if ($status === 'not_core') {
+            return array('ok' => false, 'error' => $this->offlineLang('cloud_offline_not_core_package'), 'logs' => array());
+        }
+        if ($status === 'invalid') {
+            return array('ok' => false, 'error' => $this->offlineLang('cloud_offline_invalid_zip'), 'logs' => array());
+        }
+        if ($status === 'older') {
+            $msg = lang_has('cloud_offline_downgrade_blocked')
+                ? sprintf((string) lang('cloud_offline_downgrade_blocked'), (string) $item['version'], $current)
+                : (string) lang('illegal');
+
+            return array('ok' => false, 'error' => $msg, 'logs' => array());
+        }
+
+        $logs = array();
+        if ($status === 'same' && lang_has('cloud_offline_version_same_log')) {
+            $logs[] = (string) lang('cloud_offline_version_same_log');
+        } elseif ($status === 'unknown' && lang_has('cloud_offline_version_unknown')) {
+            $logs[] = (string) lang('cloud_offline_version_unknown');
+        }
+
+        return array('ok' => true, 'error' => '', 'logs' => $logs);
+    }
+
+    /**
+     * 删除包目录内的缓存包（仅在线失败场景；本地包来源不得调用）。
+     *
+     * @param string $cloudId
+     * @param bool $isLocalSource 本地包来源（离线 / local）时保留用户包
+     * @return void
+     */
+    private function cleanupCachePackage($cloudId, $isLocalSource)
+    {
+        if ($isLocalSource) {
+            return;
+        }
+        @unlink($this->cacheDir . (string) $cloudId . '.zip');
+    }
+
+    /**
+     * 归一包目录：空值回退 cacheDir；相对路径按站点根解析，绝对路径原样补尾斜杠。
+     *
+     * @param string|null $dir
+     * @return string
+     */
+    private function normalizePackageDir($dir)
+    {
+        if ($dir === null || $dir === '') {
+            return $this->cacheDir;
+        }
+        $dir = (string) $dir;
+        $first = substr($dir, 0, 1);
+        $isAbsolute = ($first === '/') || ($first === '\\') || preg_match('/^[A-Za-z]:[\\\\\/]/', $dir) === 1;
+
+        return $isAbsolute ? rtrim($dir, '/\\') . '/' : $this->rootDir . trim($dir, '/') . '/';
+    }
+
+    /**
+     * 评估单个 zip：结构、是否核心包、包内版本与当前版本的比较结论。
+     *
+     * status 取值：newer | same | older | unknown | not_core | invalid。
+     *
+     * @param string $zipPath
+     * @param string $currentVersion
+     * @return array
+     */
+    private function evaluatePackage($zipPath, $currentVersion)
+    {
+        $file = basename((string) $zipPath);
+        $size = (int) @filesize($zipPath);
+        $mtime = (int) @filemtime($zipPath);
+        $valid = $this->fileLooksLikeZip($zipPath) && $this->zipArchiveIsReadable($zipPath);
+
+        $meta = $valid
+            ? $this->readCorePackageMeta($zipPath)
+            : array('is_core' => false, 'version' => '');
+        $isCore = !empty($meta['is_core']);
+        $version = isset($meta['version']) ? (string) $meta['version'] : '';
+
+        $compare = null;
+        $allowed = false;
+        if (!$valid) {
+            $status = 'invalid';
+        } elseif (!$isCore) {
+            $status = 'not_core';
+        } elseif ($version === '') {
+            $status = 'unknown';
+            $allowed = true;
+        } else {
+            $compare = $this->compareCoreVersions($version, (string) $currentVersion);
+            if ($compare === null) {
+                $status = 'unknown';
+                $allowed = true;
+            } elseif ($compare < 0) {
+                $status = 'older';
+            } elseif ($compare === 0) {
+                $status = 'same';
+                $allowed = true;
+            } else {
+                $status = 'newer';
+                $allowed = true;
+            }
+        }
+
+        if ($size >= 1048576) {
+            $sizeText = round($size / 1048576, 2) . ' MB';
+        } elseif ($size >= 1024) {
+            $sizeText = round($size / 1024, 1) . ' KB';
+        } else {
+            $sizeText = $size . ' B';
+        }
+
+        return array(
+            'file' => $file,
+            'cloud_id' => preg_replace('/\.zip$/i', '', $file),
+            'size' => $size,
+            'size_text' => $sizeText,
+            'mtime' => $mtime,
+            'mtime_text' => $mtime > 0 ? date('Y-m-d H:i', $mtime) : '',
+            'valid' => $valid,
+            'is_core' => $isCore,
+            'version' => $version,
+            'compare' => $compare,
+            'allowed' => $allowed,
+            'status' => $status,
+        );
+    }
+
+    /**
+     * 读取核心升级包元信息：zip 根 `_update/version.php` 的 version 字段。
+     *
+     * 仅做字符串提取，不执行包内代码（解压后的二次环境校验才 include 该文件）。
+     *
+     * @param string $zipPath
+     * @return array { is_core: bool, version: string }
+     */
+    private function readCorePackageMeta($zipPath)
+    {
+        $result = array('is_core' => false, 'version' => '');
+        if (!is_file($zipPath) || !class_exists('ZipArchive')) {
+            return $result;
+        }
+
+        $archive = new \ZipArchive();
+        if (@$archive->open($zipPath) !== true) {
+            return $result;
+        }
+
+        $entry = null;
+        $total = (int) $archive->numFiles;
+        for ($i = 0; $i < $total; $i++) {
+            $stat = $archive->statIndex($i);
+            if (!is_array($stat) || !isset($stat['name'])) {
+                continue;
+            }
+            $name = str_replace('\\', '/', (string) $stat['name']);
+            if (preg_match('#(^|/)_update/version\.php$#', $name)) {
+                $entry = (string) $stat['name'];
+                break;
+            }
+        }
+
+        if ($entry !== null) {
+            $source = $archive->getFromName($entry);
+            if (is_string($source) && $source !== '') {
+                $result['is_core'] = true;
+                if (preg_match('/[\'\"]version[\'\"]\s*=>\s*[\'\"]([^\'\"]+)[\'\"]/', $source, $m)) {
+                    $result['version'] = trim((string) $m[1]);
+                }
+            }
+        }
+        $archive->close();
+
+        return $result;
+    }
+
+    /**
+     * 当前核心版本串（dou_config.douphp_version）。
+     *
+     * @return string
+     */
+    private function currentCoreVersion()
+    {
+        return (string) Config::get('site.douphp_version', '');
+    }
+
+    /**
+     * 核心版本比较：优先复用升级引擎的版本语义（X.Y + Release 日期）。
+     *
+     * @param string $target
+     * @param string $current
+     * @return int|null 负 / 0 / 正；任一侧为空返回 null（无法判定）
+     */
+    private function compareCoreVersions($target, $current)
+    {
+        $target = trim((string) $target);
+        $current = trim((string) $current);
+        if ($target === '' || $current === '') {
+            return null;
+        }
+
+        if (class_exists('Dou\\Core\\Service\\Upgrade\\VersionRegistry')) {
+            $registry = new \Dou\Core\Service\Upgrade\VersionRegistry('');
+
+            return (int) $registry->compareVersionStrings($target, $current);
+        }
+
+        $targetDate = preg_match('/(\d{8})\s*$/', $target, $m) ? (int) $m[1] : 0;
+        $currentDate = preg_match('/(\d{8})\s*$/', $current, $m) ? (int) $m[1] : 0;
+        if ($targetDate === $currentDate) {
+            return 0;
+        }
+
+        return $targetDate < $currentDate ? -1 : 1;
+    }
+
+    /**
+     * 离线升级页展示用文案（语言包缺键时回退通用提示）。
+     *
+     * @param string $key
+     * @return string
+     */
+    private function offlineLang($key)
+    {
+        return lang_has($key) ? (string) lang($key) : (string) lang('illegal');
     }
 
     /**
@@ -616,7 +969,7 @@ class InstallService extends BaseService
     /**
      * 步骤 4：执行 install() 主体（文件拷贝 / SQL / module.php / display 等）。
      *
-     * @param array $params 至少包含 type / cloud_id / mode
+     * @param array $params 至少包含 type / cloud_id / mode；可选 source（offline 时失败保留安装包）
      * @return array { ok: bool, error: string, logs: string[], redirect_url?: string }
      */
     public function runApply(array $params)
@@ -640,7 +993,7 @@ class InstallService extends BaseService
         }
 
         $version = isset($params['version']) ? (string) $params['version'] : '';
-        $wrong = $this->install($type, $cloudId, $mode, $version);
+        $wrong = $this->install($type, $cloudId, $mode, $version, isset($params['source']) && (string) $params['source'] === 'offline');
         // 附加说明无论成败都回传：失败时含快照回滚结果
         foreach ($this->installNotes as $note) {
             $logs[] = (string) $note;
@@ -725,7 +1078,7 @@ class InstallService extends BaseService
         $btnBack = isset($buttons['back']) ? (string) $buttons['back'] : '';
         $btnNote = isset($buttons['note']) ? (string) $buttons['note'] : '';
 
-        $nextInstall = $this->resolveNextInstall($batch, $themeId, $mode);
+        $nextInstall = $this->resolveNextInstall($type, $batch, $themeId, $mode);
 
         return array(
             'ok' => true,
@@ -830,24 +1183,28 @@ class InstallService extends BaseService
     /**
      * 根据 batch / theme_id 推断下一个待安装的 cloud_id（前端用于自动创建下一个会话）。
      *
+     * batch 队列来自「一键更新全部模块 / 模板 / 插件」链接（cloud_id 以 `|` 拼接），
+     * 队列内各项目沿用当前 type；batch 耗尽后才回到「模块装完再装配套模板」的历史链路。
+     *
      * 下一项不继承当前项的 version/mini_version：由下一次 install() 的 install-resolve 实时解析。
      *
+     * @param string $type 当前目标的扩展类型（module|theme|plugin|...）
      * @param array $batch
      * @param string $themeId
      * @param string $mode
      * @return array|null { type, cloud_id, mode, version, mini_version, theme_id }
      */
-    private function resolveNextInstall(array $batch, $themeId, $mode)
+    private function resolveNextInstall($type, array $batch, $themeId, $mode)
     {
         if (!empty($batch)) {
             $next = array_shift($batch);
             return array(
-                'type' => 'module',
+                'type' => (string) $type !== '' ? (string) $type : 'module',
                 'cloud_id' => (string) $next,
                 'mode' => (string) $mode,
                 'version' => '',
                 'mini_version' => '',
-                'theme_id' => (string) $themeId,
+                'theme_id' => (string) $type === 'module' ? (string) $themeId : '',
                 'batch' => array_values($batch),
             );
         }
@@ -1043,9 +1400,10 @@ class InstallService extends BaseService
      * @param string $cloudId
      * @param string $mode
      * @param string $moduleVersion 云端下发的模块版本（8 位 YYYYMMDD；非模块忽略）
+     * @param bool $keepPackageOnFailure 离线升级：应用失败时保留用户手工放置的安装包（便于修复后重试）
      * @return array|null 失败时返回错误信息数组，成功时返回 null
      */
-    public function install($type, $cloudId, $mode, $moduleVersion = '')
+    public function install($type, $cloudId, $mode, $moduleVersion = '', $keepPackageOnFailure = false)
     {
         $prefix = DB::getPrefix();
         $sql = '';
@@ -1215,7 +1573,10 @@ class InstallService extends BaseService
         if ($moduleIdMismatchNote !== '') {
             $this->installNotes[] = $moduleIdMismatchNote;
         }
-        @unlink($itemZip);
+        // 离线升级的安装包是用户手工放置的：升级失败时保留，便于修复问题后直接重试
+        if (!$keepPackageOnFailure || !$wrong) {
+            @unlink($itemZip);
+        }
         FileHelper::delDir($itemDir);
         @unlink($sqlInstallFile);
         if ($type === 'module') {

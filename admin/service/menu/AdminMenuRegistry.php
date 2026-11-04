@@ -80,7 +80,9 @@ if (!defined('IN_DOUCO')) {
  *     主域由 link 推导（{@see AdminNavResolver::normalizeNode()}）；
  *   - permission 所需基础菜单权限键（workspace.menu_permission.*，由 Builder 过滤）；
  *   - badge      更新角标键（$unum.*，由 Builder 取整数值）；
- *   - children   二级子项（栏目模块「全部 / 分类」），含 category_match 判定分类高亮。
+ *   - children   二级子项（id => array('name','link','match','exclude','when')），活跃态由
+ *     {@see AdminNavResolver} 统一输出到 $nav.sidebar.<节点>.<children>.<子项>.is_active；
+ *     栏目模块的「全部 / 分类」仍走 category_match / is_all_active 旧契约。
  */
 class AdminMenuRegistry
 {
@@ -193,7 +195,21 @@ class AdminMenuRegistry
                 'setting' => array(
                     'id' => 'setting', 'name' => 'setting', 'icon' => 'setting',
                     'link' => 'admin.setting', 'permission' => 'setting',
-                    'match' => array('metadata'),
+                    // 兼管扩展字段、系统更新、云账号与多语言：这些页面仍高亮设置并内联展开子菜单
+                    'match' => array('metadata', 'cloud.update', 'cloud.close_update', 'cloud.open_update', 'cloud.account', 'language'),
+                    // 设置二级菜单：子项活跃态由 AdminNavResolver 按当前路由名统一计算，
+                    // 模板只消费 $nav.sidebar.setting.children.<id>.is_active，不比较路由名
+                    'children' => array(
+                        'setting' => array(
+                            'name' => 'setting', 'link' => 'admin.setting', 'match' => array('metadata'),
+                        ),
+                        'update' => array(
+                            'name' => 'cloud_update', 'link' => 'admin.cloud.update',
+                            'match' => array('cloud.close_update', 'cloud.open_update'),
+                        ),
+                        'cloud' => array('name' => 'cloud', 'link' => 'admin.cloud.account'),
+                        'language' => array('name' => 'language', 'link' => 'admin.language'),
+                    ),
                 ),
                 // 小程序签名下「导航」节点改指小程序导航（与 bot 的 miniprogram 节点互斥高亮）
                 'miniprogram_nav' => array(

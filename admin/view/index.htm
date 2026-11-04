@@ -81,9 +81,6 @@
     <!-- {foreach from=$sys_info.folder_exists item=warning} -->
     <div class="warning">{$warning nofilter}</div>
     <!-- {/foreach} -->
-    <!-- {if $unum.system || $unum.module || $unum.theme || $unum.plugin} -->
-    <div class="sys-msg"><span>系统有更新</span><a href="{url link='admin.cloud.update'}">进入更新页面</a><a href="{url link='admin.setting' dou=''}" class="last">关闭升级提示<em>（您将错过系统的漏洞修复以及功能升级）</em></a></div>
-    <!-- {/if} -->
     <!-- {if $cue_open_ssl} -->
     <div class="sys-msg"><span>您的站点已启用HTTPS，建议后台访问时也使用HTTPS访问</span><a href="{$ssl_url}" target="_blank">立即进入HTTPS模式</a></div>
     <!-- {/if} -->

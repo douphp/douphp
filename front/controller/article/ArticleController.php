@@ -110,18 +110,7 @@ class ArticleController extends BaseController
             $archive
         );
 
-        $cateInfo = $this->buildArticleCategoryInfo($catId);
-        if (!is_array($cateInfo)) {
-            $cateInfo = array(
-                'name' => '',
-                'keywords' => '',
-                'description' => '',
-                'parent_id' => 0,
-            );
-        }
-        if ($archive) {
-            $cateInfo['name'] = Util::archiveLabel($archive);
-        }
+        $cateInfo = Article::categoryInfo($catId, $archive);
 
         $urHere = $this->breadcrumb->build('article_category', $catId, '', $archive);
 
@@ -146,7 +135,7 @@ class ArticleController extends BaseController
             'article_category' => ArticleCategory::tree($catId),
             'article_list' => $result['article_list'],
             'related_article' => Article::related($catId, 4),
-            'column_name' => $cateInfo['name'] ? $cateInfo['name'] : lang('article_category'),
+            'column_name' => Article::categoryLabel($cateInfo),
             'pager' => $result['pager'],
         ));
     }
@@ -181,15 +170,7 @@ class ArticleController extends BaseController
         $article['click'] = (int) $article['click'] + 1;
 
         $catId = $article['category_id'];
-        $cateInfo = $this->buildArticleCategoryInfo($catId);
-        if (!is_array($cateInfo)) {
-            $cateInfo = array(
-                'name' => '',
-                'keywords' => '',
-                'description' => '',
-                'parent_id' => 0,
-            );
-        }
+        $cateInfo = Article::categoryInfo($catId);
         $parentId = $cateInfo['parent_id'];
 
         $comment = Module::make('comment');
@@ -227,29 +208,13 @@ class ArticleController extends BaseController
             'article' => $article,
             'related_article' => Article::related($catId, 4, (int) $id),
             'defined' => $article['defined'],
-            'column_name' => $cateInfo['name'] ? $cateInfo['name'] : lang('article_category'),
+            'column_name' => Article::categoryLabel($cateInfo),
         );
         if ($commentData !== null) {
             $viewData['comment'] = $commentData;
         }
 
         return $this->view('article.dwt', $viewData);
-    }
-
-    /**
-     * @param int $catId
-     * @return array|false
-     */
-    private function buildArticleCategoryInfo($catId)
-    {
-        $cateInfo = $this->articleService->findCategoryById($catId);
-        if (is_array($cateInfo)) {
-            $cateInfo = language()->langBox($cateInfo, 'article_category', 'name, keywords, description');
-            $cateInfo['category_id'] = (int) $catId;
-            $cateInfo['url'] = route('article.category', array('category_id' => $catId));
-        }
-
-        return $cateInfo;
     }
 
     /**

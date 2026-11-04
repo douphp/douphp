@@ -3,12 +3,31 @@
  {include file="sidebar.custom.htm"}
  <!-- {else} -->
  <ul class="top">
-  <li data-id="home"><a href="{url link='admin.index'}"><i class="{$workspace.menu_icon_map.home}"></i><em>{$lang.menu_home}<!-- {if $unum.system} --><span class="badge"><span>{$unum.system}</span></span><!-- {/if} --></em></a></li>
+  <li data-id="home"><a href="{url link='admin.index'}"><i class="{$workspace.menu_icon_map.home}"></i><em>{$lang.menu_home}</em></a></li>
  </ul>
  <div class="menu-scroll">
   <ul>
-   <!-- {if $workspace.menu_permission.setting} -->
-   <li{if $nav.sidebar.setting.is_active} class="cur"{/if} data-id="setting"><a href="{url link='admin.setting'}"><i class="{$workspace.menu_icon_map.setting}"></i><em>{$lang.setting}</em></a></li>
+   <!-- {if $workspace.menu_permission.setting || ($workspace.menu_permission.cloud && !$site.close_update) || $workspace.menu_preinstall_setting.language || ($features.language && $workspace.menu_permission.language)} -->
+   <li class="{if $nav.sidebar.setting.is_active || $workspace.menu_preinstall_setting.language.is_active}cur {/if}has-sub" data-id="setting"><a href="{if $workspace.menu_permission.setting}{url link='admin.setting'}{elseif $workspace.menu_permission.cloud && !$site.close_update}{url link='admin.cloud.update'}{elseif $workspace.menu_preinstall_setting.language}{$workspace.menu_preinstall_setting.language.url}{else}{url link='admin.language'}{/if}"><i class="{$workspace.menu_icon_map.setting}"></i><em>{$lang.setting}<!-- {if $workspace.menu_permission.cloud && !$site.close_update && $unum.system} --><span class="badge"><span>{$unum.system}</span></span><!-- {/if} --></em></a>
+    <ul class="sub-menu">
+     <!-- {if $workspace.menu_permission.setting} -->
+     <li data-child="setting"{if $nav.sidebar.setting.children.setting.is_active} class="cur"{/if}><a href="{url link='admin.setting'}"><em>{$lang.config_setting_system}</em></a></li>
+     <!-- {/if} -->
+     <!-- {if $workspace.menu_permission.cloud} -->
+     <!-- {if !$site.close_update} -->
+     <li data-child="update"{if $nav.sidebar.setting.children.update.is_active} class="cur"{/if}><a href="{url link='admin.cloud.update'}"><em>{$lang.cloud_update}<!-- {if $unum.system} --><span class="badge"><span>{$unum.system}</span></span><!-- {/if} --></em></a></li>
+     <!-- {/if} -->
+     <!-- {if !$pure_mode && $global_admin.action_list eq 'ALL'} -->
+     <li data-child="cloud"{if $nav.sidebar.setting.children.cloud.is_active} class="cur"{/if}><a href="{url link='admin.cloud.account'}"><em>{$lang.cloud}</em></a></li>
+     <!-- {/if} -->
+     <!-- {/if} -->
+     <!-- {if $workspace.menu_preinstall_setting.language} -->
+     <li data-child="language"{if $workspace.menu_preinstall_setting.language.is_active} class="cur"{/if}><a href="{$workspace.menu_preinstall_setting.language.url}"><em>{$workspace.menu_preinstall_setting.language.lang}</em></a></li>
+     <!-- {elseif $features.language && $workspace.menu_permission.language} -->
+     <li data-child="language"{if $nav.sidebar.setting.children.language.is_active} class="cur"{/if}><a href="{url link='admin.language'}"><em>{$lang.language}</em></a></li>
+     <!-- {/if} -->
+    </ul>
+   </li>
    <!-- {/if} -->
    <!-- {if $workspace.menu_permission.nav} -->
    <!-- {if $_SYSTEM_SIGN eq 'miniprogram'} -->
@@ -56,7 +75,7 @@
    <!-- {/foreach} -->
    <!-- {foreach from=$workspace.menu_single item=menu} -->
    <!-- {if $menu.lang} -->
-   <li{if $nav.sidebar[$menu.name].is_active} class="cur"{/if} data-id="{$menu.name}"><a href="{$menu.url}"><i class="{$menu.icon}"></i><em>{$menu.lang}<!-- {if $menu.name eq 'plugin'} -->{if $unum.plugin}<span class="badge"><span>{$unum.plugin}</span></span>{/if}<!-- {/if} --><!-- {if $menu.badge} --><span class="badge"><span>{$menu.badge}</span></span><!-- {/if} --></em></a></li>
+   <li{if $nav.sidebar[$menu.name].is_active} class="cur"{/if} data-id="{$menu.name}"><a href="{$menu.url}"><i class="{$menu.icon}"></i><em>{$menu.lang}<!-- {if $menu.badge} --><span class="badge"><span>{$menu.badge}</span></span><!-- {/if} --></em></a></li>
    <!-- {/if} -->
    <!-- {/foreach} -->
   </ul>
@@ -73,6 +92,11 @@
    <!-- {/if} -->
    <!-- {if !$pure_mode && $_SYSTEM_SIGN neq 'miniprogram' && $workspace.menu_permission.theme} -->
    <li{if $nav.sidebar.theme.is_active} class="cur"{/if} data-id="theme"><a href="{url link='admin.theme'}"><i class="{$workspace.menu_icon_map.theme}"></i><em>{$lang.theme}<!-- {if $unum.theme} --><span class="badge"><span>{$unum.theme}</span></span><!-- {/if} --></em></a></li>
+   <!-- {/if} -->
+   <!-- {if $workspace.menu_permission.plugin} -->
+   <li{if $nav.sidebar.plugin.is_active} class="cur"{/if} data-id="plugin" data-installed="1"><a href="{url link='admin.plugin'}"><i class="{$workspace.menu_icon_map.plugin}"></i><em>{$lang.plugin}<!-- {if $unum.plugin} --><span class="badge"><span>{$unum.plugin}</span></span><!-- {/if} --></em></a></li>
+   <!-- {elseif $workspace.menu_preinstall_fixed.plugin} -->
+   <li{if $nav.sidebar.plugin.is_active || $workspace.menu_preinstall_fixed.plugin.is_active} class="cur"{/if} data-id="plugin"><a href="{$workspace.menu_preinstall_fixed.plugin.url}"><i class="{$workspace.menu_preinstall_fixed.plugin.icon}"></i><em>{$workspace.menu_preinstall_fixed.plugin.lang}</em></a></li>
    <!-- {/if} -->
    <!-- {if $workspace.menu_permission.manager} -->
    <li{if $nav.sidebar.manager.is_active} class="cur"{/if} data-id="manager"><a href="{url link='admin.manager'}"><i class="{$workspace.menu_icon_map.manager}"></i><em>{$lang.manager}</em></a></li>

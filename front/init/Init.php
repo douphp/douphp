@@ -594,6 +594,7 @@ class Init
         $engine->assign('js_route_config_json', JsRouteExporter::toJsonScript(JsRouteExporter::buildFrontConfig()));
         $engine->assign('js_routes_script_url', route('routes_js', array(), array('query' => array('v' => JsRouteExporter::manifestUrlVersion('Front')))));
         $frontLangPack = LangController::currentPack();
+        $engine->assign('cur_lang', $frontLangPack);
         $engine->assign('js_lang_script_url', route('lang_js', array(), array('query' => array('v' => JsLangExporter::manifestUrlVersion('front', $frontLangPack)))));
         $engine->assign('about', Page::about());
         $engine->assign('param', ViewVars::param(Config::get('param', array())));

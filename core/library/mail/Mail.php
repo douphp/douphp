@@ -60,9 +60,11 @@ class Mail {
      * @param string $altBody 非 HTML 客户端显示的纯文本备用正文。
      * @param array|null $debugTraces 引用变量：非 null 时收集 SMTP 调试链路（调试级别 2），
      *                                键为整数序号、值为 "level=N 消息" 字符串。
+     * @param int $timeout SMTP socket 超时（秒），默认 30；须小于 PHP 的 max_execution_time，
+     *                     否则请求会被 PHP 强制中断，前端只能拿到失败而邮件可能已投递。
      * @return array{success: bool, error: string} success 表示是否发送成功；error 为失败时的错误信息（成功时为空串）。
      */
-    public static function sendMailResult($mailto, $subject = '', $body = '', $altBody = '', &$debugTraces = null) {
+    public static function sendMailResult($mailto, $subject = '', $body = '', $altBody = '', &$debugTraces = null, $timeout = 30) {
         if (Config::get('site.mail_service', false)) {
             $mailFactory = new self();
             $mail = $mailFactory->createMailer();
@@ -91,6 +93,7 @@ class Mail {
                 $mail->SMTPSecure = 'ssl';                        // 安全协议，可以注释掉
             }
             $mail->Port = Config::get('site.mail_port', 25);          // SMTP服务器的端口号
+            $mail->Timeout = max(1, (int) $timeout);              // PHPMailer 默认 300s，超过 PHP 执行时限会导致请求被中断
 
             $mail->From = Config::get('site.mail_username', '');      // 发件人地址
             $mail->FromName = Config::get('site.site_name', '');      // 发件人姓名

@@ -24,37 +24,46 @@
 (function ($) {
   "use strict";
 
-  // $unum 键 → 侧栏 li[data-id] 映射（与 sidebar.tpl 现有角标位置一致）
+  // $unum 键 → 侧栏角标落点选择器（与 sidebar.tpl 现有角标位置一致）
+  // system 同时落在设置项与「设置 > 系统更新」子项，requires 保证无 cloud 权限的账号不注入
   var BADGE_MAP = [
-    { key: 'system', li: 'home' },
-    { key: 'plugin', li: 'plugin' },
-    { key: 'miniprogram', li: 'miniprogram' },
-    { key: 'theme', li: 'theme' }
+    { key: 'system', requires: 'li[data-child="update"]', targets: ['li[data-id="setting"] > a > em', 'li[data-child="update"] > a > em'] },
+    { key: 'plugin', requires: 'li[data-id="plugin"][data-installed="1"]', targets: ['li[data-id="plugin"][data-installed="1"] > a > em'] },
+    { key: 'miniprogram', targets: ['li[data-id="miniprogram"] > a > em'] },
+    { key: 'theme', targets: ['li[data-id="theme"] > a > em'] }
   ];
 
-  function setBadge(liId, count) {
-    var $em = $('#dou-sidebar li[data-id="' + liId + '"] > a > em').first();
-    if (!$em.length) { return; }
+  function setBadge(selector, count) {
+    var $ems = $('#dou-sidebar ' + selector);
+    if (!$ems.length) { return; }
 
     var n = parseInt(count, 10);
     if (isNaN(n) || n < 0) { n = 0; }
 
-    var $badge = $em.children('.badge').first();
-    if (n > 0) {
-      if (!$badge.length) {
-        $badge = $('<span class="badge"><span></span></span>').appendTo($em);
+    $ems.each(function () {
+      var $em = $(this);
+      var $badge = $em.children('.badge').first();
+      if (n > 0) {
+        if (!$badge.length) {
+          $badge = $('<span class="badge"><span></span></span>').appendTo($em);
+        }
+        $badge.children('span').first().text(n);
+        $badge.show();
+      } else if ($badge.length) {
+        $badge.remove();
       }
-      $badge.children('span').first().text(n);
-      $badge.show();
-    } else if ($badge.length) {
-      $badge.remove();
-    }
+    });
   }
 
   function apply(unum) {
     if (!unum || typeof unum !== 'object') { return; }
     for (var i = 0; i < BADGE_MAP.length; i++) {
-      setBadge(BADGE_MAP[i].li, unum[BADGE_MAP[i].key]);
+      var entry = BADGE_MAP[i];
+      if (entry.requires && !$('#dou-sidebar ' + entry.requires).length) { continue; }
+      var targets = entry.targets || [];
+      for (var j = 0; j < targets.length; j++) {
+        setBadge(targets[j], unum[entry.key]);
+      }
     }
   }
 

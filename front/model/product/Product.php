@@ -21,7 +21,7 @@ use Dou\Core\Orm\Builder;
 use Dou\Core\Orm\Model;
 use Dou\Front\Model\Brand\Brand;
 use Dou\Front\Model\Concerns\HasAddTimeAccessors;
-use Dou\Front\Model\Concerns\HasCateInfoAccessor;
+use Dou\Front\Model\Concerns\HasCategoryInfoQuery;
 use Dou\Front\Model\Concerns\HasContentLift;
 use Dou\Front\Model\Concerns\HasContentListFields;
 use Dou\Front\Model\Concerns\HasExportableContent;
@@ -46,7 +46,7 @@ if (!defined('IN_DOUCO')) {
 class Product extends Model
 {
     use HasAddTimeAccessors;
-    use HasCateInfoAccessor;
+    use HasCategoryInfoQuery;
     use HasCategoryFilter;
     use HasContentLift;
     use HasContentListFields;

@@ -1,10 +1,10 @@
 -- DouPHP v2.x SQL Dump Program
 -- http://localhost/douphp/
 -- 
--- DATE : 2026-11-02 21:59:23
+-- DATE : 2026-11-04 17:41:36
 -- MYSQL SERVER VERSION : 5.7.44-log
 -- PHP VERSION : 8.2.30
--- DouPHP VERSION : v2.0 Release 20261102
+-- DouPHP VERSION : v2.0 Release 20261104
 
 DROP TABLE IF EXISTS `dou_admin`;
 CREATE TABLE `dou_admin` (
@@ -122,48 +122,48 @@ INSERT INTO dou_config VALUES('4','site_keywords','DouPHP,轻量级企业网站�
 INSERT INTO dou_config VALUES('5','site_description','DouPHP,轻量级企业网站管理系统','text','','main');
 INSERT INTO dou_config VALUES('6','site_logo','logo.png','file','','main');
 INSERT INTO dou_config VALUES('7','site_logo_other','','file','','main');
-INSERT INTO dou_config VALUES('8','site_logo_miniprogram','logo.png','file','','main');
-INSERT INTO dou_config VALUES('9','site_closed','0','radio','','main');
-INSERT INTO dou_config VALUES('10','rewrite','1','radio','','main');
-INSERT INTO dou_config VALUES('11','address','福建省漳州市芗城区','text','','main');
-INSERT INTO dou_config VALUES('12','icp','','text','','main');
-INSERT INTO dou_config VALUES('13','net_safe_record','','text','','main');
-INSERT INTO dou_config VALUES('14','tel','0596-8888888','text','','main');
-INSERT INTO dou_config VALUES('15','fax','0596-6666666','text','','main');
-INSERT INTO dou_config VALUES('16','email','your@domain.com','text','','main');
-INSERT INTO dou_config VALUES('17','language','zh_cn','select','','main');
-INSERT INTO dou_config VALUES('18','editor','vditor','select','','main');
-INSERT INTO dou_config VALUES('19','ssl','0','radio','','main');
-INSERT INTO dou_config VALUES('20','captcha','1','radio','','main');
-INSERT INTO dou_config VALUES('21','stock','0','radio','','main');
-INSERT INTO dou_config VALUES('22','show_price','1','radio','','main');
-INSERT INTO dou_config VALUES('23','site_favicon','favicon.ico','file','','main');
-INSERT INTO dou_config VALUES('24','code_head','','textarea','','main');
-INSERT INTO dou_config VALUES('25','code','','textarea','','main');
-INSERT INTO dou_config VALUES('26','show_customer','1','radio','','customer');
-INSERT INTO dou_config VALUES('27','qq','1111','text','','customer');
-INSERT INTO dou_config VALUES('28','weixin_name','微信二维码','text','','customer');
-INSERT INTO dou_config VALUES('29','weixin_img','weixin.png','file','','customer');
-INSERT INTO dou_config VALUES('30','weibo','','text','','customer');
-INSERT INTO dou_config VALUES('31','facebook','','text','','customer');
-INSERT INTO dou_config VALUES('32','twitter','','text','','customer');
-INSERT INTO dou_config VALUES('33','pinterest','','text','','customer');
-INSERT INTO dou_config VALUES('34','youtube','','text','','customer');
-INSERT INTO dou_config VALUES('35','vk','','text','','customer');
-INSERT INTO dou_config VALUES('36','linkedin','','text','','customer');
-INSERT INTO dou_config VALUES('37','instagram','','text','','customer');
-INSERT INTO dou_config VALUES('38','tiktok','','text','','customer');
-INSERT INTO dou_config VALUES('39','skype','','text','','customer');
-INSERT INTO dou_config VALUES('40','whatsapp','','text','','customer');
-INSERT INTO dou_config VALUES('41','chat_link','','text','','customer');
-INSERT INTO dou_config VALUES('42','image_width','1000','text','','display');
-INSERT INTO dou_config VALUES('43','thumb_width','300','text','','display');
-INSERT INTO dou_config VALUES('44','thumb_height','300','text','','display');
-INSERT INTO dou_config VALUES('45','editor_image_width','1200','text','','display');
-INSERT INTO dou_config VALUES('46','watermark','','text','','display');
-INSERT INTO dou_config VALUES('47','currency_decimal','2','select','','display');
-INSERT INTO dou_config VALUES('48','currency_code','CNY','select','','display');
-INSERT INTO dou_config VALUES('49','display','a:4:{s:7:\"article\";s:2:\"10\";s:12:\"home_article\";s:1:\"5\";s:7:\"product\";s:2:\"12\";s:12:\"home_product\";s:1:\"4\";}','array','','display');
+INSERT INTO dou_config VALUES('8','site_favicon','favicon.ico','file','','main');
+INSERT INTO dou_config VALUES('9','site_logo_miniprogram','logo.png','file','','main');
+INSERT INTO dou_config VALUES('10','ssl','0','radio','','main');
+INSERT INTO dou_config VALUES('11','captcha','1','radio','','main');
+INSERT INTO dou_config VALUES('12','site_closed','0','radio','','main');
+INSERT INTO dou_config VALUES('13','address','福建省漳州市芗城区','text','','main');
+INSERT INTO dou_config VALUES('14','icp','','text','','main');
+INSERT INTO dou_config VALUES('15','net_safe_record','','text','','main');
+INSERT INTO dou_config VALUES('16','tel','0596-8888888','text','','main');
+INSERT INTO dou_config VALUES('17','fax','0596-6666666','text','','main');
+INSERT INTO dou_config VALUES('18','email','your@domain.com','text','','main');
+INSERT INTO dou_config VALUES('19','language','zh_cn','select','','main');
+INSERT INTO dou_config VALUES('20','currency_decimal','2','select','','main');
+INSERT INTO dou_config VALUES('21','currency_code','CNY','select','','main');
+INSERT INTO dou_config VALUES('22','editor','vditor','select','','main');
+INSERT INTO dou_config VALUES('23','stock','0','radio','','main');
+INSERT INTO dou_config VALUES('24','show_price','1','radio','','main');
+INSERT INTO dou_config VALUES('25','code_head','','textarea','','main');
+INSERT INTO dou_config VALUES('26','code','','textarea','','main');
+INSERT INTO dou_config VALUES('27','show_customer','1','radio','','customer');
+INSERT INTO dou_config VALUES('28','qq','1111','text','','customer');
+INSERT INTO dou_config VALUES('29','weixin_name','微信二维码','text','','customer');
+INSERT INTO dou_config VALUES('30','weixin_img','weixin.png','file','','customer');
+INSERT INTO dou_config VALUES('31','weibo','','text','','customer');
+INSERT INTO dou_config VALUES('32','facebook','','text','','customer');
+INSERT INTO dou_config VALUES('33','twitter','','text','','customer');
+INSERT INTO dou_config VALUES('34','pinterest','','text','','customer');
+INSERT INTO dou_config VALUES('35','youtube','','text','','customer');
+INSERT INTO dou_config VALUES('36','vk','','text','','customer');
+INSERT INTO dou_config VALUES('37','linkedin','','text','','customer');
+INSERT INTO dou_config VALUES('38','instagram','','text','','customer');
+INSERT INTO dou_config VALUES('39','tiktok','','text','','customer');
+INSERT INTO dou_config VALUES('40','skype','','text','','customer');
+INSERT INTO dou_config VALUES('41','whatsapp','','text','','customer');
+INSERT INTO dou_config VALUES('42','chat_link','','text','','customer');
+INSERT INTO dou_config VALUES('43','image_width','1000','text','','display');
+INSERT INTO dou_config VALUES('44','thumb_width','300','text','','display');
+INSERT INTO dou_config VALUES('45','thumb_height','300','text','','display');
+INSERT INTO dou_config VALUES('46','editor_image_width','1200','text','','display');
+INSERT INTO dou_config VALUES('47','watermark','','text','','display');
+INSERT INTO dou_config VALUES('48','display','a:4:{s:7:\"article\";s:2:\"10\";s:12:\"home_article\";s:1:\"5\";s:7:\"product\";s:2:\"12\";s:12:\"home_product\";s:1:\"4\";}','array','','display');
+INSERT INTO dou_config VALUES('49','rewrite','1','radio','','seo');
 INSERT INTO dou_config VALUES('50','sitemap','1','radio','','seo');
 INSERT INTO dou_config VALUES('51','llms','1','radio','','seo');
 INSERT INTO dou_config VALUES('52','schema','1','radio','','seo');
@@ -191,12 +191,12 @@ INSERT INTO dou_config VALUES('73','site_theme','default','hidden','','');
 INSERT INTO dou_config VALUES('74','miniprogram_code','default','hidden','','');
 INSERT INTO dou_config VALUES('75','build_date','1377768032','hidden','','');
 INSERT INTO dou_config VALUES('76','update_number','a:5:{s:6:\"update\";i:0;s:5:\"patch\";i:0;s:6:\"module\";i:0;s:6:\"plugin\";i:0;s:5:\"theme\";i:0;}','hidden','','');
-INSERT INTO dou_config VALUES('77','update_date','a:3:{s:6:\"system\";a:2:{s:6:\"update\";s:8:\"20261102\";s:5:\"patch\";s:8:\"20261102\";}s:6:\"module\";a:4:{s:7:\"article\";s:8:\"20261102\";s:7:\"product\";s:8:\"20261102\";s:8:\"language\";s:8:\"20261102\";s:4:\"form\";s:8:\"20261102\";}s:5:\"theme\";a:0:{}}','hidden','','');
+INSERT INTO dou_config VALUES('77','update_date','a:3:{s:6:\"system\";a:2:{s:6:\"update\";s:8:\"20261104\";s:5:\"patch\";s:8:\"20261104\";}s:6:\"module\";a:4:{s:7:\"article\";s:8:\"20261104\";s:7:\"product\";s:8:\"20261104\";s:8:\"language\";s:8:\"20261104\";s:4:\"form\";s:8:\"20261104\";}s:5:\"theme\";a:0:{}}','hidden','','');
 INSERT INTO dou_config VALUES('78','file_update_time','1653395208','hidden','','');
 INSERT INTO dou_config VALUES('79','cloud_account','','hidden','','');
 INSERT INTO dou_config VALUES('80','hash_code','166d0de32dafdef9ab26e10130dd115b','hidden','','');
-INSERT INTO dou_config VALUES('81','module_version','a:1:{s:4:\"form\";s:8:\"20261102\";}','hidden','','');
-INSERT INTO dou_config VALUES('82','douphp_version','v2.0 Release 20261102','hidden','','');
+INSERT INTO dou_config VALUES('81','module_version','a:1:{s:4:\"form\";s:8:\"20261104\";}','hidden','','');
+INSERT INTO dou_config VALUES('82','douphp_version','v2.0 Release 20261104','hidden','','');
 
 DROP TABLE IF EXISTS `dou_data`;
 CREATE TABLE `dou_data` (
@@ -582,7 +582,7 @@ INSERT INTO dou_product VALUES('31','3','admin','0','0','双层多功能蒸锅',
 INSERT INTO dou_product VALUES('32','3','admin','0','0','蓝牙耳机','','60.00','','0.00',NULL,NULL,'100',NULL,'<p style=\"text-wrap-mode: wrap;\"><strong>一、产品概述</strong></p><p style=\"text-wrap-mode: wrap;\">我们很荣幸向您介绍我们公司的最新产品。这款产品是经过精心研发和设计的，旨在满足消费者的需求和提供高品质的体验。我们将详细介绍产品的特点、功能、优势和适用范围，希望能为您提供全面的了解。</p><p style=\"text-wrap-mode: wrap;\"><br/></p><p style=\"text-wrap-mode: wrap;\"><strong>二、产品特点</strong></p><p style=\"text-wrap-mode: wrap;\">1.创新设计:我们的产品注重创新，追求独特的外观设计和先进的技术应用，确保产品与众不同。</p><p style=\"text-wrap-mode: wrap;\">2.卓越性能:我们致力于提供卓越的产品性能。无论是在速度、稳定性还是使用寿命方面，我们都将为您带来无与伦比的体验。</p><p style=\"text-wrap-mode: wrap;\">3.高品质材料:我们使用优质材料来制造产品，确保产品的耐用性和可靠性。产品不仅具有良好的外观，还具备出色的性能。</p><p style=\"text-wrap-mode: wrap;\">4.人性化设计:我们充分考虑用户的需求和使用习惯，努力提供贴合用户体验的产品设计。操作简便功能齐全，轻松满足用户的使用需求。</p><p style=\"text-wrap-mode: wrap;\"><br/></p><p style=\"text-wrap-mode: wrap;\"><strong>三、产品功能</strong></p><p style=\"text-wrap-mode: wrap;\">我们的产品具备以下出色的功能:</p><p style=\"text-wrap-mode: wrap;\">1.xxx功能:通过使用最新的技术，我们的产品实现了xxx功能，为用户提供了便捷和高效的解决方案</p><p style=\"text-wrap-mode: wrap;\">2.xxx功能:我们的产品还拥有xxx功能，通过优化设计和卓越的性能，提供给用户精确、稳定的体验。</p><p style=\"text-wrap-mode: wrap;\">3.xxx功能:除了以上功能，我们还为产品添加了xxx功能，以满足不同用户的需求和期望。</p><p style=\"text-wrap-mode: wrap;\"><br/></p><p style=\"text-wrap-mode: wrap;\"><strong>四、产品优势</strong></p><p style=\"text-wrap-mode: wrap;\">1.高性价比:我们的产品在市场上具有极高的性价比。虽然价格合理，但不妥协于品质和性能</p><p style=\"text-wrap-mode: wrap;\">2.优质服务:我们承诺提供完善的售后服务，确保您在使用过程中的满意度。无论是在产品保修还是技术支持方面，我们始终与您同在。</p><p style=\"text-wrap-mode: wrap;\">3.可靠性:以用户体验为导向，我们的产品经过严格的品质检测，以确保产品的可靠性和稳定性,</p><p style=\"text-wrap-mode: wrap;\">4.品牌信誉:作为一家备受信赖的品牌，我们以诚实守信的原则经营，并努力满足客户的需求。多年来，我们获得了良好的口碑和客户的高度认可。</p><p style=\"text-wrap-mode: wrap;\"><br/></p><p style=\"text-wrap-mode: wrap;\"><strong>五、适用范围</strong></p><p style=\"text-wrap-mode: wrap;\">我们的产品适用于各种场景和人群，无论是个人用户还是企业客户。不论您是个人用户还是企业客户我们的产品将为您提供卓越的性能和可的服务，满足不同需求。</p><p style=\"text-wrap-mode: wrap;\"><br/></p><p style=\"text-wrap-mode: wrap;\"><strong>六、结语</strong></p><p style=\"text-wrap-mode: wrap;\">感谢您对我们产品的关注和信任。我们将继续努力，提供更好的产品和服务，并不断超越自我，为用户带来更多的惊喜和价值，如果您对产品有任何疑问或想要进一步了解，请随时与我们联系，我们将竭诚为您服务。</p><p style=\"text-wrap-mode: wrap;\">希望通过以上产品介绍，能够使您对我们的产品有更深入的了解，并对我们的产品产生浓厚的兴趣。期待与您的进一步合作!</p><p><br/></p>','o1secly.file',NULL,'','0','0','','','50','1','2025-04-09 21:05:37');
 INSERT INTO dou_product VALUES('33','3','admin','0','0','电熨斗','','70.00','','0.00',NULL,NULL,'100',NULL,'<p style=\"text-wrap-mode: wrap;\"><strong>一、产品概述</strong></p><p style=\"text-wrap-mode: wrap;\">我们很荣幸向您介绍我们公司的最新产品。这款产品是经过精心研发和设计的，旨在满足消费者的需求和提供高品质的体验。我们将详细介绍产品的特点、功能、优势和适用范围，希望能为您提供全面的了解。</p><p style=\"text-wrap-mode: wrap;\"><br/></p><p style=\"text-wrap-mode: wrap;\"><strong>二、产品特点</strong></p><p style=\"text-wrap-mode: wrap;\">1.创新设计:我们的产品注重创新，追求独特的外观设计和先进的技术应用，确保产品与众不同。</p><p style=\"text-wrap-mode: wrap;\">2.卓越性能:我们致力于提供卓越的产品性能。无论是在速度、稳定性还是使用寿命方面，我们都将为您带来无与伦比的体验。</p><p style=\"text-wrap-mode: wrap;\">3.高品质材料:我们使用优质材料来制造产品，确保产品的耐用性和可靠性。产品不仅具有良好的外观，还具备出色的性能。</p><p style=\"text-wrap-mode: wrap;\">4.人性化设计:我们充分考虑用户的需求和使用习惯，努力提供贴合用户体验的产品设计。操作简便功能齐全，轻松满足用户的使用需求。</p><p style=\"text-wrap-mode: wrap;\"><br/></p><p style=\"text-wrap-mode: wrap;\"><strong>三、产品功能</strong></p><p style=\"text-wrap-mode: wrap;\">我们的产品具备以下出色的功能:</p><p style=\"text-wrap-mode: wrap;\">1.xxx功能:通过使用最新的技术，我们的产品实现了xxx功能，为用户提供了便捷和高效的解决方案</p><p style=\"text-wrap-mode: wrap;\">2.xxx功能:我们的产品还拥有xxx功能，通过优化设计和卓越的性能，提供给用户精确、稳定的体验。</p><p style=\"text-wrap-mode: wrap;\">3.xxx功能:除了以上功能，我们还为产品添加了xxx功能，以满足不同用户的需求和期望。</p><p style=\"text-wrap-mode: wrap;\"><br/></p><p style=\"text-wrap-mode: wrap;\"><strong>四、产品优势</strong></p><p style=\"text-wrap-mode: wrap;\">1.高性价比:我们的产品在市场上具有极高的性价比。虽然价格合理，但不妥协于品质和性能</p><p style=\"text-wrap-mode: wrap;\">2.优质服务:我们承诺提供完善的售后服务，确保您在使用过程中的满意度。无论是在产品保修还是技术支持方面，我们始终与您同在。</p><p style=\"text-wrap-mode: wrap;\">3.可靠性:以用户体验为导向，我们的产品经过严格的品质检测，以确保产品的可靠性和稳定性,</p><p style=\"text-wrap-mode: wrap;\">4.品牌信誉:作为一家备受信赖的品牌，我们以诚实守信的原则经营，并努力满足客户的需求。多年来，我们获得了良好的口碑和客户的高度认可。</p><p style=\"text-wrap-mode: wrap;\"><br/></p><p style=\"text-wrap-mode: wrap;\"><strong>五、适用范围</strong></p><p style=\"text-wrap-mode: wrap;\">我们的产品适用于各种场景和人群，无论是个人用户还是企业客户。不论您是个人用户还是企业客户我们的产品将为您提供卓越的性能和可的服务，满足不同需求。</p><p style=\"text-wrap-mode: wrap;\"><br/></p><p style=\"text-wrap-mode: wrap;\"><strong>六、结语</strong></p><p style=\"text-wrap-mode: wrap;\">感谢您对我们产品的关注和信任。我们将继续努力，提供更好的产品和服务，并不断超越自我，为用户带来更多的惊喜和价值，如果您对产品有任何疑问或想要进一步了解，请随时与我们联系，我们将竭诚为您服务。</p><p style=\"text-wrap-mode: wrap;\">希望通过以上产品介绍，能够使您对我们的产品有更深入的了解，并对我们的产品产生浓厚的兴趣。期待与您的进一步合作!</p><p><br/></p>','ep71oli.file',NULL,'','0','0','','','50','1','2025-04-09 21:05:49');
 INSERT INTO dou_product VALUES('34','3','admin','0','0','游戏机','','99.00','','0.00',NULL,NULL,'100',NULL,'<p style=\"text-wrap-mode: wrap;\"><strong>一、产品概述</strong></p><p style=\"text-wrap-mode: wrap;\">我们很荣幸向您介绍我们公司的最新产品。这款产品是经过精心研发和设计的，旨在满足消费者的需求和提供高品质的体验。我们将详细介绍产品的特点、功能、优势和适用范围，希望能为您提供全面的了解。</p><p style=\"text-wrap-mode: wrap;\"><br/></p><p style=\"text-wrap-mode: wrap;\"><strong>二、产品特点</strong></p><p style=\"text-wrap-mode: wrap;\">1.创新设计:我们的产品注重创新，追求独特的外观设计和先进的技术应用，确保产品与众不同。</p><p style=\"text-wrap-mode: wrap;\">2.卓越性能:我们致力于提供卓越的产品性能。无论是在速度、稳定性还是使用寿命方面，我们都将为您带来无与伦比的体验。</p><p style=\"text-wrap-mode: wrap;\">3.高品质材料:我们使用优质材料来制造产品，确保产品的耐用性和可靠性。产品不仅具有良好的外观，还具备出色的性能。</p><p style=\"text-wrap-mode: wrap;\">4.人性化设计:我们充分考虑用户的需求和使用习惯，努力提供贴合用户体验的产品设计。操作简便功能齐全，轻松满足用户的使用需求。</p><p style=\"text-wrap-mode: wrap;\"><br/></p><p style=\"text-wrap-mode: wrap;\"><strong>三、产品功能</strong></p><p style=\"text-wrap-mode: wrap;\">我们的产品具备以下出色的功能:</p><p style=\"text-wrap-mode: wrap;\">1.xxx功能:通过使用最新的技术，我们的产品实现了xxx功能，为用户提供了便捷和高效的解决方案</p><p style=\"text-wrap-mode: wrap;\">2.xxx功能:我们的产品还拥有xxx功能，通过优化设计和卓越的性能，提供给用户精确、稳定的体验。</p><p style=\"text-wrap-mode: wrap;\">3.xxx功能:除了以上功能，我们还为产品添加了xxx功能，以满足不同用户的需求和期望。</p><p style=\"text-wrap-mode: wrap;\"><br/></p><p style=\"text-wrap-mode: wrap;\"><strong>四、产品优势</strong></p><p style=\"text-wrap-mode: wrap;\">1.高性价比:我们的产品在市场上具有极高的性价比。虽然价格合理，但不妥协于品质和性能</p><p style=\"text-wrap-mode: wrap;\">2.优质服务:我们承诺提供完善的售后服务，确保您在使用过程中的满意度。无论是在产品保修还是技术支持方面，我们始终与您同在。</p><p style=\"text-wrap-mode: wrap;\">3.可靠性:以用户体验为导向，我们的产品经过严格的品质检测，以确保产品的可靠性和稳定性,</p><p style=\"text-wrap-mode: wrap;\">4.品牌信誉:作为一家备受信赖的品牌，我们以诚实守信的原则经营，并努力满足客户的需求。多年来，我们获得了良好的口碑和客户的高度认可。</p><p style=\"text-wrap-mode: wrap;\"><br/></p><p style=\"text-wrap-mode: wrap;\"><strong>五、适用范围</strong></p><p style=\"text-wrap-mode: wrap;\">我们的产品适用于各种场景和人群，无论是个人用户还是企业客户。不论您是个人用户还是企业客户我们的产品将为您提供卓越的性能和可的服务，满足不同需求。</p><p style=\"text-wrap-mode: wrap;\"><br/></p><p style=\"text-wrap-mode: wrap;\"><strong>六、结语</strong></p><p style=\"text-wrap-mode: wrap;\">感谢您对我们产品的关注和信任。我们将继续努力，提供更好的产品和服务，并不断超越自我，为用户带来更多的惊喜和价值，如果您对产品有任何疑问或想要进一步了解，请随时与我们联系，我们将竭诚为您服务。</p><p style=\"text-wrap-mode: wrap;\">希望通过以上产品介绍，能够使您对我们的产品有更深入的了解，并对我们的产品产生浓厚的兴趣。期待与您的进一步合作!</p><p><br/></p>','z8n8uuv.file',NULL,'','0','0','','','50','1','2025-04-09 21:06:04');
-INSERT INTO dou_product VALUES('35','3','admin','0','1','智能扫地机器人','','60.00','','0.00',NULL,NULL,'100',NULL,'<p style=\"text-wrap-mode: wrap;\"><strong>一、产品概述</strong></p><p style=\"text-wrap-mode: wrap;\">我们很荣幸向您介绍我们公司的最新产品。这款产品是经过精心研发和设计的，旨在满足消费者的需求和提供高品质的体验。我们将详细介绍产品的特点、功能、优势和适用范围，希望能为您提供全面的了解。</p><p style=\"text-wrap-mode: wrap;\"><br/></p><p style=\"text-wrap-mode: wrap;\"><strong>二、产品特点</strong></p><p style=\"text-wrap-mode: wrap;\">1.创新设计:我们的产品注重创新，追求独特的外观设计和先进的技术应用，确保产品与众不同。</p><p style=\"text-wrap-mode: wrap;\">2.卓越性能:我们致力于提供卓越的产品性能。无论是在速度、稳定性还是使用寿命方面，我们都将为您带来无与伦比的体验。</p><p style=\"text-wrap-mode: wrap;\">3.高品质材料:我们使用优质材料来制造产品，确保产品的耐用性和可靠性。产品不仅具有良好的外观，还具备出色的性能。</p><p style=\"text-wrap-mode: wrap;\">4.人性化设计:我们充分考虑用户的需求和使用习惯，努力提供贴合用户体验的产品设计。操作简便功能齐全，轻松满足用户的使用需求。</p><p style=\"text-wrap-mode: wrap;\"><br/></p><p style=\"text-wrap-mode: wrap;\"><strong>三、产品功能</strong></p><p style=\"text-wrap-mode: wrap;\">我们的产品具备以下出色的功能:</p><p style=\"text-wrap-mode: wrap;\">1.xxx功能:通过使用最新的技术，我们的产品实现了xxx功能，为用户提供了便捷和高效的解决方案</p><p style=\"text-wrap-mode: wrap;\">2.xxx功能:我们的产品还拥有xxx功能，通过优化设计和卓越的性能，提供给用户精确、稳定的体验。</p><p style=\"text-wrap-mode: wrap;\">3.xxx功能:除了以上功能，我们还为产品添加了xxx功能，以满足不同用户的需求和期望。</p><p style=\"text-wrap-mode: wrap;\"><br/></p><p style=\"text-wrap-mode: wrap;\"><strong>四、产品优势</strong></p><p style=\"text-wrap-mode: wrap;\">1.高性价比:我们的产品在市场上具有极高的性价比。虽然价格合理，但不妥协于品质和性能</p><p style=\"text-wrap-mode: wrap;\">2.优质服务:我们承诺提供完善的售后服务，确保您在使用过程中的满意度。无论是在产品保修还是技术支持方面，我们始终与您同在。</p><p style=\"text-wrap-mode: wrap;\">3.可靠性:以用户体验为导向，我们的产品经过严格的品质检测，以确保产品的可靠性和稳定性,</p><p style=\"text-wrap-mode: wrap;\">4.品牌信誉:作为一家备受信赖的品牌，我们以诚实守信的原则经营，并努力满足客户的需求。多年来，我们获得了良好的口碑和客户的高度认可。</p><p style=\"text-wrap-mode: wrap;\"><br/></p><p style=\"text-wrap-mode: wrap;\"><strong>五、适用范围</strong></p><p style=\"text-wrap-mode: wrap;\">我们的产品适用于各种场景和人群，无论是个人用户还是企业客户。不论您是个人用户还是企业客户我们的产品将为您提供卓越的性能和可的服务，满足不同需求。</p><p style=\"text-wrap-mode: wrap;\"><br/></p><p style=\"text-wrap-mode: wrap;\"><strong>六、结语</strong></p><p style=\"text-wrap-mode: wrap;\">感谢您对我们产品的关注和信任。我们将继续努力，提供更好的产品和服务，并不断超越自我，为用户带来更多的惊喜和价值，如果您对产品有任何疑问或想要进一步了解，请随时与我们联系，我们将竭诚为您服务。</p><p style=\"text-wrap-mode: wrap;\">希望通过以上产品介绍，能够使您对我们的产品有更深入的了解，并对我们的产品产生浓厚的兴趣。期待与您的进一步合作!</p><p><br/></p>','oa2ywjc.file',NULL,'','0','0','','','50','1','2025-04-09 21:06:17');
+INSERT INTO dou_product VALUES('35','3','admin','0','1','智能扫地机器人','','60.00','','0.00',NULL,NULL,'100',NULL,'**一、产品概述**\r\n\r\n我们很荣幸向您介绍我们公司的最新产品。这款产品是经过精心研发和设计的，旨在满足消费者的需求和提供高品质的体验。我们将详细介绍产品的特点、功能、优势和适用范围，希望能为您提供全面的了解。\r\n\r\n**二、产品特点**\r\n\r\n1.创新设计:我们的产品注重创新，追求独特的外观设计和先进的技术应用，确保产品与众不同。\r\n\r\n2.卓越性能:我们致力于提供卓越的产品性能。无论是在速度、稳定性还是使用寿命方面，我们都将为您带来无与伦比的体验。\r\n\r\n3.高品质材料:我们使用优质材料来制造产品，确保产品的耐用性和可靠性。产品不仅具有良好的外观，还具备出色的性能。\r\n\r\n4.人性化设计:我们充分考虑用户的需求和使用习惯，努力提供贴合用户体验的产品设计。操作简便功能齐全，轻松满足用户的使用需求。\r\n\r\n**三、产品功能**\r\n\r\n我们的产品具备以下出色的功能:\r\n\r\n1.xxx功能:通过使用最新的技术，我们的产品实现了xxx功能，为用户提供了便捷和高效的解决方案\r\n\r\n2.xxx功能:我们的产品还拥有xxx功能，通过优化设计和卓越的性能，提供给用户精确、稳定的体验。\r\n\r\n3.xxx功能:除了以上功能，我们还为产品添加了xxx功能，以满足不同用户的需求和期望。\r\n\r\n**四、产品优势**\r\n\r\n1.高性价比:我们的产品在市场上具有极高的性价比。虽然价格合理，但不妥协于品质和性能\r\n\r\n2.优质服务:我们承诺提供完善的售后服务，确保您在使用过程中的满意度。无论是在产品保修还是技术支持方面，我们始终与您同在。\r\n\r\n3.可靠性:以用户体验为导向，我们的产品经过严格的品质检测，以确保产品的可靠性和稳定性,\r\n\r\n4.品牌信誉:作为一家备受信赖的品牌，我们以诚实守信的原则经营，并努力满足客户的需求。多年来，我们获得了良好的口碑和客户的高度认可。\r\n\r\n**五、适用范围**\r\n\r\n我们的产品适用于各种场景和人群，无论是个人用户还是企业客户。不论您是个人用户还是企业客户我们的产品将为您提供卓越的性能和可的服务，满足不同需求。\r\n\r\n**六、结语**\r\n\r\n感谢您对我们产品的关注和信任。我们将继续努力，提供更好的产品和服务，并不断超越自我，为用户带来更多的惊喜和价值，如果您对产品有任何疑问或想要进一步了解，请随时与我们联系，我们将竭诚为您服务。\r\n\r\n希望通过以上产品介绍，能够使您对我们的产品有更深入的了解，并对我们的产品产生浓厚的兴趣。期待与您的进一步合作!\r\n','oa2ywjc.file',NULL,'','0','0','','','50','1','2025-04-09 21:06:17');
 
 DROP TABLE IF EXISTS `dou_product_category`;
 CREATE TABLE `dou_product_category` (

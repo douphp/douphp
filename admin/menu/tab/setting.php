@@ -35,9 +35,9 @@ return array(
     'items' => array(
         // 设置分组：逐项声明，与设置页 tab-pane id 一一对应
         array('key' => 'main', 'name' => 'config_setting_main', 'anchor' => 'main', 'config_group' => true),
-        array('key' => 'customer', 'name' => 'config_setting_customer', 'anchor' => 'customer', 'config_group' => true),
-        array('key' => 'display', 'name' => 'config_setting_display', 'anchor' => 'display', 'config_group' => true),
         array('key' => 'seo', 'name' => 'config_setting_seo', 'anchor' => 'seo', 'config_group' => true),
+        array('key' => 'display', 'name' => 'config_setting_display', 'anchor' => 'display', 'config_group' => true),
+        array('key' => 'customer', 'name' => 'config_setting_customer', 'anchor' => 'customer', 'config_group' => true),
         // 扩展字段：原「自定义属性」下线后由 metadata 接管，资源 index 与 fields 两个入口共用高亮
         array('key' => 'metadata', 'name' => 'metadata', 'link' => 'admin.metadata.fields', 'active' => array('metadata')),
         array('key' => 'mail', 'name' => 'config_setting_mail', 'anchor' => 'mail', 'config_group' => true),

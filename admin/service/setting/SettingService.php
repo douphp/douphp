@@ -227,9 +227,21 @@ class SettingService extends BaseService
             $exclude = ['site_logo_miniprogram'];
         }
 
-        if (Config::get('site.language', '') == 'zh_cn') {
+        // 在线客服社交项按站点语言集合过滤：主语言或已添加多语言包含 en_us
+        // 时才显示国外社交媒体；不含中文语言包时隐藏 QQ / 微博（微信二维码保持常显）
+        $languagePacks = $this->installedLanguagePacks();
+        if (!in_array('en_us', $languagePacks, true)) {
             $exclude = array_merge($exclude, ['facebook', 'twitter', 'pinterest', 'youtube', 'vk', 'linkedin', 'instagram', 'tiktok', 'skype', 'whatsapp']);
-        } else {
+        }
+
+        $hasChinese = false;
+        foreach ($languagePacks as $languagePack) {
+            if (strpos((string) $languagePack, 'zh_') === 0) {
+                $hasChinese = true;
+                break;
+            }
+        }
+        if (!$hasChinese) {
             $exclude = array_merge($exclude, ['qq', 'weibo']);
         }
 
@@ -397,6 +409,25 @@ class SettingService extends BaseService
         }
 
         return $cfg_list;
+    }
+
+    /**
+     * 站点已启用语言包集合：主语言 + 多语言模块已添加语言（表不存在时仅主语言）。
+     *
+     * @return array
+     */
+    private function installedLanguagePacks()
+    {
+        $packs = array(Config::get('site.language', ''));
+
+        if (DB::tableExist('language')) {
+            $rows = DB::table('language')->field('language_pack')->select();
+            foreach ((array) $rows as $row) {
+                $packs[] = isset($row['language_pack']) ? (string) $row['language_pack'] : '';
+            }
+        }
+
+        return array_values(array_unique(array_filter($packs, 'strlen')));
     }
 
     /**

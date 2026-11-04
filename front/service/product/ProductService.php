@@ -136,11 +136,12 @@ class ProductService extends BaseService
         }
         $imageOtherMap = !empty($ids) ? attachment()->galleryFirstMap('product', $ids) : array();
 
+        FrontProductModel::warmupCategoryIcons($result['list']);
+
         $productList = array();
         foreach ($result['list'] as $model) {
             $row = $model->toArray();
             $rawPrice = (float) $model->getRawAttribute('price');
-            $catName = isset($row['category']['name']) ? $row['category']['name'] : '';
 
             $url = $isApi ? Url::urlMini('product', $row['id']) : route('product.show', array('id' => $row['id']));
             $description = Str::excerpt($row['description'], 150, false);
@@ -170,11 +171,9 @@ class ProductService extends BaseService
                 'metadata' => isset($row['metadata']) ? $row['metadata'] : '',
                 'favorites' => $favorites,
                 'url' => $url,
-                'cate_info' => array(
-                    'category_id' => $row['category_id'],
-                    'name' => $catName,
-                    'url' => $isApi ? Url::urlMini('product_category', $row['category_id']) : route('product.category', array('category_id' => $row['category_id'])),
-                ),
+                'cate_info' => $isApi
+                    ? array_merge(is_array($row['cate_info']) ? $row['cate_info'] : array(), array('url' => Url::urlMini('product_category', $row['category_id'])))
+                    : $row['cate_info'],
             );
 
             if ($isApi) {

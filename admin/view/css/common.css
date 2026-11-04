@@ -402,7 +402,6 @@ p.cue {
   padding: 4px 0;
 }
 #dou-sidebar ul.top {
-  width: 210px;
   border-top: 0;
   background-color: #fff;
   height: 25px;
@@ -424,7 +423,6 @@ p.cue {
   padding-bottom: 40px;
 }
 #dou-sidebar li {
-  width: 210px;
   height: 38px;
   overflow: hidden;
 }
@@ -528,6 +526,14 @@ p.cue {
   /* 进入延迟 300ms 后瞬间显示，无渐变 */
   transition: visibility 0s linear 0.3s;
 }
+/* 拖选锁定态：从输入框/文本域向左拖选文字时，指针常滑过侧栏并停留，
+   此时强制隐藏弹层，避免遮住右侧表单（类名由 common.js 按拖选状态增删） */
+#dou-sidebar.dou-sub-locked li.has-sub:not(.cur) > ul.sub-menu,
+#dou-sidebar.dou-sub-locked li.has-sub:not(.cur):hover > ul.sub-menu {
+  visibility: hidden;
+  pointer-events: none;
+  transition: none;
+}
 /* 子菜单项（两种形态共用）：高度同主菜单项，淡色文字，当前项加亮 */
 #dou-sidebar .sub-menu li {
   height: 38px;
@@ -622,7 +628,7 @@ p.cue {
 .dou-toolbar li a em {
   display: block;
   margin-left: 20px;
-  font-size: 14px;
+  font-size: 12px;
 }
 .dou-toolbar .dropdown {
   position: relative;
@@ -1360,6 +1366,224 @@ div.notice.notice-warning {
   display: inline-block;
   margin: 0 10px 10px 0;
 }
+
+/* Form Controls — radio-group：连体分段按钮（全局通用，不限定 .form 祖先）
+   契约：.radio-group > label > input[type="radio"] + span */
+.radio-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0;
+  background-color: transparent;
+  border: 0;
+  vertical-align: middle;
+  align-items: stretch;
+}
+.radio-group > label {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+  min-width: 0;
+  max-width: 100%;
+  cursor: pointer;
+}
+.radio-group > label > input[type="radio"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.radio-group > label > span {
+  display: inline-block;
+  box-sizing: border-box;
+  min-width: 80px;
+  padding: 7px 22px;
+  background-color: #efefef;
+  border-left: 1px solid #fff;
+  color: #444;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+.radio-group > label > span p {
+  margin: 0;
+}
+.radio-group > label > span p + p {
+  margin-top: 2px;
+}
+.radio-group > label > span i {
+  margin-right: 4px;
+  vertical-align: -1px;
+  color: inherit;
+  opacity: 0.7;
+}
+.radio-group > label:hover > span {
+  background-color: #e3e3e3;
+  color: #222;
+}
+.radio-group > label > input[type="radio"]:checked + span {
+  background-color: #19b4ea;
+  color: #fff;
+}
+.radio-group > label > input[type="radio"]:focus-visible + span {
+  outline: 2px solid #0b86b3;
+  outline-offset: -2px;
+}
+.radio-group > label > input[type="radio"]:disabled + span {
+  background-color: #f5f5f5;
+  color: #bbb;
+  cursor: not-allowed;
+}
+.radio-group > label > input[type="radio"]:disabled:checked + span {
+  background-color: #a9dff5;
+  color: #fff;
+}
+
+/* Form Controls — radio-group 列表变体：长文案多行密集排版（URL 风格选择等） */
+.radio-group.radio-group-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
+  gap: 6px;
+  width: 100%;
+  align-items: stretch;
+}
+.radio-group.radio-group-list > label {
+  display: flex;
+  min-width: 0;
+  max-width: none;
+}
+.radio-group.radio-group-list > label > span {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 12px;
+  background-color: #fafafa;
+  border: 1px solid #e3e3e3;
+  border-left: 3px solid transparent;
+  color: #555;
+  font-size: 12px;
+  line-height: 20px;
+  text-align: left;
+}
+.radio-group.radio-group-list > label > span p {
+  margin: 0;
+}
+.radio-group.radio-group-list > label > span p + p {
+  margin-top: 2px;
+}
+.radio-group.radio-group-list > label > span i {
+  margin-right: 4px;
+  color: #999;
+  opacity: 1;
+}
+.radio-group.radio-group-list > label:hover > span {
+  background-color: #f4fbfe;
+  border-color: #c3e7f6;
+  border-left-color: #c3e7f6;
+  color: #333;
+}
+.radio-group.radio-group-list > label > input[type="radio"]:checked + span {
+  background-color: #f0fbff;
+  border-color: #19b4ea;
+  border-left-color: #19b4ea;
+  color: #333;
+}
+
+/* Form Controls — radio-toggle：单个开关（是/否两态）
+   契约：.radio-group.radio-toggle > label（value 0/1）> input + span */
+.radio-group.radio-toggle {
+  position: relative;
+  display: inline-flex;
+  flex-wrap: nowrap;
+  width: 62px;
+  height: 28px;
+  border-radius: 14px;
+  background-color: #c9c9c9;
+  overflow: hidden;
+  vertical-align: middle;
+}
+.radio-group.radio-toggle > label {
+  position: static;
+  flex: 1 1 50%;
+  min-width: 0;
+  max-width: none;
+  z-index: 2;
+}
+.radio-group.radio-toggle > label > span {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: none;
+  box-sizing: border-box;
+  min-width: 0;
+  width: auto;
+  padding: 0 27px 0 10px;
+  background-color: transparent;
+  border: 0;
+  color: #fff;
+  font-size: 11px;
+  line-height: 28px;
+  text-align: left;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 1;
+}
+.radio-group.radio-toggle > label > span::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-color: #fff;
+}
+.radio-group.radio-toggle > label > input:checked + span {
+  display: block;
+  z-index: 3;
+  background-color: #28b779;
+}
+.radio-group.radio-toggle > label > input[value="0"]:checked + span {
+  padding: 0 10px 0 27px;
+  background-color: #c9c9c9;
+  text-align: right;
+}
+.radio-group.radio-toggle > label > input[value="0"]:checked + span::after {
+  left: 3px;
+  right: auto;
+}
+.radio-group.radio-toggle > label > input:focus-visible + span {
+  border-radius: 14px;
+  outline: 2px solid #1f8f5f;
+  outline-offset: -2px;
+}
+
+@media (max-width: 768px) {
+  .radio-group {
+    display: flex;
+    width: 100%;
+  }
+  .radio-group > label {
+    flex: 1 1 auto;
+  }
+  .radio-group > label > span {
+    min-width: 0;
+    width: 100%;
+  }
+  .radio-group.radio-group-list {
+    display: grid;
+    width: 100%;
+    grid-template-columns: 1fr;
+  }
+}
 .input-suffix {
   display: inline-block;
   background-color: #ccc;
@@ -1869,31 +2093,6 @@ select option.selected {
     display: block;
     margin: 5px 0 0;
   }
-}
-
-/* Form — radio-group */
-.form .radio-group {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.form .radio-group .radio-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-}
-.form .radio-group .radio-item input[type="radio"] {
-  margin-top: 3px;
-}
-.form .radio-group .radio-item span {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  color: #777;
-}
-.form .radio-group .radio-item span i {
-  color: rgba(153, 153, 153, 0.75);
-  margin-right: 5px;
 }
 
 /* Form — grid layout */

@@ -95,6 +95,40 @@ $_LANG['cloud_install_retry'] = '重新安装';
 $_LANG['cloud_install_session_missing'] = '安装会话已过期或不存在，请返回安装入口重新发起';
 $_LANG['cloud_install_request_failed'] = '安装步骤请求失败（网络中断、超时或服务端返回了非 JSON）。解压大包时若较慢，请在服务器上适当提高 max_execution_time 与可用内存。';
 $_LANG['cloud_install_step_failed_generic'] = '安装步骤失败，请稍后重试或查看服务器与 PHP 错误日志。';
+$_LANG['cloud_install_offline_btn'] = '离线升级';
+$_LANG['cloud_install_offline_hint'] = '如果反复下载或解压失败，可改用离线升级：手动把安装包放到服务器目录后再继续。';
+
+// 离线升级（cloud/offline，仅核心程序包）
+$_LANG['cloud_offline'] = '离线升级';
+$_LANG['cloud_offline_current_version'] = '当前版本';
+$_LANG['cloud_offline_step_download'] = '获取升级包';
+$_LANG['cloud_offline_step_place'] = '放置升级包';
+$_LANG['cloud_offline_step_start'] = '开始升级';
+$_LANG['cloud_offline_download_btn'] = '下载升级包';
+$_LANG['cloud_offline_download_missing'] = '未提供升级包下载地址，请自行到官网获取对应版本的升级包。';
+$_LANG['cloud_offline_official'] = '前往官网';
+$_LANG['cloud_offline_dir_label'] = '放置目录（站点内相对路径）';
+$_LANG['cloud_offline_name_hint'] = '文件名随意：包名（去掉 .zip）就是升级标识；必须是官方核心升级包（压缩包内含 _update/version.php）。';
+$_LANG['cloud_offline_copy'] = '复制';
+$_LANG['cloud_offline_copy_ok'] = '已复制';
+$_LANG['cloud_offline_refresh'] = '刷新检测';
+$_LANG['cloud_offline_empty'] = '目标目录内还没有升级包，上传后点击「刷新检测」。';
+$_LANG['cloud_offline_col_package'] = '升级包';
+$_LANG['cloud_offline_col_status'] = '状态';
+$_LANG['cloud_offline_pkg_version'] = '包内版本';
+$_LANG['cloud_offline_version_newer'] = '可升级';
+$_LANG['cloud_offline_version_same'] = '与当前版本相同（可用于重跑失败的升级）';
+$_LANG['cloud_offline_version_older'] = '低于当前版本，已禁止降级';
+$_LANG['cloud_offline_version_unknown'] = '无法识别包内版本，未校验降级';
+$_LANG['cloud_offline_not_core'] = '非核心升级包，不可用于本页';
+$_LANG['cloud_offline_invalid_zip'] = '不是有效的 ZIP（可能上传未完成或已损坏）';
+$_LANG['cloud_offline_start'] = '开始升级';
+$_LANG['cloud_offline_step_verify'] = '正在校验本地安装包…';
+$_LANG['cloud_offline_skip_auth'] = '离线模式：使用本地升级包，跳过云端授权校验。';
+$_LANG['cloud_offline_zip_missing'] = '未找到本地升级包，请把 zip 放到 storage/install/package/ 后再试。';
+$_LANG['cloud_offline_not_core_package'] = '该压缩包不是核心升级包（缺少 _update/version.php），已中止。';
+$_LANG['cloud_offline_downgrade_blocked'] = '目标版本（%s）低于当前版本（%s），已拒绝降级。';
+$_LANG['cloud_offline_version_same_log'] = '目标版本与当前版本相同，将按重跑处理。';
 
 // 在线安装权限矩阵（与 download/install-resolve 的 auth_status 对齐）
 $_LANG['cloud_install_login_required'] = '请先设置云账号后再下载安装。';
@@ -111,6 +145,20 @@ $_LANG['cloud_install_resolve_unavailable'] = '云服务暂不可用，请稍后
 $_LANG['cloud_update'] = '系统更新';
 $_LANG['cloud_update_0'] = '更新 ';
 $_LANG['cloud_update_next'] = '即将更新下一个模块';
+$_LANG['cloud_update_theme'] = '即将更新下一个模板';
+$_LANG['cloud_update_plugin'] = '即将更新下一个插件';
+$_LANG['cloud_close_update'] = '关闭升级提示';
+$_LANG['cloud_close_update_confirm'] = '关闭后将不再显示升级提醒与侧栏更新角标，确定关闭吗？';
+$_LANG['cloud_close_update_success'] = '已关闭升级提示';
+$_LANG['cloud_open_update'] = '开启升级提示';
+$_LANG['cloud_open_update_success'] = '已开启升级提示';
+$_LANG['cloud_update_closed_cue'] = '升级提示已关闭，系统不会主动提示可用更新。';
+$_LANG['cloud_update_closed_manage_cue'] = '点击右上角「开启升级提示」可恢复。';
+
+// 升级风险提示（更新主页与离线升级页的页头提示行共用）
+$_LANG['cloud_upgrade_backup_tips'] = '升级有风险，建议升级前先做一次数据库备份，';
+$_LANG['cloud_upgrade_backup_btn'] = '立即备份数据库';
+$_LANG['cloud_upgrade_snapshot_tips'] = '，同时系统会自动创建还原点，若升级后发现异常，可从还原点恢复到升级前的状态。';
 
 // 云账户设置
 $_LANG['cloud_account_title'] = 'Dou云账户';

@@ -69,10 +69,11 @@ class ArticleService extends BaseService
             ->applyDefaultOrder()
             ->paginate((int) $pageSize, (int) $page, $pageUrl);
 
+        Article::warmupCategoryIcons($result['list']);
+
         $articleList = array();
         foreach ($result['list'] as $model) {
             $row = $model->toArray();
-            $catName = isset($row['category']['name']) ? $row['category']['name'] : '';
 
             $articleList[] = array(
                 'id' => $row['id'],
@@ -87,11 +88,7 @@ class ArticleService extends BaseService
                 'description' => Str::excerpt($row['description'], 200, false),
                 'metadata' => isset($row['metadata']) ? $row['metadata'] : '',
                 'url' => route('article.show', ['id' => $row['id']]),
-                'cate_info' => array(
-                    'category_id' => $row['category_id'],
-                    'name' => $catName,
-                    'url' => route('article.category', ['category_id' => $row['category_id']]),
-                ),
+                'cate_info' => $row['cate_info'],
             );
         }
 

@@ -73,10 +73,15 @@ abstract class BaseController extends CoreBaseController
     }
 
     /**
-     * 导航兜底变量：按命中路由名解析 `$nav`（侧栏 / 二级菜单 / 面包屑数据源）。
+     * 导航兜底变量：按命中路由名解析 `$nav`（侧栏 / 二级菜单 / 面包屑数据源），
+     * 并回填 `$cur`（父模块名）。
      *
      * 正常派发已由 AdminResolver 引擎级 assign；此处仅为兜底未派发场景保留。合并位置为最
-     * 右操作数，页面级覆盖（$data['nav']）优先。
+     * 右操作数，页面级覆盖（$data['nav'] / $data['cur']）优先。
+     *
+     * `$cur` 是既有契约，不得随导航重构删除：{@see injectAiToolbar()} 以它判定 AI 创作
+     * 可挂载模块（module.link_ai），编辑器 / 附件上传模板也以它作为模块名。引擎级 assign
+     * 的是复合名（sub 路由如 product_category），故此处按 Entry::$parent_module 回填父名。
      *
      * @return array
      */
@@ -87,8 +92,11 @@ abstract class BaseController extends CoreBaseController
             return array();
         }
 
+        $cur = (string) ($entry->parent_module !== null ? $entry->parent_module : $entry->module);
+
         return array(
             'nav' => AdminNavResolver::resolve((string) $entry->name),
+            'cur' => $cur,
         );
     }
 

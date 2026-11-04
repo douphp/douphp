@@ -84,6 +84,10 @@
 
   function predictStepText(step) {
     if (step === 'download') {
+      // 离线升级：不再从云端下载，改为校验本地包目录内的安装包
+      if (meta.source === 'offline') {
+        return langPack.cloud_offline_step_verify || '';
+      }
       var url = meta.download_url ? String(meta.download_url) : '';
       var mode = meta.mode ? String(meta.mode) : '';
       if (url === '' || mode === 'local') { return ''; }
@@ -216,7 +220,28 @@
     var backLabel = useUpdateHome
       ? (langPack.cloud_update_home || '返回更新主页')
       : (langPack.cloud_admin_home || '返回管理中心');
-    appendActionRow('<a class="btn-secondary" href="' + backHref + '">' + escapeText(backLabel) + '</a>');
+
+    // 取包类步骤失败（含网络层失败）时引导到离线升级页：带全目标参数，可直接放置安装包后继续。
+    // 授权类失败已自带跳转链接，不再叠加离线入口。
+    var offlineHtml = '';
+    var failedStep = currentStep ? String(currentStep) : '';
+    var offlineStep = failedStep === ''
+      || failedStep === 'preflight'
+      || failedStep === 'download'
+      || failedStep === 'unzip';
+    if (offlineStep && !redirectUrl && meta.offline_url) {
+      var hint = langPack.cloud_install_offline_hint ? String(langPack.cloud_install_offline_hint) : '';
+      if (hint !== '') {
+        appendLog(hint);
+      }
+      var offlineLabel = langPack.cloud_install_offline_btn
+        ? String(langPack.cloud_install_offline_btn)
+        : '离线升级';
+      offlineHtml = '<a class="btn" href="' + escapeText(String(meta.offline_url)) + '">'
+        + escapeText(offlineLabel) + '</a>';
+    }
+
+    appendActionRow(offlineHtml + '<a class="btn-secondary" href="' + backHref + '">' + escapeText(backLabel) + '</a>');
   }
 
   function showFinishActions(result) {
@@ -284,8 +309,9 @@
   function runStep(step) {
     currentStep = step;
     attachStepSpinner(step);
-    // 下载步骤：并行轮询真实百分比（需有 download_url 且非 local 模式）
+    // 下载步骤：并行轮询真实百分比（需有 download_url 且非 local / 离线模式）
     if (step === 'download'
+      && meta.source !== 'offline'
       && meta.download_url && String(meta.download_url) !== ''
       && String(meta.mode || '') !== 'local') {
       startDownloadPoll();
@@ -337,13 +363,15 @@
             var nextType = data.result.next_install.type || '';
             var nextMode = data.result.next_install.mode || '';
             var nextLine;
-            if (nextType === 'theme') {
-              nextLine = (langPack.cloud_install_theme || '即将安装模板') + '：' + nextId;
+            var nextKey;
+            if (nextMode === 'update') {
+              nextKey = nextType === 'theme' ? 'cloud_update_theme'
+                : (nextType === 'plugin' ? 'cloud_update_plugin' : 'cloud_update_next');
             } else {
-              var key = nextMode === 'update' ? 'cloud_update_next' : 'cloud_install_next';
-              var prefix = langPack[key] || (nextMode === 'update' ? '即将更新下一个模块' : '即将安装下一个模块');
-              nextLine = prefix + '：' + nextId + ' >>>>>>>>>>';
+              nextKey = nextType === 'theme' ? 'cloud_install_theme' : 'cloud_install_next';
             }
+            var nextPrefix = langPack[nextKey] || (nextMode === 'update' ? '即将更新下一个' : '即将安装下一个');
+            nextLine = nextPrefix + '：' + nextId + ' >>>>>>>>>>';
             appendLog(nextLine);
             setTimeout(function () { window.location.href = url; }, 800);
             return;

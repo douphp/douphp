@@ -89,7 +89,7 @@ class SettingController extends BaseController
             return $this->view('setting_developer.htm', [
                 'ur_here' => lang('config_setting_developer'),
                 'page_actions' => array(
-                    array('href' => route('admin.setting'), 'text' => lang('setting'), 'style' => ''),
+                    array('href' => route('admin.setting'), 'text' => lang('config_setting_system'), 'style' => ''),
                 ),
                 'page_cue' => '<em>' . lang('config_setting_developer_cue') . '</em>',
                 'rec' => 'default',
@@ -108,7 +108,7 @@ class SettingController extends BaseController
                 $pageActions[] = array('href' => route('admin.setting', array(), array('query' => array('dou' => ''))), 'text' => lang('config_setting_developer'), 'style' => '');
             }
             return $this->view('setting.htm', [
-                'ur_here' => lang('setting'),
+                'ur_here' => lang('config_setting_system'),
                 'page_actions' => $pageActions,
                 'rec' => 'default',
                 'light' => $smarty_light,
@@ -193,26 +193,44 @@ class SettingController extends BaseController
                 'success' => false,
                 'message' => lang('mail_test_email_invalid'),
                 'detail' => '',
-            ));
+            ), 200, $this->jsonEncodeOptions());
         }
 
         $subject = lang('mail_test_subject');
         $body = lang('mail_test_body') . '<br/>' . date('Y-m-d H:i:s');
         $altBody = lang('mail_altbody');
 
+        // 发送期间先把输出缓起来，结束时一律丢弃：SMTP 调试回显、第三方库 notice 等
+        // 任何杂散输出都会污染 JSON 响应体，前端拿不到 success/message 就只能报「发送失败」。
+        $obLevel = ob_get_level();
+        ob_start();
+
         // 收集 SMTP 调试链路，失败时展示给用户定位问题
         $debugTraces = array();
-        $result = Mail::sendMailResult($toEmail, $subject, $body, $altBody, $debugTraces);
+        try {
+            $result = Mail::sendMailResult($toEmail, $subject, $body, $altBody, $debugTraces);
+        } catch (\Exception $e) {
+            $result = array('success' => false, 'error' => $e->getMessage());
+            $debugTraces[] = get_class($e) . ': ' . $e->getMessage();
+        } catch (\Throwable $e) {
+            // PHP 7+ 的 \Error 不继承 \Exception；5.6 无 \Throwable，本分支永不匹配（仅解析占位）。
+            $result = array('success' => false, 'error' => $e->getMessage());
+            $debugTraces[] = get_class($e) . ': ' . $e->getMessage();
+        }
+
+        while (ob_get_level() > $obLevel) {
+            ob_end_clean();
+        }
 
         if (!empty($result['success'])) {
             return $this->json(array(
                 'success' => true,
                 'message' => lang('mail_test_success'),
                 'detail' => '',
-            ));
+            ), 200, $this->jsonEncodeOptions());
         }
 
-        $error = (isset($result['error']) && $result['error'] !== '') ? $result['error'] : '';
+        $error = (isset($result['error']) && $result['error'] !== '') ? (string) $result['error'] : '';
         $message = lang('mail_send_fail') . ($error !== '' ? '：' . $error : '');
         $detail = '';
         if (!empty($debugTraces)) {
@@ -221,10 +239,53 @@ class SettingController extends BaseController
             $detail = $error;
         }
 
+        // SMTP 链路可能夹带非 UTF-8 字节（如服务端 8bit 报错文本），
+        // 一旦 json_encode 整体失败，前端只会拿到没有 message 的兜底对象而报「测试邮件发送失败」。
         return $this->json(array(
             'success' => false,
-            'message' => $message,
-            'detail' => $detail,
-        ));
+            'message' => $this->ensureUtf8($message),
+            'detail' => $this->ensureUtf8($detail),
+        ), 200, $this->jsonEncodeOptions());
+    }
+
+    /**
+     * 后台 AJAX JSON 输出选项：中文直出 + 非法 UTF-8 以替代字符兜底。
+     *
+     * @return int
+     */
+    private function jsonEncodeOptions()
+    {
+        $options = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES;
+        if (defined('JSON_INVALID_UTF8_SUBSTITUTE')) {
+            $options |= JSON_INVALID_UTF8_SUBSTITUTE;   // PHP 7.2+
+        }
+
+        return $options;
+    }
+
+    /**
+     * 保证文本为合法 UTF-8（非法序列重新编码清洗）。
+     *
+     * @param mixed $value
+     * @return string
+     */
+    private function ensureUtf8($value)
+    {
+        $text = (string) $value;
+        if ($text === '' || preg_match('//u', $text) === 1) {
+            return $text;
+        }
+
+        if (function_exists('mb_convert_encoding')) {
+            return (string) mb_convert_encoding($text, 'UTF-8', 'UTF-8');
+        }
+        if (function_exists('iconv')) {
+            $clean = @iconv('UTF-8', 'UTF-8//IGNORE', $text);
+            if ($clean !== false) {
+                return $clean;
+            }
+        }
+
+        return (string) preg_replace('/[\x80-\xFF]/', '?', $text);
     }
 }

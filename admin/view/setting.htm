@@ -34,14 +34,18 @@
           <div class="form-label">{$cfg_list.lang}</div>
           <div class="input-block">
            <!-- {if $cfg_list.type eq 'radio'} -->
-           <label for="{$cfg_list.name}_0">
-            <input type="radio" name="{$cfg_list.name}" id="{$cfg_list.name}_0" value="0"{if $cfg_list.value eq '0'} checked="true"{/if}>
-            {$lang.no}</label>
-           <label for="{$cfg_list.name}_1">
-            <input type="radio" name="{$cfg_list.name}" id="{$cfg_list.name}_1" value="1"{if $cfg_list.value eq '1'} checked="true"{/if}>
-            {$lang.yes}</label>
+           <div class="radio-group radio-toggle">
+            <label class="radio-item" for="{$cfg_list.name}_0">
+              <input type="radio" name="{$cfg_list.name}" id="{$cfg_list.name}_0" value="0"{if $cfg_list.value eq '0'} checked="true"{/if}>
+              <span>{$lang.switch_close}</span>
+            </label>
+            <label class="radio-item" for="{$cfg_list.name}_1">
+              <input type="radio" name="{$cfg_list.name}" id="{$cfg_list.name}_1" value="1"{if $cfg_list.value eq '1'} checked="true"{/if}>
+              <span>{$lang.switch_open}</span>
+            </label>
+           </div>
            <!-- {elseif $cfg_list.type eq 'radio_group'} -->
-           <div class="radio-group">
+           <div class="radio-group{if $cfg_list.name eq 'route_page' || $cfg_list.name eq 'route_column' || $cfg_list.name eq 'route_simple'} radio-group-list{/if}">
             <!-- {foreach from=$cfg_list.box item=item} -->
             <label class="radio-item" for="{$cfg_list.name}_{$item.value}">
               <input type="radio" name="{$cfg_list.name}" id="{$cfg_list.name}_{$item.value}" value="{$item.value}"{if $cfg_list.value eq $item.value} checked="true"{/if}>
@@ -213,13 +217,15 @@ $(function () {
                 }
 
                 $input.prop("disabled", true);
-                $.post(route(routeName), { mail_test_email: email })
+                // 显式声明 dataType：服务端返回 JSON 必须按 JSON 解析，
+                // 否则一旦响应头或响应体被污染就会拿到原始字符串，res.success 恒为 undefined。
+                $.post(route(routeName), { mail_test_email: email }, null, "json")
                     .done(function (res) {
                         if (res && res.success) {
                             // 成功：在弹窗内展示结果，不自动关闭
                             $result
                                 .css({ color: "#5cb85c" })
-                                .html("<p style='margin:0'>" + (res.message || "测试邮件发送成功") + "</p>")
+                                .html("<p style='margin:0'>" + $("<div>").text(res.message || "测试邮件发送成功").html() + "</p>")
                                 .show();
                             dou.toast.success(res.message || "测试邮件发送成功");
                         } else {
@@ -237,14 +243,27 @@ $(function () {
                             $result.html(html).show();
                         }
                     })
-                    .fail(function (xhr) {
-                        var err = "请求失败，请检查网络或服务器日志";
-                        if (xhr && xhr.responseText) {
-                            err += "\n" + xhr.responseText;
+                    .fail(function (xhr, textStatus) {
+                        var payload = xhr && xhr.responseJSON;
+                        var err;
+                        if (payload && payload.message) {
+                            // 服务端已返回结构化 JSON，优先使用其中的具体原因
+                            err = payload.message;
+                        } else if (textStatus === "parsererror") {
+                            err = "服务器返回了非 JSON 响应，请刷新页面或重新登录后再试";
+                        } else if (textStatus === "timeout") {
+                            err = "请求超时，邮件可能已发出，请先到收件邮箱确认后再决定是否重试";
+                        } else if (textStatus === "abort") {
+                            err = "请求已取消，请重新发送";
+                        } else {
+                            err = "请求失败，请检查网络或服务器日志";
+                        }
+                        if (!payload && xhr && xhr.status) {
+                            err += "（HTTP " + xhr.status + "）";
                         }
                         $result
                             .css({ color: "#d9534f" })
-                            .html("<p style='margin:0'>" + err.replace(/\n/g, "<br>") + "</p>")
+                            .text(err)
                             .show();
                     })
                     .always(function () {

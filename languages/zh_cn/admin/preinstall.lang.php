@@ -69,3 +69,19 @@ $_LANG['preinstall_language_feature_5_title'] = '前台语言切换';
 $_LANG['preinstall_language_feature_5_desc'] = '主题自带语言切换菜单，访客可在各语言版本间直接切换，无需手工拼接地址。';
 $_LANG['preinstall_language_feature_6_title'] = '可搭配 AI 自动翻译';
 $_LANG['preinstall_language_feature_6_desc'] = 'AI 应用中启用翻译应用后，多语言字段编辑工具条出现一键翻译，把原文自动译入当前语言并直接保存，无需手工录入。';
+
+// 预置内容：plugin（插件）
+$_LANG['preinstall_plugin_name'] = '插件';
+$_LANG['preinstall_plugin_intro'] = '插件模块统一管理支付、登录与物流等第三方扩展：后台可启用或停用插件、维护插件配置，并从云端获取更多插件，启用后立即接入对应业务流程。';
+$_LANG['preinstall_plugin_feature_1_title'] = '插件启用与停用';
+$_LANG['preinstall_plugin_feature_1_desc'] = '支付、第三方登录与物流插件集中列示，一键启用或停用，停用即从业务流程中摘除，无需改动代码。';
+$_LANG['preinstall_plugin_feature_2_title'] = '插件配置';
+$_LANG['preinstall_plugin_feature_2_desc'] = '按插件定义自动生成配置表单，支持单行文本、多行文本与下拉选项，保存后写入插件配置。';
+$_LANG['preinstall_plugin_feature_3_title'] = '云端插件市场';
+$_LANG['preinstall_plugin_feature_3_desc'] = '插件列表页提供「获取更多插件」入口，可从云端浏览并在线安装插件，安装完成后自动出现在插件列表。';
+$_LANG['preinstall_plugin_feature_4_title'] = '支付插件接入';
+$_LANG['preinstall_plugin_feature_4_desc'] = '支付宝、微信支付等支付插件启用后，结算页自动出现对应支付方式，商户参数由插件配置维护。';
+$_LANG['preinstall_plugin_feature_5_title'] = '登录与物流扩展';
+$_LANG['preinstall_plugin_feature_5_desc'] = '第三方登录与物流查询插件同台管理，启用后即时作用于前台登录与订单物流页面。';
+$_LANG['preinstall_plugin_feature_6_title'] = '停用与删除';
+$_LANG['preinstall_plugin_feature_6_desc'] = '停用后的插件可删除记录并清理配置，避免遗留无效入口。';

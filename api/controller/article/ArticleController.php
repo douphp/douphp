@@ -23,6 +23,7 @@ use Dou\Core\Support\Util;
 use Dou\Core\Web\Http\ApiResponse;
 use Dou\Core\Web\Http\Request;
 use Dou\Core\Web\Http\Response;
+use Dou\Front\Model\Article\Article;
 use Dou\Front\Model\Article\ArticleCategory;
 use Dou\Front\Service\Article\ArticleService;
 
@@ -74,9 +75,9 @@ class ArticleController extends BaseController
         );
 
         $articleList = $data['article_list'];
-        $cateInfo = $this->buildArticleCategoryInfo($catId);
+        $cateInfo = Article::categoryInfo($catId);
 
-        $title = (is_array($cateInfo) && !empty($cateInfo['name'])) ? $cateInfo['name'] : lang('article');
+        $title = Article::categoryLabel($cateInfo, Article::tableName());
 
         $data = array(
             'title' => $title,
@@ -121,18 +122,4 @@ class ArticleController extends BaseController
         return ApiResponse::success($data);
     }
 
-    /**
-     * @param int $catId
-     * @return array|false
-     */
-    private function buildArticleCategoryInfo($catId)
-    {
-        $cateInfo = $this->articleService->findCategoryById($catId);
-        if (is_array($cateInfo)) {
-            $cateInfo = language()->langBox($cateInfo, 'article_category', 'name, keywords, description');
-            $cateInfo['url'] = route('article.category', array('category_id' => $catId));
-        }
-
-        return $cateInfo;
-    }
 }

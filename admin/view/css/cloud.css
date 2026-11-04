@@ -77,6 +77,19 @@
 .cloud .account .guide a {
   color: #19b4ea;
 }
+.cloud .account .buy {
+  margin-top: 60px;
+}
+.cloud .account .buy a {
+  color: #19b4ea;
+  border: 1px solid #19b4ea;
+  padding: 10px 40px;
+  font-size: 14px;
+}
+.cloud .account .buy a:hover {
+  background-color: #19b4ea;
+  color: #fff;
+}
 
 /* -- 筛选 Tab -- */
 .cloud .cloud-filter-tabs {
@@ -415,20 +428,94 @@
 }
 
 /* -- 更新主页（cloud/update）-- */
-/* 主样式由云端 static/css/update.css 随升级片段下发；以下仅保留区块间距与
-   空状态的本地兜底，避免片段样式加载异常时排版塌陷。 */
+/* 主样式由云端 static/css/update.css 随升级片段下发；空状态与「已是最新版」区块同样由云端片段自带，
+   现仅补充区块间距兜底，并把「一键更新全部」从云端的一行 float 链接提升为绿色描边按钮（见下方注释）。 */
 #dou-update .update-section {
   margin-top: 40px;
 }
 #dou-update .update-section:first-child {
   margin-top: 0;
 }
-#dou-update .update-empty {
-  border-bottom: 1px solid #d7d7d7;
-  padding: 80px 0 110px 0;
-  color: #999;
+/* 「一键更新全部模块 / 模板 / 插件」是区块级批量动作，云端只给了一行 float 链接，
+   与逐项「更新」链接视觉同级；此处改用绿色描边按钮（常态仅边框与文字着色，hover 才填底反白），
+   位置仍在区块标题右侧（不离标题、不用滚到底部），靠按钮轮廓与主色区分主次。 */
+#dou-update .update-section-head .update-all {
+  float: right;
+  padding: 4px 13px;
+  font-size: 13px;
+  font-weight: normal;
+  line-height: 16px;
+  color: #28b779;
+  background-color: transparent;
+  border: 1px solid #28b779;
+  border-radius: 0;
+  text-decoration: none;
+  white-space: nowrap;
+}
+#dou-update .update-section-head .update-all:hover {
+  color: #fff;
+  background-color: #28b779;
+  border-color: #28b779;
+}
+@media (max-width: 480px) {
+  #dou-update .update-section-head .update-all {
+    float: none;
+    display: inline-block;
+    margin-bottom: 8px;
+  }
+}
+/* -- 离线升级（cloud/offline） -- */
+.cloud .offline {
   font-size: 14px;
-  text-align: center;
+}
+.cloud .offline .offline-version {
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #535353;
+  background-color: #f2f2f2;
+  border: 1px solid #d5d5d5;
+}
+.cloud .offline .offline-version em {
+  margin-left: 4px;
+  color: #000;
+  font-style: normal;
+  font-weight: bold;
+}
+.cloud .offline code {
+  background-color: #f0f0f0;
+  padding: 1px 6px;
+  word-break: break-all;
+  user-select: all;
+}
+.cloud .offline .offline-copy {
+  margin-left: 10px;
+  color: #0072c6;
+}
+.cloud .offline .offline-pkg-state {
+  display: inline-block;
+  padding: 0 8px;
+  font-size: 12px;
+  line-height: 20px;
+  color: #888;
+  background-color: #fff;
+  border: 1px solid #d5d5d5;
+  white-space: nowrap;
+}
+.cloud .offline .offline-pkg-state--newer {
+  color: #389e0d;
+  background-color: #f0f9eb;
+  border-color: #b7eb8f;
+}
+.cloud .offline .offline-pkg-state--same {
+  color: #1d6fb8;
+  background-color: #eef6ff;
+  border-color: #b6d8f5;
+}
+.cloud .offline .offline-pkg-state--older,
+.cloud .offline .offline-pkg-state--invalid {
+  color: #d9534f;
+  background-color: #fdf2f2;
+  border-color: #f0c0bd;
 }
 
 /*- cloud-frame -*/

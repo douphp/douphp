@@ -1,0 +1,92 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="copyright" content="DouCo Co.,Ltd." />
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="csrf-token" content="{$csrf_token}">
+<title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+<link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+<link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+<link href="css/common.css" rel="stylesheet" type="text/css">
+<link href="css/cloud.css" rel="stylesheet" type="text/css">
+{include file="inc/javascript.tpl"}
+</head>
+<body>
+<div id="dou">
+{include file="inc/header.tpl"}
+{include file="inc/sidebar.tpl"}
+<div id="dou-content"> {include file="inc/toolbar.tpl"}
+ <div class="dou-main">
+  <div class="dou-page cloud">
+   {include file="inc/page_header.tpl"}
+   <div class="offline">
+    <!-- {if $current_version} -->
+    <div class="offline-version">{$lang.cloud_offline_current_version}：<em>{$current_version}</em></div>
+    <!-- {/if} -->
+    <div class="section-title">1、{$lang.cloud_offline_step_download}</div>
+    <div class="mb-20">
+     <!-- {if $download_url} -->
+     <p class="mb-10"><a class="btn" href="{$download_url}" target="_blank" rel="noopener">{$lang.cloud_offline_download_btn}</a></p>
+     <p class="cue"><code>{$download_url}</code><a href="javascript:;" class="offline-copy" data-copy="{$download_url}" data-ok="{$lang.cloud_offline_copy_ok}">{$lang.cloud_offline_copy}</a></p>
+     <!-- {else} -->
+     <p class="cue">{$lang.cloud_offline_download_missing}</p>
+     <!-- {/if} -->
+     <p class="cue"><a href="https://www.douphp.com" target="_blank" rel="noopener">{$lang.cloud_offline_official}</a></p>
+    </div>
+    <div class="section-title">2、{$lang.cloud_offline_step_place}</div>
+    <div class="mb-20">
+     <p>{$lang.cloud_offline_dir_label}：<code>{$package_dir_rel}</code><a href="javascript:;" class="offline-copy" data-copy="{$package_dir_rel}" data-ok="{$lang.cloud_offline_copy_ok}">{$lang.cloud_offline_copy}</a></p>
+     <p class="cue">{$lang.cloud_offline_name_hint}</p>
+     <p class="mt-20"><a class="btn-secondary" href="{$refresh_url}">{$lang.cloud_offline_refresh}</a></p>
+    </div>
+    <div class="section-title">3、{$lang.cloud_offline_step_start}</div>
+    <!-- {if $packages} -->
+    <table class="table mb-20">
+     <tr>
+      <th class="text-left">{$lang.cloud_offline_col_package}</th>
+      <th width="180" class="m-none text-center">{$lang.cloud_offline_pkg_version}</th>
+      <th width="240" class="m-none text-center">{$lang.cloud_offline_col_status}</th>
+      <th width="110" class="text-center">{$lang.handler}</th>
+     </tr>
+     <!-- {foreach from=$packages item=pkg} -->
+     <tr>
+      <td class="text-left">{$pkg.file}<br /><span class="cue">{$pkg.size_text} · {$pkg.mtime_text}</span></td>
+      <td class="m-none text-center"><!-- {if $pkg.version} -->{$pkg.version}<!-- {else} -->-<!-- {/if} --></td>
+      <td class="m-none text-center"><span class="offline-pkg-state offline-pkg-state--{$pkg.status}"><!-- {if $pkg.status eq 'newer'} -->{$lang.cloud_offline_version_newer}<!-- {elseif $pkg.status eq 'same'} -->{$lang.cloud_offline_version_same}<!-- {elseif $pkg.status eq 'older'} -->{$lang.cloud_offline_version_older}<!-- {elseif $pkg.status eq 'not_core'} -->{$lang.cloud_offline_not_core}<!-- {elseif $pkg.status eq 'invalid'} -->{$lang.cloud_offline_invalid_zip}<!-- {else} -->{$lang.cloud_offline_version_unknown}<!-- {/if} --></span></td>
+      <td class="text-center"><!-- {if $pkg.allowed} --><a href="{$pkg.start_url}">{$lang.cloud_offline_start}</a><!-- {else} -->-<!-- {/if} --></td>
+     </tr>
+     <!-- {/foreach} -->
+    </table>
+    <!-- {else} -->
+    <p class="cue">{$lang.cloud_offline_empty}</p>
+    <!-- {/if} -->
+   </div>
+  </div>
+ </div>
+</div>
+{include file="inc/footer.tpl"} </div>
+<script type="text/javascript">
+{literal}
+$(function () {
+  $(document).on('click', '.offline-copy', function () {
+    var $el = $(this);
+    var text = String($el.data('copy') || '');
+    if (text === '') { return; }
+    var done = function () {
+      var okText = $el.data('ok');
+      if (okText) { $el.text(okText); }
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () {});
+      return;
+    }
+    var $tmp = $('<textarea></textarea>').val(text).appendTo('body').select();
+    try { document.execCommand('copy'); done(); } catch (e) {}
+    $tmp.remove();
+  });
+});
+{/literal}
+</script>
+</body>
+</html>

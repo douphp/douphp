@@ -264,17 +264,14 @@ class Init
         $container->instance(NavCategorySyncService::class, new NavCategorySyncService());
         $container->instance(CacheClearService::class, new CacheClearService());
 
-        // 会员模块（类由云模块安装到 core/service/user/）：惰性工厂，首次解析时才加载模块类；
+        // 会员模块（类由云模块安装到 core/service/user/）：惰性单例绑定，首次 user() 调用时才反射构造；
         // 后台首页等不涉及会员的页面不再因模块版本较旧而中断（与 plugin / language 同策略）。
+        //
+        // 不可改为 `Module::make('user')` 转发的工厂：短名解析按 core → front → admin → api 顺序探测，
+        // core 实现存在时必然解析回 core，与本处注册键同名；工厂内再经容器解析同名键会重新进入本工厂，
+        // 形成自引用无限递归（后台提交表单调用 user() 时表现为栈溢出、请求无响应）。
         if (!empty($features['user'])) {
-            $container->factory(\Dou\Core\Service\User\UserService::class, function ($c) {
-                unset($c);
-                $userService = \Dou\Core\Foundation\Extension\Module::make('user');
-                if ($userService === null) {
-                    throw new \RuntimeException('User module service is unavailable.');
-                }
-                return $userService;
-            });
+            $container->singleton(\Dou\Core\Service\User\UserService::class, \Dou\Core\Service\User\UserService::class);
         }
 
         // 短信服务（仅在 core/library/sms 存在时给模板打开短信验证码开关，

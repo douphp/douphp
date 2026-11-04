@@ -14,8 +14,8 @@
 
 namespace Dou\Front\Service\Search;
 
-use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Configuration\Config;
+use Dou\Core\Foundation\Module\ModuleModelResolver;
 use Dou\Core\Service\BaseService;
 use Dou\Core\Support\Check;
 use Dou\Core\Support\Str;
@@ -265,13 +265,18 @@ class SearchService extends BaseService
             ? Util::formatPrice($priceRaw)
             : (lang('price_discuss'));
 
-        $cateInfoRow = DB::table($module . '_category')
-            ->field('id, name')
-            ->where('id', isset($row['category_id']) ? $row['category_id'] : 0)
-            ->find();
-        $cateInfoRow = is_array($cateInfoRow) ? $cateInfoRow : array();
-        $cateInfoRow = language()->langBox($cateInfoRow, $module . '_category', 'name');
-        $cateInfoRow['url'] = route($module . '.category', array('category_id' => isset($row['category_id']) ? $row['category_id'] : 0));
+        $searchCatId = isset($row['category_id']) ? (int) $row['category_id'] : 0;
+        $cateInfoRow = array();
+        $categoryModel = app(ModuleModelResolver::class)->modelClassFor($module);
+        if ($categoryModel !== null && method_exists($categoryModel, 'categoryInfo')) {
+            $cateInfoRow = $categoryModel::categoryInfo($searchCatId);
+        }
+        if (empty($cateInfoRow)) {
+            $cateInfoRow = array(
+                'category_id' => $searchCatId,
+                'url' => route($module . '.category', array('category_id' => $searchCatId)),
+            );
+        }
 
         $titlePlain = isset($row['title']) ? $row['title'] : '';
         $titleEsc = htmlspecialchars($titlePlain, ENT_QUOTES, 'UTF-8');

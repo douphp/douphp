@@ -26,10 +26,12 @@ if (!defined('IN_DOUCO')) {
 }
 
 Route::name('admin.')->group(function () {
+    // offline：离线升级页（把官方核心升级包放到 storage/install/package/ 后在此发起升级），
+    // 零必填参数；可选的 download_url 仅供页面展示下载地址。
     Route::group('cloud', CloudController::class)
         ->prefix('cloud')
-        ->get(['index', 'install', 'account', 'update'])
-        ->post(['details', 'order', 'account_post', 'copyright', 'account_clean']);
+        ->get(['index', 'install', 'offline', 'account', 'update'])
+        ->post(['details', 'order', 'account_post', 'copyright', 'account_clean', 'close_update', 'open_update']);
 
     // install_step：安装单步 JSON API，控制器自带 csrf()->verify() 并返回 JSON 419，
     // 不能走 CsrfMiddleware 的 HTML 提示页拒绝（会破坏 API 契约），故路由级豁免 csrf。

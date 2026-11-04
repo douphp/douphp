@@ -84,6 +84,95 @@ $(function () {
     $sub.css({ top: popTop, left: sidebar.offset().left + sidebar.outerWidth() - 3 });
   });
 
+  // 侧栏弹层防误触：从输入框/文本域向左拖选文字时，指针会滑过侧栏并停留，
+  // 超过 CSS 的 300ms 延迟就会弹出子菜单，遮挡右侧表单输入区域。
+  // 弹层显隐由 CSS :hover 决定、JS 无法直接拦截，故用类名加锁：拖选期间强制隐藏弹层，
+  // 指针离开侧栏或在侧栏外松开鼠标后解锁，不影响正常的悬停弹出。
+  (function () {
+    var sidebarEl = document.getElementById("dou-sidebar");
+    if (!sidebarEl) {
+      return;
+    }
+    var locked = false;
+    // 可选中文字的输入控件类型（排除按钮、勾选、文件、日期选择等）
+    var textTypes = ["text", "search", "email", "url", "tel", "password", "number"];
+
+    function isTextField(el) {
+      if (!el || el.nodeType !== 1) {
+        return false;
+      }
+      if (el.isContentEditable) {
+        return true;
+      }
+      if (el.tagName === "TEXTAREA") {
+        return true;
+      }
+      if (el.tagName === "INPUT") {
+        var type = (el.getAttribute("type") || "text").toLowerCase();
+        return type === "" || $.inArray(type, textTypes) !== -1;
+      }
+      return false;
+    }
+
+    function inSidebar(x, y) {
+      var rect = sidebarEl.getBoundingClientRect();
+      return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+    }
+
+    function lock() {
+      if (!locked) {
+        locked = true;
+        $(sidebarEl).addClass("dou-sub-locked");
+      }
+    }
+
+    function unlock() {
+      if (locked) {
+        locked = false;
+        $(sidebarEl).removeClass("dou-sub-locked");
+      }
+    }
+
+    // 在文本控件内按下鼠标即加锁：按住期间指针滑到侧栏也不会弹出。
+    // 捕获阶段监听，避免表单内部的 stopPropagation 漏判
+    document.addEventListener(
+      "mousedown",
+      function (e) {
+        if (isTextField(e.target)) {
+          lock();
+        }
+      },
+      true,
+    );
+
+    // 兜底加锁：iframe 编辑器内拖选时父文档收不到 mousedown，但指针拖出后能收到 mousemove，
+    // 按住左键进入侧栏即视为拖选；指针在侧栏外且已松开按键时解锁
+    document.addEventListener("mousemove", function (e) {
+      // 未锁定且未按键时无需判断，避免无谓的布局读取
+      if (!locked && (e.buttons === 0 || e.buttons === undefined)) {
+        return;
+      }
+      if (inSidebar(e.clientX, e.clientY)) {
+        if (e.buttons === 1) {
+          lock();
+        }
+      } else if (e.buttons === 0) {
+        unlock();
+      }
+    });
+
+    // 在侧栏外松开鼠标：拖选结束且指针没落在侧栏上，无需继续锁。
+    // 松手时指针仍在侧栏上则保持锁定，等指针移出侧栏再解锁，避免立刻弹层
+    document.addEventListener("mouseup", function (e) {
+      if (!inSidebar(e.clientX, e.clientY)) {
+        unlock();
+      }
+    });
+
+    // 窗口失焦（如拖到浏览器外松手）时兜底解锁
+    $(window).on("blur", unlock);
+  })();
+
   // 点击菜单项时保存滚动位置
   $(".menu-scroll").on("click", "a", function () {
     var $menu = $(this).closest(".menu-scroll");
@@ -1851,6 +1940,22 @@ window.douTab = {
   },
   refresh: applyTabDefaults,
 };
+
+/**
+ * 开关式 radio-group（.radio-group.radio-toggle）
+ * 任意位置点击都在 0/1 两态间切换，而不是固定点击左右半区；
+ * 拦下 label 的默认激活，避免与原生选中叠加造成“切两次”回到原态。
+ */
+$(document).on("click", ".radio-toggle", function (e) {
+  var $radios = $(this).find("input[type='radio']");
+  if (!$radios.length) return;
+  e.preventDefault();
+  var $checked = $radios.filter(":checked");
+  var next = $checked.length && String($checked.val()) === "1" ? "0" : "1";
+  var $target = $radios.filter("[value='" + next + "']");
+  if (!$target.length) $target = $radios.first();
+  if ($target.prop("checked", true).length) $target.trigger("change");
+});
 
 /**
  * 后台通用模态框：编程式 douModal.open/show/hide/close + 声明式 data-dou-toggle 委托。

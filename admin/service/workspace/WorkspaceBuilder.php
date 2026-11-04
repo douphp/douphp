@@ -38,8 +38,8 @@ if (!defined('IN_DOUCO')) {
  *   - 页面树（menu_simple）：记录驱动动态节点，路由阶段无法解析，
  *     由本类在枚举的同一次遍历中就地计算 is_active（$nav.sidebar 不含这些逐行 id）；
  *   - 预置模块行（menu_preinstall）：同路由名不同 slug 的路由参数无法被 $nav.sidebar 区分，
- *     同样由本类按当前 slug 就地计算 is_active；header 槽位（header_preinstall，如 language）
- *     与侧栏项互斥，只在头部固定位置渲染，不进入侧栏。
+ *     同样由本类按当前 slug 就地计算 is_active；槽位预置项（menu_preinstall_setting /
+ *     menu_preinstall_fixed，如 language / plugin）与通用列表互斥，只在对应菜单位置渲染。
  */
 class WorkspaceBuilder extends BaseService
 {
@@ -97,10 +97,15 @@ class WorkspaceBuilder extends BaseService
             $this->adminThemeFlags()
         );
         $workspace['menu_permission'] = $this->buildBasicMenuPermission();
+        // 插件节点已移出单页菜单循环，固定渲染在侧栏底部（manager 上方）：
+        // 权限口径与单页模块一致（defined 管理员需 action_list 勾选 plugin）
+        $workspace['menu_permission']['plugin'] = !empty($menuList['fixed_module']['plugin']);
         // 预置项高亮仅认预置详情路由（plugin 等模块也有 slug 参数，不参与高亮）
-        $workspace['menu_preinstall'] = $this->buildPreinstallMenu($currentModule === 'preinstall' ? (string) $preinstallSlug : '');
-        // header 槽位预置项（如 language）：与侧栏预置项同源互补，不重复输出
-        $workspace['header_preinstall'] = $this->buildHeaderPreinstall($currentModule === 'preinstall' ? (string) $preinstallSlug : '');
+        $activePreinstallSlug = $currentModule === 'preinstall' ? (string) $preinstallSlug : '';
+        $workspace['menu_preinstall'] = $this->buildPreinstallMenu($activePreinstallSlug);
+        // 槽位预置项：language 在设置子菜单、plugin 在侧栏底部固定位置，均不进入通用列表
+        $workspace['menu_preinstall_setting'] = $this->buildSettingPreinstall($activePreinstallSlug);
+        $workspace['menu_preinstall_fixed'] = $this->buildFixedPreinstall($activePreinstallSlug);
         $workspace['menu_icon_map'] = $this->buildMenuIconMapForView();
 
         return self::$buildMemo[$memoKey] = $workspace;
@@ -166,6 +171,11 @@ class WorkspaceBuilder extends BaseService
             }
 
             if (!in_array($value, (array) Config::get('module.no_show_menu')) && !in_array($value, (array) Config::get('system.admin_hidden_single', array()), true) && $actionAccess && (!$themeSupportModule || in_array($value, $themeSupportModule))) {
+                // 插件固定挂到侧栏底部（manager 上方），不进入单页菜单循环
+                if ($value === 'plugin') {
+                    $menuList['fixed_module']['plugin'] = true;
+                    continue;
+                }
                 $menuList['single_module'][] = array(
                     'name' => $value,
                     'lang' => lang($value),
@@ -315,22 +325,39 @@ class WorkspaceBuilder extends BaseService
     }
 
     /**
-     * 顶部导航预置入口（header_preinstall，slug => item）。
+     * 设置子菜单槽位预置项（menu_preinstall_setting，slug => item）。
      *
-     * 与侧栏预置项同源，仅装载 PreinstallService::HEADER_SLUGS 槽位（如 language）：
-     * 这类模块未安装时由 header 固定位置承载入口，不进入侧栏（避免与顶部既有
-     * 语言入口重复）。
+     * 与侧栏预置项同源，仅装载 PreinstallService::SLOTS 的 setting 槽位（如 language）：
+     * 这类模块未安装时由设置子菜单承载入口，安装后由真实菜单接管。
      *
      * @param string $activeSlug 当前详情页 slug（空串=无高亮）
      * @return array
      */
-    private function buildHeaderPreinstall($activeSlug)
+    private function buildSettingPreinstall($activeSlug)
     {
         if (!$this->preinstallAllowed()) {
             return array();
         }
 
-        return $this->preinstallService->headerPromotions($activeSlug);
+        return $this->preinstallService->settingPromotions($activeSlug);
+    }
+
+    /**
+     * 侧栏固定位置槽位预置项（menu_preinstall_fixed，slug => item）。
+     *
+     * 仅装载 PreinstallService::SLOTS 的 fixed 槽位（如 plugin）：预置入口与真实
+     * 菜单项同位置（侧栏底部 manager 上方），安装后同一位置由真实菜单接管。
+     *
+     * @param string $activeSlug 当前详情页 slug（空串=无高亮）
+     * @return array
+     */
+    private function buildFixedPreinstall($activeSlug)
+    {
+        if (!$this->preinstallAllowed()) {
+            return array();
+        }
+
+        return $this->preinstallService->fixedPromotions($activeSlug);
     }
 
     /**

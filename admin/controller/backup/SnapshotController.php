@@ -244,6 +244,8 @@ class SnapshotController extends BaseController
         }
 
         // 未完成：链式续跑（GET + token；快照还原路由在 CSRF getTokenRoutes 名单内）
+        // 交接：先写入 30 秒 handoff 宽限再释放 flock，避免 1 秒续跑间隙被其他入口接管
+        $runLock->handoff($holder);
         $progress = $logs ? (string) end($logs) : '';
 
         return message()->respond(

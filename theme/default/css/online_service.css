@@ -27,6 +27,14 @@
  color: #9EA9C4;
  font-size: 18px;
 }
+/* 无图标的社交平台（如 VK）用文字标识 */
+.online-service .item .item-icon-text {
+ font-family: inherit;
+ font-size: 13px;
+ font-weight: 700;
+ letter-spacing: 0.5px;
+ text-decoration: none;
+}
 .online-service .item.active .item-icon {
  background-color: #0072C6;
  color: #FFF;

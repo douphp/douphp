@@ -23,6 +23,7 @@ use Dou\Core\Service\Coupon\CouponService as CouponCore;
 use Dou\Core\Support\Util;
 use Dou\Core\Web\Http\ApiResponse;
 use Dou\Core\Web\Http\Request;
+use Dou\Front\Model\Product\Product;
 use Dou\Front\Model\Product\ProductCategory;
 use Dou\Front\Service\Product\ProductService as FrontProductService;
 
@@ -76,9 +77,9 @@ class ProductController extends BaseController
             $allCategories
         );
 
-        $cateInfo = $this->buildProductCategoryInfo($catId);
+        $cateInfo = Product::categoryInfo($catId);
 
-        $data['title'] = (!empty($cateInfo['name'])) ? $cateInfo['name'] : lang('product');
+        $data['title'] = Product::categoryLabel($cateInfo, Product::tableName());
         $data['category_id'] = $catId;
         $data['product_category'] = ProductCategory::tree($catId);
 
@@ -141,18 +142,4 @@ class ProductController extends BaseController
         return ApiResponse::success($data);
     }
 
-    /**
-     * @param int $catId
-     * @return array|false
-     */
-    private function buildProductCategoryInfo($catId)
-    {
-        $cateInfo = $this->productService->findCategoryById($catId);
-        if (is_array($cateInfo)) {
-            $cateInfo = language()->langBox($cateInfo, 'product_category', 'name, keywords, description');
-            $cateInfo['url'] = route('product.category', array('category_id' => $catId));
-        }
-
-        return $cateInfo;
-    }
 }

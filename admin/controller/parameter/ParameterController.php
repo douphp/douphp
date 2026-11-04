@@ -168,7 +168,7 @@ class ParameterController extends BaseController
         return $this->view('parameter.htm', [
             'ur_here' => $groupTitle . lang('parameter_value'),
             'page_actions' => array(
-                array('href' => route('admin.setting'), 'text' => lang('setting'), 'style' => 'add'),
+                array('href' => route('admin.setting'), 'text' => lang('config_setting_system'), 'style' => 'add'),
             ),
             'rec' => 'set',
             'parameter_list' => $setData['parameter_list'],

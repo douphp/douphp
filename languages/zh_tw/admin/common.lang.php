@@ -113,6 +113,8 @@ $_LANG['set'] = '設定';
 $_LANG['status'] = '狀態';
 $_LANG['status_0'] = '隱藏';
 $_LANG['status_1'] = '顯示';
+$_LANG['switch_open'] = '開啟';
+$_LANG['switch_close'] = '關閉';
 $_LANG['sync_to_nav'] = '同步到自訂導航';
 $_LANG['sync_to_nav_cue'] = '選擇同步後，新增或編輯的分類資訊會自動同步到自訂導航（注意：如果自訂導航裡單獨改了名稱將會被覆蓋）';
 $_LANG['time_start'] = '開始時間';
@@ -264,6 +266,7 @@ $_LANG['help_know'] = '您想了解的幾個問題？';
 
 // 系統設定
 $_LANG['config_setting'] = '系統設定';
+$_LANG['config_setting_system'] = '系統設定';
 $_LANG['config_setting_main'] = '常規設定';
 $_LANG['config_setting_customer'] = '線上客服';
 $_LANG['config_setting_display'] = '顯示設定';

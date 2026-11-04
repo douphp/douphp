@@ -31,9 +31,10 @@ if (!defined('IN_DOUCO')) {
  * 渲染一对一入口，点击进入详情页（route=preinstall/<slug>）；详情页「隐藏此预置项」
  * 按钮删除标识文件后入口不再出现。用户真正安装模块后，入口自动隐藏、由真实菜单接管。
  *
- * 入口槽位：默认为侧栏（{@see self::promotions()}）；{@see self::HEADER_SLUGS} 内的模块
- * 改由后台 header 固定位置承载（{@see self::headerPromotions()}），不进入侧栏，
- * 避免与既有顶部入口重复（如 language 的多语言入口固定在 header，不在侧栏）。
+ * 入口槽位：默认为通用侧栏预置列表（{@see self::promotions()}）；{@see self::SLOTS}
+ * 内的模块改由模板在固定位置渲染（如 language 在「设置」子菜单、plugin 在侧栏底部
+ * manager 上方），不进入通用列表；header 不再承载任何预置项。
+ * 槽位只决定入口位置，标识文件仍决定入口是否存在；安装后入口自动隐藏、由真实菜单接管。
  *
  * 文案统一走 preinstall 语言文件（扁平键）：
  *   - 界面键：preinstall / preinstall_hide / preinstall_hide_confirm …；
@@ -46,12 +47,17 @@ class PreinstallService extends BaseService
     const IDENT_DIR = 'storage/install/preinstall';
 
     /**
-     * @var array 顶部导航槽位：这些预置项在后台 header 渲染，不进入侧栏。
+     * @var array 固定槽位：slug => 渲染位置。
      *
-     * 例：language（多语言）本身被 system.admin_hidden_single 排除出侧栏菜单，
-     * 其入口固定在 header 的「多语言设置」位置，未安装时由预置入口接替。
+     * - setting：在「设置」二级菜单内渲染（language，安装后由真实菜单接管）；
+     * - fixed  ：在侧栏底部固定位置渲染（plugin，安装后同一位置由真实菜单接管）。
+     *
+     * 槽位内的 slug 不再进入通用侧栏预置列表（{@see self::promotions()}）。
      */
-    const HEADER_SLUGS = array('language');
+    const SLOTS = array(
+        'setting' => array('language'),
+        'fixed' => array('plugin'),
+    );
 
     /**
      * 扫描全部标识文件，返回模块 slug 列表（字母序）。
@@ -112,7 +118,7 @@ class PreinstallService extends BaseService
     }
 
     /**
-     * 侧栏预置菜单项：标识 ∖ 已安装 ∖ 顶部槽位，逐项计算活跃态。
+     * 通用侧栏预置菜单项：标识 ∖ 已安装 ∖ 固定槽位，逐项计算活跃态。
      *
      * @param string $activeSlug 当前详情页 slug（空串=无高亮）
      * @return array<int,array{name: string, lang: string, url: string, icon: string, is_active: bool}>
@@ -120,10 +126,11 @@ class PreinstallService extends BaseService
     public function promotions($activeSlug = '')
     {
         $installed = $this->installedModules();
+        $slotSlugs = $this->slotSlugs();
         $items = array();
 
         foreach ($this->identifiers() as $slug) {
-            if (in_array($slug, self::HEADER_SLUGS, true)) {
+            if (in_array($slug, $slotSlugs, true)) {
                 continue;
             }
             $item = $this->promotionItem($slug, $installed, $activeSlug);
@@ -136,20 +143,48 @@ class PreinstallService extends BaseService
     }
 
     /**
-     * 顶部导航预置入口（slug => item）。
+     * 设置子菜单槽位预置项（slug => item）。
      *
-     * 仅装载 {@see self::HEADER_SLUGS} 槽位内、标识存在且尚未安装的模块；
-     * 这些模块在 header 固定位置渲染，侧栏不再重复输出。
+     * 仅装载 {@see self::SLOTS} 的 setting 槽位内、标识存在且尚未安装的模块：
+     * 这类模块未安装时由设置子菜单承载入口，安装后由真实菜单接管。
      *
      * @param string $activeSlug 当前详情页 slug（空串=无高亮）
      * @return array<string,array{name: string, lang: string, url: string, icon: string, is_active: bool}>
      */
-    public function headerPromotions($activeSlug = '')
+    public function settingPromotions($activeSlug = '')
+    {
+        return $this->slotPromotions('setting', $activeSlug);
+    }
+
+    /**
+     * 侧栏固定位置槽位预置项（slug => item）。
+     *
+     * 仅装载 {@see self::SLOTS} 的 fixed 槽位内、标识存在且尚未安装的模块：
+     * 预置入口与真实菜单项同位置（侧栏底部 manager 上方），安装后位置不变。
+     *
+     * @param string $activeSlug 当前详情页 slug（空串=无高亮）
+     * @return array<string,array{name: string, lang: string, url: string, icon: string, is_active: bool}>
+     */
+    public function fixedPromotions($activeSlug = '')
+    {
+        return $this->slotPromotions('fixed', $activeSlug);
+    }
+
+    /**
+     * 指定槽位的预置项：标识存在且尚未安装的模块才输出。
+     *
+     * @param string $slot 槽位名（{@see self::SLOTS} 的键）
+     * @param string $activeSlug 当前详情页 slug（空串=无高亮）
+     * @return array<string,array>
+     */
+    private function slotPromotions($slot, $activeSlug)
     {
         $installed = $this->installedModules();
+        // PHP 5.6 不允许 isset() 作用于类常量下标，改用 array_key_exists 判定
+        $slugs = array_key_exists($slot, self::SLOTS) ? (array) self::SLOTS[$slot] : array();
         $items = array();
 
-        foreach (self::HEADER_SLUGS as $slug) {
+        foreach ($slugs as $slug) {
             $item = $this->promotionItem($slug, $installed, $activeSlug);
             if ($item !== null) {
                 $items[$slug] = $item;
@@ -157,6 +192,23 @@ class PreinstallService extends BaseService
         }
 
         return $items;
+    }
+
+    /**
+     * 全部固定槽位 slug（扁平化，供通用列表过滤）。
+     *
+     * @return array<int,string>
+     */
+    private function slotSlugs()
+    {
+        $slugs = array();
+        foreach (self::SLOTS as $slotSlugs) {
+            foreach ((array) $slotSlugs as $slug) {
+                $slugs[] = $slug;
+            }
+        }
+
+        return $slugs;
     }
 
     /**

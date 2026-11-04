@@ -69,3 +69,19 @@ $_LANG['preinstall_language_feature_5_title'] = '前台語言切換';
 $_LANG['preinstall_language_feature_5_desc'] = '主題自帶語言切換選單，訪客可在各語言版本間直接切換，無需手動拼接網址。';
 $_LANG['preinstall_language_feature_6_title'] = '可搭配 AI 自動翻譯';
 $_LANG['preinstall_language_feature_6_desc'] = 'AI 應用中啟用翻譯應用後，多語言欄位編輯工具條出現一鍵翻譯，將原文自動譯入目前語言並直接儲存，無需手動錄入。';
+
+// 預置內容：plugin（外掛擴充）
+$_LANG['preinstall_plugin_name'] = '外掛擴充';
+$_LANG['preinstall_plugin_intro'] = '外掛擴充模組統一管理支付、登入與物流等第三方擴充：後台可啟用或停用外掛、維護外掛設定，並從雲端取得更多外掛，啟用後立即接入對應業務流程。';
+$_LANG['preinstall_plugin_feature_1_title'] = '外掛啟用與停用';
+$_LANG['preinstall_plugin_feature_1_desc'] = '支付、第三方登入與物流外掛集中列示，一鍵啟用或停用，停用即從業務流程中移除，無需改動程式碼。';
+$_LANG['preinstall_plugin_feature_2_title'] = '外掛設定';
+$_LANG['preinstall_plugin_feature_2_desc'] = '依外掛定義自動產生設定表單，支援單行文字、多行文字與下拉選項，儲存後寫入外掛設定。';
+$_LANG['preinstall_plugin_feature_3_title'] = '雲端外掛市場';
+$_LANG['preinstall_plugin_feature_3_desc'] = '外掛列表頁提供「取得更多外掛」入口，可從雲端瀏覽並線上安裝外掛，安裝完成後自動出現在外掛列表。';
+$_LANG['preinstall_plugin_feature_4_title'] = '支付外掛接入';
+$_LANG['preinstall_plugin_feature_4_desc'] = '支付寶、微信支付等支付外掛啟用後，結帳頁自動出現對應支付方式，商戶參數由外掛設定維護。';
+$_LANG['preinstall_plugin_feature_5_title'] = '登入與物流擴充';
+$_LANG['preinstall_plugin_feature_5_desc'] = '第三方登入與物流查詢外掛同台管理，啟用後即時作用於前台登入與訂單物流頁面。';
+$_LANG['preinstall_plugin_feature_6_title'] = '停用與刪除';
+$_LANG['preinstall_plugin_feature_6_desc'] = '停用後的外掛可刪除記錄並清理設定，避免遺留無效入口。';

@@ -118,18 +118,7 @@ class ProductController extends BaseController
             (int) auth('front')->id()
         );
 
-        $cateInfo = $this->buildProductCategoryInfo($catId);
-        if (!is_array($cateInfo)) {
-            $cateInfo = array(
-                'name' => '',
-                'keywords' => '',
-                'description' => '',
-                'parent_id' => 0,
-            );
-        }
-        if ($archive) {
-            $cateInfo['name'] = Util::archiveLabel($archive);
-        }
+        $cateInfo = Product::categoryInfo($catId, $archive);
 
         $urHere = $this->breadcrumb->build('product_category', $catId, '', $archive);
 
@@ -156,7 +145,7 @@ class ProductController extends BaseController
             'product_list' => $result['product_list'],
             'pager' => $result['pager'],
             'related_product' => Product::related($catId, 4, (int) auth('front')->id()),
-            'column_name' => $cateInfo['name'] ? $cateInfo['name'] : lang('product_category'),
+            'column_name' => Product::categoryLabel($cateInfo),
         ]);
     }
 
@@ -186,15 +175,7 @@ class ProductController extends BaseController
         }
 
         $catId = (int) $product['category_id'];
-        $cateInfo = $this->buildProductCategoryInfo($catId);
-        if (!is_array($cateInfo)) {
-            $cateInfo = array(
-                'name' => '',
-                'keywords' => '',
-                'description' => '',
-                'parent_id' => 0,
-            );
-        }
+        $cateInfo = Product::categoryInfo($catId);
         $parentId = $cateInfo['parent_id'];
 
         $attribute = Module::make('attribute');
@@ -245,7 +226,7 @@ class ProductController extends BaseController
             'related_product' => Product::related($catId, 4, (int) auth('front')->id(), (int) $id),
             'lift' => Product::lift($id, $catId),
             'defined' => isset($product['defined']) ? $product['defined'] : array(),
-            'column_name' => $cateInfo['name'] ? $cateInfo['name'] : lang('product_category'),
+            'column_name' => Product::categoryLabel($cateInfo),
         );
         if ($dataList !== null) {
             $viewData['data_list'] = $dataList;
@@ -255,22 +236,6 @@ class ProductController extends BaseController
         }
 
         return $this->view('product.dwt', $viewData);
-    }
-
-    /**
-     * @param int $catId
-     * @return array|false
-     */
-    private function buildProductCategoryInfo($catId)
-    {
-        $cateInfo = $this->productService->findCategoryById($catId);
-        if (is_array($cateInfo)) {
-            $cateInfo = language()->langBox($cateInfo, 'product_category', 'name, keywords, description');
-            $cateInfo['category_id'] = (int) $catId;
-            $cateInfo['url'] = route('product.category', array('category_id' => $catId));
-        }
-
-        return $cateInfo;
     }
 
     protected function layoutVars()

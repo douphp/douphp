@@ -60,7 +60,9 @@ class InstallSessionService extends BaseService
      *                      batch、download_url（云端解析后的安装包 URL）、
      *                      sha256（安装包 sha256，下载后解压前强校验用）、
      *                      auth_status（云端解析后的授权状态：ok / unauthorized / unavailable，默认 ok）、
-     *                      back_url（安装成功后「返回」按钮指向的本站后台 URL，调用方需预先校验）。mode 取值 install|update|patch|local。
+     *                      back_url（安装成功后「返回」按钮指向的本站后台 URL，调用方需预先校验）、
+     *                      source（取包来源：cloud|offline，默认 cloud；offline 表示用本地升级包）。
+     *                      mode 取值 install|update|patch|local。
      * @return string 64 位十六进制 install_id
      */
     public function create(array $params)
@@ -82,6 +84,7 @@ class InstallSessionService extends BaseService
         }
         $authStatus = isset($params['auth_status']) ? (string) $params['auth_status'] : 'ok';
         $backUrl = isset($params['back_url']) ? (string) $params['back_url'] : '';
+        $source = isset($params['source']) && (string) $params['source'] === 'offline' ? 'offline' : 'cloud';
 
         $installId = Str::randomHex(16);
         $now = time();
@@ -100,6 +103,7 @@ class InstallSessionService extends BaseService
             'sha256' => $sha256,
             'auth_status' => $authStatus,
             'back_url' => $backUrl,
+            'source' => $source,
             'batch' => $batch,
             'current_step' => 'preflight',
             'completed_steps' => array(),

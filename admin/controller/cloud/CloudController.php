@@ -16,10 +16,12 @@ namespace Dou\Admin\Controller\Cloud;
 
 use Dou\Admin\Controller\BaseController;
 use Dou\Admin\Facade\Cloud;
+use Dou\Admin\Model\Setting\Setting;
 use Dou\Admin\Request\Cloud\AccountFormRequest;
 use Dou\Admin\Service\Cloud\CloudService;
 use Dou\Admin\Service\Cloud\InstallService;
 use Dou\Admin\Service\Cloud\InstallSessionService;
+use Dou\Admin\Service\Menu\AdminNavResolver;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Service\Admin\AdminLogAction;
@@ -27,6 +29,7 @@ use Dou\Core\Web\Http\HttpResponseException;
 use Dou\Core\Web\Http\JsonResponse;
 use Dou\Core\Web\Http\Request;
 use Dou\Core\Web\Http\Response;
+use Dou\Core\Web\Routing\RouteEntry;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
@@ -81,6 +84,11 @@ class CloudController extends BaseController
     /**
      * 扩展安装 / 更新容器页（POST + JSON 多步 API 的入口）。
      *
+     * `source=offline` 为离线升级：取包来源切到本地包目录（storage/install/package/），
+     * 不再请求云端 install-resolve；离线只做核心程序升级，type / mode 由服务端固定为
+     * system / update（链接上也会显式带 mode=update），因此还原点、版本上报与收尾
+     * 按钮与在线升级完全一致。
+     *
      * 流程：
      *   1) 从 **QueryString** 读取 type / cloud_id / mode 等（`Request::query`），避免 POST 同名字段覆盖 GET（`Request::input` 先 POST 后 GET）。
      *   2) `type` 可省略：在 `mode=update|patch` 且无 `type` 时视为 **system** 内核包；`cloud_id=font` 且无 `type` 时视为 **system** 字体包。
@@ -99,7 +107,7 @@ class CloudController extends BaseController
      */
     public function install(Request $request)
     {
-        $rawCloudId = preg_match("/^[A-Za-z0-9-_.|]+$/", $request->query('cloud_id', '')) ? $request->query('cloud_id', '') : '';
+        $rawCloudId = (string) $request->query('cloud_id', '');
         $themeIdInput = $request->query('theme_id', '');
         $themeId = $themeIdInput !== '' && preg_match("/^[A-Za-z0-9-_]+$/", $themeIdInput) ? $themeIdInput : '';
 
@@ -108,15 +116,29 @@ class CloudController extends BaseController
         $miniVersion = $this->eightDigits($request->query('mini_version', ''));
         $backUrl = $this->sanitizeAdminBackUrl($request->query('back_url', ''));
 
+        // 取包来源：cloud（默认，走云端下载）/ offline（离线升级，用本地升级包）。
+        // 离线只做核心程序升级：type=system、mode=update 由服务端固定，忽略 URL 上的 type/mode。
+        $source = (string) $request->query('source', 'cloud') === 'offline' ? 'offline' : 'cloud';
+        $isOffline = ($source === 'offline');
+        $offlineDownloadUrl = $isOffline
+            ? $this->sanitizeDisplayDownloadUrl($request->query('download_url', ''))
+            : '';
+
         $cloudId = '';
         $batch = array();
-        if ($rawCloudId !== '') {
-            $parts = explode('|', $rawCloudId);
-            $cloudId = (string) array_shift($parts);
-            foreach ($parts as $p) {
-                $p = trim((string) $p);
-                if ($p !== '') {
-                    $batch[] = $p;
+        if ($isOffline) {
+            // 离线时 cloud_id 就是用户上传的 zip 文件名（去掉 .zip）
+            $cloudId = $this->sanitizeOfflineCloudId($rawCloudId);
+        } else {
+            $strictId = preg_match("/^[A-Za-z0-9-_.|]+$/", $rawCloudId) ? $rawCloudId : '';
+            if ($strictId !== '') {
+                $parts = explode('|', $strictId);
+                $cloudId = (string) array_shift($parts);
+                foreach ($parts as $p) {
+                    $p = trim((string) $p);
+                    if ($p !== '') {
+                        $batch[] = $p;
+                    }
                 }
             }
         }
@@ -130,15 +152,21 @@ class CloudController extends BaseController
             }
         }
 
+        if ($isOffline) {
+            $type = 'system';
+            $mode = 'update';
+        }
+
         if ($type === '' || $cloudId === '') {
             throw new DomainException(lang('illegal'), route('admin.setting'));
         }
 
-        if (rtrim((string) Config::get('cloud.api_base', ''), '/') === '') {
+        // 离线升级不依赖云端接口：允许在未配置 cloud.api_base 的站点上继续（仅手动放置安装包）。
+        if (!$isOffline && rtrim((string) Config::get('cloud.api_base', ''), '/') === '') {
             throw new DomainException(lang('cloud_api_base_missing'), route('admin.setting'));
         }
 
-        if ($mode === 'local') {
+        if ($mode === 'local' || $isOffline) {
             $authStatus = 'ok';
             $downloadUrl = '';
             $downloadSha256 = '';
@@ -175,6 +203,7 @@ class CloudController extends BaseController
             'sha256' => $downloadSha256,
             'auth_status' => $authStatus,
             'back_url' => $backUrl,
+            'source' => $source,
         ));
 
         $viewData = $this->cloudService->buildHandleViewData($type, $cloudId, $mode, $version, $themeId);
@@ -194,6 +223,8 @@ class CloudController extends BaseController
             'cloud_install_next' => lang('cloud_install_next'),
             'cloud_update_next' => lang('cloud_update_next'),
             'cloud_install_theme' => lang('cloud_install_theme'),
+            'cloud_update_theme' => lang('cloud_update_theme'),
+            'cloud_update_plugin' => lang('cloud_update_plugin'),
             'cloud_admin_home' => lang('cloud_admin_home'),
             'cloud_update_home' => lang('cloud_update_home'),
             'cloud_account' => lang('cloud_account'),
@@ -205,7 +236,18 @@ class CloudController extends BaseController
             'cloud_install_request_failed' => lang('cloud_install_request_failed'),
             'cloud_install_step_failed_generic' => lang('cloud_install_step_failed_generic'),
             'cloud_step_elapsed' => lang('cloud_step_elapsed'),
+            'cloud_offline_step_verify' => lang('cloud_offline_step_verify'),
+            'cloud_install_offline_btn' => lang('cloud_install_offline_btn'),
+            'cloud_install_offline_hint' => lang('cloud_install_offline_hint'),
         );
+
+        // 失败提示里的「离线升级」入口：把升级包下载地址带过去（离线页只展示不抓取）。
+        // 在线运行时取 install-resolve 解到的地址；离线运行时透传 URL 上已有的 download_url。
+        $carryDownloadUrl = $isOffline ? $offlineDownloadUrl : $downloadUrl;
+        $offlineQuery = array();
+        if ($carryDownloadUrl !== '') {
+            $offlineQuery['download_url'] = $carryDownloadUrl;
+        }
 
         $meta = array(
             'install_id' => $installId,
@@ -216,9 +258,11 @@ class CloudController extends BaseController
             'cloud_id' => $cloudId,
             'download_url' => $downloadUrl,
             'type_label' => $viewData['type_label'],
+            'source' => $source,
+            'offline_url' => route('admin.cloud.offline', array(), array('query' => $offlineQuery)),
         );
 
-        return $this->view('cloud.htm', [
+        return $this->view('cloud.htm', $this->installNavVars($type, $mode) + [
             'ur_here' => lang('cloud_handle'),
             'rec' => 'install',
             'install_id' => $installId,
@@ -229,6 +273,150 @@ class CloudController extends BaseController
             'title' => $viewData['title'],
             'mode' => $mode,
         ]);
+    }
+
+    /**
+     * 离线升级页（GET，核心程序包专用）。
+     *
+     * 零必填参数：直接打开即可用。页面扫描 storage/install/package/ 内的 zip，
+     * 以包内 `_update/version.php` 的版本与当前版本比较后逐条给出结论：
+     * 可升级 / 与当前版本相同（可重跑）/ 低于当前版本（禁止）/ 无法识别版本 / 非核心包。
+     *
+     * 可选参数 download_url（仅展示，供用户下载升级包）；升级包由用户自行上传，本页不访问云端。
+     * 点【开始升级】拼出完整升级链接 `route=cloud/install&mode=update&source=offline&cloud_id=<包名>`，
+     * 由 {@see install()} 继续跑多步向导（还原点、版本上报与在线升级一致）。
+     *
+     * @param Request $request
+     * @return Response
+     */
+    public function offline(Request $request)
+    {
+        $downloadUrl = $this->sanitizeDisplayDownloadUrl($request->query('download_url', ''));
+        $list = $this->installService->listLocalPackages();
+
+        $packages = array();
+        foreach ($list['items'] as $item) {
+            $item['start_url'] = '';
+            if (!empty($item['allowed'])) {
+                $query = array(
+                    'mode' => 'update',
+                    'source' => 'offline',
+                    'cloud_id' => (string) $item['cloud_id'],
+                );
+                if ($downloadUrl !== '') {
+                    $query['download_url'] = $downloadUrl;
+                }
+                $item['start_url'] = route('admin.cloud.install', array(), array('query' => $query));
+            }
+            $packages[] = $item;
+        }
+
+        $refreshQuery = array('t' => time());
+        if ($downloadUrl !== '') {
+            $refreshQuery['download_url'] = $downloadUrl;
+        }
+
+        $currentVersion = (string) $list['current_version'];
+
+        return $this->view('cloud_offline.htm', $this->installNavVars('system', 'update') + array(
+            'ur_here' => lang('cloud_offline'),
+            'page_cue' => $this->upgradeRiskCue(),
+            // 当前版本单列区块展示（置于步骤一上方），不再挤在页头标题行
+            'current_version' => htmlspecialchars($currentVersion, ENT_QUOTES, 'UTF-8'),
+            'page_actions' => array(
+                array(
+                    'href' => route('admin.cloud.update'),
+                    'text' => lang('cloud_update_home'),
+                    'style' => '',
+                ),
+            ),
+            'download_url' => $downloadUrl,
+            // 只暴露站点内相对路径：该页多数运行在线上，避免把服务器绝对路径输出到页面
+            'package_dir_rel' => 'storage/install/package/',
+            'packages' => $packages,
+            'refresh_url' => route('admin.cloud.offline', array(), array('query' => $refreshQuery)),
+        ));
+    }
+
+    /**
+     * 展示用下载地址校验：仅接受 http/https，其余一律丢弃。
+     *
+     * @param mixed $url
+     * @return string
+     */
+    private function sanitizeDisplayDownloadUrl($url)
+    {
+        $url = trim((string) $url);
+        if ($url === '' || strlen($url) > 2048) {
+            return '';
+        }
+        $parts = @parse_url($url);
+        if (!$parts || empty($parts['scheme']) || empty($parts['host'])) {
+            return '';
+        }
+        $scheme = strtolower((string) $parts['scheme']);
+        if ($scheme !== 'http' && $scheme !== 'https') {
+            return '';
+        }
+
+        return $url;
+    }
+
+    /**
+     * 离线升级的 cloud_id：即用户上传的 zip 文件名（去掉 .zip），允许中文与空格。
+     *
+     * @param mixed $raw
+     * @return string 合法返回包名，否则返回空串
+     */
+    private function sanitizeOfflineCloudId($raw)
+    {
+        $raw = str_replace('\\', '/', (string) $raw);
+        $name = basename($raw);
+        $name = (string) preg_replace('/\.zip$/i', '', $name);
+        $name = trim($name);
+
+        if ($name === '' || $name === '.' || $name === '..' || strlen($name) > 180) {
+            return '';
+        }
+        if (strpos($name, '/') !== false || strpos($name, '|') !== false || strpos($name, "\0") !== false) {
+            return '';
+        }
+
+        return $name;
+    }
+
+    /**
+     * 安装容器页的侧栏归属（页面级 nav 覆盖）。
+     *
+     * cloud/install 同时承载系统更新与模块 / 模板 / 插件 / 小程序安装：
+     * 系统更新流程归属「设置 > 系统更新」，字体等系统包安装归属「设置 > 设置」；
+     * 模块 / 模板 / 插件 / 小程序按 type 归属各自侧栏节点；dou / onedou 等整站包
+     * 不覆盖，保持自然解析（无高亮）。
+     *
+     * @param string $type 扩展类型
+     * @param string $mode 安装模式（update / patch / install / local）
+     * @return array
+     */
+    private function installNavVars($type, $mode)
+    {
+        $entry = request()->routeEntry();
+        if (!$entry instanceof RouteEntry) {
+            return array();
+        }
+
+        if ($type === 'system') {
+            $overrides = in_array($mode, array('update', 'patch'), true)
+                ? array('sidebar' => 'setting', 'sidebar_child' => 'update')
+                : array('sidebar' => 'setting', 'sidebar_child' => 'setting');
+        } elseif (in_array($type, array('module', 'theme', 'plugin', 'miniprogram'), true)) {
+            $overrides = array('sidebar' => $type);
+        } else {
+            return array();
+        }
+
+        return array(
+            'nav' => AdminNavResolver::resolve((string) $entry->name, $overrides),
+        );
     }
 
     /**
@@ -325,7 +513,10 @@ class CloudController extends BaseController
             @session_write_close();
         }
 
-        $updatedState = $session->withLock($installId, function ($state) use ($service, $step, &$response, $session, $runLock, $installId) {
+        // 本请求是否持有升级锁（preflight 获取 / 后续步骤续锁），会话落盘后统一收口
+        $lockHeld = false;
+
+        $updatedState = $session->withLock($installId, function ($state) use ($service, $step, &$response, $session, $runLock, $installId, &$lockHeld) {
             if (!empty($state['finished'])) {
                 $response['ok'] = true;
                 $response['finished'] = true;
@@ -335,17 +526,17 @@ class CloudController extends BaseController
             }
 
             if ($runLock !== null) {
-                if ($step === InstallService::STEP_PREFLIGHT) {
-                    $locked = $runLock->acquire($installId);
-                    if (empty($locked['ok'])) {
-                        $response['ok'] = false;
-                        $response['error'] = (string) $locked['error'];
-                        return $state;
-                    }
-                } else {
-                    // 长流程（下载/解压等）逐步刷新锁时间，避免被其他入口误判为陈旧锁
-                    $runLock->touch($installId);
+                // preflight 首次获取；后续步骤续锁（未持有时内部转为 acquire）。
+                // 失败说明另一请求正持锁，必须中止本步骤，否则两个流程会并发改写站点文件。
+                $locked = $step === InstallService::STEP_PREFLIGHT
+                    ? $runLock->acquire($installId)
+                    : $runLock->touch($installId);
+                if (empty($locked['ok'])) {
+                    $response['ok'] = false;
+                    $response['error'] = (string) $locked['error'];
+                    return $state;
                 }
+                $lockHeld = true;
             }
 
             $params = $this->buildStepParams($state, $installId);
@@ -406,9 +597,6 @@ class CloudController extends BaseController
                 if (!empty($outcome['redirect_target'])) {
                     $response['redirect_target'] = (string) $outcome['redirect_target'];
                 }
-                if ($runLock !== null) {
-                    $runLock->release($installId);
-                }
                 return $state;
             }
 
@@ -436,21 +624,33 @@ class CloudController extends BaseController
                 $response['success'] = true;
                 $response['finished'] = true;
                 $response['result'] = $state['result'];
-                if ($runLock !== null) {
-                    $runLock->release($installId);
-                }
             }
 
             return $state;
         });
 
         if ($updatedState === null) {
+            // 会话丢失（可能已被清理）：顺手清掉本会话可能遗留的锁记录，非持有者调用为无操作
+            if ($runLock !== null) {
+                $runLock->release($installId);
+            }
+
             return $this->installStepJson(array(
                 'ok' => false,
                 'error' => lang('cloud_install_session_missing'),
                 'step' => $step,
                 'install_id' => $installId,
             ), 410);
+        }
+
+        // 锁生命周期统一在会话状态落盘之后收口：
+        // 失败/收尾立即释放；成功但未收尾写 30 秒交接宽限，供下一个步骤请求续锁。
+        if ($runLock !== null && $lockHeld) {
+            if (empty($response['ok']) || !empty($response['finished'])) {
+                $runLock->release($installId);
+            } else {
+                $runLock->handoff($installId);
+            }
         }
 
         if (isset($updatedState['mode'])) {
@@ -599,6 +799,7 @@ class CloudController extends BaseController
             'sha256' => isset($state['sha256']) ? (string) $state['sha256'] : '',
             'auth_status' => isset($state['auth_status']) ? (string) $state['auth_status'] : 'ok',
             'back_url' => isset($state['back_url']) ? (string) $state['back_url'] : '',
+            'source' => isset($state['source']) ? (string) $state['source'] : 'cloud',
             'install_id' => (string) $installId,
         );
     }
@@ -624,19 +825,21 @@ class CloudController extends BaseController
     /**
      * 在链式安装中前进到下一目标：先消费 batch，再 module → theme。
      *
+     * batch 队列内各项目沿用会话当前 type（模块 / 模板 / 插件批量更新共用同一队列），
+     * 只有「模块装完再装其配套模板」这一历史链路才会在 batch 耗尽后切换 type。
+     *
      * @param array $state
      * @return array|null 新 state；无法前进返回 null
      */
     private function advanceInstallChainTarget(array $state)
     {
-        // 已安装模块直接跳过，避免为“最终仍会跳过”的目标调用 install-resolve 并累加下载计数
+        // 已安装扩展直接跳过，避免为“最终仍会跳过”的目标调用 install-resolve 并累加下载计数
         $safety = 0;
         while ($safety < 64) {
             $safety++;
             $batch = isset($state['batch']) && is_array($state['batch']) ? $state['batch'] : array();
             if (!empty($batch)) {
                 $next = array_shift($batch);
-                $state['type'] = 'module';
                 $state['cloud_id'] = (string) $next;
                 $state['batch'] = array_values($batch);
             } else {
@@ -652,8 +855,13 @@ class CloudController extends BaseController
                 $state['mode'] = 'install';
             }
 
-            if ($state['type'] === 'module'
-                && $this->installService->installCheck('module', $state['cloud_id'])) {
+            // 「重复安装」判定只存在于全新安装 / 本地安装（见 InstallService::runPreflight），
+            // 更新模式必须继续；按当前 type 判定，模板 / 插件与模块同一口径。
+            $type = isset($state['type']) ? (string) $state['type'] : '';
+            $mode = isset($state['mode']) ? (string) $state['mode'] : 'install';
+            if (($mode === 'install' || $mode === 'local')
+                && $type !== ''
+                && $this->installService->installCheck($type, $state['cloud_id'])) {
                 $state = $this->installSession->pushLog(
                     $state,
                     InstallService::STEP_PREFLIGHT,
@@ -897,6 +1105,8 @@ class CloudController extends BaseController
     /**
      * 更新主页：服务端直接拉取云端四类升级提示 HTML（系统 / 模块 / 模板 / 插件）与可更新数量。
      *
+     * 系统区域顶部的版本信息条与「已是最新版 + 重新安装当前版本」区块同样由云端片段下发，
+     * 客户端只负责输出，不拼文案、不推导版本号。
      * 关闭升级（`site.close_update`）时跳过云端调用；
      * `refreshUpdateNumber` 落库的 `update_number` 在下一次后台请求由 UpdateBadgeBuilder 输出到 `$unum`。
      *
@@ -904,29 +1114,147 @@ class CloudController extends BaseController
      */
     public function update()
     {
+        $closeUpdate = (bool) Config::get('site.close_update', false);
+        $pageActions = array();
+        $pageCue = '';
+        $canManage = $this->canManageUpdateNotice();
+
+        if ($canManage) {
+            if ($closeUpdate) {
+                $pageActions[] = array(
+                    'href' => route('admin.cloud.open_update'),
+                    'text' => lang('cloud_open_update'),
+                    'post' => true,
+                    'style' => '',
+                );
+            } else {
+                $pageActions[] = array(
+                    'href' => route('admin.cloud.close_update'),
+                    'text' => lang('cloud_close_update'),
+                    'post' => true,
+                    'confirm' => lang('cloud_close_update_confirm'),
+                    'style' => '',
+                );
+            }
+        }
+
+        if ($closeUpdate) {
+            $pageCue = '<p>' . lang('cloud_update_closed_cue');
+            if ($canManage) {
+                $pageCue .= lang('cloud_update_closed_manage_cue');
+            }
+            $pageCue .= '</p>';
+        }
+
         $localsystem = $this->cloud->localSystemPayload();
         $localsite = $this->cloud->localSitePayload();
 
         $systemUpdateHtml = '';
+        $updateInfoHtml = '';
         $moduleUpdateHtml = '';
         $themeUpdateHtml = '';
         $pluginUpdateHtml = '';
-        if (!Config::get('site.close_update', false)) {
+        if (!$closeUpdate) {
             $this->cloudService->refreshUpdateNumber($localsite, $localsystem, true);
-            $systemUpdateHtml = $this->cloudService->fetchSystemUpdateHtml($localsystem);
+
+            // 系统升级面板：升级列表片段、已是最新版提示（含重新安装入口）与顶部信息条均由云端下发
+            $panel = $this->cloudService->fetchSystemUpdatePanel($localsystem, time());
+            $systemUpdateHtml = $panel['html'];
+            $updateInfoHtml = $panel['info_html'];
+
             $moduleUpdateHtml = $this->cloudService->fetchModuleUpdateHtml($localsite);
             $themeUpdateHtml = $this->cloudService->fetchThemeUpdateHtml($localsite);
             $pluginUpdateHtml = $this->cloudService->fetchPluginUpdateHtml($localsite);
         }
 
+        // 升级风险提示行固定输出（与离线升级页同源文案），不随是否存在可更新项变化，
+        // 保证每次进入更新主页的页头提示始终一致
+        $pageCue .= $this->upgradeRiskCue();
+
         return $this->view('cloud.htm', [
             'ur_here' => lang('cloud_update'),
             'rec' => 'update',
+            'page_actions' => $pageActions,
+            'page_cue' => $pageCue,
+            'update_closed' => $closeUpdate,
+            'update_info_html' => $updateInfoHtml,
             'system_update_html' => $systemUpdateHtml,
             'module_update_html' => $moduleUpdateHtml,
             'theme_update_html' => $themeUpdateHtml,
             'plugin_update_html' => $pluginUpdateHtml,
         ]);
+    }
+
+    /**
+     * 关闭在线升级提示。
+     *
+     * @return Response
+     */
+    public function closeUpdate()
+    {
+        $this->ensureUpdateNoticeAuthority();
+        Setting::updateConfigValue('close_update', '1');
+        // 清空缓存的更新数量，重新开启后从干净状态重新拉取
+        Setting::updateConfigValue('update_number', serialize(array()));
+
+        return redirect(route('admin.cloud.update'))->with('success', lang('cloud_close_update_success'));
+    }
+
+    /**
+     * 开启在线升级提示。
+     *
+     * @return Response
+     */
+    public function openUpdate()
+    {
+        $this->ensureUpdateNoticeAuthority();
+        Setting::updateConfigValue('close_update', '0');
+
+        return redirect(route('admin.cloud.update'))->with('success', lang('cloud_open_update_success'));
+    }
+
+    /**
+     * 升级风险提示行（更新主页与离线升级页共用）：手动备份入口 + 自动还原点告知。
+     *
+     * 作为页头 page_cue 输出，沿用后台默认的灰底提示行样式，不附加自定义类与样式。
+     *
+     * @return string
+     */
+    private function upgradeRiskCue()
+    {
+        return '<p>' . lang('cloud_upgrade_backup_tips')
+            . '<a href="' . route('admin.backup') . '">' . lang('cloud_upgrade_backup_btn') . '</a>'
+            . lang('cloud_upgrade_snapshot_tips') . '</p>';
+    }
+
+    /**
+     * 当前管理员是否可以管理升级提示开关（与设置权限一致）。
+     *
+     * @return bool
+     */
+    private function canManageUpdateNotice()
+    {
+        $admin = auth('admin')->user();
+        if (!is_array($admin) || !isset($admin['type']) || $admin['type'] !== 'defined') {
+            return true;
+        }
+
+        $actionList = isset($admin['action_list']) ? explode(',', $admin['action_list']) : array();
+
+        return in_array('setting', $actionList, true);
+    }
+
+    /**
+     * 升级提示开关权限断言。
+     *
+     * @return void
+     * @throws DomainException
+     */
+    private function ensureUpdateNoticeAuthority()
+    {
+        if (!$this->canManageUpdateNotice()) {
+            throw new DomainException(lang('without'), route('admin.cloud.update'));
+        }
     }
 
     /**
