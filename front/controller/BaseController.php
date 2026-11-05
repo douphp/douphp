@@ -15,6 +15,7 @@
 namespace Dou\Front\Controller;
 
 use Dou\Core\Controller\BaseController as CoreBaseController;
+use Dou\Core\Support\Naming;
 use Dou\Core\Web\Http\ApiResponse;
 use Dou\Core\Web\Http\Request;
 use Dou\Front\Service\Nav\NavigationBuilder;
@@ -63,7 +64,7 @@ abstract class BaseController extends CoreBaseController
     /**
      * 页面事实与导航派生变量的统一收口（chat.md §3.1 / §3.4 基座）。
      *
-     * 在 action data + layoutVars 合并结果之上补齐三类键（全部"缺才补、有不动"，
+     * 在 action data + layoutVars 合并结果之上补齐四类键（全部"缺才补、有不动"，
      * 保证存量手写值的控制器在清理批次前后行为均不受本方法影响）：
      *
      * 1. 三个导航列表键 fail-safe：渲染路径漏声明时用同源单例兜底构建，模板不报未定义；
@@ -74,6 +75,8 @@ abstract class BaseController extends CoreBaseController
      *    **内容分支**（区分宿主页面）。红线：**禁止用于菜单高亮**——高亮归 NavigationBuilder
      *    计算的布尔，用这两个变量做高亮等于复活字符串比较链（批次 4 扫描 theme/ 导航类片段
      *    消费这两个键即告警）。菜单归属域判断请用 `cur`，两者语义不同勿混用。
+     * 4. `column_name`：当前栏目名称，供共用 inc 片段做展示文案（如会员中心头部）。
+     *    语义边界：`cur` 是导航归属（布尔/高亮），`column_name` 是展示文案，两者不可互换。
      *
      * @param array $merged action data + layoutVars 的合并结果
      * @return array
@@ -104,8 +107,38 @@ abstract class BaseController extends CoreBaseController
         if (!array_key_exists('route_action', $merged)) {
             $merged['route_action'] = (string) request()->routeAction();
         }
+        if (!array_key_exists('column_name', $merged)) {
+            $merged['column_name'] = $this->resolveColumnName($merged);
+        }
 
         return $merged;
+    }
+
+    /**
+     * 当前栏目名称（模板 `{$column_name}`）。
+     *
+     * 优先级：面包屑首段（控制器已声明的栏目，会员域统一为「会员中心」）→ 面包屑分类段
+     * → 路由模块语言项 → 首页。控制器仍可在自身 $data 里写 'column_name' 覆盖本推导。
+     *
+     * @param array $merged action data + layoutVars 的合并结果
+     * @return string
+     */
+    private function resolveColumnName(array $merged)
+    {
+        if (isset($merged['ur_here']['module']['name']) && $merged['ur_here']['module']['name'] !== '') {
+            return (string) $merged['ur_here']['module']['name'];
+        }
+
+        if (isset($merged['ur_here']['class']['name']) && $merged['ur_here']['class']['name'] !== '') {
+            return (string) $merged['ur_here']['class']['name'];
+        }
+
+        $module = Naming::baseModule((string) request()->routeModule());
+        if ($module === '' || $module === 'index') {
+            return (string) lang('home');
+        }
+
+        return (string) lang($module);
     }
 
     /**

@@ -87,13 +87,11 @@
   <!-- {/if} -->
   <!-- {if $rec eq 'update'} 更新主页 -->
   {include file="inc/page_header.tpl"}
-  {$update_info_html nofilter}
-  <div id="dou-update">
-   {$system_update_html nofilter}
-   {$module_update_html nofilter}
-   {$theme_update_html nofilter}
-   {$plugin_update_html nofilter}
-  </div>
+  <!-- {if $update_html} -->
+  <div id="dou-update">{$update_html nofilter}</div>
+  <!-- {elseif $update_cue} -->
+  <p class="update-fallback">{$update_cue}</p>
+  <!-- {/if} -->
   <!-- {/if} -->
  </div>
 </div>

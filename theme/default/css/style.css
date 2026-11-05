@@ -105,7 +105,6 @@ Author URI: https://www.douphp.com/
  _width: 205px;
 }
 #header .top .search .search-box {
- border: 1px solid #545454;
  background-color: #545454;
  box-sizing: content-box;
  position: relative;
@@ -113,7 +112,7 @@ Author URI: https://www.douphp.com/
 #header .top .search .search-box .keyword {
  background-color: transparent;
  color: #CCCCCC;
- height: 28px;
+ height: 30px;
  padding: 5px 30px 5px 10px;
 }
 #header .top .search .search-box .btnSearch {

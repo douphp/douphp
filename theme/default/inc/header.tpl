@@ -38,7 +38,7 @@
     <!-- {/if} --> 
     <!-- {/if} -->
     <!-- {if $features.order} --> 
-    <li><a href="{url link='order.cart'}">{$lang.order_cart}</a></li>
+    <li><a href="{url link='order.cart'}">{$lang.order_cart}<span class="cartTotal"><span>{$cart_total}</span></span></a></li>
     <!-- {/if} -->
    </ul>
    <ul class="search">

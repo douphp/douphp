@@ -16,6 +16,7 @@ namespace Dou\Front\Model\Concerns;
 
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Support\Str;
+use Dou\Core\Support\Util;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');

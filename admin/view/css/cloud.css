@@ -428,41 +428,17 @@
 }
 
 /* -- 更新主页（cloud/update）-- */
-/* 主样式由云端 static/css/update.css 随升级片段下发；空状态与「已是最新版」区块同样由云端片段自带，
-   现仅补充区块间距兜底，并把「一键更新全部」从云端的一行 float 链接提升为绿色描边按钮（见下方注释）。 */
-#dou-update .update-section {
+/* 区块间距、批量按钮与「已是最新版」提示的样式全部由云端 static/css/update.css 提供；
+   本地仅保留云端不可达时的兜底提示样式（此时云端样式表不会被加载）。
+   类名用 update-fallback 而非 update-empty：后者已被云端 update.css 占用（空态大留白），
+   同名会因优先级更高而反向覆盖云端样式。 */
+.cloud .update-fallback {
   margin-top: 40px;
-}
-#dou-update .update-section:first-child {
-  margin-top: 0;
-}
-/* 「一键更新全部模块 / 模板 / 插件」是区块级批量动作，云端只给了一行 float 链接，
-   与逐项「更新」链接视觉同级；此处改用绿色描边按钮（常态仅边框与文字着色，hover 才填底反白），
-   位置仍在区块标题右侧（不离标题、不用滚到底部），靠按钮轮廓与主色区分主次。 */
-#dou-update .update-section-head .update-all {
-  float: right;
-  padding: 4px 13px;
+  padding: 8px 12px;
   font-size: 13px;
-  font-weight: normal;
-  line-height: 16px;
-  color: #28b779;
-  background-color: transparent;
-  border: 1px solid #28b779;
-  border-radius: 0;
-  text-decoration: none;
-  white-space: nowrap;
-}
-#dou-update .update-section-head .update-all:hover {
-  color: #fff;
-  background-color: #28b779;
-  border-color: #28b779;
-}
-@media (max-width: 480px) {
-  #dou-update .update-section-head .update-all {
-    float: none;
-    display: inline-block;
-    margin-bottom: 8px;
-  }
+  color: #535353;
+  background-color: #f2f2f2;
+  border: 1px solid #d5d5d5;
 }
 /* -- 离线升级（cloud/offline） -- */
 .cloud .offline {

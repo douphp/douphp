@@ -1103,12 +1103,13 @@ class CloudController extends BaseController
     }
 
     /**
-     * 更新主页：服务端直接拉取云端四类升级提示 HTML（系统 / 模块 / 模板 / 插件）与可更新数量。
+     * 更新主页：服务端一次拉取云端整块更新片段（样式表链接 + 版本信息条 + 四类升级列表）。
      *
-     * 系统区域顶部的版本信息条与「已是最新版 + 重新安装当前版本」区块同样由云端片段下发，
-     * 客户端只负责输出，不拼文案、不推导版本号。
-     * 关闭升级（`site.close_update`）时跳过云端调用；
-     * `refreshUpdateNumber` 落库的 `update_number` 在下一次后台请求由 UpdateBadgeBuilder 输出到 `$unum`。
+     * 唯一数据源为 `fetchUpdateHtml()`（POST /update），本地不做片段拼接；请求失败或返回空时
+     * 输出 update_cue 提示，不留白。
+     * 可更新数量仍由 `/connect` 独立维护：`refreshUpdateNumber` 落库的 `update_number`
+     * 在下一次后台请求由 UpdateBadgeBuilder 输出到 `$unum`。
+     * 关闭升级（`site.close_update`）时跳过云端调用，也不输出提示（页头 page_cue 已说明）。
      *
      * @return Response
      */
@@ -1149,22 +1150,19 @@ class CloudController extends BaseController
         $localsystem = $this->cloud->localSystemPayload();
         $localsite = $this->cloud->localSitePayload();
 
-        $systemUpdateHtml = '';
-        $updateInfoHtml = '';
-        $moduleUpdateHtml = '';
-        $themeUpdateHtml = '';
-        $pluginUpdateHtml = '';
+        $updateHtml = '';
+        $updateCue = '';
         if (!$closeUpdate) {
+            // 角标：/connect 独立，与更新片段互不影响
             $this->cloudService->refreshUpdateNumber($localsite, $localsystem, true);
 
-            // 系统升级面板：升级列表片段、已是最新版提示（含重新安装入口）与顶部信息条均由云端下发
-            $panel = $this->cloudService->fetchSystemUpdatePanel($localsystem, time());
-            $systemUpdateHtml = $panel['html'];
-            $updateInfoHtml = $panel['info_html'];
+            // 云端一次下发整块片段（link + 版本信息条 + 四段列表）
+            $updateHtml = (string) $this->cloudService->fetchUpdateHtml($localsite, $localsystem, time());
 
-            $moduleUpdateHtml = $this->cloudService->fetchModuleUpdateHtml($localsite);
-            $themeUpdateHtml = $this->cloudService->fetchThemeUpdateHtml($localsite);
-            $pluginUpdateHtml = $this->cloudService->fetchPluginUpdateHtml($localsite);
+            if ($updateHtml === '') {
+                // 请求失败或返回空：正常情况不会出现，必须明确告知而不是留白
+                $updateCue = lang('cloud_connect_failed');
+            }
         }
 
         // 升级风险提示行固定输出（与离线升级页同源文案），不随是否存在可更新项变化，
@@ -1177,11 +1175,8 @@ class CloudController extends BaseController
             'page_actions' => $pageActions,
             'page_cue' => $pageCue,
             'update_closed' => $closeUpdate,
-            'update_info_html' => $updateInfoHtml,
-            'system_update_html' => $systemUpdateHtml,
-            'module_update_html' => $moduleUpdateHtml,
-            'theme_update_html' => $themeUpdateHtml,
-            'plugin_update_html' => $pluginUpdateHtml,
+            'update_html' => $updateHtml,
+            'update_cue' => $updateCue,
         ]);
     }
 

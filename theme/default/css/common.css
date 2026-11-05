@@ -757,6 +757,21 @@ select option.selected {
   background-color: #e6f7ff;
   border-color: #91d5ff;
 }
+/* 顶部工具条购物车数量角标 */
+.cartTotal {
+  display: inline-block;
+  box-sizing: border-box;
+  min-width: 16px;
+  padding: 0 4px;
+  margin-left: 4px;
+  border-radius: 8px;
+  background-color: #19b4ea;
+  color: #fff;
+  font-size: 12px;
+  line-height: 16px;
+  text-align: center;
+  vertical-align: middle;
+}
 
 /* 7. Filter — 筛选 */
 .screen {

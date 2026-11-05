@@ -32,12 +32,13 @@ class CloudApi
     // ---- JSON 信封（getJson / postJson / postJsonEnvelope）----
     const PATH_HEALTH = '/health';
     const PATH_CONNECT = '/connect';
+    /**
+     * 更新主页聚合片段（POST）：一次返回样式表链接 + 版本信息条 + 四类升级列表。
+     * 可更新数量仍由 {@see self::PATH_CONNECT} 独立提供。
+     */
+    const PATH_UPDATE = '/update';
     const PATH_EXTEND_LIST = '/extend/list';
     const PATH_EXTEND_ITEM = '/extend/item';
-    const PATH_UPDATE_SYSTEM = '/update/system';
-    const PATH_UPDATE_MODULE = '/update/module';
-    const PATH_UPDATE_THEME = '/update/theme';
-    const PATH_UPDATE_PLUGIN = '/update/plugin';
     /**
      * 订购扩展客户端 JSON（POST，信封）；与 `PATH_ORDER_EXTEND_CLIENT_HTML` 的 HTML 冻结入口分离。
      */
