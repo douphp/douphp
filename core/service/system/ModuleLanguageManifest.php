@@ -26,8 +26,8 @@ if (!defined('IN_DOUCO')) {
  * 按显式 `$langPack` 路径汇总语言包文件：
  * - `languages/{$langPack}/*.lang.php`
  * - 各模块 `languages/{$langPack}/{module}.lang.php`
- * - 站点自定义覆盖文件 `languages/{$langPack}/_override.lang.php`（追加到清单末尾，
- *   保证同名 `$_LANG` 键覆盖优先级最高）
+ * - 站点自定义语言文件 `languages/{$langPack}/_custom.lang.php`（追加到清单末尾，
+ *   新增与覆盖均可用，保证同名 `$_LANG` 键优先级最高）
  *
  * 完全使用显式参数表达运行时差异（前台/后台/语言切换由调用方传入 langPack），
  * 不依赖 `defined('IS_ADMIN')` 等隐式分支。
@@ -35,9 +35,20 @@ if (!defined('IN_DOUCO')) {
 class ModuleLanguageManifest extends BaseService
 {
     /**
-     * 站点自定义覆盖文件名（统一约定，不在主清单加载序列里参与排序）。
+     * 站点自定义语言文件名（单文件约定）。
+     *
+     * 为何带 `_` 前缀：
+     * - 模块语言文件名即模块 id（如 article.lang.php），id 约定不以 `_` 开头，
+     *   故本文件名不可能与任何现有或未来的模块文件重名；
+     * - 因此不需要按主题编号另起文件名（如 m147.lang.php），一个通用名即可；
+     * - 文件管理器里 `_` 排在字母前，便于运营一眼定位定制文件。
+     *
+     * 职责：站点级自定义语言的唯一入口，新增键与覆盖已有键都放这里。
+     * 加载顺序与文件名无关：glob 会把本文件一并捞入且排在最前（`_` 早于字母），
+     * 故 build() 中先剔除、再显式追加末尾，保证其优先级最高。
+     * 站点定制通常只有个位数个键，单文件足够，不做多文件或子目录拆分。
      */
-    const OVERRIDE_FILENAME = '_override.lang.php';
+    const CUSTOM_FILENAME = '_custom.lang.php';
 
     /**
      */
@@ -56,16 +67,16 @@ class ModuleLanguageManifest extends BaseService
     {
         $langPack = (string) $langPack;
 
-        $overrideFile = ROOT_PATH . 'languages/' . $langPack . '/' . self::OVERRIDE_FILENAME;
+        $customFile = ROOT_PATH . 'languages/' . $langPack . '/' . self::CUSTOM_FILENAME;
 
         $langList = glob(ROOT_PATH . 'languages/' . $langPack . '/' . '*.lang.php');
         $langList = is_array($langList) ? $langList : array();
-        // 覆盖文件名也匹配 *.lang.php，glob 会把它一起捞回来；
+        // 自定义文件名也匹配 *.lang.php，glob 会把它一起捞回来；
         // 因 '_' (0x5F) 在 ASCII 中早于字母，glob 字典序会把它排到主清单最前，
-        // 反被后续模块语言文件覆盖，达不到「覆盖优先级最高」的语义。
+        // 反被后续模块语言文件覆盖，达不到「优先级最高」的语义。
         // 这里先从主清单剔除，再在最末尾按需追加，确保 require 顺序最后。
         $langList = array_values(array_filter($langList, function ($file) {
-            return basename((string) $file) !== self::OVERRIDE_FILENAME;
+            return basename((string) $file) !== self::CUSTOM_FILENAME;
         }));
 
         $moduleIds = array_unique($modules);
@@ -79,8 +90,8 @@ class ModuleLanguageManifest extends BaseService
             }
         }
 
-        if (is_file($overrideFile)) {
-            $langList[] = $overrideFile;
+        if (is_file($customFile)) {
+            $langList[] = $customFile;
         }
 
         return $langList;
