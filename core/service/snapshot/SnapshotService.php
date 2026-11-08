@@ -208,11 +208,14 @@ class SnapshotService
             'db_bytes' => 0,
             'phase' => 'collect',
         );
-        if (@file_put_contents($dir . 'progress.json', json_encode($progress), LOCK_EX) === false) {
-            return array('ok' => false, 'dir' => '', 'resumed' => false, 'error' => $this->t('snapshot_error_dir', '还原点目录无法创建（storage/snapshot 不可写）'));
+        $error = $this->saveProgress($dir, $progress);
+        if ($error !== '') {
+            FileHelper::delDir($dir);
+
+            return array('ok' => false, 'dir' => '', 'resumed' => false, 'error' => $error);
         }
 
-        $this->writeActive(array(
+        $error = $this->writeActive(array(
             'dir' => $dirName,
             'scope' => $scope,
             'scope_id' => $scopeId,
@@ -220,6 +223,11 @@ class SnapshotService
             'install_id' => $installId,
             'started_at' => time(),
         ));
+        if ($error !== '') {
+            FileHelper::delDir($dir);
+
+            return array('ok' => false, 'dir' => '', 'resumed' => false, 'error' => $error);
+        }
 
         return array('ok' => true, 'dir' => $dirName, 'resumed' => false, 'error' => '');
     }
@@ -258,15 +266,19 @@ class SnapshotService
             if ($phase === 'collect') {
                 $error = $this->doCollect($dir, $progress);
                 if ($error !== '') {
+                    $this->abort();
                     return $this->result(false, false, $phase, $dirName, $logs, $error);
                 }
                 $logs[] = sprintf($this->t('snapshot_log_collected', '还原点已收集 %d 个文件'), (int) $progress['file_total']);
-                $this->saveProgress($dir, $progress);
             } elseif ($phase === 'files') {
                 $slice = array_slice($progress['files'], (int) $progress['file_index'], $fileBatch);
                 if (!$slice) {
                     $progress['phase'] = $this->phaseAfterFiles($progress);
-                    $this->saveProgress($dir, $progress);
+                    $error = $this->saveProgress($dir, $progress);
+                    if ($error !== '') {
+                        $this->abort();
+                        return $this->result(false, false, $phase, $dirName, $logs, $error);
+                    }
                     continue;
                 }
                 $absolute = array();
@@ -281,7 +293,11 @@ class SnapshotService
                 if ($progress['file_index'] >= (int) $progress['file_total']) {
                     $progress['phase'] = $this->phaseAfterFiles($progress);
                 }
-                $this->saveProgress($dir, $progress);
+                $error = $this->saveProgress($dir, $progress);
+                if ($error !== '') {
+                    $this->abort();
+                    return $this->result(false, false, $phase, $dirName, $logs, $error);
+                }
                 $logs[] = sprintf($this->t('snapshot_log_files', '正在打包还原点文件（%d/%d）'), (int) $progress['file_index'], (int) $progress['file_total']);
             } elseif ($phase === 'db') {
                 try {
@@ -294,12 +310,18 @@ class SnapshotService
                 if ($finished) {
                     $progress['phase'] = 'finalize';
                 }
-                $this->saveProgress($dir, $progress);
+                $error = $this->saveProgress($dir, $progress);
+                if ($error !== '') {
+                    $this->abort();
+                    return $this->result(false, false, $phase, $dirName, $logs, $error);
+                }
             } elseif ($phase === 'finalize') {
                 $error = $this->doFinalize($dir, $progress, $logs);
                 if ($error !== '') {
                     return $this->result(false, false, $phase, $dirName, $logs, $error);
                 }
+                // manifest 已落盘、活跃指针已清（doFinalize）：此刻快照即视为完成，
+                // phase=done 的进度回写仅锦上添花，失败也不能 abort 误删已完成快照
                 $progress['phase'] = 'done';
                 $this->saveProgress($dir, $progress);
 
@@ -527,6 +549,13 @@ class SnapshotService
             $progress['files'] = array();
             $progress['added'] = array();
         }
+        // 非 UTF-8 字节的文件名（如 Windows GBK「拷贝」副本）无法进 json_encode，
+        // 直接从清单剔除：这类文件不影响代码运行，跳过其备份、并让救援脚本还原时
+        // 原样保留，不影响还原点创建与其余文件/数据库的还原。
+        $progress['files'] = $this->filterUtf8Paths((array) $progress['files']);
+        if (isset($progress['added'])) {
+            $progress['added'] = $this->filterUtf8Paths((array) $progress['added']);
+        }
         $progress['file_total'] = count($progress['files']);
         $progress['file_index'] = 0;
 
@@ -581,10 +610,9 @@ class SnapshotService
         // 有文件先走 files 分批打包；无文件（仅数据库）再直接进 db / finalize
         $progress['phase'] = ((int) $progress['file_total'] > 0) ? 'files' : $this->phaseAfterFiles($progress);
 
-        // 同步写盘一次
-        $this->saveProgress($dir, $progress);
-
-        return '';
+        // 同步写盘一次：写失败即向上报错（含非 UTF-8 文件名导致的编码失败），
+        // 由 step() 中止并清理残缺快照，绝不把空/半截进度留给下一轮续传
+        return $this->saveProgress($dir, $progress);
     }
 
     /**
@@ -798,13 +826,71 @@ class SnapshotService
     }
 
     /**
+     * 剔除非 UTF-8 字节的路径，仅返回合法 UTF-8 路径。
+     *
+     * 非 UTF-8 文件名（如 Windows GBK「拷贝」副本）无法进 json_encode，若留在清单里
+     * 会把整个进度/清单写空。这类文件不影响代码运行，直接跳过其备份即可；救援脚本
+     * 还原时另按同一判据原样保留，不当作快照外新增文件删除。
+     * preg '//u' 对合法 UTF-8 返回 1、非法返回 false，是无需 mbstring 的可靠判据。
+     *
+     * @param array $paths
+     * @return array 仅含合法 UTF-8 的路径
+     */
+    protected function filterUtf8Paths(array $paths)
+    {
+        $keep = array();
+        foreach ($paths as $rel) {
+            $rel = (string) $rel;
+            if (preg_match('//u', $rel) === 1) {
+                $keep[] = $rel;
+            }
+        }
+
+        return $keep;
+    }
+
+    /**
      * @param string $dir
      * @param array $progress
-     * @return void
+     * @return string 错误信息（空串=成功）
      */
     protected function saveProgress($dir, array $progress)
     {
-        @file_put_contents(rtrim($dir, '/') . '/progress.json', json_encode($progress), LOCK_EX);
+        return $this->writeJsonAtomic(rtrim($dir, '/') . '/progress.json', $progress);
+    }
+
+    /**
+     * JSON 原子写盘：编码失败不触碰目标文件；tmp + rename 替换，任何一步失败即清理并报错。
+     *
+     * 直接覆盖写会在 json_encode 返回 false（如文件清单含非 UTF-8 字节路径）或磁盘
+     * 配额耗尽时把目标文件截成空文件，令断点续传游标永久损坏；写失败必须当场报错。
+     *
+     * @param string $file
+     * @param array $data
+     * @return string 错误信息（空串=成功）
+     */
+    protected function writeJsonAtomic($file, array $data)
+    {
+        $json = json_encode($data);
+        if ($json === false) {
+            $reason = function_exists('json_last_error_msg') ? json_last_error_msg() : 'json_encode failed';
+
+            return $this->t('snapshot_error_json_encode', '还原点进度数据编码失败（站点内可能存在非 UTF-8 编码的文件名）：') . $reason;
+        }
+        $tmp = $file . '.tmp';
+        $written = @file_put_contents($tmp, $json, LOCK_EX);
+        if ($written === false || $written === 0) {
+            @unlink($tmp);
+
+            return $this->t('snapshot_error_json_write', '还原点进度写入失败（磁盘空间/配额不足或目录不可写）：') . $file;
+        }
+        if (!@rename($tmp, $file)) {
+            @unlink($tmp);
+
+            return $this->t('snapshot_error_json_write', '还原点进度写入失败（磁盘空间/配额不足或目录不可写）：') . $file;
+        }
+
+        return '';
     }
 
     /**
@@ -823,11 +909,11 @@ class SnapshotService
 
     /**
      * @param array $data
-     * @return void
+     * @return string 错误信息（空串=成功）
      */
     protected function writeActive(array $data)
     {
-        @file_put_contents($this->snapshotRoot . 'active.json', json_encode($data), LOCK_EX);
+        return $this->writeJsonAtomic($this->snapshotRoot . 'active.json', $data);
     }
 
     /**
@@ -1186,6 +1272,10 @@ function ds_walk($absDir, $relPrefix, array $exclude, array $known, array &$stra
             $dirs[] = $abs;
             ds_walk($abs, $rel . '/', $exclude, $known, $strays, $dirs);
         } elseif (is_file($abs)) {
+            // 非 UTF-8 文件名不在备份清单内，还原时原样保留、绝不当作快照外新增文件删除
+            if (preg_match('//u', $rel) !== 1) {
+                continue;
+            }
             if (!isset($known[$rel])) {
                 $strays[] = $rel;
             }
