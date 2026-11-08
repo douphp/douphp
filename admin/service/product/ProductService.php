@@ -508,6 +508,11 @@ class ProductService extends BaseService
             throw new DomainException(lang('item_not_exist'), route('admin.product'));
         }
 
+        // 已产生订单的商品禁止硬删除：订单明细与售后库存回补仍引用该商品 ID。
+        if ($this->hasOrderItems($id)) {
+            throw new DomainException(lang('product_del_has_order'), route('admin.product'));
+        }
+
         if (isset($data['confirm'])) {
             audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::DELETE, 1, (string) $title);
             Product::destroy($id);
@@ -524,6 +529,24 @@ class ProductService extends BaseService
             'timeout' => '30',
             'confirm_url' => route('admin.product.destroy', array('id' => $id)),
         );
+    }
+
+    /**
+     * 商品是否已被订单明细引用（order 模块未装时视为未引用）。
+     *
+     * @param int|string $id
+     * @return bool
+     */
+    private function hasOrderItems($id)
+    {
+        if (!DB::tableExist('order_item')) {
+            return false;
+        }
+
+        return (bool) DB::table('order_item')
+            ->where('module', 'product')
+            ->where('item_id', (int) $id)
+            ->exists();
     }
 
     /**
@@ -547,9 +570,26 @@ class ProductService extends BaseService
         }
 
         if ($action === 'del_all') {
-            Product::destroy($ids);
-            audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::DELETE, 1, 'bulk:PRODUCT (' . count($ids) . ' items)', 'product');
-            return array('message' => lang('del_succes'), 'back_url' => route('admin.product'));
+            $deletable = array();
+            $skipped = 0;
+            foreach ($ids as $id) {
+                if ($this->hasOrderItems($id)) {
+                    $skipped++;
+                    continue;
+                }
+                $deletable[] = $id;
+            }
+            if (empty($deletable)) {
+                throw new DomainException(lang('product_del_has_order'), route('admin.product'));
+            }
+
+            Product::destroy($deletable);
+            audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::DELETE, 1, 'bulk:PRODUCT (' . count($deletable) . ' items)' . ($skipped > 0 ? ', skipped:' . $skipped : ''), 'product');
+            $message = $skipped > 0
+                ? sprintf(lang('product_del_skip_has_order'), $skipped)
+                : lang('del_succes');
+
+            return array('message' => $message, 'back_url' => route('admin.product'));
         }
 
         if ($action === 'category_move') {

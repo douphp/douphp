@@ -167,12 +167,19 @@ class ToolController extends BaseController
         if (!Check::number($item_id)) {
             return $this->response('');
         }
-        $field = $request->input('field', 'status');
+        $field = (string) $request->input('field', 'status');
         if (!Check::letter($field)) {
-            $field = 'status';
+            return $request->wantsJson()
+                ? ApiResponse::error('INVALID_PARAMS', lang('illegal'), array(), 422)
+                : $this->response('');
         }
 
         $result = $this->toolService->toggleTableField($module, $item_id, $field);
+        if ($result === null) {
+            return $request->wantsJson()
+                ? ApiResponse::error('INVALID_PARAMS', lang('illegal'), array(), 422)
+                : $this->response('');
+        }
 
         if ($request->wantsJson()) {
             return ApiResponse::success($result, (string) $result['label']);

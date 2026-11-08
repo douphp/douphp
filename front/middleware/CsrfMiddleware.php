@@ -32,7 +32,7 @@ if (!defined('IN_DOUCO')) {
  * - {@see tokenIdFor()}：9 类一次性令牌路由按表映射，其余落 static_user；
  * - 外部支付回调（plugin/notify、plugin/finish，无 session 令牌）由路由级
  *   `->withoutMiddleware(['csrf'])` 声明式豁免，不在本中间件内硬编码名单；
- * - {@see getTokenRoutes()}：取消预约 / 商家处理 / 余额扣款等带 token 的 GET 链接，GET 也校验。
+ * - {@see getTokenRoutes()}：取消预约 / 余额扣款等带 token 的 GET 链接，GET 也校验。
  */
 class CsrfMiddleware extends AbstractCsrfMiddleware
 {
@@ -76,8 +76,8 @@ class CsrfMiddleware extends AbstractCsrfMiddleware
     protected function getTokenRoutes()
     {
         return array(
-            'book/work', 'book/cancel', 'money/use',
-            'order/cart/destroy', 'order/user/cancel',
+            'book/cancel', 'money/use',
+            'order/cart/destroy', 'order/cart/clear_invalid', 'order/user/cancel',
             'user/logout',
         );
     }

@@ -58,6 +58,8 @@ if (!defined('IN_DOUCO')) {
  *                         setting_link 每项 name / lang → admin.setting#name 普通链接；
  *                         lang         每项 language_pack / name → admin.language.system
  *                                      ?language_pack=xx，显示 name + lang('language_setting')；
+ *                         link_list    每项 name / url（行内自带链接，如地区分区切换），
+ *                                      active_var 为真时高亮；
  *   - source.active_var 可选，行内该字段为真时该项 is_active（如 cur）。
  *
  * 输出契约（模板 inc/tab_nav.tpl 消费）：
@@ -302,6 +304,8 @@ class AdminTabResolver
                 $built = self::sourceSettingLinkItem($row);
             } elseif ($format === 'lang') {
                 $built = self::sourceLangItem($row, $activeVar);
+            } elseif ($format === 'link_list') {
+                $built = self::sourceLinkItem($row, $activeVar);
             } else {
                 $built = null;
             }
@@ -362,6 +366,32 @@ class AdminTabResolver
             'url' => Util::absolutizeEntryUrl(route('admin.setting')) . '#' . $name,
             'is_anchor' => false,
             'is_active' => false,
+        );
+    }
+
+    /**
+     * 行内自带 URL 的链接项（如地区分区切换），active_var 为真时高亮。
+     *
+     * @param array $row 字段：name / url，可选 key
+     * @param string $activeVar
+     * @return array|null
+     */
+    private static function sourceLinkItem(array $row, $activeVar)
+    {
+        $url = isset($row['url']) ? (string) $row['url'] : '';
+        if ($url === '') {
+            return null;
+        }
+
+        $name = isset($row['name']) && (string) $row['name'] !== '' ? (string) $row['name'] : $url;
+        $key = isset($row['key']) && (string) $row['key'] !== '' ? (string) $row['key'] : $url;
+
+        return array(
+            'key' => $key,
+            'name' => $name,
+            'url' => Util::absolutizeEntryUrl($url),
+            'is_anchor' => false,
+            'is_active' => ($activeVar !== '' && !empty($row[$activeVar])),
         );
     }
 

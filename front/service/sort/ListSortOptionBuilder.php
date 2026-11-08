@@ -61,6 +61,15 @@ class ListSortOptionBuilder extends BaseService
         }
 
         $options_array = explode(',', str_replace(' ', '', $options));
+
+        // 仅允许对已声明的可排序字段排序，且方向只能是 asc/desc；非法输入回退默认排序
+        if ($by !== '' && ($by === 'default' || !in_array($by, $field_array, true))) {
+            $by = '';
+        }
+        if (!in_array($sort, array('asc', 'desc'), true)) {
+            $sort = '';
+        }
+
         $data = array('field' => array(), 'sql' => '');
         foreach ($field_array as $field) {
             if ($field == $by && $sort && in_array($field, $options_array)) {

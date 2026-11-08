@@ -146,30 +146,40 @@ class PricingService extends BaseService
             return $salePrice;
         }
 
+        // 用户可见成交价取「原价 / 促销价 / 会员价」中的最低值：
+        // 促销价不高于原价才生效；会员价低于促销价时按会员价，避免会员反而多付。
+        $bestPrice = $salePrice;
         if ($item['promote_price'] > 0) {
-            return array(
+            $promotePrice = array(
                 'value' => $item['promote_price'],
                 'format' => Util::formatPrice($item['promote_price']),
                 'type' => 'promote',
                 'name' => lang('price_promote'),
             );
+            if ((float) $promotePrice['value'] < (float) $bestPrice['value']) {
+                $bestPrice = $promotePrice;
+            }
         }
 
         $userId = (int) $userId;
         if ($userId <= 0 || !Config::get('features.user', false) || !DB::tableExist('user_level')) {
-            return $salePrice;
+            return $bestPrice;
         }
 
         $userLevel = $this->resolveUserLevel($userId);
         if (!is_array($userLevel) || empty($userLevel['id'])) {
-            return $salePrice;
+            return $bestPrice;
         }
 
+        $levelPrice = null;
         $levelId = $userLevel['id'];
         if ($item['level_price']) {
             $levelPriceMap = unserialize($item['level_price']);
-            if (is_array($levelPriceMap) && isset($levelPriceMap[$levelId])) {
-                return array(
+            if (is_array($levelPriceMap)
+                && isset($levelPriceMap[$levelId])
+                && (string) $levelPriceMap[$levelId] !== ''
+            ) {
+                $levelPrice = array(
                     'value' => $levelPriceMap[$levelId],
                     'format' => Util::formatPrice($levelPriceMap[$levelId]),
                     'type' => 'level',
@@ -178,18 +188,26 @@ class PricingService extends BaseService
             }
         }
 
-        $discounted = number_format(
-            $item['price'] * ($userLevel['good_discount'] / 100),
-            currency()->baseDecimals(),
-            '.',
-            ''
-        );
-        return array(
-            'value' => $discounted,
-            'format' => Util::formatPrice($discounted),
-            'type' => 'level',
-            'name' => lang('price_level'),
-        );
+        if ($levelPrice === null) {
+            $discounted = number_format(
+                $item['price'] * ($userLevel['good_discount'] / 100),
+                currency()->baseDecimals(),
+                '.',
+                ''
+            );
+            $levelPrice = array(
+                'value' => $discounted,
+                'format' => Util::formatPrice($discounted),
+                'type' => 'level',
+                'name' => lang('price_level'),
+            );
+        }
+
+        if ((float) $levelPrice['value'] < (float) $bestPrice['value']) {
+            $bestPrice = $levelPrice;
+        }
+
+        return $bestPrice;
     }
 
     /**

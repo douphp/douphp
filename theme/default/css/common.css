@@ -119,6 +119,9 @@ video {
 .pointer {
   cursor: pointer;
 }
+.mb {
+  margin-bottom: 50px;
+}
 .nowrap {
   overflow: hidden;
   text-overflow: ellipsis;

@@ -96,7 +96,11 @@ $_LANG['cloud_install_session_missing'] = '安装会话已过期或不存在，�
 $_LANG['cloud_install_request_failed'] = '安装步骤请求失败（网络中断、超时或服务端返回了非 JSON）。解压大包时若较慢，请在服务器上适当提高 max_execution_time 与可用内存。';
 $_LANG['cloud_install_step_failed_generic'] = '安装步骤失败，请稍后重试或查看服务器与 PHP 错误日志。';
 $_LANG['cloud_install_offline_btn'] = '离线升级';
-$_LANG['cloud_install_offline_hint'] = '如果反复下载或解压失败，可改用离线升级：手动把安装包放到服务器目录后再继续。';
+$_LANG['cloud_install_offline_hint'] = '如果在线升级反复失败或超时，可改用离线升级：手动把安装包放到服务器目录后继续。';
+$_LANG['cloud_download_recover_waiting'] = '下载请求的连接已中断，正在确认服务器上的下载结果…';
+$_LANG['cloud_download_recover_ready'] = '服务器已完成下载，继续解压安装包。';
+$_LANG['cloud_download_recover_failed'] = '服务器未能完成安装包下载。';
+$_LANG['cloud_download_resume_invalid'] = '安装会话已进入其他步骤，不能再次从解压继续。';
 
 // 离线升级（cloud/offline，仅核心程序包）
 $_LANG['cloud_offline'] = '离线升级';

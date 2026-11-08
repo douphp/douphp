@@ -126,9 +126,10 @@ class InstallSessionService extends BaseService
      * 读取会话；不存在或过期返回 null。
      *
      * @param string $installId
+     * @param bool $pruneExpired 是否删除过期会话文件；进度/恢复轮询传 false，避免误删仍在运行的会话
      * @return array|null
      */
-    public function load($installId)
+    public function load($installId, $pruneExpired = true)
     {
         if (!$this->isValidId($installId)) {
             return null;
@@ -147,7 +148,9 @@ class InstallSessionService extends BaseService
         }
         $updatedAt = isset($data['updated_at']) ? (int) $data['updated_at'] : 0;
         if ($updatedAt && $updatedAt + self::TTL_SECONDS < time()) {
-            @unlink($file);
+            if ($pruneExpired) {
+                @unlink($file);
+            }
             return null;
         }
         return $data;

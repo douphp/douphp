@@ -15,8 +15,6 @@
 namespace Dou\Api\Controller\Pay;
 
 use Dou\Api\Service\WxPayService;
-use Dou\Core\Domain\Order\OrderStatus;
-use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Infra\Log\Log;
 use Dou\Core\Service\Payment\PaymentService;
@@ -29,9 +27,9 @@ if (!defined('IN_DOUCO')) {
 /**
  * 微信小程序支付 V2 异步回调。
  *
- * 仅服务 legacy `api/service/WxPayService`（out_trade_no = order_sn）的小程序支付；
- * 验签、商户与金额校验通过后复用 OrderStatusTransition 推进订单到 PAID，
- * 从而触发库存/积分/分销/等级等既有付款联动。
+ * out_trade_no = dou_order_payment.payment_sn；验签、商户与金额校验通过后由
+ * PaymentService::markSucceeded 收尾支付腿并联动订单到 PAID，触发库存/积分/分销/等级等付款联动。
+ * 台账查不到的单号一律拒绝，不做任何旧版 order_sn 回退。
  */
 class WxpayNotifyController
 {
@@ -106,7 +104,7 @@ class WxpayNotifyController
                 ? (string) json_encode($data, JSON_UNESCAPED_UNICODE)
                 : serialize($data);
 
-            // 新路径：out_trade_no = dou_order_payment.payment_sn（小程序支付已补台账）
+            // out_trade_no = dou_order_payment.payment_sn；查不到台账即拒绝，不做 order_sn 回退
             $payment = $this->paymentService->findBySn($outTradeNo);
             if ($payment) {
                 $expectedFee = (int) round((float) $payment['amount'] * 100);
@@ -136,55 +134,7 @@ class WxpayNotifyController
                 $this->respond(true, 'OK');
             }
 
-            // 兼容旧在途单：out_trade_no = order_sn，无 payment 台账
-            $orderSn = $outTradeNo;
-            $order = DB::table('order')->where('order_sn', $orderSn)->find();
-            if (!is_array($order)) {
-                $this->respond(false, 'order not found');
-            }
-
-            // 微信支付仅支持 CNY：旧在途单若为其它币种直接拒绝，避免按错误最小单位对账
-            if (currency()->contextForOrder($order)['code'] !== 'CNY') {
-                Log::error('wxpay notify currency not supported', array('channel' => 'pay', 'order_sn' => $orderSn));
-                $this->respond(false, 'currency not supported');
-            }
-
-            $expectedFee = (int) round(currency()->orderAmount($order) * 100);
-            if ($expectedFee !== $paidFee) {
-                Log::error('wxpay notify amount mismatch', array('channel' => 'pay', 'order_sn' => $orderSn));
-                $this->respond(false, 'amount mismatch');
-            }
-
-            $status = (string) $order['status'];
-            if ($status === OrderStatus::PAID || $status === OrderStatus::COMPLETED) {
-                $this->respond(true, 'OK');
-            }
-            if ($status !== OrderStatus::PENDING && $status !== OrderStatus::AWAITING_CONFIRMATION) {
-                Log::error('wxpay notify order not payable', array('channel' => 'pay', 'order_sn' => $orderSn, 'status' => $status));
-                $this->respond(false, 'order not payable');
-            }
-
-            app(\Dou\Core\Service\Order\OrderStatusTransition::class)->changeStatus(
-                $orderSn,
-                OrderStatus::PAID,
-                'webhook',
-                0,
-                (string) $request->ip(),
-                'wxpay_notify'
-            );
-
-            $current = (string) DB::table('order')->where('order_sn', $orderSn)->value('status');
-            if ($current !== OrderStatus::PAID && $current !== OrderStatus::COMPLETED) {
-                Log::error('wxpay notify order not advanced', array('channel' => 'pay', 'order_sn' => $orderSn, 'status' => $current));
-                $this->respond(false, 'order not paid');
-            }
-
-            Log::info('wxpay notify paid', array(
-                'channel' => 'pay',
-                'order_sn' => $orderSn,
-                'transaction_id' => $transactionId,
-            ));
-            $this->respond(true, 'OK');
+            $this->respond(false, 'payment not found');
         } catch (\Exception $e) {
             Log::error('wxpay notify exception: ' . $e->getMessage(), array(
                 'channel' => 'pay',

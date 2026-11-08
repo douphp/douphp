@@ -346,7 +346,7 @@ class FormService extends BaseService
 
             case 'area':
                 $lines[] = '  <div class="form-area" x-data="douArea()" x-init="init($el)">';
-                foreach (array('province', 'city', 'district') as $part) {
+                foreach (array('country', 'province', 'city', 'district') as $part) {
                     $lines[] = '   <select name="' . $fieldSlug . '[' . $part . ']" class="select" data-part="' . $part . '"></select>';
                 }
                 $lines[] = '  </div>';

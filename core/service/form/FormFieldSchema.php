@@ -578,7 +578,7 @@ class FormFieldSchema
             case 'area':
                 $value = is_array($value) ? $value : array();
                 $area = array();
-                foreach (array('province', 'city', 'district') as $part) {
+                foreach (array('country', 'province', 'city', 'district') as $part) {
                     $area[$part] = isset($value[$part]) ? self::scalarText($value[$part]) : '';
                 }
 
@@ -638,7 +638,7 @@ class FormFieldSchema
         if (is_array($value)) {
             if ($type === 'area') {
                 $parts = array();
-                foreach (array('province', 'city', 'district') as $part) {
+                foreach (array('country', 'province', 'city', 'district') as $part) {
                     if (!empty($value[$part])) {
                         $parts[] = $value[$part];
                     }

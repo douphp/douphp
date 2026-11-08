@@ -25,6 +25,7 @@ $_LANG['product_edit'] = 'Edit Product';
 $_LANG['product_del'] = 'Delete Product';
 $_LANG['product_buy'] = 'Inquiry';
 $_LANG['product_buy_quantity'] = 'Quantity';
+$_LANG['product_quantity_tip'] = 'Quantity must be between 1 and 999.';
 $_LANG['product_gallery'] = 'Main Image';
 $_LANG['product_gallery_btn'] = 'Click to Upload';
 $_LANG['product_news'] = 'New Arrivals';

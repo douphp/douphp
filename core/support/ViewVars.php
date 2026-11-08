@@ -224,6 +224,7 @@ class ViewVars
                 'start_at' => '',
                 'end_at' => '',
                 'status' => '',
+                'state' => '',
                 'text' => '',
             )),
             'work' => $work,

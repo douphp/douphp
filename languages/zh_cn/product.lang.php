@@ -25,6 +25,7 @@ $_LANG['product_edit'] = '编辑商品';
 $_LANG['product_del'] = '删除商品';
 $_LANG['product_buy'] = '购买咨询';
 $_LANG['product_buy_quantity'] = '数量';
+$_LANG['product_quantity_tip'] = '购买数量需在 1~999 之间';
 $_LANG['product_gallery'] = '主图';
 $_LANG['product_gallery_btn'] = '点击上传';
 $_LANG['product_news'] = '新品上架';

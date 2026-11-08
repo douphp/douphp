@@ -29,27 +29,40 @@ $(function() {
         }).trigger('change'); // 初始化时触发一次更新
     }
  
-    // 购买数量
+    // 购买数量：与服务端校验一致，限制在 1~999，超出时回填边界值并提示
+    var quantityMax = 999;
+
+    function quantityClamp(input) {
+        var value = parseInt(input.val(), 10);
+        if (isNaN(value) || value < 1) {
+            value = 1;
+        }
+        if (value > quantityMax) {
+            value = quantityMax;
+            alert(input.data('tip'));
+        }
+        input.val(value);
+    }
+
     $(".quantity .minus").click(function() {
         var input = $(this).siblings('.inp');
-        var value = parseInt(input.val()) || 0;
-        // 防止数值变为负数（可根据需求移除）
-        if (value > 0) {
-            input.val(value - 1);
-        }
+        var value = parseInt(input.val(), 10) || 1;
+        input.val(Math.max(1, value - 1));
     });
- 
+
     $(".quantity .plus").click(function() {
         var input = $(this).siblings('.inp');
-        var value = parseInt(input.val()) || 0;
-        input.val(value + 1);
+        var value = parseInt(input.val(), 10) || 1;
+        if (value >= quantityMax) {
+            alert(input.data('tip'));
+            return;
+        }
+        input.val(Math.min(quantityMax, value + 1));
     });
- 
+
     $(".quantity .inp").change(function() {
         this.value = this.value.replace(/[^0-9]/g, '');
-        if (this.value === '') {
-            this.value = '0';
-        }
+        quantityClamp($(this));
     });
  
     /**

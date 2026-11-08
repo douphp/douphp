@@ -94,13 +94,15 @@ class Check
      */
     public static function letter($letter)
     {
-        if (!$letter === null || !is_string($letter)) {
+        if ($letter === null || !is_string($letter)) {
             return false;
         }
 
         if (preg_match("/^[a-z]+$/", $letter)) {
             return true;
         }
+
+        return false;
     }
 
     /**

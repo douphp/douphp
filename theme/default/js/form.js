@@ -14,23 +14,26 @@
  * 表单主题脚本（form 模块）
  *
  * 只做三件事，不含任何上传逻辑（上传在 file 模块的 js/file.js）：
- *   1. douArea：省/市/区三级联动（Alpine 组件，数据取 user/area）
+ *   1. douArea：国家/省/市/区四级联动（Alpine 组件，数据取 user/area）
  *   2. refreshFormCaptcha(id)：一页多表单时按 id 刷新验证码
  *   3. 把 input[name="source_url"] 填成当前页面地址，供后台看提交来源
  */
 
 /**
- * 省/市/区三级联动（Alpine.data('douArea')）
+ * 国家/省/市/区四级联动（Alpine.data('douArea')）
  *
- * 模板用法（每个区域字段一套，name 必须是 slug[province] / [city] / [district]）：
+ * 模板用法（每个区域字段一套，name 建议 slug[country] / [province] / [city] / [district]）：
  *   <div x-data="douArea()" x-init="init($el)"
- *        data-default="福建省,厦门市,思明区">
+ *        data-default="中国,福建省,厦门市,思明区">
+ *     <select name="region[country]" data-part="country"></select>
  *     <select name="region[province]" data-part="province"></select>
  *     <select name="region[city]" data-part="city"></select>
  *     <select name="region[district]" data-part="district"></select>
  *   </div>
  *
- * city / district 的 parent 传的是**上级名称**（与 user/area 接口一致），不是 id。
+ * data-default 兼容 3 段（省,市,区）与 4 段（国,省,市,区）。
+ * 当前分区只有一个顶层节点时，country 下拉自动隐藏（值照常提交），
+ * 因此无论单国家还是多国家，服务端始终能拿到 4 个字段。
  */
 document.addEventListener("alpine:init", function () {
   Alpine.data("douArea", function () {
@@ -38,22 +41,56 @@ document.addEventListener("alpine:init", function () {
       box: null,
       list: {},
       value: {},
+      id: {},
+      multiple: false,
 
       init: function (el) {
         this.box = el;
         this.list = {};
         this.value = {};
+        this.id = {};
+        this.multiple = false;
 
-        var preset = (el.getAttribute("data-default") || "").split(",");
-        this.value.province = this.trim(preset[0]);
-        this.value.city = this.trim(preset[1]);
-        this.value.district = this.trim(preset[2]);
+        var preset = String(el.getAttribute("data-default") || "").split(",");
+        // 3 段视为省市区，4 段视为国省市区
+        var offset = preset.length >= 4 ? 0 : 1;
+        this.value.country = offset === 0 ? this.trim(preset[0]) : "";
+        this.value.province = this.trim(preset[offset]);
+        this.value.city = this.trim(preset[offset + 1]);
+        this.value.district = this.trim(preset[offset + 2]);
 
+        this.bind("country");
         this.bind("province");
         this.bind("city");
         this.bind("district");
 
-        this.load("province", "", this.value.province);
+        this.loadRoot();
+      },
+
+      /**
+       * 国家层：决定是否展示国家下拉，并推动省级加载。
+       */
+      loadRoot: function () {
+        var self = this;
+        this.request("root", 0, this.value.country, function (rows, data) {
+          self.list.country = rows;
+          self.multiple = !!data.multiple;
+
+          if (!self.multiple) {
+            var only = rows.length === 1 ? rows[0].name : "";
+            self.fill("country", rows, only);
+            self.toggle("country", false);
+            if (only) {
+              self.load("province", self.id.country, self.value.province);
+            }
+            return;
+          }
+
+          self.fill("country", rows, self.value.country);
+          if (self.value.country) {
+            self.load("province", self.id.country, self.value.province);
+          }
+        });
       },
 
       /**
@@ -68,37 +105,53 @@ document.addEventListener("alpine:init", function () {
 
         select.addEventListener("change", function () {
           self.value[part] = select.value;
+          self.id[part] = self.optionId(select);
 
-          if (part === "province") {
-            self.value.city = "";
-            self.value.district = "";
-            self.fill("city", []);
-            self.fill("district", []);
-            self.load("city", select.value, "");
+          if (part === "country") {
+            self.clear(["province", "city", "district"]);
+            self.load("province", self.id.country, "");
+          } else if (part === "province") {
+            self.clear(["city", "district"]);
+            self.load("city", self.id.province, "");
           } else if (part === "city") {
-            self.value.district = "";
-            self.fill("district", []);
-            self.load("district", select.value, "");
+            self.clear(["district"]);
+            self.load("district", self.id.city, "");
           }
         });
       },
 
       /**
+       * 清空若干级的值与选项。
+       */
+      clear: function (parts) {
+        for (var i = 0; i < parts.length; i++) {
+          this.value[parts[i]] = "";
+          this.id[parts[i]] = "";
+          this.fill(parts[i], [], "");
+        }
+      },
+
+      /**
        * 拉取某一级选项。
        *
-       * @param {string} part     province / city / district
-       * @param {string} parent   上级名称
+       * @param {string} part     country / province / city / district
+       * @param {string} parentId 上级 id（country 忽略）
        * @param {string} current  需要回选的名称
        */
-      load: function (part, parent, current) {
+      load: function (part, parentId, current) {
         var self = this;
-        if (part !== "province" && !parent) {
-          return;
-        }
+        this.request(part, parentId, current, function (rows) {
+          self.fill(part, rows, current);
+        });
+      },
 
-        var body = "type=" + part + "&current=" + encodeURIComponent(current || "");
-        if (part !== "province") {
-          body += "&parent=" + encodeURIComponent(parent);
+      /**
+       * 请求地区接口。
+       */
+      request: function (type, parentId, current, done) {
+        var body = "type=" + type + "&current=" + encodeURIComponent(current || "");
+        if (type !== "root" && type !== "country" && parentId) {
+          body += "&parent_id=" + encodeURIComponent(parentId);
         }
 
         fetch(route("user.area"), {
@@ -115,33 +168,20 @@ document.addEventListener("alpine:init", function () {
           })
           .then(function (raw) {
             var result = typeof douApi === "function" ? douApi(raw) : { ok: false, data: {} };
-            var rows = result.ok && result.data && result.data.area_list ? result.data.area_list : [];
-
-            var names = [];
-            var selected = "";
-            for (var i = 0; i < rows.length; i++) {
-              var name = rows[i].name || "";
-              if (name === "") {
-                continue;
-              }
-              names.push(name);
-              if (rows[i].cur) {
-                selected = name;
-              }
-            }
-
-            self.list[part] = names;
-            self.fill(part, names, selected || current);
+            var data = result.ok && result.data ? result.data : {};
+            done(data.area_list ? data.area_list : [], data);
           })
           .catch(function () {
-            self.fill(part, []);
+            done([], {});
           });
       },
 
       /**
        * 把选项写进对应 select（首项为空占位，便于「省市」非必选场景留空）。
        */
-      fill: function (part, names, current) {
+      fill: function (part, rows, current) {
+        this.list[part] = rows;
+
         var select = this.select(part);
         if (!select) {
           return;
@@ -154,17 +194,36 @@ document.addEventListener("alpine:init", function () {
         placeholder.textContent = "-";
         select.appendChild(placeholder);
 
-        for (var i = 0; i < names.length; i++) {
+        for (var i = 0; i < rows.length; i++) {
+          var name = rows[i].name || "";
+          if (name === "") {
+            continue;
+          }
           var option = document.createElement("option");
-          option.value = names[i];
-          option.textContent = names[i];
-          if (names[i] === current) {
+          option.value = name;
+          option.textContent = name;
+          option.setAttribute("data-id", rows[i].id);
+          if (name === current) {
             option.selected = true;
           }
           select.appendChild(option);
         }
 
         this.value[part] = select.value;
+        this.id[part] = this.optionId(select);
+        this.toggle(part, rows.length > 0);
+      },
+
+      /**
+       * 控制某一级 select 的显隐（没有下级数据时收起）。
+       */
+      toggle: function (part, visible) {
+        var select = this.select(part);
+        if (!select) {
+          return;
+        }
+
+        select.style.display = visible ? "" : "none";
       },
 
       /**
@@ -176,6 +235,18 @@ document.addEventListener("alpine:init", function () {
         }
 
         return this.box.querySelector('select[data-part="' + part + '"]');
+      },
+
+      /**
+       * 取当前选中项绑定的地区 id。
+       */
+      optionId: function (select) {
+        var option = select.options[select.selectedIndex];
+        if (!option) {
+          return "";
+        }
+
+        return option.getAttribute("data-id") || "";
       },
 
       /**

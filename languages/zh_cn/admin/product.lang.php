@@ -61,6 +61,8 @@ $_LANG['product_add_succes'] = '添加商品成功';
 $_LANG['product_edit_succes'] = '编辑商品成功';
 $_LANG['product_select_empty'] = '没有选择任何商品';
 $_LANG['product_del_succes'] = '删除商品成功';
+$_LANG['product_del_has_order'] = '该商品已产生订单，无法删除，请改为下架';
+$_LANG['product_del_skip_has_order'] = '已跳过 %d 个已产生订单的商品，其余商品删除成功';
 
 // 提示信息
 $_LANG['product_model_cue'] = '输入产品编号';

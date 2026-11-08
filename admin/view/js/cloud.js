@@ -202,6 +202,39 @@
   function showFailure(data) {
     var msg = data && data.error ? String(data.error) : '';
     var redirectUrl = data && data.redirect_url ? String(data.redirect_url) : '';
+    var m = meta.mode ? String(meta.mode) : '';
+    var useUpdateHome = (m === 'update' || m === 'patch');
+    var backHref = useUpdateHome ? route('admin.cloud.update') : route('admin.index');
+    var backLabel = useUpdateHome
+      ? (langPack.cloud_update_home || '返回更新主页')
+      : (langPack.cloud_admin_home || '返回管理中心');
+
+    // 取包类步骤失败时引导到离线升级页：带全目标参数，可直接放置安装包后继续。
+    // 网络层失败（网关 503/504、超时、非 JSON）可能落在任意步骤（含 snapshot collect / apply
+    // 覆盖核心文件），不受步骤白名单限制：始终前置离线升级入口，与错误提示同屏给出。
+    // 授权类失败已自带跳转链接，不再叠加离线入口。
+    var offlineHtml = '';
+    var failedStep = currentStep ? String(currentStep) : '';
+    var offlineStep = failedStep === ''
+      || failedStep === 'preflight'
+      || failedStep === 'download'
+      || failedStep === 'unzip';
+    var networkFailed = !!(data && data.network_failed);
+    if ((offlineStep || networkFailed) && !redirectUrl && meta.offline_url) {
+      // 已在离线流程里失败：只留按钮，不再提示「可改用离线」
+      if (meta.source !== 'offline') {
+        var hint = langPack.cloud_install_offline_hint ? String(langPack.cloud_install_offline_hint) : '';
+        if (hint !== '') {
+          appendLog(hint);
+        }
+      }
+      var offlineLabel = langPack.cloud_install_offline_btn
+        ? String(langPack.cloud_install_offline_btn)
+        : '离线升级';
+      offlineHtml = '<a class="btn" href="' + escapeText(String(meta.offline_url)) + '">'
+        + escapeText(offlineLabel) + '</a>';
+    }
+
     if (msg !== '' || redirectUrl !== '') {
       var html = escapeText(msg);
       if (redirectUrl !== '') {
@@ -213,32 +246,6 @@
         );
       }
       appendLogHtml(html, 'error');
-    }
-    var m = meta.mode ? String(meta.mode) : '';
-    var useUpdateHome = (m === 'update' || m === 'patch');
-    var backHref = useUpdateHome ? route('admin.cloud.update') : route('admin.index');
-    var backLabel = useUpdateHome
-      ? (langPack.cloud_update_home || '返回更新主页')
-      : (langPack.cloud_admin_home || '返回管理中心');
-
-    // 取包类步骤失败（含网络层失败）时引导到离线升级页：带全目标参数，可直接放置安装包后继续。
-    // 授权类失败已自带跳转链接，不再叠加离线入口。
-    var offlineHtml = '';
-    var failedStep = currentStep ? String(currentStep) : '';
-    var offlineStep = failedStep === ''
-      || failedStep === 'preflight'
-      || failedStep === 'download'
-      || failedStep === 'unzip';
-    if (offlineStep && !redirectUrl && meta.offline_url) {
-      var hint = langPack.cloud_install_offline_hint ? String(langPack.cloud_install_offline_hint) : '';
-      if (hint !== '') {
-        appendLog(hint);
-      }
-      var offlineLabel = langPack.cloud_install_offline_btn
-        ? String(langPack.cloud_install_offline_btn)
-        : '离线升级';
-      offlineHtml = '<a class="btn" href="' + escapeText(String(meta.offline_url)) + '">'
-        + escapeText(offlineLabel) + '</a>';
     }
 
     appendActionRow(offlineHtml + '<a class="btn-secondary" href="' + backHref + '">' + escapeText(backLabel) + '</a>');
@@ -306,7 +313,62 @@
     return route('admin.cloud.install', {}, { query: query });
   }
 
-  function runStep(step) {
+  // 下载请求的连接被网关切断后，服务端可能仍在后台继续下载：轮询权威状态，
+  // 就绪则直接从解压步骤续跑，避免整个升级因一次断连重来。
+  function recoverDownload(originalError) {
+    var result = $.Deferred();
+    var deadline = Date.now() + 600000; // 10 分钟：大包在慢线路上的兜底窗口
+    appendLog(langPack.cloud_download_recover_waiting || '下载请求的连接已中断，正在确认服务器上的下载结果…');
+
+    function fail(message) {
+      clearActiveSpinner();
+      showFailure({ error: message, network_failed: true });
+      result.reject();
+    }
+
+    function waitForStatus() {
+      if (Date.now() >= deadline) {
+        fail(originalError);
+        return;
+      }
+      setTimeout(checkStatus, 1500);
+    }
+
+    function checkStatus() {
+      $.ajax({
+        url: progressUrl,
+        type: 'GET',
+        dataType: 'json',
+        cache: false,
+        timeout: 4000,
+        data: { install_id: installId, token: token, recover: 'download' }
+      }).then(function (data) {
+        if (data && data.ok && data.percent !== null && data.percent !== undefined) {
+          setActivePercent(data.percent);
+        }
+        if (data && data.ok && data.download_state === 'ready') {
+          setActivePercent(100);
+          appendLog(langPack.cloud_download_recover_ready || '服务器已完成下载，继续解压安装包。');
+          runStep('unzip', true).then(result.resolve, result.reject);
+        } else if (data && data.ok && data.download_state === 'pending') {
+          waitForStatus();
+        } else {
+          fail(langPack.cloud_download_recover_failed || '服务器未能完成安装包下载。');
+        }
+      }, function (xhr) {
+        if (xhr && (xhr.status === 401 || xhr.status === 403 || xhr.status === 419)) {
+          fail(originalError);
+        } else {
+          waitForStatus();
+        }
+      });
+    }
+
+    checkStatus();
+    return result.promise();
+  }
+
+  function runStep(step, resumeDownload) {
     currentStep = step;
     attachStepSpinner(step);
     // 下载步骤：并行轮询真实百分比（需有 download_url 且非 local / 离线模式）
@@ -316,11 +378,13 @@
       && String(meta.mode || '') !== 'local') {
       startDownloadPoll();
     }
+    var payload = { install_id: installId, step: step, token: token };
+    if (resumeDownload) { payload.resume_download = '1'; }
     return $.ajax({
       url: stepUrl,
       type: 'POST',
       dataType: 'json',
-      data: { install_id: installId, step: step, token: token }
+      data: payload
     }).then(function (data) {
       // 本步请求已返回：停止下载轮询；下载成功时先将该行定格 100% 再进入下一步
       stopDownloadPoll();
@@ -332,7 +396,8 @@
         showFailure({
           error: langPack.cloud_install_step_failed_generic
             || langPack.cloud_install_request_failed
-            || ''
+            || '',
+          network_failed: true
         });
         return $.Deferred().reject().promise();
       }
@@ -387,9 +452,9 @@
       clearActiveSpinner();
     }, function (jqXHR, textStatus) {
       stopDownloadPoll();
-      clearActiveSpinner();
       var parsed = jqXHR && jqXHR.responseJSON ? jqXHR.responseJSON : null;
       if (parsed && typeof parsed === 'object' && parsed.error) {
+        clearActiveSpinner();
         showFailure(parsed);
         return $.Deferred().reject().promise();
       }
@@ -400,7 +465,15 @@
       if (textStatus === 'timeout') {
         netMsg = langPack.cloud_install_request_failed || textStatus;
       }
-      showFailure({ error: netMsg });
+      var status = jqXHR ? jqXHR.status : 0;
+      var uncertain = textStatus !== 'abort' && (textStatus === 'timeout' || textStatus === 'parsererror'
+        || status === 0 || [502, 503, 504, 520, 522, 524].indexOf(status) !== -1);
+      // 下载断连：服务端可能仍在后台继续，先确认下载结果再决定是否续跑
+      if (step === 'download' && meta.recover_download && uncertain) {
+        return recoverDownload(netMsg);
+      }
+      clearActiveSpinner();
+      showFailure({ error: netMsg, network_failed: true });
       return $.Deferred().reject().promise();
     });
   }

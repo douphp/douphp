@@ -396,13 +396,27 @@ echo "</body></html>";
      * @param string $module 表/模块逻辑名
      * @param string $item_id 主键
      * @param string $field 字段名
-     * @return array {value:int 新值, label:string 展示文案}
+     * @return array|null {value:int 新值, label:string 展示文案}；非法表/字段/当前值返回 null
      */
     public function toggleTableField($module, $item_id, $field)
     {
+        $module = (string) $module;
+        $field = (string) $field;
+        // 仅允许列表页使用的布尔开关字段，避免通用入口被构造为改价/改库存等写操作。
+        $allowedFields = array('status', 'hot');
+        if ($module === '' || !DB::tableExist($module)) {
+            return null;
+        }
+        if (!in_array($field, $allowedFields, true) || !DB::fieldExist($module, $field)) {
+            return null;
+        }
+
         $model = $this->toolModel();
         $value = $model->getTableFieldValue($module, $item_id, $field);
-        $new_value = $value ? 0 : 1;
+        if (!in_array((string) $value, array('0', '1'), true)) {
+            return null;
+        }
+        $new_value = ((string) $value === '1') ? 0 : 1;
 
         $model->updateTableField($module, $item_id, $field, $new_value);
 

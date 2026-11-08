@@ -25,6 +25,7 @@ $_LANG['product_edit'] = '編輯商品';
 $_LANG['product_del'] = '刪除商品';
 $_LANG['product_buy'] = '購買諮詢';
 $_LANG['product_buy_quantity'] = '數量';
+$_LANG['product_quantity_tip'] = '購買數量需在 1~999 之間';
 $_LANG['product_gallery'] = '主圖';
 $_LANG['product_gallery_btn'] = '點擊上傳';
 $_LANG['product_news'] = '新品上架';

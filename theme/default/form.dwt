@@ -97,6 +97,7 @@
          <input type="date" name="{$field.slug}" class="input" value="{$field.default}" title="{$field.placeholder}" />
          <!-- {elseif $field.type eq 'area'} -->
          <div class="form-area" x-data="douArea()" x-init="init($el)" data-default="{$field.default}">
+          <select name="{$field.slug}[country]" class="select" data-part="country"></select>
           <select name="{$field.slug}[province]" class="select" data-part="province"></select>
           <select name="{$field.slug}[city]" class="select" data-part="city"></select>
           <select name="{$field.slug}[district]" class="select" data-part="district"></select>

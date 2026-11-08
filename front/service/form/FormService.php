@@ -379,7 +379,7 @@ class FormService extends BaseService
     {
         $type = $field['type'];
 
-        // area 三个子项全空按「未填」处理，否则 required 会把 ['province'=>'', ...] 当有值
+        // area 四个子项全空按「未填」处理，否则 required 会把 ['country'=>'', ...] 当有值
         if ($type === 'area' && is_array($value) && implode('', array_map('strval', $value)) === '') {
             $value = array();
         }

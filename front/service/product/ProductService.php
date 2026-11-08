@@ -280,6 +280,7 @@ class ProductService extends BaseService
         $rows = DB::table('product')
             ->field('id, title, image')
             ->where('model', $model)
+            ->where('status', '1')
             ->order('sort ASC, id DESC')
             ->select();
 

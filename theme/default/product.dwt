@@ -92,7 +92,7 @@
           <div class="quantity">
            <div class="name">{$lang.product_buy_quantity}</div>
            <div class="number-box">
-            <span class="minus"> - </span><input class="inp" type="text" name="number" size="5" value="1" autocomplete="off" /><span class="plus">+</span>
+            <span class="minus"> - </span><input class="inp" type="text" name="number" size="5" value="1" autocomplete="off" data-tip="{$lang.product_quantity_tip}" /><span class="plus">+</span>
            </div>
           </div>
           <input type="hidden" name="module" value="product" />
