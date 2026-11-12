@@ -1,0 +1,17 @@
+/* 页面可视化编辑：提交按钮（inc/jquery_notebook.tpl，仅 page.dwt 编辑模式加载）
+----------------------------------------------- */
+.btn-visualize {
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  display: inline-block;
+  padding: 8px 30px;
+  background-color: #55B66E;
+  color: #FFF;
+  font-size: 18px;
+  z-index: 999999;
+}
+.btn-visualize:hover {
+  background-color: #0072C6;
+  color: #FFF;
+}

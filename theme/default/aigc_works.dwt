@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <meta name="keywords" content="{$keywords}" />
+ <meta name="description" content="{$description}" />
+ <meta name="generator" content="{$generator}" />
+ <meta name="csrf-token" content="{$csrf_token}">
+ <title>{$page_title}</title>
+ <link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+ <link href="css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+ <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css" />
+ <link href="css/common.css" rel="stylesheet" type="text/css" />
+ <link href="css/style.css" rel="stylesheet" type="text/css" />
+ <link href="css/aigc.css" rel="stylesheet" type="text/css" />
+ {include file="inc/code_head.tpl"}
+</head>
+
+<body>
+ <div id="wrapper">
+  {include file="inc/header.tpl"}
+  <div class="container aigc-page">
+   <div class="aigc-app-head">
+    <h1>{$lang.aigc_works}</h1>
+    <div class="aigc-app-links">
+     <a href="{url link='aigc'}">{$lang.aigc}</a>
+     <a href="{url link='aigc.package'}">{$lang.aigc_package}</a>
+    </div>
+   </div>
+
+   <div class="aigc-filter">
+    <a href="{url link='aigc.works'}" class="{if $req.type eq ''}active{/if}">{$lang.aigc_all}</a>
+    <a href="{url link='aigc.works'}?type=image" class="{if $req.type eq 'image'}active{/if}">{$lang.aigc_type_image}</a>
+    <a href="{url link='aigc.works'}?type=video" class="{if $req.type eq 'video'}active{/if}">{$lang.aigc_type_video}</a>
+    <a href="{url link='aigc.works'}?type=audio" class="{if $req.type eq 'audio'}active{/if}">{$lang.aigc_type_audio}</a>
+    <a href="{url link='aigc.works'}?type=ppt" class="{if $req.type eq 'ppt'}active{/if}">{$lang.aigc_type_ppt}</a>
+    <a href="{url link='aigc.works'}?type=excel" class="{if $req.type eq 'excel'}active{/if}">{$lang.aigc_type_excel}</a>
+   </div>
+
+   <div class="aigc-works">
+    {foreach from=$work_list item=work}
+    <div class="aigc-work" data-task-id="{$work.id}">
+     <div class="aigc-work-head">
+      <span class="aigc-work-type">{$work.type_name}</span>
+      <span class="aigc-work-status status-{$work.status}">{$work.status_name}</span>
+      <span class="aigc-work-time">{$work.created_at}</span>
+     </div>
+     <div class="aigc-work-prompt">{$work.prompt}</div>
+     {if $work.error}<div class="cue-red">{$work.error}</div>{/if}
+     <div class="aigc-work-files">
+      {foreach from=$work.files item=file key=fi}
+      <a href="{$file_url}?id={$work.id}&index={$fi}&mode=download">{$file.name|default:$lang.aigc_download}</a>
+      {/foreach}
+     </div>
+     <button type="button" class="aigc-del" data-del-url="{url link='aigc.task_delete'}" data-task-id="{$work.id}">{$lang.aigc_delete}</button>
+    </div>
+    {foreachelse}
+    <p class="cue">{$lang.aigc_works_empty}</p>
+    {/foreach}
+   </div>
+   {$pager}
+  </div>
+  {include file="inc/footer.tpl"}
+ </div>
+ {include file="inc/code_footer.tpl"}
+ <script src="js/bootstrap.min.js"></script>
+ <script src="js/dou.js"></script>
+ <script src="js/aigc.js"></script>
+</body>
+
+</html>

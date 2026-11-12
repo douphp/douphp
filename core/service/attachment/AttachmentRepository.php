@@ -126,6 +126,39 @@ class AttachmentRepository
     }
 
     /**
+     * 批量：number → 相对存储路径。
+     *
+     * 导出等需要大量附件的场景必须走本方法，避免逐个 number 查询。
+     *
+     * @param array $numbers
+     * @return array number => 相对路径（未命中的 number 不出现在结果中）
+     */
+    public function getRelativePathsByNumbers(array $numbers)
+    {
+        $valid = array();
+        foreach ($numbers as $number) {
+            if (is_string($number) && $number !== '') {
+                $valid[$number] = $number;
+            }
+        }
+        if (empty($valid)) {
+            return array();
+        }
+
+        $rows = DB::table('file')
+            ->field('number, file')
+            ->whereIn('number', array_values($valid))
+            ->select();
+
+        $map = array();
+        foreach ((array) $rows as $row) {
+            $map[(string) $row['number']] = (string) $row['file'];
+        }
+
+        return $map;
+    }
+
+    /**
      * 删除附件：物理文件、缩略图与表记录。
      *
      * @param string $number

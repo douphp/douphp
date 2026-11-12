@@ -15,7 +15,10 @@
 namespace Dou\Admin\Controller\Product;
 
 use Dou\Admin\Controller\BaseController;
+use Dou\Admin\Controller\Concerns\QuickEditable;
+use Dou\Admin\Model\Product\Product;
 use Dou\Admin\Model\Product\ProductCategory;
+use Dou\Admin\Request\Product\ProductActionFormRequest;
 use Dou\Admin\Request\Product\ProductFormRequest;
 use Dou\Admin\Service\Metadata\MetadataFormBuilder;
 use Dou\Admin\Service\Product\ProductService;
@@ -41,6 +44,7 @@ if (!defined('IN_DOUCO')) {
  */
 class ProductController extends BaseController
 {
+    use QuickEditable;
     /** @var ProductService */
     private $productService;
 
@@ -63,6 +67,24 @@ class ProductController extends BaseController
         $this->productService = $productService;
         $this->markdown = $markdown;
         $this->metadataFormBuilder = $metadataFormBuilder;
+    }
+
+    /**
+     * 商品列表快速编辑字段声明。
+     *
+     * @return array
+     */
+    protected function quickEditConfig()
+    {
+        return array(
+            'model' => Product::class,
+            'fields' => array(
+                'title' => array('type' => 'text', 'max' => 150),
+                'price' => array('type' => 'price', 'blank_when_zero' => true),
+                'stock' => array('type' => 'int', 'max' => 4294967295),
+                'sort' => array('type' => 'int'),
+            ),
+        );
     }
 
     /**
@@ -95,8 +117,10 @@ class ProductController extends BaseController
         $catId = $request->integer('category_id', 0);
         $keyword = trim((string) $request->input('keyword', ''));
         $page = $request->integer('page', 1);
+        $sort = (string) $request->plainText('sort');
+        $order = (string) $request->plainText('order');
 
-        $result = $this->productService->buildProductListData($catId, $keyword, $page);
+        $result = $this->productService->buildProductListData($catId, $keyword, $page, $sort, $order);
 
         $userLevelOption = Module::make('user.user_level_option_builder');
         return $this->view('product.htm', [
@@ -112,6 +136,8 @@ class ProductController extends BaseController
             'pager' => $result['pager'],
             'metadata_schema' => $result['metadata_schema'],
             'user_level_option' => $userLevelOption !== null ? $userLevelOption->options() : array(),
+            // 未随包下发 excel 库时不展示导入/导出入口
+            'excel' => file_exists(LIBRARY_PATH . 'excel/Excel.php'),
         ]);
     }
 
@@ -302,10 +328,74 @@ class ProductController extends BaseController
      * @param Request $request
      * @return Response
      */
-    public function action(Request $request)
+    public function action(ProductActionFormRequest $formRequest)
     {
-        $result = $this->productService->action($request->post());
+        $data = $formRequest->validated();
+        $result = $this->productService->action($data);
+        if (!is_array($result)) {
+            // excel/excel_all 分支已由 Excel::export 直接发送二进制响应
+            return null;
+        }
 
         return redirect($result['back_url'])->with('success', $result['message']);
+    }
+
+    /**
+     * 从 Excel 导入商品（受限：仅标量字段）。
+     *
+     * @return Response
+     */
+    public function importExecl()
+    {
+        $result = $this->productService->importFromExcel();
+        $backUrl = route('admin.product');
+
+        if (!empty($result['ok'])) {
+            $message = preg_replace('/d%/Ums', (string) (int) $result['created'], lang('excel_import_created', '成功导入 d% 条'));
+
+            return redirect($backUrl)->with('success', $message);
+        }
+
+        return redirect($backUrl)->with('error', $this->importErrorMessage($result));
+    }
+
+    /**
+     * 把导入结果码转成面向管理员的中文提示。
+     *
+     * @param array $result
+     * @return string
+     */
+    private function importErrorMessage(array $result)
+    {
+        $code = isset($result['code']) ? (string) $result['code'] : '';
+        $row = isset($result['row']) ? (int) $result['row'] : 0;
+        $rowText = $row > 0 ? preg_replace('/d%/Ums', (string) $row, lang('excel_import_row', '第 d% 行')) : '';
+
+        $map = array(
+            'no_file' => lang('excel_import_no_file', '请选择要导入的 Excel 文件'),
+            'upload_error' => lang('excel_import_upload_error', '文件上传失败，请重试'),
+            'too_large' => lang('excel_import_too_large', '文件超过 5MB，请拆分后重试'),
+            'too_many_rows' => lang('excel_import_too_many_rows', '数据行数超过上限，请拆分后重试'),
+            'unreadable' => lang('excel_import_unreadable', '文件无法解析，请另存为 xlsx 后重试'),
+            'empty' => lang('excel_import_empty', '文件内没有可导入的数据'),
+            'column_mismatch' => lang('excel_import_column_mismatch', '列数超出预期，请按模板列顺序填写'),
+            'invalid_title' => lang('excel_import_invalid_title', '商品名称不能为空'),
+            'invalid_price' => lang('excel_import_invalid_price', '商品价格必须为非负数字'),
+            'invalid_promote_price' => lang('excel_import_invalid_price', '促销价必须为非负数字'),
+            'invalid_stock' => lang('excel_import_invalid_number', '库存必须为非负整数'),
+            'invalid_point' => lang('excel_import_invalid_number', '消费者积分必须为非负整数'),
+            'invalid_sort' => lang('excel_import_invalid_number', '排序必须为非负整数'),
+            'invalid_status' => lang('excel_import_invalid_status', '状态只能填写 1 / 0 或显示 / 隐藏'),
+            'invalid_slug' => lang('excel_import_invalid_slug', '网址别名只能使用小写字母、数字、- 与 _'),
+            'invalid_category' => lang('excel_import_invalid_category', '分类不存在或存在重名，请改用分类 ID'),
+            'db_error' => lang('excel_import_db_error', '写入数据库失败，本次导入已全部回滚'),
+        );
+
+        $message = isset($map[$code]) ? $map[$code] : lang('excel_import_wrong');
+        if ($rowText !== '') {
+            return $rowText . '：' . $message;
+        }
+
+        return $message;
     }
 }

@@ -19,6 +19,7 @@ use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Module\ModuleModelResolver;
 use Dou\Core\Service\Metadata\MetadataValues;
 use Dou\Core\Support\CategoryIds;
+use Dou\Core\Support\Slots;
 use Dou\Core\Support\Str;
 use Dou\Front\Model\Link\Link;
 use Dou\Front\Model\Page\Page;
@@ -225,6 +226,15 @@ class Portal
             $rows = array();
         }
 
+        // 分区文本多语言覆盖：整页 ids 一次性预热，避免循环内逐行查询
+        $slotsIds = array();
+        foreach ($rows as $slotsRow) {
+            if (is_array($slotsRow) && isset($slotsRow['id'])) {
+                $slotsIds[] = (int) $slotsRow['id'];
+            }
+        }
+        language()->warmup('data', $slotsIds, 'slots');
+
         $boxList = array();
         foreach ($rows as $row) {
             if (!is_array($row)) {
@@ -237,6 +247,10 @@ class Portal
                 ? array()
                 : explode("\n", str_replace(array("\r\n", "\r"), "\n", $text));
 
+            // 分区文本：与 data 读取链路保持同一套覆盖规则
+            $rawSlots = isset($row['slots']) ? $row['slots'] : '';
+            $slots = Slots::merge($rawSlots, language()->langValue($rawSlots, 'data', $row['id'], 'slots'));
+
             $imageRaw = isset($row['image']) ? $row['image'] : '';
             $boxList[] = array(
                 'id' => isset($row['id']) ? (int) $row['id'] : 0,
@@ -244,6 +258,8 @@ class Portal
                 'name' => isset($row['name']) ? $row['name'] : '',
                 'text' => $text,
                 'text_array' => $textArray,
+                'slots' => $slots,
+                'slots_count' => count($slots),
                 'link' => isset($row['link']) ? $row['link'] : '',
                 'file' => $imageRaw,
                 'image' => $imageRaw !== '' ? attachment()->url($imageRaw) : '',

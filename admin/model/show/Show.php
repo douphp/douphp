@@ -17,6 +17,7 @@ namespace Dou\Admin\Model\Show;
 use Dou\Admin\Model\Concerns\PurgesRelatedOnDelete;
 use Dou\Core\Facade\DB;
 use Dou\Core\Orm\Model;
+use Dou\Core\Support\Slots;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
@@ -61,6 +62,7 @@ class Show extends Model
         'link',
         'image',
         'text',
+        'slots',
         'sort',
         'type',
     );
@@ -94,6 +96,15 @@ class Show extends Model
         }
         $rows = $query->order('sort ASC, id ASC')->select();
 
+        // 分区文本多语言覆盖：整页 ids 一次性预热，避免循环内逐行查询
+        $slotsIds = array();
+        foreach ((array) $rows as $slotsRow) {
+            if (isset($slotsRow['id'])) {
+                $slotsIds[] = (int) $slotsRow['id'];
+            }
+        }
+        language()->warmup('show', $slotsIds, 'slots');
+
         $show_list = array();
         foreach ((array) $rows as $row) {
             $row = language()->langBox($row, 'show', 'name, image, link, text');
@@ -103,6 +114,10 @@ class Show extends Model
                 ? array()
                 : explode("\n", str_replace(array("\r\n", "\r"), "\n", $text));
 
+            // 分区文本：主表 map 为基底，多语言覆盖仅替换默认已有键
+            $rawSlots = isset($row['slots']) ? $row['slots'] : '';
+            $slots = Slots::merge($rawSlots, language()->langValue($rawSlots, 'show', $row['id'], 'slots'));
+
             $show_list[] = array(
                 'id' => $row['id'],
                 'name' => $row['name'],
@@ -110,6 +125,7 @@ class Show extends Model
                 'image' => attachment()->url($row['image']),
                 'text' => $row['text'],
                 'text_array' => $text_array,
+                'slots' => $slots,
                 'sort' => $row['sort'],
             );
         }

@@ -29,6 +29,7 @@ class LanguageDraftFields
     const KIND_TEXTAREA = 'textarea';
     const KIND_EDITOR = 'editor';
     const KIND_IMAGE = 'image';
+    const KIND_SLOTS = 'slots';
 
     /** @var array module => field => kind */
     private static $map = array(
@@ -211,6 +212,7 @@ class LanguageDraftFields
             'image' => self::KIND_IMAGE,
             'link' => self::KIND_TEXT,
             'text' => self::KIND_TEXTAREA,
+            'slots' => self::KIND_SLOTS,
         ),
         'link' => array(
             'name' => self::KIND_TEXT,
@@ -221,6 +223,7 @@ class LanguageDraftFields
             'name' => self::KIND_TEXT,
             'image' => self::KIND_IMAGE,
             'text' => self::KIND_TEXTAREA,
+            'slots' => self::KIND_SLOTS,
             'link' => self::KIND_TEXT,
         ),
         'nav' => array(

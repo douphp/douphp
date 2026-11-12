@@ -28,5 +28,4 @@ if (!defined('IN_DOUCO')) {
 
 Route::group('site_home', SiteHomeController::class)->name('admin.')
     ->prefix('site_home')
-    ->get(['index'])
-    ->post(['sync']);
+    ->get(['index']);

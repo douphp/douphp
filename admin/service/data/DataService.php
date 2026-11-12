@@ -24,6 +24,7 @@ use Dou\Core\Service\Attachment\AttachmentUploadOptions;
 use Dou\Core\Service\BaseService;
 use Dou\Core\Service\Data\DataTemplate;
 use Dou\Core\Support\Arr;
+use Dou\Core\Support\Slots;
 use Dou\Core\Support\Str;
 use Dou\Core\Web\Http\UploadedFile;
 if (!defined('IN_DOUCO')) {
@@ -364,6 +365,9 @@ class DataService extends BaseService
                 'code' => $newCode,
                 'name' => '',
                 'text' => '',
+                'slots' => '',
+                'slot_rows' => array(),
+                'content_mode' => 'text',
                 'link' => '',
                 'image' => '',
                 'file' => '',
@@ -393,6 +397,15 @@ class DataService extends BaseService
         $theme = $this->themeForGroup($dataGroup);
         $this->assertDataCodeUnique($code, $theme, 0);
 
+        // 内容形式归一：text / slots 互斥，slots 模式下 text 强制清空
+        $slots = '';
+        $text = (string) Arr::get($post, 'text', '');
+        if (Arr::get($post, 'content_mode', 'text') === 'slots') {
+            $slots = Slots::fromRows(Arr::get($post, 'slot_key', array()), Arr::get($post, 'slot_value', array()));
+            $text = '';
+        }
+        $post['slots'] = $slots; // 供 languageDraftBegin 过滤译文 key
+
         $insertData = array(
             'parent_code' => Arr::get($post, 'parent_code', ''),
             'theme' => $theme,
@@ -400,7 +413,8 @@ class DataService extends BaseService
             'data_item' => Arr::get($post, 'data_item', ''),
             'name' => $name,
             'code' => $code,
-            'text' => Arr::get($post, 'text', ''),
+            'text' => $text,
+            'slots' => $slots,
             'image' => '',
             'link' => Arr::get($post, 'link', ''),
             'is_class' => Arr::get($post, 'is_class', '0'),
@@ -454,6 +468,7 @@ class DataService extends BaseService
         $defaults = array(
             'image' => '',
             'text' => '',
+            'slots' => '',
             'link' => '',
             'parent_code' => '',
             'is_class' => '0',
@@ -469,6 +484,9 @@ class DataService extends BaseService
 
         $data['file_number'] = $data['image'];
         $data['image'] = attachment()->url($data['image']);
+        // 分区文本编辑态：有 key 即 slots 模式，行列表供表单渲染
+        $data['slot_rows'] = Slots::toRows($data['slots']);
+        $data['content_mode'] = Slots::hasKeys($data['slots']) ? 'slots' : 'text';
         $data['code'] = $data['code'] ? $data['code'] : $this->createCode();
         // 小程序端记录：提示改用 WXML 调用代码，且不提供多语言入口
         $isMiniprogram = DataTemplate::isMiniprogramRecord(
@@ -527,7 +545,7 @@ class DataService extends BaseService
     private function buildCueLang($code, $isMiniprogram)
     {
         $lang = lang_all();
-        $fields = array('name', 'code', 'image', 'text', 'link', 'class');
+        $fields = array('name', 'code', 'image', 'text', 'slots', 'link', 'class');
         foreach ($fields as $field) {
             $key = 'data_' . $field . '_cue';
             if ($isMiniprogram && isset($lang['data_mp_' . $field . '_cue'])) {
@@ -561,6 +579,7 @@ class DataService extends BaseService
                 'code' => '',
                 'image' => '',
                 'text' => '',
+                'slots' => '',
                 'link' => '',
             ),
             'lang_drafts' => array(),
@@ -590,6 +609,15 @@ class DataService extends BaseService
         $this->assertDataCodeUnique($code, $theme, $id);
 
         $adminId = (int) auth('admin')->id();
+        // 内容形式归一：text / slots 互斥，slots 模式下 text 强制清空
+        $slots = '';
+        $text = (string) Arr::get($post, 'text', '');
+        if (Arr::get($post, 'content_mode', 'text') === 'slots') {
+            $slots = Slots::fromRows(Arr::get($post, 'slot_key', array()), Arr::get($post, 'slot_value', array()));
+            $text = '';
+        }
+        $post['slots'] = $slots; // 供 languageDraftBegin 过滤译文 key
+
         $languagePlan = $this->languageDraftBegin('data', $post, $id, $adminId);
         if ($code !== $row['code']) {
             attachment()->renameStoredFile($row['image'], $code);
@@ -600,7 +628,8 @@ class DataService extends BaseService
         $updateData = array(
             'name' => $name,
             'code' => $code,
-            'text' => Arr::get($post, 'text', ''),
+            'text' => $text,
+            'slots' => $slots,
             'link' => Arr::get($post, 'link', ''),
             'is_class' => Arr::get($post, 'is_class', '0'),
         );

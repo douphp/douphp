@@ -44,6 +44,10 @@ if (!defined('IN_DOUCO')) {
  *     when / exclude / renders；不写 match（跨域归属改用族级 'also'）；
  *   - 全字段数组（无 alias）：不推导，用于项名与别名不同形、或指向它模块路由的纯链接行。
  *
+ * 族级 'icons' 挂载表：array(项别名或 key => 图标 class)，纯展示数据，与 items 分离书写。
+ * 项图标生效顺序：item 自带 icon → 族级 icons[别名] → 族级 icons[key] → 不渲染图标；
+ * 因此旧声明文件（不含 icons）无需改动也能正常工作（{@see AdminNavResolver::familyItems()}）。
+ *
  * 族级 'also' 挂载表：array('子域别名' => '归属项别名')，把无独立入口的子域折进目标项的
  * 匹配模式且不渲染菜单行（如 book 族 array('book.rule_slot' => 'book.rule')）。
  *
@@ -92,11 +96,11 @@ class AdminMenuRegistry
     /**
      * 子菜单族装配：核心族 + 模块声明文件（admin/menu/submenu/<module>.php）。
      *
-     * 模块声明文件返回族定义数组（title / icon / items），族名取文件名；
+     * 模块声明文件返回族定义数组（title / icon / items / icons / also），族名取文件名；
      * 目录不存在或无文件（模块未安装）时对应族自然缺失。平局 specificity
      * 取先声明者，跨族接管场景由 item.renders 显式声明，不依赖装配顺序。
      *
-     * @return array<string, array{title: string, icon: string, items: array}>
+     * @return array<string, array{title: string, icon: string, items: array, icons?: array, also?: array}>
      */
     public static function submenus()
     {
@@ -111,6 +115,10 @@ class AdminMenuRegistry
                 'items' => array(
                     'manager',
                     'manager.log',
+                ),
+                'icons' => array(
+                    'manager' => 'bi-shield-lock',
+                    'manager.log' => 'bi-clock-history',
                 ),
             ),
             // 小程序族只有三处需要数组形式：工作台项文案与别名不同形（需 name）且要排除 nav / show
@@ -137,6 +145,15 @@ class AdminMenuRegistry
                         'when' => array('not_close_douphp_plus' => true),
                     ),
                 ),
+                'icons' => array(
+                    'miniprogram' => 'bi-grid-1x2',
+                    'miniprogram.nav' => 'bi-signpost-2',
+                    'miniprogram.show' => 'bi-window-desktop',
+                    'data' => 'bi-database',
+                    'miniprogram.system' => 'bi-gear',
+                    'miniprogram.release' => 'bi-cloud-arrow-up',
+                    'module' => 'bi-box-seam',
+                ),
             ),
             'site_home' => array(
                 'title' => 'menu_site_home_other',
@@ -150,6 +167,12 @@ class AdminMenuRegistry
                     array(
                         'key' => 'data_banner', 'link' => 'admin.data', 'params' => array('group' => 'banner'),
                     ),
+                ),
+                'icons' => array(
+                    'site_home' => 'bi-house-gear',
+                    'show' => 'bi-window',
+                    'data' => 'bi-database',
+                    'data_banner' => 'bi-images',
                 ),
             ),
         );

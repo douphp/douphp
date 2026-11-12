@@ -1,0 +1,304 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+ <meta name="copyright" content="DouCo Co.,Ltd." />
+ <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+ <meta name="csrf-token" content="{$csrf_token}">
+ <title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+ <link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+ <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+ <link href="css/common.css" rel="stylesheet" type="text/css">
+ <link href="css/aigc.css" rel="stylesheet" type="text/css">
+ {include file="inc/javascript.tpl"}
+</head>
+
+<body>
+ <div id="dou"> {include file="inc/header.tpl"}
+  {include file="inc/sidebar.tpl"}
+  <div id="dou-content"> {include file="inc/toolbar.tpl"}
+   <div class="dou-main has-submenu">
+    {include file="inc/submenu.tpl"}
+    <div class="dou-page">
+      <!-- {if $rec eq 'default'} 应用列表 -->
+      {include file="inc/page_header.tpl"}
+      <div class="filter">
+       <form action="{url link='admin.aigc'}" method="get" onsubmit="return hideEmpty(this)">
+        <select name="type" class="select">
+         <option value="">{$lang.aigc_type}</option>
+         <option value="chat" {if $req.type eq 'chat'}selected{/if}>{$lang.aigc_type_chat}</option>
+         <option value="image" {if $req.type eq 'image'}selected{/if}>{$lang.aigc_type_image}</option>
+         <option value="video" {if $req.type eq 'video'}selected{/if}>{$lang.aigc_type_video}</option>
+         <option value="audio" {if $req.type eq 'audio'}selected{/if}>{$lang.aigc_type_audio}</option>
+         <option value="ppt" {if $req.type eq 'ppt'}selected{/if}>{$lang.aigc_type_ppt}</option>
+         <option value="excel" {if $req.type eq 'excel'}selected{/if}>{$lang.aigc_type_excel}</option>
+        </select>
+        <select name="status" class="select">
+         <option value="">{$lang.aigc_status}</option>
+         <option value="1" {if $req.status eq '1'}selected{/if}>{$lang.aigc_status_1}</option>
+         <option value="0" {if $req.status eq '0' && $req.status neq ''}selected{/if}>{$lang.aigc_status_0}</option>
+        </select>
+        <input class="btn-secondary" type="submit" value="{$lang.btn_filter}" />
+        <a class="btn-secondary" href="{url link='admin.aigc'}">{$lang.btn_reset}</a>
+       </form>
+      </div>
+      <div id="list">
+       <form name="action" method="post" action="{url link='admin.aigc.action'}">
+        <input type="hidden" name="token" value="{$token}" />
+        <table class="table">
+         <tr>
+          <th width="22" class="text-center"><input name='chkall' type='checkbox' id='chkall' onclick='selectcheckbox(this.form)' value='check'></th>
+          <th class="m-none text-center" width="50">{$lang.record_id}</th>
+          <th class="text-left">{$lang.aigc_name}</th>
+          <th class="m-none text-center" width="100">{$lang.aigc_slug}</th>
+          <th width="90" class="text-center">{$lang.aigc_type}</th>
+          <th class="m-none text-center" width="120">{$lang.aigc_model}</th>
+          <th width="90" class="text-center">{$lang.aigc_field}</th>
+          <th width="60" class="text-center">{$lang.aigc_is_free}</th>
+          <th class="m-none text-center" width="60">{$lang.aigc_is_public}</th>
+          <th width="50" class="text-center">{$lang.aigc_sort}</th>
+          <th width="60" class="text-center">{$lang.aigc_status}</th>
+          <th width="80" class="text-center">{$lang.handler}</th>
+         </tr>
+         <!-- {foreach from=$aigc_list item=aigc} -->
+         <tr data-off-row-class="row-disabled">
+          <td class="text-center"><input type="checkbox" name="checkbox[]" value="{$aigc.id}" /></td>
+          <td class="m-none text-center">{$aigc.id}</td>
+          <td>{$aigc.name}</td>
+          <td class="m-none text-center"><code>{$aigc.slug}</code></td>
+          <td class="text-center">{$aigc.type.format}</td>
+          <td class="m-none text-center">{$aigc.model_name}</td>
+          <td class="text-center"><a href="{url link='admin.aigc.field' app_id=$aigc.id}">{$lang.aigc_field_manage_link}</a></td>
+          <td class="text-center">
+           {if $aigc.is_free.value eq 1}
+           <span class="success">{$aigc.is_free.format}</span>
+           {else}
+           <span class="warning">{$aigc.is_free.format}</span>
+           {/if}
+          </td>
+          <td class="m-none text-center">
+           {if $aigc.is_public.value eq 1}
+           <span class="success">{$aigc.is_public.format}</span>
+           {else}
+           <span class="muted">{$aigc.is_public.format}</span>
+           {/if}
+          </td>
+          <td class="text-center">{$aigc.sort}</td>
+          <td class="text-center"><em class="link js-toggle status-pill" data-url="{url link='admin.tool.change_field' module='aigc' item_id=$aigc.id field='status'}" data-state="{if $aigc.status.value eq 1}on{else}off{/if}" data-text-on="{$lang.aigc_status_1}" data-text-off="{$lang.aigc_status_0}">{$aigc.status.format}</em></td>
+          <td class="text-center"><a href="{url link='admin.aigc.edit' id=$aigc.id}">{$lang.edit}</a> | <a href="javascript:;" class="js-delete" data-url="{url link='admin.aigc.destroy' id=$aigc.id}">{$lang.del}</a></td>
+         </tr>
+         <!-- {/foreach} -->
+        </table>
+        <div class="action">
+         <select class="select" name="action">
+          <option value="0">{$lang.select}</option>
+          <option value="del_all">{$lang.del}</option>
+         </select>
+         <input class="btn" type="submit" value="{$lang.btn_execute}" />
+        </div>
+       </form>
+      </div>
+      <div class="clear"></div>
+      {include file="inc/pager.tpl"}
+      <!-- {/if} -->
+      <!-- {if $rec eq 'create' || $rec eq 'edit'} 添加/编辑应用 -->
+      {include file="inc/page_header.tpl"}
+      <form action="{$form_action}" method="post"><!-- {if $form_method} --><input type="hidden" name="_method" value="{$form_method}" /><!-- {/if} -->
+       <div class="form">
+        <div class="form-item">
+         <div class="form-label">{$lang.aigc_name}</div>
+         <div class="input-block">
+          <input name="name" type="text" class="input" value="{$aigc.name}" />
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.aigc_slug}</div>
+         <div class="input-block">
+          <input name="slug" type="text" class="input" value="{$aigc.slug}" />
+          <p class="cue">{$lang.aigc_slug_cue}</p>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.aigc_type}</div>
+         <div class="input-block">
+          <select name="type" class="select" id="aigc-type">
+           <option value="chat" {if $aigc.type eq 'chat' || !$aigc.type}selected{/if}>{$lang.aigc_type_chat}</option>
+           <option value="image" {if $aigc.type eq 'image'}selected{/if}>{$lang.aigc_type_image}</option>
+           <option value="video" {if $aigc.type eq 'video'}selected{/if}>{$lang.aigc_type_video}</option>
+           <option value="audio" {if $aigc.type eq 'audio'}selected{/if}>{$lang.aigc_type_audio}</option>
+           <option value="ppt" {if $aigc.type eq 'ppt'}selected{/if}>{$lang.aigc_type_ppt}</option>
+           <option value="excel" {if $aigc.type eq 'excel'}selected{/if}>{$lang.aigc_type_excel}</option>
+          </select>
+          <p class="cue">{$lang.aigc_type_cue}</p>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.aigc_description}</div>
+         <div class="input-block">
+          <textarea name="description" class="textarea" cols="80" rows="3">{$aigc.description}</textarea>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.aigc_icon}</div>
+         <div class="input-block">
+          <input name="icon" type="text" class="input" value="{$aigc.icon}" size="50" />
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.aigc_cover_image}</div>
+         <div class="input-block">
+          <input name="cover_image" type="text" class="input" value="{$aigc.cover_image}" size="50" />
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.aigc_model}</div>
+         <div class="input-block">
+          <div class="transfer" data-dou-transfer data-name="model_ids[]">
+           <div class="transfer-box">
+            <div class="transfer-header">{$lang.aigc_model_available}</div>
+            <ul class="transfer-data">
+             <!-- {foreach from=$model_group_list item=group} -->
+             <li class="transfer-group">{$group.provider_name}</li>
+             <!-- {foreach from=$group.models item=model} -->
+             <li class="transfer-item"{if $model.selected} data-selected{/if}><label><input type="checkbox" value="{$model.id}" /><span>{$model.name}</span></label></li>
+             <!-- {/foreach} -->
+             <!-- {/foreach} -->
+            </ul>
+           </div>
+           <div class="transfer-box">
+            <div class="transfer-header">{$lang.aigc_model_selected}</div>
+            <ul class="transfer-data"></ul>
+           </div>
+          </div>
+          <p class="cue">{$lang.aigc_model_cue}</p>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.aigc_default_prompt}</div>
+         <div class="input-block">
+          <textarea name="default_prompt" class="textarea" cols="80" rows="5">{$aigc.default_prompt}</textarea>
+          <p class="cue">{$lang.aigc_default_prompt_cue}</p>
+         </div>
+        </div>
+        <div class="form-item" id="row-suggested-questions">
+         <div class="form-label">{$lang.aigc_suggested_questions}</div>
+         <div class="input-block">
+          <textarea name="suggested_questions" class="textarea" cols="80" rows="4">{$suggested_questions}</textarea>
+          <p class="cue">{$lang.aigc_suggested_questions_cue}</p>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.aigc_config}</div>
+         <div class="input-block">
+          <textarea name="config" class="textarea" cols="80" rows="3">{$aigc.config}</textarea>
+          <p class="cue">{$lang.aigc_config_cue}</p>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.aigc_fee_mode}</div>
+         <div class="input-block">
+          <label><input type="radio" name="is_free" value="0" {if $aigc.is_free neq 1}checked{/if} /> {$lang.aigc_is_free_0}</label>
+          <label><input type="radio" name="is_free" value="1" {if $aigc.is_free eq 1}checked{/if} /> {$lang.aigc_is_free_1}</label>
+          <p class="cue">{$lang.aigc_fee_mode_cue}</p>
+         </div>
+        </div>
+        <div class="form-item{if $aigc.is_free neq 1} hidden{/if}" id="row-free-limit">
+         <div class="form-label">{$lang.aigc_free_limit}</div>
+         <div class="input-block">
+          <select name="free_limit_type" class="select">
+           <option value="requests" {if $aigc.free_limit_type eq 'requests'}selected{/if}>{$lang.aigc_free_limit_type_requests}</option>
+           <option value="tokens" {if $aigc.free_limit_type eq 'tokens'}selected{/if}>{$lang.aigc_free_limit_type_tokens}</option>
+          </select>
+          <input name="free_limit_value" type="text" class="input" value="{$aigc.free_limit_value|default:0}" size="10" />
+          <p class="cue warning hidden" id="free-zero-warning">{$lang.aigc_free_zero_warning}</p>
+          <p class="cue">{$lang.aigc_free_limit_cue}</p>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.aigc_is_public}</div>
+         <div class="input-block">
+          <label><input type="radio" name="is_public" value="1" {if $aigc.is_public eq 1 || !$aigc}checked{/if} /> {$lang.aigc_is_public_1}</label>
+          <label><input type="radio" name="is_public" value="0" {if $aigc.is_public eq 0 && $aigc}checked{/if} /> {$lang.aigc_is_public_0}</label>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.aigc_sort}</div>
+         <div class="input-block">
+          <input name="sort" type="text" class="input" value="{$aigc.sort|default:0}" size="5" />
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.aigc_status}</div>
+         <div class="input-block">
+          <label><input type="radio" name="status" value="1" {if $aigc.status eq 1 || !$aigc}checked{/if} /> {$lang.aigc_status_1}</label>
+          <label><input type="radio" name="status" value="0" {if $aigc.status eq 0 && $aigc}checked{/if} /> {$lang.aigc_status_0}</label>
+         </div>
+        </div>
+        <div class="form-item">
+         <input type="hidden" name="token" value="{$token}" />
+         {if $rec eq 'edit'}<input type="hidden" name="id" value="{$aigc.id}" />{/if}
+         <input class="btn" type="submit" value="{$lang.btn_submit}" />
+        </div>
+       </div>
+      </form>
+      {literal}
+      <script>
+      (function () {
+        var radios = document.querySelectorAll('input[name="is_free"]');
+        var limitRow = document.getElementById('row-free-limit');
+        var valueInput = document.querySelector('input[name="free_limit_value"]');
+        var zeroWarning = document.getElementById('free-zero-warning');
+        if (!radios.length || !limitRow) {
+          return;
+        }
+        function applyFreeLimitVisibility() {
+          var checked = document.querySelector('input[name="is_free"]:checked');
+          limitRow.classList.toggle('hidden', !(checked && checked.value === '1'));
+        }
+        function applyFreeZeroWarning() {
+          if (!zeroWarning) {
+            return;
+          }
+          var checked = document.querySelector('input[name="is_free"]:checked');
+          var value = valueInput ? (parseInt(valueInput.value, 10) || 0) : 0;
+          zeroWarning.classList.toggle('hidden', !(checked && checked.value === '1' && value === 0));
+        }
+        radios.forEach(function (radio) {
+          radio.addEventListener('change', function () {
+            applyFreeLimitVisibility();
+            applyFreeZeroWarning();
+          });
+        });
+        if (valueInput) {
+          valueInput.addEventListener('input', applyFreeZeroWarning);
+        }
+        applyFreeLimitVisibility();
+        applyFreeZeroWarning();
+      })();
+      </script>
+      <script>
+      (function () {
+        // 推荐问题仅对文本对话类型有意义，切换类型时同步显隐
+        var typeSelect = document.getElementById('aigc-type');
+        var row = document.getElementById('row-suggested-questions');
+        if (!typeSelect || !row) {
+          return;
+        }
+        function applySuggestedVisibility() {
+          row.style.display = typeSelect.value === 'chat' ? '' : 'none';
+        }
+        typeSelect.addEventListener('change', applySuggestedVisibility);
+        applySuggestedVisibility();
+      })();
+      </script>
+      {/literal}
+      <!-- {/if} -->
+     </div>
+
+   </div>
+  </div>
+  {include file="inc/footer.tpl"}
+ </div>
+</body>
+</html>

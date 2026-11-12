@@ -39,14 +39,18 @@ $(function () {
   //      data-post='{"module":"product","item_id":5,"field":"status"}'
   //                                                  随请求提交的业务参数（JSON，可省略；参数走 URL 时无需）
   //      data-state="on|off"                         当前状态（on=1 显示/启用，off=0 隐藏/停用）
-  //      data-text-on / data-text-off                状态为 on/off 时本元素显示的文字
-  //      data-on-class / data-off-class              状态为 on/off 时本元素的 class（纯文字链接可省略）
+  //      data-text-on / data-text-off                状态为 on/off 时本元素显示的文字（可省略）
+  //      data-on-class / data-off-class              状态为 on/off 时本元素的 class（可省略）
   //      data-confirm-on / data-confirm-off          转为 on/off 前的确认文案（可省略，缺省不弹窗）
   //      ></a>
   //
+  //   状态药丸形态（.status-pill）是默认场景：内层双 span 与缺省文案由 initToggleDefaults()
+  //   自动补全（data-text-on/off 缺省为「显示/隐藏」），配色由 data-state 属性驱动，
+  //   因此只需 url + state + 当前文字，例如：
+  //   <em class="link js-toggle status-pill" data-url="..." data-state="on">显示</em>
+  //   显式配置同名 data-* 属性即可覆盖默认值（如需「是/否」等文案）。
+  //
   //   同一行内可放多个纯展示徽章 class="js-toggle-view"（text/class 属性同上，随状态一起翻转）；
-  //   「状态徽章即切换按钮」形态：单一元素同时带 js-toggle 与视图属性（如 product.htm 状态列、
-  //   ai_model.htm 供应商状态），可再配 title 提示可点击；
   //   所在 <tr> 可声明 data-off-row-class="row-disabled"（值为 off 时加类，整行灰显）。
   //   服务端：$request->wantsJson() 时返回 ApiResponse::success(['value' => 新值, ...], 文案)，
   //   可复用 BaseController::respondToggle()。参考：ai_model.htm 供应商启停、product.htm 状态列。
@@ -55,8 +59,11 @@ $(function () {
     return douToggle($(this));
   });
 
+  // 状态药丸按钮默认值补全（幂等；AJAX 插入的行在点击时还会再补一次）
+  initToggleDefaults();
+
   // 下拉菜单
-  var $dropMenu = $(".dropdown");
+  var $dropMenu = $('[data-dou-toggle="dropdown"]');
   if ($dropMenu.length) {
     $dropMenu.hover(
       function () {
@@ -240,17 +247,17 @@ $(function () {
     });
   });
 
-  // 单图控件：逐元素初始化逻辑见下方 initFileImage()，统一由 douFileImage.init() 调度。
+  // 单图控件：根标记 data-dou-file-image，由 douFileImage.init() 扫描调度。
   // 弹窗 / AJAX 局部刷新 / 元数据槽位动态插入后可再次调用 init(root)，
   // data-file-image-ready 标记保证同一容器只绑定一次。
   window.douFileImage = {
     init: function (root) {
       var scope = root || document;
       var nodes = [];
-      if (scope.nodeType === 1 && $(scope).hasClass("file-image")) {
+      if (scope.nodeType === 1 && scope.hasAttribute("data-dou-file-image")) {
         nodes.push(scope);
       }
-      var found = scope.querySelectorAll ? scope.querySelectorAll(".file-image") : [];
+      var found = scope.querySelectorAll ? scope.querySelectorAll("[data-dou-file-image]") : [];
       for (var i = 0; i < found.length; i++) {
         nodes.push(found[i]);
       }
@@ -281,7 +288,7 @@ $(function () {
     var draftToken = String(box.data("draft-token") || "");
     var draftLang = String(box.data("draft-lang") || "");
     var draftMode = draftUploadUrl !== "";
-    var $draftModal = box.closest(".dou-modal");
+    var $draftModal = box.closest("[data-dou-modal-dynamic]");
     var pendingDraftNumber = "";
     var draftUploadSeq = 0;
 
@@ -1134,6 +1141,48 @@ function douConfirm(message, onOk, title) {
 }
 
 /**
+ * 状态药丸按钮默认值补全（幂等）。
+ *
+ * 仅作用于 .status-pill，避免影响纯文字形态的 js-toggle：
+ * - 未配置 data-text-on/off 时按「显示/隐藏」填充；
+ * - 缺少内层 js-toggle-state/js-toggle-action 时，用现有文字重建双内层结构
+ *   （当前态文字优先取元素既有文字，动作文字取相反态文案）。
+ *
+ * @param {jQuery} [$el] 只补全该元素；省略时补全页面上所有 .status-pill
+ */
+function initToggleDefaults($el) {
+  var $items;
+  if ($el && $el.length) {
+    $items = $el.hasClass("status-pill") ? $el : $el.find(".status-pill");
+  } else {
+    $items = $(".status-pill");
+  }
+
+  $items.each(function () {
+    var $item = $(this);
+    var state = $item.data("state") === "off" ? "off" : "on";
+
+    if (!$item.data("text-on")) {
+      $item.data("text-on", lang("status_1", "显示"));
+    }
+    if (!$item.data("text-off")) {
+      $item.data("text-off", lang("status_0", "隐藏"));
+    }
+
+    if ($item.find(".js-toggle-state").length) {
+      return;
+    }
+
+    var current = $item.text().trim() || $item.data("text-" + state);
+    var action = $item.data(state === "on" ? "text-off" : "text-on");
+    $item
+      .empty()
+      .append($("<span></span>").addClass("js-toggle-state").text(current))
+      .append($("<span></span>").addClass("js-toggle-action").text(action));
+  });
+}
+
+/**
  +----------------------------------------------------------
  * 行内布尔切换（js-toggle 协议，协议声明见文件头部 $(function) 内注释）
  *
@@ -1143,6 +1192,8 @@ function douConfirm(message, onOk, title) {
  +----------------------------------------------------------
  */
 function douToggle($el) {
+  initToggleDefaults($el);
+
   var url = $el.data("url") || $el.attr("href");
   if (!url) {
     return false;
@@ -1205,7 +1256,8 @@ function douToggleApply($el, state) {
  * remove 仅作用于已声明的两侧类，避免误清其它 class。
  */
 function applyToggleState($el, state) {
-  $el.data("state", state);
+  // 同步 DOM 属性，供 .status-pill[data-state] 样式选择器即时换色（.data() 只写内存缓存）
+  $el.attr("data-state", state).data("state", state);
 
   var text = $el.data("text-" + state);
   var opposite = $el.data(state === "on" ? "text-off" : "text-on");
@@ -1853,38 +1905,38 @@ function fileBig(type, target, module, item_id, editor = "ueditor", draft_token 
 /**
  +----------------------------------------------------------
  * Tab 组件（Bootstrap data-api 风格）
- * 触发器标记 data-toggle="tab"，目标用 href="#id" 或 data-target="#id" 显式配对，
- * 导航条为 .tab .tab-nav（块状）或 .tab .tab-pills（胶囊），激活态落在 .nav-link，
- * 加载即生效、零使用处初始化；同页多实例以 .tab 容器隔离。
+ * 触发器标记 data-dou-toggle="tab"，目标用 href="#id" 或 data-dou-target="#id" 显式配对，
+ * 容器标记 data-dou-tab，导航条 .tab-nav/.tab-pills，激活态落在 .nav-link，
+ * 加载即生效、零使用处初始化；同页多实例以 data-dou-tab 容器隔离。
  +----------------------------------------------------------
  */
 function resolveTabTarget($trigger) {
   var href = $trigger.attr("href");
   if (href && href.charAt(0) === "#" && href.length > 1) return href;
-  var target = $trigger.attr("data-target");
+  var target = $trigger.attr("data-dou-target");
   if (target && target.charAt(0) === "#") return target;
   return null;
 }
 
-// 归属当前 .tab 容器（排除嵌套 .tab）的面板
+// 归属当前 data-dou-tab 容器（排除嵌套）的面板
 function ownTabPanes($root) {
   var root = $root.get(0);
   return $root.find(".tab-pane").filter(function () {
-    return $(this).closest(".tab").get(0) === root;
+    return $(this).closest("[data-dou-tab]").get(0) === root;
   });
 }
 
-// 归属当前 .tab 容器的切换触发器
+// 归属当前 data-dou-tab 容器的切换触发器
 function ownTabTriggers($root) {
   var root = $root.get(0);
   return $root
-    .find(".tab-nav [data-toggle='tab'], .tab-pills [data-toggle='tab']")
+    .find(".tab-nav [data-dou-toggle='tab'], .tab-pills [data-dou-toggle='tab']")
     .filter(function () {
-      return $(this).closest(".tab").get(0) === root;
+      return $(this).closest("[data-dou-tab]").get(0) === root;
     });
 }
 
-// 在指定 .tab 容器内按 id 激活面板（容器内定位，绝不全局查找）
+// 在指定 data-dou-tab 容器内按 id 激活面板（容器内定位，绝不全局查找）
 function activateTab($root, selector) {
   var $panes = ownTabPanes($root);
   var $panel = $panes.filter(selector);
@@ -1900,15 +1952,15 @@ function activateTab($root, selector) {
   $panel.addClass("active");
 }
 
-// 默认激活：markup 未给 active 时落到 data-tab-default 或第一个触发器
+// 默认激活：markup 未给 active 时落到 data-dou-tab-default 或第一个触发器
 function applyTabDefaults(context) {
-  $(".tab", context).each(function () {
+  $("[data-dou-tab]", context).each(function () {
     var $root = $(this);
     var $panes = ownTabPanes($root);
     if (!$panes.length) return; // 纯导航条：仅 CSS + 服务端高亮
     var $triggers = ownTabTriggers($root);
     if ($triggers.filter(".active").length && $panes.filter(".active").length) return;
-    var selector = $root.attr("data-tab-default");
+    var selector = $root.attr("data-dou-tab-default");
     if (!selector) {
       var $first = $triggers.first();
       selector = $first.length ? resolveTabTarget($first) : null;
@@ -1918,9 +1970,9 @@ function applyTabDefaults(context) {
 }
 
 // data-api：document 级委托，加载即生效，动态注入的 Tab 也能点
-$(document).on("click", ".tab .tab-nav [data-toggle='tab'], .tab .tab-pills [data-toggle='tab']", function (e) {
+$(document).on("click", "[data-dou-toggle='tab']", function (e) {
   var $trigger = $(this);
-  var $root = $trigger.closest(".tab");
+  var $root = $trigger.closest("[data-dou-tab]");
   var selector = resolveTabTarget($trigger);
   if (!selector) return; // 无 #目标：当普通链接放行
   if (!ownTabPanes($root).filter(selector).length) return; // 无对应面板：放行原生跳转
@@ -1942,11 +1994,11 @@ window.douTab = {
 };
 
 /**
- * 开关式 radio-group（.radio-group.radio-toggle）
+ * 开关式 radio-group（根标记 data-dou-toggle="radio"）
  * 任意位置点击都在 0/1 两态间切换，而不是固定点击左右半区；
  * 拦下 label 的默认激活，避免与原生选中叠加造成“切两次”回到原态。
  */
-$(document).on("click", ".radio-toggle", function (e) {
+$(document).on("click", '[data-dou-toggle="radio"]', function (e) {
   var $radios = $(this).find("input[type='radio']");
   if (!$radios.length) return;
   e.preventDefault();
@@ -1963,7 +2015,7 @@ $(document).on("click", ".radio-toggle", function (e) {
 (function (global, $) {
   "use strict";
 
-  var modalSel = ".dou-modal";
+  var modalSel = "[data-dou-modal-dynamic]"; // 模态根标记（壳恒为动态生成）
   var activeModal = null;
   var modalStack = [];
   var animationSpeed = 300;
@@ -2853,7 +2905,7 @@ $(document).on("click", ".radio-toggle", function (e) {
       if (kind === "checkbox") {
         return [];
       }
-      if (kind === "options") {
+      if (kind === "options" || kind === "slots") {
         return {};
       }
       return "";
@@ -2909,7 +2961,7 @@ $(document).on("click", ".radio-toggle", function (e) {
       return checkedValues || [];
     }
 
-    if (kind === "options") {
+    if (kind === "options" || kind === "slots") {
       var raw = draftReadName(target, $scope);
       if (!raw) {
         return {};
@@ -3054,7 +3106,7 @@ $(document).on("click", ".radio-toggle", function (e) {
       return;
     }
 
-    if (kind === "options") {
+    if (kind === "options" || kind === "slots") {
       var map = value && typeof value === "object" ? value : {};
       var hasOption = false;
       for (var key in map) {
@@ -3123,7 +3175,7 @@ $(document).on("click", ".radio-toggle", function (e) {
 
     if ($trigger.attr("data-draft-inherit")) {
       draftDisableMetadata($trigger);
-      var $field = draftElements($trigger.attr("data-draft-inherit"), $scope).closest(".metadata-field");
+      var $field = draftElements($trigger.attr("data-draft-inherit"), $scope).closest("[data-dou-metadata-field]");
       $field.find(".metadata-control").find("input, select, textarea").val("");
       $field.find(".metadata-control").find("input[type=checkbox], input[type=radio]").prop("checked", false);
       $field.find(".metadata-control").find("input[type=hidden]").val("");
@@ -3184,6 +3236,18 @@ $(document).on("click", ".radio-toggle", function (e) {
       });
       return map;
     }
+    if (kind === "slots") {
+      // 分区译文：只读固定 key 行，空值不写入覆盖 map
+      var slotMap = {};
+      $form.find(".draft-slot-input").each(function () {
+        var slot = $(this).attr("data-slot");
+        var text = $(this).val();
+        if (slot && text !== "") {
+          slotMap[slot] = text;
+        }
+      });
+      return slotMap;
+    }
     if (kind === "checkbox") {
       var values = [];
       $form.find('[name="value[]"]:checked').each(function () {
@@ -3216,6 +3280,32 @@ $(document).on("click", ".radio-toggle", function (e) {
         '<div class="form-label">' + escapeHtml(option) + "</div>" +
         '<div class="input-block"><input type="text" class="input draft-option-input" data-option="' +
         escapeHtml(option) + '" value="' + escapeHtml(value) + '" /></div>' +
+        "</div>";
+    }
+    return html;
+  }
+
+  function draftSlotRows($trigger, current, $scope) {
+    var $keys = $scope.find('input[name="slot_key[]"]');
+    var seen = {};
+    var html = "";
+    $keys.each(function () {
+      var slot = String($(this).val() || "").replace(/^\s+|\s+$/g, "").toLowerCase();
+      if (!slot || seen[slot]) {
+        return;
+      }
+      seen[slot] = true;
+      var value = current && current[slot] ? current[slot] : "";
+      html +=
+        '<div class="form-item">' +
+        '<div class="form-label">' + escapeHtml(slot) + "</div>" +
+        '<div class="input-block"><textarea class="textarea draft-slot-input" data-slot="' +
+        escapeHtml(slot) + '" rows="3">' + escapeHtml(value) + "</textarea></div>" +
+        "</div>";
+    });
+    if (!html) {
+      return '<div class="cue">' +
+        escapeHtml(typeof lang === "function" ? lang("slots_lang_empty") : "No slots") +
         "</div>";
     }
     return html;
@@ -3294,7 +3384,7 @@ $(document).on("click", ".radio-toggle", function (e) {
           ' data-draft-lang="' + escapeHtml($trigger.attr("data-lang") || "") + '"' +
           ' data-draft-token="' + escapeHtml($trigger.attr("data-token") || "") + '"';
         html =
-          '<div class="file-image' + (previewUrl ? " file-image-filled" : "") + '"' + draftAttrs + '>' +
+          '<div class="file-image' + (previewUrl ? " file-image-filled" : "") + '" data-dou-file-image' + draftAttrs + '>' +
           '<input type="hidden" class="file-number" name="draft_number" value="' + escapeHtml(number) + '" />' +
           '<div class="file-image-stage">' +
           '<label for="' + fileId + '" class="file-image-label">' +
@@ -3330,6 +3420,11 @@ $(document).on("click", ".radio-toggle", function (e) {
 
     if (kind === "options") {
       html = draftOptionRows($trigger, initial || {}, $scope);
+      return '<form class="dou-modal-lang-form dou-modal-lang-draft">' + html + "</form>";
+    }
+
+    if (kind === "slots") {
+      html = draftSlotRows($trigger, initial || {}, $scope);
       return '<form class="dou-modal-lang-form dou-modal-lang-draft">' + html + "</form>";
     }
 
@@ -4664,7 +4759,7 @@ $(document).on("click", ".radio-toggle", function (e) {
  * 穿梭框（.transfer）
  +----------------------------------------------------------
  * 左右双栏勾选互移的通用组件，布局参考 layui transfer。
- * 结构：容器内两个 .transfer-box（各含 .transfer-header 标题与 .transfer-data 列表），
+ * 结构：根容器标记 data-dou-transfer，内两个 .transfer-box（各含 .transfer-header 标题与 .transfer-data 列表），
  * 中间的 .transfer-active 按钮列由组件自动生成；列表项 .transfer-item 内含 checkbox
  * （value 为提交值），可穿插 .transfer-group 分组标题（组内项全部移至右栏时自动隐藏）。
  * 初始已选：左栏项标记 data-selected，初始化时自动移至右栏。
@@ -4777,10 +4872,22 @@ function initTransfer(elem) {
   });
 }
 
-$(function () {
-  $(".transfer").each(function () {
+// 根标记 data-dou-transfer 驱动初始化；douTransfer.init(root) 供 AJAX 局部刷新后重入
+function initTransferScope(root) {
+  var $scope = $(root || document);
+  var $roots = $scope.find("[data-dou-transfer]");
+  if ($scope.is("[data-dou-transfer]")) {
+    $roots = $roots.add($scope);
+  }
+  $roots.each(function () {
     initTransfer(this);
   });
+}
+
+window.douTransfer = { init: initTransferScope };
+
+$(function () {
+  initTransferScope(document);
 });
 
 /**
@@ -4798,11 +4905,11 @@ $(function () {
     $field.find(".metadata-control").find(".editor-class").attr("contenteditable", inherited ? "false" : "true");
   }
 
-  $(".metadata-fields .metadata-field").each(function () {
+  $("[data-dou-metadata-field]").each(function () {
     syncMetadataInherit($(this));
   });
 
   $(document).on("change", ".metadata-inherit", function () {
-    syncMetadataInherit($(this).closest(".metadata-field"));
+    syncMetadataInherit($(this).closest("[data-dou-metadata-field]"));
   });
 });

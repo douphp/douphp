@@ -1,0 +1,157 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+ <meta name="copyright" content="DouCo Co.,Ltd." />
+ <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+ <meta name="csrf-token" content="{$csrf_token}">
+ <title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+ <link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+ <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+ <link href="css/common.css" rel="stylesheet" type="text/css">
+ <link href="css/aigc.css" rel="stylesheet" type="text/css">
+ {include file="inc/javascript.tpl"}
+</head>
+
+<body>
+ <div id="dou"> {include file="inc/header.tpl"}
+  {include file="inc/sidebar.tpl"}
+  <div id="dou-content"> {include file="inc/toolbar.tpl"}
+   <div class="dou-main has-submenu">
+    {include file="inc/submenu.tpl"}
+    <div id="aigc-session" class="dou-page">
+      <!-- {if $rec eq 'default'} 会话列表 -->
+      {include file="inc/page_header.tpl"}
+      <div class="filter">
+       <form action="{url link='admin.aigc.session'}" method="get" onsubmit="return hideEmpty(this)">
+        <select name="app_id" class="select">
+         <option value="">{$lang.aigc}</option>
+         <!-- {foreach from=$app_options item=opt} -->
+         <option value="{$opt.id}" {if $req.app_id eq $opt.id}selected{/if}>{$opt.name}</option>
+         <!-- {/foreach} -->
+        </select>
+        <select name="status" class="select">
+         <option value="">{$lang.aigc_session_status}</option>
+         <option value="active" {if $req.status eq 'active'}selected{/if}>{$lang.aigc_session_status_active}</option>
+         <option value="closed" {if $req.status eq 'closed'}selected{/if}>{$lang.aigc_session_status_closed}</option>
+        </select>
+        <input type="text" name="username" class="input" value="{$req.username}" placeholder="{$lang.aigc_session_username}" />
+        <input type="text" name="keyword" class="input" value="{$req.keyword}" placeholder="{$lang.aigc_session_keyword}" />
+        <input class="btn-secondary" type="submit" value="{$lang.btn_filter}" />
+        <a class="btn-secondary" href="{url link='admin.aigc.session'}">{$lang.btn_reset}</a>
+       </form>
+      </div>
+      {if $user_not_found}
+      <p class="cue warning">{$lang.aigc_user_not_found}</p>
+      {/if}
+      <div id="list">
+       <form name="action" method="post" action="{url link='admin.aigc.session.action'}">
+        <input type="hidden" name="token" value="{$token}" />
+        <table class="table">
+         <tr>
+          <th width="22" class="text-center"><input name='chkall' type='checkbox' id='chkall' onclick='selectcheckbox(this.form)' value='check'></th>
+          <th class="m-none text-center" width="50">{$lang.record_id}</th>
+          <th class="text-left">{$lang.aigc_session_title}</th>
+          <th class="m-none text-center" width="110">{$lang.aigc_session_app}</th>
+          <th class="m-none text-center" width="100">{$lang.aigc_session_user}</th>
+          <th class="m-none text-center" width="60">{$lang.aigc_session_message_count}</th>
+          <th width="70" class="text-center">{$lang.aigc_session_status}</th>
+          <th class="m-none text-center" width="110">{$lang.aigc_session_last_active}</th>
+          <th width="100" class="text-center">{$lang.handler}</th>
+         </tr>
+         <!-- {foreach from=$session_list item=session} -->
+         <tr>
+          <td class="text-center"><input type="checkbox" name="checkbox[]" value="{$session.id}" /></td>
+          <td class="m-none text-center">{$session.id}</td>
+          <td>{$session.title}</td>
+          <td class="m-none text-center">{$session.app_name}</td>
+          <td class="m-none text-center">{$session.user.nickname}</td>
+          <td class="m-none text-center">{$session.message_count}</td>
+          <td class="text-center">
+           {if $session.status eq 'closed'}
+           <span class="muted">{$session.status_format.format}</span>
+           {else}
+           <span class="success">{$session.status_format.format}</span>
+           {/if}
+          </td>
+          <td class="m-none text-center">{$session.last_active_at}</td>
+          <td class="text-center"><a href="{url link='admin.aigc.session.show' id=$session.id}">{$lang.aigc_session_show}</a> | <a href="javascript:;" class="js-delete" data-url="{url link='admin.aigc.session.destroy' id=$session.id}">{$lang.del}</a></td>
+         </tr>
+         <!-- {/foreach} -->
+        </table>
+        <div class="action">
+         <select class="select" name="action">
+          <option value="0">{$lang.select}</option>
+          <option value="del_all">{$lang.del}</option>
+         </select>
+         <input class="btn" type="submit" value="{$lang.btn_execute}" />
+        </div>
+       </form>
+      </div>
+      <div class="clear"></div>
+      {include file="inc/pager.tpl"}
+      <!-- {/if} -->
+      <!-- {if $rec eq 'show'} 会话详情（只读） -->
+      {include file="inc/page_header.tpl"}
+      <table class="table aigc-session-meta">
+       <tr>
+        <td width="100">{$lang.aigc_session_title}：</td>
+        <td>{$session.title}</td>
+        <td width="80">{$lang.aigc_session_app}：</td>
+        <td>{$session.app_name}</td>
+       </tr>
+       <tr>
+        <td>{$lang.aigc_session_user}：</td>
+        <td>{$session.user.nickname}（{$session.ip}）</td>
+        <td>{$lang.aigc_session_status}：</td>
+        <td>{$session.status_format.format}</td>
+       </tr>
+       <tr>
+        <td>{$lang.aigc_session_message_count}：</td>
+        <td>{$session.message_count}</td>
+        <td>{$lang.aigc_session_last_active}：</td>
+        <td>{$session.last_active_at}</td>
+       </tr>
+      </table>
+      <div class="aigc-session-toolbar">
+       {if $session.status neq 'closed'}
+       <a class="btn-secondary js-post" href="{url link='admin.aigc.session.close' id=$session.id}">{$lang.aigc_session_close}</a>
+       {/if}
+      </div>
+      <div class="aigc-msg-pager aigc-session-toolbar">
+       {if $has_more}
+       <a class="btn-secondary" href="{url link='admin.aigc.session.show' id=$session.id before_id=$oldest_id}">{$lang.aigc_session_load_earlier}</a>
+       {/if}
+       {if $before_id > 0}
+       <a class="btn-secondary" href="{url link='admin.aigc.session.show' id=$session.id}">{$lang.aigc_session_back_latest}</a>
+       {/if}
+      </div>
+      <div class="aigc-workbench">
+       <div class="aigc-msg-box" id="aigc-msg-box">
+        <!-- {foreach from=$message_list item=msg} -->
+        <div class="aigc-msg role-{$msg.role}" data-message-id="{$msg.id}">
+         <div class="meta">{if $msg.role eq 'user'}{$lang.aigc_message_role_user}{elseif $msg.role eq 'ai'}{$lang.aigc_message_role_ai}{else}{$lang.aigc_message_role_system}{/if} · {$msg.created_at}{if $msg.feedback eq 1} · {$lang.aigc_feedback_up}{elseif $msg.feedback eq -1} · {$lang.aigc_feedback_down}{/if}</div>
+         <div class="bubble">{$msg.content|escape:'html'}</div>
+        </div>
+        <!-- {/foreach} -->
+       </div>
+      </div>
+      <script type="text/javascript">
+      {literal}
+      (function () {
+       var box = document.getElementById('aigc-msg-box');
+       if (box) box.scrollTop = box.scrollHeight;
+      })();
+      {/literal}
+      </script>
+      <!-- {/if} -->
+     </div>
+
+   </div>
+  </div>
+  {include file="inc/footer.tpl"}
+ </div>
+</body>
+</html>
+

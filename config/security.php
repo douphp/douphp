@@ -85,7 +85,7 @@ return [
             // 示例：['https://admin.example.com', 'http://localhost:5173', '*.example.com']
             'allowed_origins' => [],
             'allowed_methods' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-            'allowed_headers' => ['Content-Type', 'Authorization', 'X-HTTP-Method-Override', 'X-Requested-With'],
+            'allowed_headers' => ['Content-Type', 'Authorization', 'X-Chat-Visitor', 'X-HTTP-Method-Override', 'X-Requested-With'],
             'expose_headers' => ['Retry-After'],
             'max_age' => 86400,
             'credentials' => false,

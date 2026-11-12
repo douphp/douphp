@@ -1,0 +1,87 @@
+<!--pages/aigc/app.wxml AI应用生成-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="aigc-app-head">
+   <view class="aigc-app-title">{{app.name}}</view>
+   <view class="aigc-app-desc">{{app.description}}</view>
+  </view>
+
+  <view class="aigc-quota" wx:if="{{quota_status}}">
+   <block wx:if="{{quota_status.has_subscription}}">
+    <text>套餐：{{quota_status.package_name}}</text>
+    <text>剩余 {{quota_status.requests_remaining_format}} 次</text>
+   </block>
+   <block wx:else>
+    <text>免费应用按每日限额生成</text>
+    <text class="aigc-quota-link" bindtap="toPackage">购买套餐</text>
+   </block>
+  </view>
+
+  <form class="aigc-form" bindsubmit="onSubmit">
+   <block wx:for="{{fields}}" wx:key="slug" wx:for-item="field" wx:for-index="fi">
+    <view class="aigc-field">
+     <view class="aigc-field-label">
+      {{field.name}}<text class="aigc-required" wx:if="{{field.must_fill}}">*</text>
+     </view>
+
+     <textarea wx:if="{{field.type === 'textarea'}}" class="aigc-textarea" value="{{field.value}}" data-index="{{fi}}" bindinput="onInput" placeholder="{{field.placeholder}}" auto-height />
+
+     <input wx:elif="{{field.type === 'input' || field.type === 'number'}}" class="aigc-input" type="{{field.type === 'number' ? 'digit' : 'text'}}" value="{{field.value}}" data-index="{{fi}}" bindinput="onInput" placeholder="{{field.placeholder}}" />
+
+     <picker wx:elif="{{field.type === 'select'}}" range="{{field.options}}" range-key="label" value="{{field.index}}" data-index="{{fi}}" bindchange="onPickerChange">
+      <view class="aigc-picker">
+       <text>{{field.selected_label || '请选择'}}</text>
+       <text class="bi bi-chevron-down"></text>
+      </view>
+     </picker>
+
+     <radio-group wx:elif="{{field.type === 'radio'}}" data-index="{{fi}}" bindchange="onRadioChange">
+      <label class="aigc-option" wx:for="{{field.options}}" wx:key="value" wx:for-item="opt">
+       <radio value="{{opt.value}}" checked="{{opt.checked}}" color="#4a90e2" />{{opt.label}}
+      </label>
+     </radio-group>
+
+     <checkbox-group wx:elif="{{field.type === 'checkbox'}}" data-index="{{fi}}" bindchange="onCheckboxChange">
+      <label class="aigc-option" wx:for="{{field.options}}" wx:key="value" wx:for-item="opt">
+       <checkbox value="{{opt.value}}" checked="{{opt.checked}}" color="#4a90e2" />{{opt.label}}
+      </label>
+     </checkbox-group>
+
+     <view class="aigc-field-tip" wx:if="{{field.tip}}">{{field.tip}}</view>
+    </view>
+   </block>
+
+   <button class="aigc-submit" form-type="submit" loading="{{submitting}}" disabled="{{submitting}}">开始生成</button>
+  </form>
+
+  <view class="aigc-result" wx:if="{{submitting || result_files.length || error_message}}">
+   <view class="aigc-status" wx:if="{{submitting}}">
+    正在生成<text wx:if="{{task_status}}">（{{task_status}}）</text>...
+   </view>
+   <view class="aigc-error" wx:if="{{error_message}}">{{error_message}}</view>
+
+   <view class="aigc-files">
+    <block wx:for="{{result_files}}" wx:key="index" wx:for-item="file" wx:for-index="fi">
+     <image wx:if="{{app.type === 'image' && file.local_path}}" class="aigc-image" src="{{file.local_path}}" mode="widthFix" data-index="{{fi}}" bindtap="previewImage" />
+     <view wx:elif="{{app.type === 'image'}}" class="aigc-file-card">图片加载中...</view>
+
+     <video wx:elif="{{app.type === 'video' && file.local_path}}" class="aigc-video" src="{{file.local_path}}" controls />
+     <view wx:elif="{{app.type === 'video'}}" class="aigc-file-card">视频加载中...</view>
+
+     <view wx:elif="{{app.type === 'audio' && file.local_path}}" class="aigc-file-card" data-index="{{fi}}" bindtap="toggleAudio">
+      <text class="bi {{audio_playing ? 'bi-pause-circle' : 'bi-play-circle'}}"></text>
+      <text>{{audio_playing ? '暂停播放' : '播放音频'}}</text>
+     </view>
+     <view wx:elif="{{app.type === 'audio'}}" class="aigc-file-card">音频加载中...</view>
+
+     <view wx:else class="aigc-file-card">
+      <text class="bi bi-file-earmark-text"></text>
+      <text class="aigc-file-name">{{file.name}}</text>
+      <text class="aigc-file-open" data-index="{{fi}}" bindtap="openDocument">打开</text>
+     </view>
+    </block>
+   </view>
+  </view>
+ </view>
+</view>

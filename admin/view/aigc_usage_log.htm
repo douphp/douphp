@@ -1,0 +1,202 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+ <meta name="copyright" content="DouCo Co.,Ltd." />
+ <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+ <meta name="csrf-token" content="{$csrf_token}">
+ <title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+ <link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+ <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+ <link href="css/common.css" rel="stylesheet" type="text/css">
+ <link href="css/aigc.css" rel="stylesheet" type="text/css">
+ {include file="inc/javascript.tpl"}
+</head>
+
+<body>
+ <div id="dou"> {include file="inc/header.tpl"}
+  {include file="inc/sidebar.tpl"}
+  <div id="dou-content"> {include file="inc/toolbar.tpl"}
+   <div class="dou-main has-submenu">
+    {include file="inc/submenu.tpl"}
+    <div class="dou-page">
+      <!-- {if $rec eq 'default'} 用量日志列表 -->
+      {include file="inc/page_header.tpl"}
+      <div class="filter">
+       <form action="{url link='admin.aigc.usage_log'}" method="get" onsubmit="return hideEmpty(this)">
+        <select name="app_id" class="select">
+         <option value="">{$lang.aigc}</option>
+         <!-- {foreach from=$app_options item=opt} -->
+         <option value="{$opt.id}" {if $req.app_id eq $opt.id}selected{/if}>{$opt.name}</option>
+         <!-- {/foreach} -->
+        </select>
+        <input name="username" type="text" class="input" value="{$req.username}" size="15" placeholder="{$lang.aigc_usage_log_user}" />
+        <select name="provider_id" class="select">
+         <option value="">{$lang.aigc_usage_log_provider}</option>
+         <!-- {foreach from=$provider_list item=provider} -->
+         <option value="{$provider.id}" {if $req.provider_id eq $provider.id}selected{/if}>{$provider.name}</option>
+         <!-- {/foreach} -->
+        </select>
+        <select name="model_id" class="select">
+         <option value="">{$lang.aigc_usage_log_model}</option>
+         <!-- {foreach from=$model_list item=model} -->
+         <option value="{$model.id}" {if $req.model_id eq $model.id}selected{/if}>{$model.name}</option>
+         <!-- {/foreach} -->
+        </select>
+        <select name="has_error" class="select">
+         <option value="">{$lang.aigc_usage_log_has_error}</option>
+         <option value="1" {if $req.has_error eq '1'}selected{/if}>{$lang.aigc_usage_log_has_error_1}</option>
+         <option value="0" {if $req.has_error eq '0' && $req.has_error neq ''}selected{/if}>{$lang.aigc_usage_log_has_error_0}</option>
+        </select>
+        <input class="btn-secondary" type="submit" value="{$lang.btn_filter}" />
+        <a class="btn-secondary" href="{url link='admin.aigc.usage_log'}">{$lang.btn_reset}</a>
+       </form>
+      </div>
+      {if $user_not_found}
+      <p class="cue warning">{$lang.aigc_user_not_found}</p>
+      {/if}
+      <div id="list">
+       <form name="action" method="post" action="{url link='admin.aigc.usage_log.action'}">
+        <input type="hidden" name="token" value="{$token}" />
+        <table class="table">
+         <tr>
+          <th width="22" class="text-center"><input name='chkall' type='checkbox' id='chkall' onclick='selectcheckbox(this.form)' value='check'></th>
+          <th class="m-none text-center" width="50">{$lang.record_id}</th>
+          <th class="text-left">{$lang.aigc_usage_log_user}</th>
+          <th class="m-none text-center">{$lang.aigc_usage_log_app}</th>
+          <th class="m-none text-center" width="100">{$lang.aigc_usage_log_provider}</th>
+          <th width="120" class="text-center">{$lang.aigc_usage_log_model}</th>
+          <th class="m-none text-center" width="120">{$lang.aigc_usage_log_tokens}</th>
+          <th class="m-none text-center" width="70">{$lang.aigc_usage_log_duration}</th>
+          <th width="60" class="text-center">{$lang.aigc_usage_log_has_error}</th>
+          <th class="m-none text-center" width="130">{$lang.aigc_usage_log_created_at}</th>
+          <th width="80" class="text-center">{$lang.handler}</th>
+         </tr>
+         <!-- {foreach from=$log_list item=log} -->
+         <tr>
+          <td class="text-center"><input type="checkbox" name="checkbox[]" value="{$log.id}" /></td>
+          <td class="m-none text-center">{$log.id}</td>
+          <td>
+           {if $log.user.avatar}<img src="{$log.user.avatar}" width="20" height="20" class="aigc-user-avatar" />{/if}
+           {$log.user.nickname}
+          </td>
+          <td class="m-none text-center">{$log.app_name}</td>
+          <td class="m-none text-center">{$log.provider_name}</td>
+          <td class="text-center">{$log.model_name}</td>
+          <td class="m-none text-center"><small>{$log.prompt_tokens}+{$log.completion_tokens}={$log.total_tokens}</small></td>
+          <td class="m-none text-center">{if $log.duration}{$log.duration}ms{else}-{/if}</td>
+          <td class="text-center">
+           {if $log.has_error.value eq 1}
+           <span class="danger">{$log.has_error.format}</span>
+           {else}
+           <span class="success">{$log.has_error.format}</span>
+           {/if}
+          </td>
+          <td class="m-none text-center">{$log.created_at}</td>
+          <td class="text-center"><a href="{url link='admin.aigc.usage_log.show' id=$log.id}">{$lang.view}</a> | <a href="javascript:;" class="js-delete" data-url="{url link='admin.aigc.usage_log.destroy' id=$log.id}">{$lang.del}</a></td>
+         </tr>
+         <!-- {/foreach} -->
+        </table>
+        <div class="action">
+         <select class="select" name="action">
+          <option value="0">{$lang.select}</option>
+          <option value="del_all">{$lang.del}</option>
+         </select>
+         <input class="btn" type="submit" value="{$lang.btn_execute}" />
+        </div>
+       </form>
+      </div>
+      <div class="clear"></div>
+      {include file="inc/pager.tpl"}
+      <!-- {/if} -->
+      <!-- {if $rec eq 'show'} 用量日志详情 -->
+      {include file="inc/page_header.tpl"}
+      <div class="view">
+       <h4>{$lang.aigc_usage_log_basic_info}</h4>
+       <table class="table">
+        <tr>
+         <td width="120">{$lang.aigc_usage_log_user}：</td>
+         <td>
+          {if $log.user.avatar}<img src="{$log.user.avatar}" width="20" height="20" class="aigc-user-avatar" />{/if}
+          {$log.user.nickname}
+         </td>
+         <td width="120">{$lang.aigc_usage_log_created_at}：</td>
+         <td>{$log.created_at}</td>
+        </tr>
+        <tr>
+         <td>{$lang.aigc_usage_log_app}：</td>
+         <td>{$log.app_name}</td>
+         <td>{$lang.aigc_usage_log_session}：</td>
+         <td>{if $log.session_id}{$log.session_id}{else}-{/if}</td>
+        </tr>
+        <tr>
+         <td>{$lang.aigc_usage_log_provider}：</td>
+         <td>{$log.provider_name}</td>
+         <td>{$lang.aigc_usage_log_model}：</td>
+         <td>{$log.model_name}</td>
+        </tr>
+        <tr>
+         <td>{$lang.aigc_usage_log_has_error}：</td>
+         <td>
+          {if $log.has_error}
+          <span class="danger">{$log.has_error_format}</span>
+          {else}
+          <span class="success">{$log.has_error_format}</span>
+          {/if}
+         </td>
+         <td>{$lang.aigc_usage_log_status_code}：</td>
+         <td>{if $log.status_code}{$log.status_code}{else}-{/if}</td>
+        </tr>
+        {if $log.request_id}
+        <tr>
+         <td>{$lang.aigc_usage_log_request_id}：</td>
+         <td colspan="3"><code>{$log.request_id}</code></td>
+        </tr>
+        {/if}
+        {if $log.has_error && $log.error_message}
+        <tr>
+         <td>{$lang.aigc_usage_log_error_message}：</td>
+         <td colspan="3"><span class="danger">{$log.error_message}</span></td>
+        </tr>
+        {/if}
+       </table>
+       <h4>{$lang.aigc_usage_log_token_info}</h4>
+       <table class="table">
+        <tr>
+         <td width="120">{$lang.aigc_usage_log_prompt_tokens}：</td>
+         <td>{$log.prompt_tokens}</td>
+         <td width="120">{$lang.aigc_usage_log_completion_tokens}：</td>
+         <td>{$log.completion_tokens}</td>
+        </tr>
+        <tr>
+         <td>{$lang.aigc_usage_log_total_tokens}：</td>
+         <td>{$log.total_tokens}</td>
+         <td>{$lang.aigc_usage_log_duration}：</td>
+         <td>{if $log.duration}{$log.duration}ms{else}-{/if}</td>
+        </tr>
+        <tr>
+         <td>{$lang.aigc_usage_log_endpoint}：</td>
+         <td colspan="3">{if $log.endpoint}{$log.endpoint}{else}-{/if}</td>
+        </tr>
+        <tr>
+         <td>{$lang.aigc_usage_log_ip}：</td>
+         <td colspan="3">{if $log.ip}{$log.ip}{else}-{/if}</td>
+        </tr>
+       </table>
+       {if $log.metadata_formatted}
+       <h4>{$lang.aigc_usage_log_metadata}</h4>
+       <pre class="code">{$log.metadata_formatted}</pre>
+       {/if}
+      </div>
+      <!-- {/if} -->
+     </div>
+
+   </div>
+  </div>
+  {include file="inc/footer.tpl"}
+ </div>
+</body>
+
+</html>
+

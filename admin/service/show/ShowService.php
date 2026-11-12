@@ -23,6 +23,7 @@ use Dou\Core\Service\Attachment\AttachmentUploadOptions;
 use Dou\Core\Service\BaseService;
 use Dou\Core\Support\Arr;
 use Dou\Core\Support\Num;
+use Dou\Core\Support\Slots;
 use Dou\Core\Web\Http\UploadedFile;
 
 if (!defined('IN_DOUCO')) {
@@ -85,6 +86,9 @@ class ShowService extends BaseService
             'image' => '',
             'link' => '',
             'text' => '',
+            'slots' => '',
+            'slot_rows' => array(),
+            'content_mode' => 'text',
             'sort' => 50,
         );
     }
@@ -98,10 +102,20 @@ class ShowService extends BaseService
      */
     public function insert(array $data, $type)
     {
+        // 内容形式归一：text / slots 互斥，slots 模式下 text 强制清空
+        $slots = '';
+        $text = (string) Arr::get($data, 'text', '');
+        if (Arr::get($data, 'content_mode', 'text') === 'slots') {
+            $slots = Slots::fromRows(Arr::get($data, 'slot_key', array()), Arr::get($data, 'slot_value', array()));
+            $text = '';
+        }
+        $data['slots'] = $slots; // 供 languageDraftBegin 过滤译文 key
+
         $row = array(
             'name' => $data['name'],
             'link' => Arr::get($data, 'link', ''),
-            'text' => Arr::get($data, 'text', ''),
+            'text' => $text,
+            'slots' => $slots,
             'image' => '',
             'sort' => Num::toIntOrZero(Arr::get($data, 'sort', 0)),
             'type' => $type,
@@ -161,6 +175,15 @@ class ShowService extends BaseService
         }
 
         $adminId = (int) auth('admin')->id();
+        // 内容形式归一：text / slots 互斥，slots 模式下 text 强制清空
+        $slots = '';
+        $text = (string) Arr::get($data, 'text', '');
+        if (Arr::get($data, 'content_mode', 'text') === 'slots') {
+            $slots = Slots::fromRows(Arr::get($data, 'slot_key', array()), Arr::get($data, 'slot_value', array()));
+            $text = '';
+        }
+        $data['slots'] = $slots; // 供 languageDraftBegin 过滤译文 key
+
         $languagePlan = $this->languageDraftBegin('show', $data, $id, $adminId);
         $attributes = $show->getAttributes();
         $type = isset($attributes['type']) ? (string) $attributes['type'] : 'pc';
@@ -174,7 +197,8 @@ class ShowService extends BaseService
         $update_data = array(
             'name' => $data['name'],
             'link' => Arr::get($data, 'link', ''),
-            'text' => Arr::get($data, 'text', ''),
+            'text' => $text,
+            'slots' => $slots,
             'sort' => Num::toIntOrZero(Arr::get($data, 'sort', 0)),
         );
 
@@ -232,6 +256,11 @@ class ShowService extends BaseService
         $show = $model->getAttributes();
         $show['file_number'] = $show['image'];
         $show['image'] = attachment()->url($show['image']);
+
+        // 分区文本编辑态：有 key 即 slots 模式，行列表供表单渲染
+        $rawSlots = isset($show['slots']) ? $show['slots'] : '';
+        $show['slot_rows'] = Slots::toRows($rawSlots);
+        $show['content_mode'] = Slots::hasKeys($rawSlots) ? 'slots' : 'text';
 
         return $show;
     }

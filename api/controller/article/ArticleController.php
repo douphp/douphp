@@ -121,5 +121,4 @@ class ArticleController extends BaseController
 
         return ApiResponse::success($data);
     }
-
 }

@@ -231,7 +231,7 @@ class Cors
             'enabled' => false,
             'allowed_origins' => array(),
             'allowed_methods' => array('GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'),
-            'allowed_headers' => array('Content-Type', 'Authorization', 'X-HTTP-Method-Override', 'X-Requested-With'),
+            'allowed_headers' => array('Content-Type', 'Authorization', 'X-Chat-Visitor', 'X-HTTP-Method-Override', 'X-Requested-With'),
             'expose_headers' => array('Retry-After'),
             'max_age' => 86400,
             'credentials' => false,

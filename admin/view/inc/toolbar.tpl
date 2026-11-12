@@ -3,7 +3,7 @@
 <!-- {else} -->
 <div class="dou-toolbar">
  <ul>
-  <li class="dropdown"><a href="JavaScript:void(0);"><i class="bi bi-plus-lg"></i><em>{$lang.top_create}</em></a>
+  <li class="dropdown" data-dou-toggle="dropdown"><a href="JavaScript:void(0);"><i class="bi bi-plus-lg"></i><em>{$lang.top_create}</em></a>
    <div class="dropdown-menu">
     <a href="{url link='admin.nav.create'}">{$lang.top_add_nav}</a>
     <!-- {foreach from=$workspace.menu_column item=menu} -->

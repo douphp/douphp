@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <meta name="keywords" content="{$keywords}" />
+ <meta name="description" content="{$description}" />
+ <meta name="generator" content="{$generator}" />
+ <meta name="csrf-token" content="{$csrf_token}">
+ <title>{$page_title}</title>
+ <link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+ <link href="css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+ <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css" />
+ <link href="css/common.css" rel="stylesheet" type="text/css" />
+ <link href="css/style.css" rel="stylesheet" type="text/css" />
+ <link href="css/aigc.css" rel="stylesheet" type="text/css" />
+ {include file="inc/code_head.tpl"}
+</head>
+
+<body>
+ <div id="wrapper">
+  {include file="inc/header.tpl"}
+  <div class="container aigc-page">
+   <div class="aigc-app-head">
+    <div>
+     <h1>{$app.name}</h1>
+     <p class="cue">{$app.description}</p>
+    </div>
+    <div class="aigc-app-links">
+     <a href="{$works_url}">{$lang.aigc_works}</a>
+     <a href="{$package_url}">{$lang.aigc_package}</a>
+    </div>
+   </div>
+
+   <div class="aigc-quota">
+    <span>{$lang.aigc_quota_status}</span>
+    <span>{$lang.aigc_quota_requests}: {if $quota_status.requests_limit > 0}{$quota_status.requests_remaining_format} / {$quota_status.requests_limit_format}{else}{$lang.aigc_quota_unlimited}{/if}</span>
+    <span>{$lang.aigc_quota_tokens}: {if $quota_status.tokens_limit > 0}{$quota_status.tokens_remaining_format} / {$quota_status.tokens_limit_format}{else}{$lang.aigc_quota_unlimited}{/if}</span>
+   </div>
+
+   <form class="aigc-form" action="{$submit_url}" method="post" data-aigc-form data-type="{$app.type}" data-slug="{$app.slug}" data-submit-url="{$submit_url}" data-poll-url="{$poll_url}" data-file-url="{$file_url}">
+    <input type="hidden" name="slug" value="{$app.slug}" />
+    {if $field_list}
+    {foreach from=$field_list item=field}
+    <div class="aigc-field">
+     <label>{$field.name}{if $field.must_fill}<span class="aigc-required">*</span>{/if}</label>
+     {if $field.type eq 'textarea'}
+     <textarea name="fields[{$field.slug}]" rows="4" placeholder="{$field.placeholder}" {if $field.must_fill}required{/if}>{$field.default_value}</textarea>
+     {elseif $field.type eq 'number'}
+     <input type="number" name="fields[{$field.slug}]" value="{$field.default_value}" placeholder="{$field.placeholder}" {if $field.must_fill}required{/if}>
+     {elseif $field.type eq 'select'}
+     <select name="fields[{$field.slug}]" {if $field.must_fill}required{/if}>
+      {foreach from=$field.options item=opt}
+      <option value="{$opt.value}" {if $opt.selected}selected{/if}>{$opt.label}</option>
+      {/foreach}
+     </select>
+     {elseif $field.type eq 'radio'}
+     <div class="aigc-options">
+      {foreach from=$field.options item=opt}
+      <label class="aigc-option"><input type="radio" name="fields[{$field.slug}]" value="{$opt.value}" {if $opt.selected}checked{/if}> {$opt.label}</label>
+      {/foreach}
+     </div>
+     {elseif $field.type eq 'checkbox'}
+     <div class="aigc-options">
+      {foreach from=$field.options item=opt}
+      <label class="aigc-option"><input type="checkbox" name="fields[{$field.slug}][]" value="{$opt.value}"> {$opt.label}</label>
+      {/foreach}
+     </div>
+     {else}
+     <input type="text" name="fields[{$field.slug}]" value="{$field.default_value}" placeholder="{$field.placeholder}" {if $field.must_fill}required{/if}>
+     {/if}
+     {if $field.tip}<p class="cue">{$field.tip}</p>{/if}
+    </div>
+    {/foreach}
+    {else}
+    <label>{if $app.type eq 'audio'}{$lang.aigc_text}{else}{$lang.aigc_prompt}{/if}</label>
+    <textarea name="{if $app.type eq 'audio'}text{else}prompt{/if}" rows="4" required></textarea>
+    {/if}
+    <button type="submit" class="btn btn-primary">{$lang.aigc_submit}</button>
+   </form>
+
+   <div class="aigc-result" id="aigcResult"></div>
+  </div>
+  {include file="inc/footer.tpl"}
+ </div>
+ {include file="inc/code_footer.tpl"}
+ <script src="js/bootstrap.min.js"></script>
+ <script src="js/dou.js"></script>
+ <script src="js/aigc.js"></script>
+</body>
+
+</html>

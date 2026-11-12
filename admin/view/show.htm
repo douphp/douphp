@@ -18,7 +18,7 @@
  <div id="dou"> {include file="inc/header.tpl"}
   {include file="inc/sidebar.tpl"}
   <div id="dou-content"> {include file="inc/toolbar.tpl"}
-   <div class="dou-main has-subnav">
+   <div class="dou-main has-submenu">
     {include file="inc/submenu.tpl"}
     <div class="dou-page">
      {include file="inc/page_header.tpl"}
@@ -52,12 +52,27 @@
               <span class="action" data-field="link">{$btn_lang.link nofilter}</span>
              </div>
             </div>
-            <div class="form-item">
-             <div class="form-label">{$lang.show_text}</div>
-             <div class="input-block">
-              <textarea name="text" cols="50" rows="4" class="textarea">{$show.text}</textarea>
-              <p class="action" data-field="text">{$btn_lang.text nofilter}</p>
+            <div class="slots-tab" data-dou-tab id="show-content-tabs" data-dou-tab-default="{if $show.content_mode eq 'slots'}#show-content-slots{else}#show-content-text{/if}">
+             <div class="form-item">
+              <div class="form-label">
+               <ul class="tab-nav">
+                <li class="nav-item"><a class="nav-link" href="#show-content-text" data-dou-toggle="tab">{$lang.show_text}</a></li>
+                <li class="nav-item"><a class="nav-link" href="#show-content-slots" data-dou-toggle="tab">{$lang.slots_mode_slots}</a></li>
+               </ul>
+              </div>
+              <div class="tab-content">
+               <div class="tab-pane" id="show-content-text">
+                <div class="input-block">
+                 <textarea name="text" cols="50" rows="4" class="textarea">{$show.text}</textarea>
+                 <p class="action" data-field="text">{$btn_lang.text nofilter}</p>
+                </div>
+               </div>
+               <div class="tab-pane" id="show-content-slots" data-slots-pane>
+                {include file="inc/slots_field.tpl" rows=$show.slot_rows cue=$lang.show_slots_cue locked="0"}
+               </div>
+              </div>
              </div>
+             <input type="hidden" name="content_mode" value="{$show.content_mode}" />
             </div>
             <div class="form-item">
              <div class="form-label">{$lang.sort}</div>
@@ -109,6 +124,7 @@
   {include file="inc/footer.tpl"}
  </div>
 <script type="text/javascript" src="js/cropper.min.js"></script>
+<script type="text/javascript" src="js/slots.js"></script>
 </body>
 
 </html>

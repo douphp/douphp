@@ -176,7 +176,7 @@ class NavController extends BaseController
     /**
      * 页面级导航契约：默认走中央解析；api 签名下复刻旧 sub_cur='miniprogram_nav' 的抑制。
      *
-     * 旧行为：api 端导航页不渲染子菜单（miniprogram.htm 不加 has-subnav）且侧栏不高亮。
+     * 旧行为：api 端导航页不渲染子菜单（miniprogram.htm 不加 has-submenu）且侧栏不高亮。
      *
      * @return array
      */

@@ -1,0 +1,146 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+ <meta name="copyright" content="DouCo Co.,Ltd." />
+ <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+ <meta name="csrf-token" content="{$csrf_token}">
+ <title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+ <link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+ <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+ <link href="css/common.css" rel="stylesheet" type="text/css">
+ <link href="css/aigc.css" rel="stylesheet" type="text/css">
+ {include file="inc/javascript.tpl"}
+</head>
+
+<body>
+ <div id="dou"> {include file="inc/header.tpl"}
+  {include file="inc/sidebar.tpl"}
+  <div id="dou-content"> {include file="inc/toolbar.tpl"}
+   <div class="dou-main has-submenu">
+    {include file="inc/submenu.tpl"}
+    <div class="dou-page">
+      <!-- {if $rec eq 'default'} 任务列表 -->
+      {include file="inc/page_header.tpl"}
+      <div class="filter">
+       <form action="{url link='admin.aigc.task'}" method="get" onsubmit="return hideEmpty(this)">
+        <select name="status" class="select">
+         <option value="">{$lang.aigc_task_status_all}</option>
+         <option value="pending" {if $req.status eq 'pending'}selected{/if}>{$lang.aigc_task_status_pending}</option>
+         <option value="running" {if $req.status eq 'running'}selected{/if}>{$lang.aigc_task_status_running}</option>
+         <option value="succeeded" {if $req.status eq 'succeeded'}selected{/if}>{$lang.aigc_task_status_succeeded}</option>
+         <option value="failed" {if $req.status eq 'failed'}selected{/if}>{$lang.aigc_task_status_failed}</option>
+         <option value="timeout" {if $req.status eq 'timeout'}selected{/if}>{$lang.aigc_task_status_timeout}</option>
+        </select>
+        <select name="task_type" class="select">
+         <option value="">{$lang.aigc_task_type_all}</option>
+         <option value="image" {if $req.task_type eq 'image'}selected{/if}>{$lang.aigc_task_type_image}</option>
+         <option value="video" {if $req.task_type eq 'video'}selected{/if}>{$lang.aigc_task_type_video}</option>
+         <option value="audio" {if $req.task_type eq 'audio'}selected{/if}>{$lang.aigc_task_type_audio}</option>
+         <option value="ppt" {if $req.task_type eq 'ppt'}selected{/if}>{$lang.aigc_task_type_ppt}</option>
+         <option value="excel" {if $req.task_type eq 'excel'}selected{/if}>{$lang.aigc_task_type_excel}</option>
+        </select>
+        <input class="btn-secondary" type="submit" value="{$lang.btn_filter}" />
+        <a class="btn-secondary" href="{url link='admin.aigc.task'}">{$lang.btn_reset}</a>
+       </form>
+      </div>
+      <div id="list">
+       <table class="table">
+        <tr>
+         <th class="text-center" width="50">{$lang.record_id}</th>
+         <th class="text-center">{$lang.aigc_task_user}</th>
+         <th class="m-none text-center">{$lang.aigc_task_app}</th>
+         <th class="m-none text-start">{$lang.aigc_task_provider}</th>
+         <th class="text-center">{$lang.aigc_task_model}</th>
+         <th class="m-none text-center" width="80">{$lang.aigc_task_type}</th>
+         <th class="text-center" width="90">{$lang.aigc_task_status}</th>
+         <th class="m-none text-center">{$lang.aigc_task_result}</th>
+         <th class="m-none text-center" width="140">{$lang.aigc_task_created_at}</th>
+         <th width="100" class="text-center">{$lang.handler}</th>
+        </tr>
+        <!-- {foreach from=$task_list item=task} -->
+        <tr>
+         <td class="text-center">{$task.id}</td>
+         <td class="text-center">
+          {if $task.user}
+          {if $task.user.avatar}<img src="{$task.user.avatar}" width="20" height="20" class="aigc-user-avatar" />{/if}
+          {$task.user.nickname}
+          {else}--{/if}
+         </td>
+         <td class="m-none text-center">{$task.app_name}</td>
+         <td class="m-none text-start">{$provider_names[$task.provider_id]}</td>
+         <td class="text-center">{$model_names[$task.model_id]}</td>
+         <td class="m-none text-center">{$task.task_type_format}</td>
+         <td class="text-center">
+          {if $task.status eq 'succeeded'}<span class="success">{$task.status_format}</span>
+          {elseif $task.status eq 'failed' || $task.status eq 'timeout'}<span class="danger" title="{$task.error}">{$task.status_format}</span>
+          {else}<span class="notice">{$task.status_format}</span>{/if}
+         </td>
+         <td class="m-none text-center"><small>{$task.result_summary}</small></td>
+         <td class="m-none text-center">{$task.created_at}</td>
+         <td class="text-center"><a href="{url link='admin.aigc.task.show' id=$task.id}">{$lang.view}</a> | <a href="javascript:;" class="js-delete" data-url="{url link='admin.aigc.task.destroy' id=$task.id}">{$lang.del}</a></td>
+        </tr>
+        <!-- {/foreach} -->
+       </table>
+      </div>
+      <div class="clear"></div>
+      {include file="inc/pager.tpl"}
+      <!-- {/if} -->
+      <!-- {if $rec eq 'show'} 任务详情 -->
+      {include file="inc/page_header.tpl"}
+      <div class="view">
+       <h4>{$lang.aigc_task_basic_info}</h4>
+       <table class="table">
+        <tr>
+         <td width="120">{$lang.record_id}：</td>
+         <td>{$task.id}</td>
+         <td width="120">{$lang.aigc_task_user}：</td>
+         <td>{if $task.user}{$task.user.nickname}{else}--{/if}</td>
+        </tr>
+        <tr>
+         <td>{$lang.aigc_task_app}：</td>
+         <td>{$task.app_name}</td>
+         <td>{$lang.aigc_task_type}：</td>
+         <td>{$task.task_type_format}</td>
+        </tr>
+        <tr>
+         <td>{$lang.aigc_task_provider}：</td>
+         <td>{$task.provider_name}</td>
+         <td>{$lang.aigc_task_model}：</td>
+         <td>{$task.model_name}</td>
+        </tr>
+        <tr>
+         <td>{$lang.aigc_task_status}：</td>
+         <td>{$task.status_format}</td>
+         <td>{$lang.aigc_task_created_at}：</td>
+         <td>{$task.created_at}</td>
+        </tr>
+        <tr>
+         <td>{$lang.aigc_task_updated_at}：</td>
+         <td colspan="3">{$task.updated_at}</td>
+        </tr>
+       </table>
+       {if $task.error}
+       <h4>{$lang.aigc_task_error}</h4>
+       <pre class="code">{$task.error}</pre>
+       {/if}
+       {if $task.request_payload_formatted}
+       <h4>{$lang.aigc_task_request_payload}</h4>
+       <pre class="code">{$task.request_payload_formatted}</pre>
+       {/if}
+       {if $task.result_formatted}
+       <h4>{$lang.aigc_task_result}</h4>
+       <pre class="code">{$task.result_formatted}</pre>
+       {/if}
+      </div>
+      <!-- {/if} -->
+     </div>
+
+   </div>
+  </div>
+  {include file="inc/footer.tpl"}
+ </div>
+</body>
+
+</html>

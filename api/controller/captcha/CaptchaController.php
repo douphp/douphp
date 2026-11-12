@@ -101,6 +101,7 @@ class CaptchaController extends BaseController
             'ontime' => isset($data['ontime']) ? (int) $data['ontime'] : 0,
             'code' => isset($data['code']) ? (string) $data['code'] : '',
             'type' => $data['type'],
+            'purpose' => (string) $request->post('check', 'no_allow_phone_exist') === 'no_allow_phone_exist' ? 'register' : 'login',
         ));
         if ($data['sig'] === '') {
             return ApiResponse::error(ApiCodes::SERVER_ERROR, lang('operation_failed', '操作失败，请重试'), array(), 500);

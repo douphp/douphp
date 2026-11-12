@@ -1,0 +1,35 @@
+<!--pages/aigc/package.wxml AI套餐-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="aigc-quota-card" wx:if="{{quota_status && quota_status.has_subscription}}" bindtap="toUser">
+   <view class="aigc-quota-head">
+    <text class="name">{{quota_status.package_name}}</text>
+    <text class="expires">{{quota_status.expires_format}}</text>
+   </view>
+   <view class="aigc-quota-stats">
+    <view class="stat"><view class="label">剩余次数</view><view class="value">{{quota_status.requests_remaining_format}}</view></view>
+    <view class="stat"><view class="label">剩余 Tokens</view><view class="value">{{quota_status.tokens_remaining_format}}</view></view>
+   </view>
+  </view>
+
+  <view class="aigc-package-list">
+   <view class="aigc-package" wx:for="{{package_list}}" wx:key="id" wx:for-item="item">
+    <view class="aigc-package-head">
+     <view class="name">{{item.name}}</view>
+     <view class="price">{{item.price}}<text class="unit">/{{item.day}}天</text></view>
+    </view>
+    <view class="aigc-package-features">
+     <view class="feature"><text class="label">Tokens限额</text><text class="value">{{item.tokens_limit_format}}</text></view>
+     <view class="feature"><text class="label">请求次数</text><text class="value">{{item.requests_limit_format}}</text></view>
+     <view class="feature"><text class="label">有效期</text><text class="value">{{item.day}}天</text></view>
+    </view>
+    <view class="aigc-package-content" wx:if="{{item.content.length}}">
+     <view wx:for="{{item.content}}" wx:key="*this" wx:for-item="line">{{line}}</view>
+    </view>
+    <view class="aigc-package-action" data-item-id="{{item.id}}" bindtap="addToCart">立即购买</view>
+   </view>
+   <view class="aigc-empty" wx:if="{{!package_list.length}}">暂无可用套餐</view>
+  </view>
+ </view>
+</view>

@@ -14,6 +14,7 @@
  <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css" />
  <!-- {if $editor_mode} -->
  <link href="css/jquery.notebook.min.css" rel="stylesheet" />
+ <link href="css/jquery_notebook.css" rel="stylesheet" />
  <!-- {/if} -->
  <link href="css/common.css" rel="stylesheet" type="text/css" />
  <link href="css/style.css" rel="stylesheet" type="text/css" />

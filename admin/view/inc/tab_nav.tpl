@@ -2,7 +2,7 @@
 <!-- {if $tabs && $tabs.items} -->
 <ul class="tab-nav">
  <!-- {foreach from=$tabs.items item=item} -->
- <li class="nav-item"><a class="nav-link{if $item.is_active} active{/if}" href="{$item.url}"<!-- {if $item.is_anchor} --> data-toggle="tab"<!-- {/if} -->>{$item.name}</a></li>
+ <li class="nav-item"><a class="nav-link{if $item.is_active} active{/if}" href="{$item.url}"<!-- {if $item.is_anchor} --> data-dou-toggle="tab"<!-- {/if} -->>{$item.name}</a></li>
  <!-- {/foreach} -->
 </ul>
 <!-- {/if} -->

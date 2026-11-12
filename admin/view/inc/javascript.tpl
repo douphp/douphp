@@ -15,6 +15,7 @@
 <script type="text/javascript" src="js/file.uploader.js"></script>
 <script type="text/javascript" src="js/update.badge.js"></script>
 <script type="text/javascript" src="js/dou.toast.js"></script>
+<script type="text/javascript" src="js/list.enhance.js"></script>
 <script type="text/javascript" src="js/browser-md5-file.min.js"></script>
 <script>var cur = "{$nav.sidebar_active_id}";</script>
 <!-- {if $ai_config} -->

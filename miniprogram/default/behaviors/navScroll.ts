@@ -21,15 +21,24 @@
  * 可通过 data.navScrollDistance 调整触发阈值（默认 300px）：
  * 滚动未达阈值时完全透明，达到或超过后直接全显（无渐变过程）
  */
-export const navScrollBehavior = Behavior({
+type NavScrollData = { navOpacity: number; navScrollDistance: number }
+type NavScrollMethods = {
+  updateNavOpacity(e: WechatMiniprogram.Page.IPageScrollOption): void
+}
+type NavScrollInstance = WechatMiniprogram.Behavior.Instance<NavScrollData, {}, NavScrollMethods, []>
+
+// 本地 SDK 类型未声明页面级滚动回调，在本行为配置中明确补齐。
+const navScrollOptions: WechatMiniprogram.Behavior.Options<NavScrollData, {}, NavScrollMethods, []> & {
+  onPageScroll(this: NavScrollInstance, e: WechatMiniprogram.Page.IPageScrollOption): void
+} = {
   data: {
     navOpacity: 0, // 导航栏背景透明度，仅 0（透明）或 1（全显）
     navScrollDistance: 80, // 触发全显的滚动阈值（px）
   },
 
   // 页面生命周期须放在 Behavior 根级，才会与 Page 生命周期链式合并
-  onPageScroll(e: { scrollTop: number }) {
-    ;(this as any).updateNavOpacity(e)
+  onPageScroll(this: NavScrollInstance, e: WechatMiniprogram.Page.IPageScrollOption) {
+    this.updateNavOpacity(e)
   },
 
   methods: {
@@ -38,14 +47,16 @@ export const navScrollBehavior = Behavior({
      *
      * @param e 页面滚动事件
      */
-    updateNavOpacity(e: { scrollTop: number }) {
+    updateNavOpacity(this: NavScrollInstance, e: WechatMiniprogram.Page.IPageScrollOption) {
       const scrollTop = e && typeof e.scrollTop === 'number' ? e.scrollTop : 0
-      const configured = Number((this as any).data.navScrollDistance)
+      const configured = Number(this.data.navScrollDistance)
       const threshold = configured > 0 ? configured : 80
       const opacity = scrollTop >= threshold ? 1 : 0
-      if (opacity !== (this as any).data.navOpacity) {
-        ;(this as any).setData({ navOpacity: opacity })
+      if (opacity !== this.data.navOpacity) {
+        this.setData({ navOpacity: opacity })
       }
     },
   },
-})
+}
+
+export const navScrollBehavior = Behavior(navScrollOptions)

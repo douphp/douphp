@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <meta name="keywords" content="{$keywords}" />
+ <meta name="description" content="{$description}" />
+ <meta name="generator" content="{$generator}" />
+ <meta name="csrf-token" content="{$csrf_token}">
+ <title>{$page_title}</title>
+ <link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+ <link href="css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+ <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css" />
+ <link href="css/common.css" rel="stylesheet" type="text/css" />
+ <link href="css/style.css" rel="stylesheet" type="text/css" />
+ <link href="css/aigc.css" rel="stylesheet" type="text/css" />
+ {include file="inc/code_head.tpl"}
+</head>
+
+<body>
+ <div id="wrapper">
+  {include file="inc/header.tpl"}
+  <div id="aigcChat" class="container-fluid">
+   <div id="aigcChatApp" data-app-id="{$app.id}" data-slug="{$app.slug}" data-models='{$models_json}' data-session-sn="" data-label-error="{$lang.aigc_error_generic}" data-group-today="{$lang.aigc_session_group_today}" data-group-week="{$lang.aigc_session_group_week}" data-group-earlier="{$lang.aigc_session_group_earlier}">
+    <div class="aigc-chat-container">
+     <div class="aigc-chat-sidebar">
+      <div class="aigc-chat-sidebar-header">
+       <button class="aigc-chat-new-btn" @click="new_session"><i class="bi bi-plus-lg"></i> {$lang.aigc_new_session}</button>
+      </div>
+      <div class="aigc-chat-sessions">
+       {literal}
+       <div v-for="session in sessions" :key="session.session_sn" :class="['aigc-chat-session', { active: current_session && session.session_sn == current_session.session_sn }]" @click="switch_session(session.session_sn)">
+        <span class="aigc-chat-session-title" :title="session.title">{{ session.title }}</span>
+       </div>
+       {/literal}
+      </div>
+      <div class="aigc-chat-sidebar-footer">
+       <a href="{$works_url}"><i class="bi bi-collection"></i> {$lang.aigc_works}</a>
+       <a href="{$package_url}"><i class="bi bi-gem"></i> {$lang.aigc_package}</a>
+      </div>
+     </div>
+     <div class="aigc-chat-main">
+      <div class="aigc-chat-header">
+       <div class="aigc-chat-header-left">
+        <span class="app-title">{$app.name}</span>
+        {literal}
+        <select v-if="Object.keys(available_models).length > 1" v-model="selected_model" @change="on_model_change" class="aigc-chat-model-select">
+         <option v-for="(name, key) in available_models" :key="key" :value="key">{{ name }}</option>
+        </select>
+        {/literal}
+       </div>
+       <div class="aigc-chat-header-right">
+        <span class="aigc-chat-quota">{$lang.aigc_quota_requests}: {if $quota_status.requests_limit > 0}{$quota_status.requests_remaining_format}/{$quota_status.requests_limit_format}{else}{$lang.aigc_quota_unlimited}{/if}</span>
+       </div>
+      </div>
+      <div class="aigc-chat-messages" ref="chat_messages">
+       <div class="aigc-chat-flow">
+        <div class="aigc-chat-msg">
+         <div class="aigc-chat-avatar">AI</div>
+         <div class="aigc-chat-content">{$app.description}</div>
+        </div>
+        {literal}
+        <div v-for="(msg, index) in messages" :key="index" :class="['aigc-chat-msg', msg.type]">
+         <div class="aigc-chat-avatar">{{ msg.type === 'user' ? '我' : 'AI' }}</div>
+         <div class="aigc-chat-content" :class="{ 'aigc-chat-typing': msg.is_typing }" v-html="msg.content"></div>
+        </div>
+        {/literal}
+       </div>
+      </div>
+      <div class="aigc-chat-input-area">
+       <div class="aigc-chat-input-wrapper">
+        <textarea class="aigc-chat-input" v-model="input_message" @keydown.enter.exact.prevent="send_message" placeholder="{$lang.aigc_chat_placeholder}" rows="2"></textarea>
+        <div class="aigc-chat-btn-group">
+         <button class="aigc-chat-stop" v-show="is_processing" @click="stop_generation"><i class="bi bi-stop-fill"></i></button>
+         <button class="aigc-chat-send" @click="send_message" :disabled="is_processing"><i class="bi bi-arrow-up"></i></button>
+        </div>
+       </div>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div>
+  {include file="inc/footer.tpl"}
+ </div>
+ {include file="inc/code_footer.tpl"}
+ <script src="js/bootstrap.min.js"></script>
+ <script src="js/dou.js"></script>
+ <script src="js/marked.min.js"></script>
+ <script src="js/dompurify.min.js"></script>
+ <script src="js/vue.global.js"></script>
+ <script src="js/aigc_chat.js"></script>
+</body>
+
+</html>

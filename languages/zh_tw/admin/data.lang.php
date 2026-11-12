@@ -22,8 +22,9 @@ $_LANG['data_unlock'] = '解除鎖定';
 $_LANG['data_all'] = '顯示所有片段';
 $_LANG['data_all_hidden'] = '隱藏已分組片段';
 $_LANG['data_info'] = '片段資訊';
-$_LANG['data_sync_from_template'] = '同步模板資料';
-$_LANG['data_sync_result'] = '同步完成：掃描 {scanned} 項，新增 {inserted} 項，跳過已存在 {skipped} 項';
+$_LANG['data_init_template'] = '初始化模板資料';
+$_LANG['data_init_template_confirm'] = '僅在模板配套的內容片段缺失時才需要初始化：系統只補建缺失項，生成的內容為空，需到「內容片段」填寫，不會覆蓋已存在的資料，確定繼續？';
+$_LANG['data_init_result'] = '初始化完成：掃描 {scanned} 項，新增 {inserted} 項，跳過已存在 {skipped} 項';
 
 // 欄位
 $_LANG['data_theme'] = '關聯模板';
@@ -32,6 +33,7 @@ $_LANG['data_name'] = '片段名稱';
 $_LANG['data_code'] = '唯一標記';
 $_LANG['data_image'] = '圖片內容';
 $_LANG['data_text'] = '文字內容';
+$_LANG['data_slots'] = '分區文字';
 $_LANG['data_link'] = '連結';
 $_LANG['data_is_class'] = '設定為分組';
 $_LANG['data_is_locked'] = '是否鎖定';
@@ -48,6 +50,7 @@ $_LANG['data_name_cue'] = '前台呼叫標籤：<em class="copytext">{$data.唯�
 $_LANG['data_code_cue'] = '唯一標記不能為空且只能使用小寫字母、數字、下底線，前台呼叫標籤為：<em class="copytext">{$data.唯一標記.code}</em>，建議手動輸入便於記憶的英文單字或拼音作為標記';
 $_LANG['data_image_cue'] = '前台呼叫標籤：<em class="copytext">{$data.唯一標記.image}</em>';
 $_LANG['data_text_cue'] = '前台呼叫標籤：<em class="copytext">{$data.唯一標記.text}</em>';
+$_LANG['data_slots_cue'] = '前台呼叫標籤：<em class="copytext">{$data.唯一標記.slots.標識}</em>，標識需與上方分區文字中的標識一致';
 $_LANG['data_link_cue'] = '前台呼叫標籤：<em class="copytext">{$data.唯一標記.link}</em>';
 
 // 小程式端備註（小程式模板不支援多語言，呼叫代碼為 WXML 寫法，資料來自 commonStore.data）
@@ -57,6 +60,7 @@ $_LANG['data_mp_name_cue'] = '小程式呼叫代碼：<em class="copytext">{{dat
 $_LANG['data_mp_code_cue'] = '唯一標記不能為空且只能使用小寫字母、數字、下底線，小程式呼叫代碼為：<em class="copytext">{{data.唯一標記.code}}</em>，建議手動輸入便於記憶的英文單字或拼音作為標記';
 $_LANG['data_mp_image_cue'] = '小程式呼叫代碼：<em class="copytext">{{data.唯一標記.image}}</em>';
 $_LANG['data_mp_text_cue'] = '小程式呼叫代碼：<em class="copytext">{{data.唯一標記.text}}</em>';
+$_LANG['data_mp_slots_cue'] = '小程式呼叫代碼：<em class="copytext">{{data.唯一標記.slots.標識}}</em>，標識需與上方分區文字中的標識一致';
 $_LANG['data_mp_link_cue'] = '小程式呼叫代碼：<em class="copytext">{{data.唯一標記.link}}</em>';
 $_LANG['data_mp_class_cue'] = '設定為分組後，可以在當前片段下新增子片段，小程式呼叫代碼（子項欄位用 item.xxx）：<em class="copytext">' . htmlspecialchars('<block wx:for="{{data.唯一標記.child}}" wx:key="code"> {{item.name}} </block>', ENT_QUOTES | ENT_HTML5, 'UTF-8') . '</em>';
 

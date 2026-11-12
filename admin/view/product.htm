@@ -35,38 +35,36 @@
       <input class="btn-secondary" type="submit" value="{$lang.btn_filter}" />
      </form>
      <span>
-      <!-- {if $features.sort} -->
-      <a class="btn-secondary js-post" href="{url link='admin.tool.sort' act=reset module=product}">{$lang.sort_reset}</a> <a class="btn-secondary js-post" href="{url link='admin.tool.sort' act=close}">{$lang.sort_close}</a>
-      <!-- {else} -->
-      <a class="btn-secondary js-post" href="{url link='admin.product.thumb'}">{$lang.product_thumb}</a> <a class="btn-secondary js-post" href="{url link='admin.tool.sort' act=open}">{$lang.sort_open}</a>
+      <!-- {if $excel} -->
+      <script type="text/javascript" src="js/excel.import.js"></script>
+      <a href="javascript:;" class="btn-secondary" data-dou-excel-import data-url="{url link='admin.product.import_execl'}" data-title="{$lang.product_import}" data-message="{$lang.product_import_message}" data-cue="{$lang.product_import_cue}">{$lang.product_import}</a>
       <!-- {/if} -->
+      <a class="btn-secondary js-post" href="{url link='admin.product.thumb'}">{$lang.product_thumb}</a>
      </span>
     </div>
     <div id="list" class="page-scroll-position">
      <form name="action" method="post" action="{url link='admin.product.action'}">
       <input type="hidden" name="token" value="{$token}" />
-      <table class="table">
+      <table class="table" data-quick-edit-url="{url link='admin.product.quick_edit'}">
        <tr>
         <th width="22" class="text-center"><input name='chkall' type='checkbox' id='chkall' onclick='selectcheckbox(this.form)' value='check'></th>
-        <th class="m-none text-center" width="40">{$lang.record_id}</th>
-        <th class="text-left">{$lang.product_title}</th>
-        <th class="m-none text-center">{$lang.product_price}</th>
+        <th class="m-none text-center" width="40" data-sort="id">{$lang.record_id}</th>
+        <th class="text-left" data-sort="title">{$lang.product_title}</th>
+        <th class="m-none text-center" data-sort="price">{$lang.product_price}</th>
         <th class="m-none text-center">{$lang.price_promote}</th>
         <!-- {foreach from=$user_level_option item=level} -->
         <th class="m-none text-center">{$level.name}</th>
         <!-- {/foreach} -->
         <th class="m-none text-center" width="150">{$lang.product_category}</th>
         <!-- {if $site.stock} -->
-        <th class="text-center">{$lang.product_stock}</th>
+        <th class="text-center" data-sort="stock">{$lang.product_stock}</th>
         <!-- {/if} -->
         <!-- {if $features.point} -->
         <th class="text-center">{$lang.product_point}</th>
         <!-- {/if} -->
-        <!-- {if $features.sort} -->
-        <th class="m-none text-center" width="80">{$lang.sort}</th>
-        <!-- {/if} -->
-        <th class="m-none text-center" width="80">{$lang.status}</th>
-        <th class="m-none text-center" width="80">{$lang.created_at}</th>
+        <th class="m-none text-center" width="80" data-sort="sort">{$lang.sort}</th>
+        <th class="m-none text-center" width="80" data-sort="status">{$lang.status}</th>
+        <th class="m-none text-center" width="80" data-sort="created_at">{$lang.created_at}</th>
         <!-- {foreach from=$metadata_schema item=meta_field} -->
         <th class="text-center">{$meta_field.label|escape}</th>
         <!-- {/foreach} -->
@@ -76,27 +74,21 @@
        <tr class="{if !$product.status.value}row-disabled{/if}" data-off-row-class="row-disabled">
         <td class="text-center"><input type="checkbox" name="checkbox[]" value="{$product.id}" /></td>
         <td class="m-none text-center">{$product.id}</td>
-        <td><a href="{url link='admin.product.edit' id=$product.id}">{$product.title}</a><!-- {if $product.image} --> <a href="{$product.image}" target="_blank"><img src="images/icon_picture.png" width="16" height="16" align="absMiddle"></a><!-- {/if} --></td>
-        <td class="m-none text-center">{$product.price}</td>
+        <td class="js-quick-edit" data-field="title" data-value="{$product.title|escape}"><a class="js-quick-text" href="{url link='admin.product.edit' id=$product.id}">{$product.title}</a><!-- {if $product.image} --> <a href="{$product.image}" target="_blank"><img src="images/icon_picture.png" width="16" height="16" align="absMiddle"></a><!-- {/if} --></td>
+        <td class="m-none text-center js-quick-edit" data-field="price" data-value="{$product.price_raw}">{$product.price}</td>
         <td class="m-none text-center">{$product.promote_price}</td>
         <!-- {foreach from=$product.level_price item=level} -->
         <td class="m-none text-center">{$level.price_format}</td>
         <!-- {/foreach} -->
         <td class="m-none text-center"><!-- {if $product.category.name} --><a href="{url link='admin.product' category_id=$product.category_id}">{$product.category.name}</a><!-- {else} -->{$lang.uncategorized}<!-- {/if} --></td>
         <!-- {if $site.stock} -->
-        <td class="text-center">{$product.stock}</td>
+        <td class="text-center js-quick-edit" data-field="stock" data-value="{$product.stock}">{$product.stock}</td>
         <!-- {/if} -->
         <!-- {if $features.point} -->
         <td class="text-center">{$product.point}</td>
         <!-- {/if} -->
-        <!-- {if $features.sort} -->
-        <td class="m-none text-center">{$product.sort}</td>
-        <!-- {/if} -->
-        <td class="m-none text-center"><em class="link js-toggle {if $product.status.value}ai-status ai-status-on{else}ai-status ai-status-off{/if}"
-         data-url="{url link='admin.tool.change_field' module='product' item_id=$product.id field='status'}"
-         data-state="{if $product.status.value}on{else}off{/if}"
-         data-on-class="ai-status ai-status-on" data-off-class="ai-status ai-status-off"
-         data-text-on="{$lang.status_1}" data-text-off="{$lang.status_0}"><span class="js-toggle-state">{$product.status.format}</span><span class="js-toggle-action">{if $product.status.value}{$lang.status_0}{else}{$lang.status_1}{/if}</span></em></td>
+        <td class="m-none text-center js-quick-edit" data-field="sort" data-value="{$product.sort}">{$product.sort}</td>
+        <td class="m-none text-center"><em class="link js-toggle status-pill" data-url="{url link='admin.tool.change_field' module='product' item_id=$product.id field='status'}" data-state="{if $product.status.value}on{else}off{/if}">{$product.status.format}</em></td>
         <td class="m-none text-center">{$product.created_at}</td>
         <!-- {foreach from=$product.metadata_list item=meta} -->
         <td class="text-center">{include file="inc/metadata_cell.tpl" field=$meta}</td>
@@ -110,6 +102,10 @@
         <option value="0">{$lang.select}</option>
         <option value="del_all">{$lang.del}</option>
         <option value="category_move">{$lang.category_move}</option>
+        <!-- {if $excel} -->
+        <option value="excel">{$lang.excel_export}</option>
+        <option value="excel_all">{$lang.excel_export_all}</option>
+        <!-- {/if} -->
        </select>
        <select class="select" name="new_cat_id" style="display:none">
         <option value="0">{$lang.uncategorized}</option>
@@ -264,14 +260,12 @@
       </div>
       <!-- {/if} -->
       {include file="inc/metadata_fields.tpl" metadata_form=$metadata_form}
-      <!-- {if $features.sort} -->
       <div class="form-item">
        <div class="form-label">{$lang.sort}</div>
        <div class="input-block">
         <input type="text" name="sort" value="{if $product.sort}{$product.sort}{else}50{/if}" size="5" class="input" />
        </div>
       </div>
-      <!-- {/if} -->
       <div class="form-item">
        <div class="form-label">{$lang.keywords}</div>
        <div class="input-block">
@@ -294,9 +288,6 @@
        </div>
       </div>
       <div class="form-item">
-       <!-- {if !$features.sort} -->
-       <input type="hidden" name="sort" value="{if $product.sort}{$product.sort}{else}50{/if}" />
-       <!-- {/if} -->
        <input type="hidden" name="token" value="{$token}" />
        <input type="hidden" name="id" value="{$product.id}">
        <input type="hidden" name="draft_token" value="{$draft_token}" />

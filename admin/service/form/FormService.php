@@ -192,7 +192,7 @@ class FormService extends BaseService
      * `{$form.{slug}.{字段}.name}`，随站点语言切换；控件按字段类型给出最简写法，
      * 类型只约束服务端校验，模板可自行改写（见 form.md 6.3）。
      *
-     * @param int    $formId
+     * @param int $formId
      * @param string $slug
      * @param string $name
      * @return string
@@ -277,7 +277,7 @@ class FormService extends BaseService
      * 单个字段的示例 HTML：标签 + 按类型的最简控件 + 错误提示位。
      *
      * @param string $node 形如 $form.quote
-     * @param array  $field
+     * @param array $field
      * @return array 行数组
      */
     private function embedFieldLines($node, array $field)
@@ -611,7 +611,7 @@ class FormService extends BaseService
      * 该模板是否已存在对应表单：slug 为模板键本身，或模板键 + 数字后缀（重复创建）。
      *
      * @param string $key
-     * @param array  $slugs
+     * @param array $slugs
      * @return bool
      */
     private function templateFormExists($key, array $slugs)

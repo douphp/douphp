@@ -62,6 +62,9 @@ return [
             // 幻灯历史素材统一存放于 images/slide/（disk 名 show 与路径名不一致，必须显式声明）；
             // 移动端 / 小程序幻灯分别落 images/slide/m/ 与 images/slide/miniprogram/ 子目录
             'show' => ['driver' => 'local', 'root' => 'images/slide/'],
+
+            // aigc 生成产物私有落盘（不对外直链，统一经 /aigc/file 鉴权输出）
+            'aigc_works' => ['driver' => 'local', 'root' => 'storage/aigc/'],
         ],
 
         // 通用附件上传策略（type=attach，落盘到 images/{module}/attach/）

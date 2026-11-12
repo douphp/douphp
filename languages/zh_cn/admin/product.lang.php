@@ -53,6 +53,7 @@ $_LANG['product_title'] = '商品名称';
 $_LANG['product_price'] = '商品价格';
 $_LANG['product_level_price'] = '等级价格';
 $_LANG['product_stock'] = '库存';
+$_LANG['product_sales'] = '销量';
 $_LANG['product_point'] = '消耗积分';
 $_LANG['product_defined'] = '自定义属性';
 $_LANG['product_defined_cue'] = '以英文逗号 , 隔开';
@@ -63,6 +64,9 @@ $_LANG['product_select_empty'] = '没有选择任何商品';
 $_LANG['product_del_succes'] = '删除商品成功';
 $_LANG['product_del_has_order'] = '该商品已产生订单，无法删除，请改为下架';
 $_LANG['product_del_skip_has_order'] = '已跳过 %d 个已产生订单的商品，其余商品删除成功';
+$_LANG['product_import'] = '导入商品';
+$_LANG['product_import_message'] = '支持 .xlsx / .xls 文件，导入数据表格式参见导出的 Excel 格式。';
+$_LANG['product_import_cue'] = '列顺序为：商品名称、分类（ID 或名称）、价格、促销价、库存、积分、型号、排序、状态、网址别名；图片与会员价不支持导入。';
 
 // 提示信息
 $_LANG['product_model_cue'] = '输入产品编号';

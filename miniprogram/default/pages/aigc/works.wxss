@@ -1,0 +1,104 @@
+/* pages/aigc/works.wxss 我的作品 */
+.body {
+  padding-bottom: 40rpx;
+}
+.wrap {
+  padding: 20rpx 30rpx;
+}
+
+.aigc-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-bottom: 24rpx;
+}
+.aigc-filter-item {
+  padding: 10rpx 26rpx;
+  border-radius: 30rpx;
+  background: #f3f6fb;
+  color: #4a5a70;
+  font-size: 24rpx;
+}
+.aigc-filter-item.active {
+  background: #4a90e2;
+  color: #fff;
+}
+
+.aigc-work {
+  background: #fff;
+  border: 1rpx solid #eef1f6;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+}
+.aigc-work-head {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  font-size: 22rpx;
+  color: #8a94a6;
+  margin-bottom: 14rpx;
+}
+.aigc-work-type {
+  color: #4a90e2;
+}
+.aigc-work-status.status-succeeded {
+  color: #2e9b4f;
+}
+.aigc-work-status.status-failed,
+.aigc-work-status.status-timeout {
+  color: #d9534f;
+}
+.aigc-work-time {
+  margin-left: auto;
+}
+.aigc-work-prompt {
+  font-size: 28rpx;
+  color: #33415a;
+  line-height: 1.6;
+  word-break: break-all;
+}
+.aigc-work-error {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: #d9534f;
+}
+.aigc-work-files {
+  margin-top: 16rpx;
+}
+.aigc-work-file {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  background: #f8fafd;
+  border-radius: 10rpx;
+  padding: 16rpx 20rpx;
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: #4a5a70;
+}
+.aigc-work-file .bi {
+  color: #4a90e2;
+  font-size: 30rpx;
+}
+.aigc-work-file-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aigc-work-actions {
+  margin-top: 16rpx;
+  text-align: right;
+}
+.aigc-work-del {
+  font-size: 24rpx;
+  color: #d9534f;
+}
+.aigc-empty {
+  text-align: center;
+  color: #999;
+  font-size: 26rpx;
+  padding: 80rpx 0;
+}

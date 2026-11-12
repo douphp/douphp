@@ -1,0 +1,154 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+ <meta name="copyright" content="DouCo Co.,Ltd." />
+ <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+ <meta name="csrf-token" content="{$csrf_token}">
+ <title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+ <link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+ <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+ <link href="css/common.css" rel="stylesheet" type="text/css">
+ <link href="css/aigc.css" rel="stylesheet" type="text/css">
+ {include file="inc/javascript.tpl"}
+</head>
+
+<body>
+ <div id="dou"> {include file="inc/header.tpl"}
+  {include file="inc/sidebar.tpl"}
+  <div id="dou-content"> {include file="inc/toolbar.tpl"}
+   <div class="dou-main has-submenu">
+    {include file="inc/submenu.tpl"}
+    <div class="dou-page">
+     {include file="inc/page_header.tpl"}
+     <p class="cue">{$lang.aigc_field_cue}：{$app.name}</p>
+     <div class="split-layout">
+      <div class="split-pane col-5">
+       <div class="split-header">{if $field.id}{$lang.aigc_field_edit}{else}{$lang.aigc_field_create}{/if}</div>
+       <div class="split-body">
+        <form action="{$form_action}" method="post"{if $field.id} class="form-edit"{/if}>
+         <!-- {if $form_method} --><input type="hidden" name="_method" value="{$form_method}" /><!-- {/if} -->
+         <input type="hidden" name="token" value="{$token}" />
+         <input type="hidden" name="app_id" value="{$app_id}" />
+         <!-- {if $field.id} --><input type="hidden" name="id" value="{$field.id}" /><!-- {/if} -->
+         <div class="form">
+          <div class="form-item">
+           <div class="form-label">{$lang.aigc_field_name}</div>
+           <div class="input-block"><input name="name" type="text" class="input" value="{$field.name}" size="30" /></div>
+          </div>
+          <div class="form-item">
+           <div class="form-label">{$lang.aigc_field_slug}</div>
+           <div class="input-block">
+            <input name="slug" type="text" class="input" value="{$field.slug}" size="30" />
+            <p class="cue">{$lang.aigc_field_slug_cue}</p>
+           </div>
+          </div>
+          <div class="form-item">
+           <div class="form-field-inline">
+            <div class="form-label">{$lang.aigc_field_type}</div>
+            <div class="input-block">
+             <select name="type" class="select">
+              <!-- {foreach from=$type_options item=type} -->
+              <option value="{$type.value}" {if $type.cur}selected{/if}>{$type.label}</option>
+              <!-- {/foreach} -->
+             </select>
+            </div>
+           </div>
+           <div class="form-field-inline">
+            <div class="form-label">{$lang.aigc_field_must_fill}</div>
+            <div class="input-block">
+             <select name="must_fill" class="select">
+              <option value="0"{if $field.must_fill eq '0'} selected="selected"{/if}>{$lang.aigc_field_must_fill_0}</option>
+              <option value="1"{if $field.must_fill eq '1'} selected="selected"{/if}>{$lang.aigc_field_must_fill_1}</option>
+             </select>
+            </div>
+           </div>
+           <div class="form-field-inline">
+            <div class="form-label">{$lang.aigc_field_width}</div>
+            <div class="input-block"><input name="width" type="text" class="input" value="{$field.width|default:12}" size="4" /></div>
+           </div>
+           <div class="form-field-inline">
+            <div class="form-label">{$lang.aigc_field_sort}</div>
+            <div class="input-block"><input name="sort" type="text" class="input" value="{$field.sort|default:0}" size="4" /></div>
+           </div>
+          </div>
+          <div class="form-item">
+           <div class="form-label">{$lang.aigc_field_option}</div>
+           <div class="input-block">
+            <textarea name="option" class="textarea" cols="50" rows="4">{$field.option}</textarea>
+            <p class="cue">{$lang.aigc_field_option_cue}</p>
+           </div>
+          </div>
+          <div class="form-item">
+           <div class="form-label">{$lang.aigc_field_placeholder}</div>
+           <div class="input-block"><input name="placeholder" type="text" class="input" value="{$field.placeholder}" size="40" /></div>
+          </div>
+          <div class="form-item">
+           <div class="form-label">{$lang.aigc_field_default}</div>
+           <div class="input-block"><input name="default_value" type="text" class="input" value="{$field.default_value}" size="40" /></div>
+          </div>
+          <div class="form-item">
+           <div class="form-label">{$lang.aigc_field_tip}</div>
+           <div class="input-block"><input name="tip" type="text" class="input" value="{$field.tip}" size="40" /></div>
+          </div>
+          <div class="form-item">
+           <div class="form-label">{$lang.aigc_field_status}</div>
+           <div class="input-block">
+            <label><input type="radio" name="status" value="1" {if $field.status eq 1}checked{/if}> {$lang.aigc_status_1}</label>
+            <label><input type="radio" name="status" value="0" {if $field.status eq 0}checked{/if}> {$lang.aigc_status_0}</label>
+           </div>
+          </div>
+          <div class="form-item">
+           <a href="{url link='admin.aigc.field' app_id=$app_id}" class="btn-secondary">{$lang.cancel}</a>
+           <input class="btn" type="submit" value="{$lang.btn_submit}" />
+          </div>
+         </div>
+        </form>
+       </div>
+      </div>
+      <div class="split-pane col-7">
+       <div class="split-header">{$lang.aigc_field_list}</div>
+       <div class="split-body">
+        <table class="table table-soft">
+         <tr>
+          <th class="text-left">{$lang.aigc_field_name}</th>
+          <th width="120" class="text-left">{$lang.aigc_field_slug}</th>
+          <th width="56" class="text-center">{$lang.aigc_field_type}</th>
+          <th width="56" class="text-center">{$lang.aigc_field_must_fill}</th>
+          <th width="34" class="text-center">{$lang.aigc_field_sort}</th>
+          <th width="56" class="text-center">{$lang.aigc_field_status}</th>
+          <th width="70" class="text-center">{$lang.handler}</th>
+         </tr>
+         <!-- {foreach from=$field_list item=row} -->
+         <tr{if $row.id eq $field.id} class="active"{/if}>
+          <td><a href="{$row.edit_url}">{$row.name}</a></td>
+          <td class="m-none"><code>{$row.slug}</code></td>
+          <td class="text-center">{$row.type_name}</td>
+          <td class="text-center">{$row.required_text}</td>
+          <td class="text-center">{$row.sort}</td>
+          <td class="text-center">{$row.status_text}</td>
+          <td class="text-center">
+           <a href="{$row.edit_url}">{$lang.edit}</a>
+           |
+           <a href="javascript:;" class="js-delete" data-url="{$row.delete_url}">{$lang.del}</a>
+          </td>
+         </tr>
+         <!-- {foreachelse} -->
+         <tr><td colspan="7" class="text-center">{$lang.aigc_field_empty}</td></tr>
+         <!-- {/foreach} -->
+        </table>
+        <!-- {if $field.id} -->
+        <p class="mt-20"><a class="btn-secondary" href="{url link='admin.aigc.field' app_id=$app_id}">{$lang.aigc_field_create}</a></p>
+        <!-- {/if} -->
+       </div>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div>
+  {include file="inc/footer.tpl"}
+ </div>
+</body>
+
+</html>

@@ -52,6 +52,10 @@ class ShowFormRequest extends FormRequest
             'name' => 'required',
             'link' => '',
             'text' => '',
+            // 内容形式：text / slots 二选一，保存时互斥清空
+            'content_mode' => 'in:text,slots',
+            'slot_key' => '',
+            'slot_value' => '',
             'sort' => 'integer',
             // 主图删除标记：随主表单提交后由 Service 清空字段并回收旧图
             'image_delete' => '',

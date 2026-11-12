@@ -1,0 +1,2 @@
+/* pages/aigc/chat.wxss AI应用文本对话 */
+@import "../chat/conversation.wxss";

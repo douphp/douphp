@@ -14,8 +14,8 @@
 
 namespace Dou\Admin\Request\Product;
 
-use Dou\Core\Foundation\Configuration\Config;
 use Dou\Admin\Request\Concerns\HasMetadataRules;
+use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Web\Http\FormRequest;
 
 if (!defined('IN_DOUCO')) {

@@ -21,7 +21,7 @@
    {include file="inc/page_header.tpl"}
    <!-- {if $rec eq 'default'} 导航列表 -->
    <div class="navList">
-    <div class="tab" id="nav-type-tabs">
+    <div class="tab" data-dou-tab id="nav-type-tabs">
      <ul class="tab-nav">
       <li class="nav-item"><a class="nav-link{if $type eq 'middle'} active{/if}" href="{url link='admin.nav'}">{$lang.nav_type_middle}</a></li>
       <li class="nav-item"><a class="nav-link{if $type eq 'top'} active{/if}" href="{url link='admin.nav' type=top}">{$lang.nav_type_top}</a></li>
@@ -57,10 +57,10 @@
    </div>
    <!-- {/if} -->
    <!-- {if $rec eq 'create'} 导航添加 -->
-   <div class="tab" id="nav-create-tabs">
+   <div class="tab" data-dou-tab id="nav-create-tabs">
     <ul class="tab-nav">
-     <li class="nav-item"><a class="nav-link active" href="#nav-add" data-toggle="tab">{$lang.nav_inside}</a></li>
-     <li class="nav-item"><a class="nav-link" href="#nav-defined" data-toggle="tab">{$lang.nav_defined}</a></li>
+     <li class="nav-item"><a class="nav-link active" href="#nav-add" data-dou-toggle="tab">{$lang.nav_inside}</a></li>
+     <li class="nav-item"><a class="nav-link" href="#nav-defined" data-dou-toggle="tab">{$lang.nav_defined}</a></li>
     </ul>
     <div class="items tab-content">
      <div class="tab-pane active" id="nav-add">

@@ -1,10 +1,10 @@
 -- DouPHP v2.x SQL Dump Program
 -- http://localhost/douphp/
 -- 
--- DATE : 2026-11-04 17:41:36
+-- DATE : 2026-11-12 19:20:04
 -- MYSQL SERVER VERSION : 5.7.44-log
--- PHP VERSION : 8.2.30
--- DouPHP VERSION : v2.0 Release 20261108
+-- PHP VERSION : 7.4.33
+-- DouPHP VERSION : v2.0 Release 20261112
 
 DROP TABLE IF EXISTS `dou_admin`;
 CREATE TABLE `dou_admin` (
@@ -191,12 +191,12 @@ INSERT INTO dou_config VALUES('73','site_theme','default','hidden','','');
 INSERT INTO dou_config VALUES('74','miniprogram_code','default','hidden','','');
 INSERT INTO dou_config VALUES('75','build_date','1377768032','hidden','','');
 INSERT INTO dou_config VALUES('76','update_number','a:5:{s:6:\"update\";i:0;s:5:\"patch\";i:0;s:6:\"module\";i:0;s:6:\"plugin\";i:0;s:5:\"theme\";i:0;}','hidden','','');
-INSERT INTO dou_config VALUES('77','update_date','a:3:{s:6:\"system\";a:2:{s:6:\"update\";s:8:\"20261108\";s:5:\"patch\";s:8:\"20261108\";}s:6:\"module\";a:4:{s:7:\"article\";s:8:\"20261108\";s:7:\"product\";s:8:\"20261108\";s:8:\"language\";s:8:\"20261108\";s:4:\"form\";s:8:\"20261108\";}s:5:\"theme\";a:0:{}}','hidden','','');
+INSERT INTO dou_config VALUES('77','update_date','a:3:{s:6:\"system\";a:2:{s:6:\"update\";s:8:\"20261112\";s:5:\"patch\";s:8:\"20261112\";}s:6:\"module\";a:4:{s:7:\"article\";s:8:\"20261112\";s:7:\"product\";s:8:\"20261112\";s:8:\"language\";s:8:\"20261112\";s:4:\"form\";s:8:\"20261112\";}s:5:\"theme\";a:0:{}}','hidden','','');
 INSERT INTO dou_config VALUES('78','file_update_time','1653395208','hidden','','');
 INSERT INTO dou_config VALUES('79','cloud_account','','hidden','','');
 INSERT INTO dou_config VALUES('80','hash_code','166d0de32dafdef9ab26e10130dd115b','hidden','','');
-INSERT INTO dou_config VALUES('81','module_version','a:1:{s:4:\"form\";s:8:\"20261108\";}','hidden','','');
-INSERT INTO dou_config VALUES('82','douphp_version','v2.0 Release 20261108','hidden','','');
+INSERT INTO dou_config VALUES('81','module_version','a:4:{s:7:\"article\";s:8:\"20261112\";s:7:\"product\";s:8:\"20261112\";s:8:\"language\";s:8:\"20261112\";s:4:\"form\";s:8:\"20261112\";}','hidden','','');
+INSERT INTO dou_config VALUES('82','douphp_version','v2.0 Release 20261112','hidden','','');
 
 DROP TABLE IF EXISTS `dou_data`;
 CREATE TABLE `dou_data` (
@@ -209,15 +209,17 @@ CREATE TABLE `dou_data` (
   `code` varchar(60) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '编码',
   `image` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '图片',
   `text` text COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '文本内容',
+  `slots` longtext COLLATE utf8mb4_unicode_ci COMMENT '分区文本(JSON)',
   `link` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '跳转链接',
   `is_class` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否分组',
   `is_locked` tinyint(1) unsigned NOT NULL DEFAULT '0' COMMENT '是否锁定',
   `sort` tinyint(1) unsigned NOT NULL DEFAULT '50' COMMENT '排序',
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_theme_code` (`theme`,`code`),
   KEY `idx_theme_group_item` (`theme`,`data_group`,`data_item`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO dou_data VALUES('1','','default','index','','公司简介','about','p9ajemt.file','公司成立于2013年，注册地位于福建省，是一家专注于科技研发、智能制造、金融服务等的高新技术企业。公司以核心使命：\"创新驱动发展\"\"为客户创造价值\"为理念，致力于提供行业解决方案、研发前沿技术、打造优质产品。公司已取得丰硕的成果。目前，我们的业务网络 市场覆盖广泛，产品与服务已拓展至全国XX个省市/全球XX个国家和地区。在项目实施与产品应用上，成功打造了多个 标杆案例，充分验证了我们的实力与可靠性。同时，公司积极履行社会责任，创造了显著的经济效益与社会价值，年产值稳步增长，为地方经济发展和人才就业做出了积极贡献。','','0','0','50');
+INSERT INTO dou_data VALUES('1','','default','index','','公司简介','about','p9ajemt.file','公司成立于2013年，注册地位于福建省，是一家专注于科技研发、智能制造、金融服务等的高新技术企业。公司以核心使命：\"创新驱动发展\"\"为客户创造价值\"为理念，致力于提供行业解决方案、研发前沿技术、打造优质产品。公司已取得丰硕的成果。目前，我们的业务网络 市场覆盖广泛，产品与服务已拓展至全国XX个省市/全球XX个国家和地区。在项目实施与产品应用上，成功打造了多个 标杆案例，充分验证了我们的实力与可靠性。同时，公司积极履行社会责任，创造了显著的经济效益与社会价值，年产值稳步增长，为地方经济发展和人才就业做出了积极贡献。',NULL,'','0','0','50');
 
 DROP TABLE IF EXISTS `dou_file`;
 CREATE TABLE `dou_file` (
@@ -613,18 +615,19 @@ CREATE TABLE `dou_show` (
   `link` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '跳转链接',
   `image` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '图片',
   `text` text COLLATE utf8mb4_unicode_ci COMMENT '说明文字',
+  `slots` longtext COLLATE utf8mb4_unicode_ci COMMENT '分区文本(JSON)',
   `type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '展示位置:pc/mobile/miniprogram',
   `sort` tinyint(1) unsigned NOT NULL DEFAULT '50' COMMENT '排序',
   PRIMARY KEY (`id`),
   KEY `idx_type` (`type`)
 ) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO dou_show VALUES('1','广告图片01','https://www.douphp.com','9mqr53t.file','','pc','1');
-INSERT INTO dou_show VALUES('2','广告图片02','https://www.douphp.com','9ckaw93.file','','pc','2');
-INSERT INTO dou_show VALUES('3','广告图片03','https://www.douphp.com','rupuz6g.file','','pc','3');
-INSERT INTO dou_show VALUES('4','广告图片04','https://www.douphp.com','gryv365.file','','pc','4');
-INSERT INTO dou_show VALUES('5','幻灯图片','','dqpuzgo.file','','miniprogram','50');
-INSERT INTO dou_show VALUES('6','幻灯图片','','48e93ek.file','','miniprogram','50');
-INSERT INTO dou_show VALUES('7','幻灯图片','','b9kdx9n.file','','miniprogram','50');
-INSERT INTO dou_show VALUES('8','幻灯图片','','b4enwx3.file','','miniprogram','50');
+INSERT INTO dou_show VALUES('1','广告图片01','https://www.douphp.com','9mqr53t.file','',NULL,'pc','1');
+INSERT INTO dou_show VALUES('2','广告图片02','https://www.douphp.com','9ckaw93.file','',NULL,'pc','2');
+INSERT INTO dou_show VALUES('3','广告图片03','https://www.douphp.com','rupuz6g.file','',NULL,'pc','3');
+INSERT INTO dou_show VALUES('4','广告图片04','https://www.douphp.com','gryv365.file','',NULL,'pc','4');
+INSERT INTO dou_show VALUES('5','幻灯图片','','dqpuzgo.file','',NULL,'miniprogram','50');
+INSERT INTO dou_show VALUES('6','幻灯图片','','48e93ek.file','',NULL,'miniprogram','50');
+INSERT INTO dou_show VALUES('7','幻灯图片','','b9kdx9n.file','',NULL,'miniprogram','50');
+INSERT INTO dou_show VALUES('8','幻灯图片','','b4enwx3.file','',NULL,'miniprogram','50');
 

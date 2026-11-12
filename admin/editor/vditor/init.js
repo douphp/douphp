@@ -35,7 +35,7 @@ $(function() {
   $(document).keyup(function(e) {
       if (e.keyCode === 27) { // ESC键
           $('.editor').removeClass('fullscreen');
-          $('.dou-modal').removeClass('has-editor-fullscreen');
+          $('[data-dou-modal-dynamic]').removeClass('has-editor-fullscreen');
           $('body').css('overflow', '');
       }
   });
@@ -141,7 +141,7 @@ function btnFullscreen(editorId, height = '') {
     $editor.toggleClass('fullscreen');
 
     var isFullscreen = $editor.hasClass('fullscreen');
-    $editor.closest('.dou-modal').toggleClass('has-editor-fullscreen', isFullscreen);
+    $editor.closest('[data-dou-modal-dynamic]').toggleClass('has-editor-fullscreen', isFullscreen);
     $('body').css('overflow', isFullscreen ? 'hidden' : '');
 }
 

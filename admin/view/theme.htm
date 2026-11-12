@@ -22,7 +22,7 @@
    <div class="dou-main">
     <div id="theme" class="dou-page">
     {include file="inc/page_header.tpl"}
-    <div class="tab" id="theme-tabs">
+    <div class="tab" data-dou-tab id="theme-tabs">
      <ul class="tab-nav">
       <li class="nav-item"><a class="nav-link{if $rec eq 'default' } active{/if}" href="{url link='admin.theme'}">{$lang.theme_list}</a></li>
       <li class="nav-item"><a class="nav-link{if $rec eq 'install' } active{/if}" href="{url link='admin.theme.install'}">{$lang.theme_install}{if
@@ -47,6 +47,7 @@
        <!-- {else} -->
        <a href="{url link='admin.theme.module_clear'}" class="js-post"><i class="bi-toggle-on active"></i><em>{$lang.theme_no_support_module_hide}</em></a>
        <!-- {/if} -->
+       <a href="{url link='admin.theme.sync_data'}" class="js-post" data-modal-title="{$lang.data_init_template}" data-modal-confirm="{$lang.data_init_template_confirm}"><i class="bi-arrow-repeat"></i><em>{$lang.data_init_template}</em></a>
       </dd>
      </dl>
     </div>

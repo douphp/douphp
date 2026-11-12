@@ -4,13 +4,13 @@
   <!-- {if $data.is_class} -->
   <div class="data-list-parent">
    <div class="data-list-name"><em>{$data.name}</em><a href="{url link='admin.data.edit' id=$data.id}">{$lang.edit}</a><a href="{url link='admin.data.create' parent_code=$data.code group=$data.data_group}">{$lang.add}</a></div>
-   <div class="data-list-text">{$data.text nofilter}</div>
+   <div class="data-list-text">{$data.text nofilter}<!-- {if $data.slots_count} --><em class="slots-badge">{$lang.slots_summary} {$data.slots_count}</em><!-- {/if} --></div>
   </div>
   <div class="data-list-child">
    <!-- {foreach from=$data.child item=child} -->
    <div class="data-list-item">
     <div class="data-list-name">{$child.name}</div>
-    <div class="data-list-content">{$child.content nofilter}</div>
+    <div class="data-list-content">{$child.content nofilter}<!-- {if $child.slots_count} --><em class="slots-badge">{$lang.slots_summary} {$child.slots_count}</em><!-- {/if} --></div>
     <div class="data-list-edit"><a href="{url link='admin.data.edit' id=$child.id}">{$lang.edit}</a></div>
    </div>
    <!-- {/foreach} -->
@@ -18,7 +18,7 @@
   <!-- {else} -->
   <div class="data-list-item">
    <div class="data-list-name">{$data.name}</div>
-   <div class="data-list-content">{$data.content nofilter}</div>
+   <div class="data-list-content">{$data.content nofilter}<!-- {if $data.slots_count} --><em class="slots-badge">{$lang.slots_summary} {$data.slots_count}</em><!-- {/if} --></div>
    <div class="data-list-edit"><a href="{url link='admin.data.edit' id=$data.id}">{$lang.edit}</a></div>
   </div>
   <!-- {/if} -->

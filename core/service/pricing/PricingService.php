@@ -74,7 +74,7 @@ class PricingService extends BaseService
      */
     public function salePrice($module, $itemId, $userId = 0, $itemData = null)
     {
-        $excludeModule = array('money_package', 'chat_package');
+        $excludeModule = array('money_package', 'aigc_package');
 
         if ($itemData !== null && isset($itemData['price']) && isset($itemData['level_price']) && isset($itemData['promote_price'])) {
             $item = $itemData;

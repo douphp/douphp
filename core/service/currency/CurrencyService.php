@@ -119,27 +119,29 @@ class CurrencyService extends BaseService
     /**
      * 按订单快照构建上下文（历史订单冻结汇率/小数位）。
      *
-     * @param array $order
+     * @param array|object $order 行数组或 ORM 模型实例
      * @return array
      */
     public function contextForOrder($order)
     {
-        if (!is_array($order)) {
+        $row = $this->normalizeRow($order);
+        if ($row === null) {
             return $this->baseContext();
         }
 
-        return $this->contextFromRow($order);
+        return $this->contextFromRow($row);
     }
 
     /**
      * 按售后单快照构建上下文。
      *
-     * @param array $row
+     * @param array|object $row 行数组或 ORM 模型实例
      * @return array
      */
     public function contextForAftersale($row)
     {
-        if (!is_array($row)) {
+        $row = $this->normalizeRow($row);
+        if ($row === null) {
             return $this->baseContext();
         }
 
@@ -149,17 +151,51 @@ class CurrencyService extends BaseService
     /**
      * 订单应付金额（订单币口径）：新订单取 currency_order_amount，旧单回退 order_amount。
      *
-     * @param array $order
+     * @param array|object $order 行数组或 ORM 模型实例
      * @return float
      */
-    public function orderAmount(array $order)
+    public function orderAmount($order)
     {
+        $order = $this->normalizeRow($order);
+        if ($order === null) {
+            return 0.0;
+        }
+
         $code = isset($order['currency_code']) ? trim((string) $order['currency_code']) : '';
         if ($code !== '' && isset($order['currency_order_amount'])) {
             return round((float) $order['currency_order_amount'], 2);
         }
 
         return round((float) (isset($order['order_amount']) ? $order['order_amount'] : 0), 2);
+    }
+
+    /**
+     * 行数据归一化：数组原样返回，ORM 模型等对象取原始属性数组，其余返回 null。
+     *
+     * @param mixed $row
+     * @return array|null
+     */
+    private function normalizeRow($row)
+    {
+        if (is_array($row)) {
+            return $row;
+        }
+
+        if (!is_object($row)) {
+            return null;
+        }
+
+        if (method_exists($row, 'getAttributes')) {
+            $data = $row->getAttributes();
+            return is_array($data) ? $data : null;
+        }
+
+        if (method_exists($row, 'toArray')) {
+            $data = $row->toArray();
+            return is_array($data) ? $data : null;
+        }
+
+        return null;
     }
 
     /**

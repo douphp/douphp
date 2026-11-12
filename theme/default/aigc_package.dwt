@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <meta name="keywords" content="{$keywords}" />
+ <meta name="description" content="{$description}" />
+ <meta name="generator" content="{$generator}" />
+ <meta name="csrf-token" content="{$csrf_token}">
+ <title>{$page_title}</title>
+ <link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+ <link href="css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+ <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css" />
+ <link href="css/common.css" rel="stylesheet" type="text/css" />
+ <link href="css/style.css" rel="stylesheet" type="text/css" />
+ <link href="css/aigc.css" rel="stylesheet" type="text/css" />
+ {include file="inc/code_head.tpl"}
+</head>
+
+<body>
+ <div id="wrapper">
+  {include file="inc/header.tpl"}
+  <div class="container aigc-page">
+   <div class="aigc-hero">
+    <h1>{$lang.aigc_package}</h1>
+    <p>{$lang.aigc_package_desc}</p>
+   </div>
+
+   <div class="aigc-quota">
+    <span>{$lang.aigc_quota_status}</span>
+    <span>{$lang.aigc_quota_requests}: {if $quota_status.requests_limit > 0}{$quota_status.requests_remaining_format} / {$quota_status.requests_limit_format}{else}{$lang.aigc_quota_unlimited}{/if}</span>
+    <span>{$lang.aigc_quota_tokens}: {if $quota_status.tokens_limit > 0}{$quota_status.tokens_remaining_format} / {$quota_status.tokens_limit_format}{else}{$lang.aigc_quota_unlimited}{/if}</span>
+   </div>
+
+   <div class="aigc-packages">
+    {foreach from=$package_list item=package}
+    <div class="aigc-package">
+     <div class="aigc-package-name">{$package.name}</div>
+     <div class="aigc-package-price">{$package.price}<small> / {$package.day}{$lang.aigc_day}</small></div>
+     <ul>
+      <li>{$lang.aigc_quota_requests}: {$package.requests_limit_format}</li>
+      <li>{$lang.aigc_quota_tokens}: {$package.tokens_limit_format}</li>
+      {foreach from=$package.content item=line}<li>{$line}</li>{/foreach}
+     </ul>
+     <div class="btn-addtocart" data-module="aigc_package" data-item_id="{$package.id}">{$lang.aigc_buy_now}</div>
+    </div>
+    {foreachelse}
+    <p class="cue">{$lang.aigc_package_empty}</p>
+    {/foreach}
+   </div>
+  </div>
+  {include file="inc/footer.tpl"}
+ </div>
+ {include file="inc/code_footer.tpl"}
+ <script src="js/bootstrap.min.js"></script>
+ <script src="js/dou.js"></script>
+</body>
+
+</html>

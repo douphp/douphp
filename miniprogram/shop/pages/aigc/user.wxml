@@ -1,0 +1,43 @@
+<!--pages/aigc/user.wxml 我的AI应用-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="aigc-quota-card" wx:if="{{quota_status && quota_status.has_subscription}}">
+   <view class="aigc-quota-head">
+    <text class="name">{{quota_status.package_name}}</text>
+    <text class="expires">{{quota_status.expires_format}}</text>
+   </view>
+   <view class="aigc-quota-stats">
+    <view class="stat"><view class="label">剩余次数</view><view class="value">{{quota_status.requests_remaining_format}}</view></view>
+    <view class="stat"><view class="label">剩余 Tokens</view><view class="value">{{quota_status.tokens_remaining_format}}</view></view>
+   </view>
+  </view>
+  <view class="aigc-no-subscription" wx:else>
+   <text>您还没有有效的 AI 套餐订阅</text>
+   <view class="btn-buy" bindtap="toPackage">购买套餐</view>
+  </view>
+
+  <view class="aigc-quick-actions">
+   <view class="action" bindtap="toApps"><text class="bi bi-stars"></text> AI应用</view>
+   <view class="action" bindtap="toWorks"><text class="bi bi-collection"></text> 我的作品</view>
+   <view class="action" bindtap="toPackage"><text class="bi bi-gem"></text> 购买套餐</view>
+  </view>
+
+  <view class="aigc-section-title">订阅记录</view>
+  <view class="aigc-subscription-list">
+   <view class="aigc-sub-item" wx:for="{{subscription_list}}" wx:key="id" wx:for-item="item">
+    <view class="aigc-sub-head">
+     <text class="name">{{item.package_name}}</text>
+     <text class="status active" wx:if="{{item.is_active}}">生效中</text>
+     <text class="status expired" wx:else>已结束</text>
+    </view>
+    <view class="aigc-sub-row"><text class="label">实付价格</text><text>{{item.price}}</text></view>
+    <view class="aigc-sub-row"><text class="label">Tokens用量</text><text>{{item.tokens_used}} / {{item.tokens_limit}}</text></view>
+    <view class="aigc-sub-row"><text class="label">请求次数</text><text>{{item.requests_used}} / {{item.requests_limit}}</text></view>
+    <view class="aigc-sub-row"><text class="label">有效期</text><text>{{item.start_at}} ~ {{item.end_at}}</text></view>
+    <view class="aigc-sub-row" wx:if="{{item.order_sn}}"><text class="label">订单号</text><text>{{item.order_sn}}</text></view>
+   </view>
+   <view class="aigc-empty" wx:if="{{!subscription_list.length}}">暂无订阅记录</view>
+  </view>
+ </view>
+</view>

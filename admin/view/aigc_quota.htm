@@ -1,0 +1,179 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+ <meta name="copyright" content="DouCo Co.,Ltd." />
+ <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+ <meta name="csrf-token" content="{$csrf_token}">
+ <title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+ <link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+ <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+ <link href="css/common.css" rel="stylesheet" type="text/css">
+ <link href="css/aigc.css" rel="stylesheet" type="text/css">
+ {include file="inc/javascript.tpl"}
+</head>
+
+<body>
+ <div id="dou"> {include file="inc/header.tpl"}
+  {include file="inc/sidebar.tpl"}
+  <div id="dou-content"> {include file="inc/toolbar.tpl"}
+   <div class="dou-main has-submenu">
+    {include file="inc/submenu.tpl"}
+    <div class="dou-page">
+      <!-- {if $rec eq 'default'} 配额列表 -->
+      {include file="inc/page_header.tpl"}
+      <div class="filter">
+       <form action="{url link='admin.aigc.quota'}" method="get" onsubmit="return hideEmpty(this)">
+        <select name="quota_type" class="select">
+         <option value="">{$lang.all}</option>
+         <option value="tokens" {if $req.quota_type eq 'tokens'}selected{/if}>{$lang.aigc_quota_type_tokens}</option>
+         <option value="requests" {if $req.quota_type eq 'requests'}selected{/if}>{$lang.aigc_quota_type_requests}</option>
+         <option value="amount" {if $req.quota_type eq 'amount'}selected{/if}>{$lang.aigc_quota_type_amount}</option>
+        </select>
+        <input name="username" type="text" class="input" value="{$req.username}" size="20"
+         placeholder="{$lang.aigc_quota_username}" />
+        <input class="btn-secondary" type="submit" value="{$lang.btn_filter}" />
+       </form>
+      </div>
+      <div id="list">
+       <form name="action" method="post" action="{url link='admin.aigc.quota.action'}">
+        <input type="hidden" name="token" value="{$token}" />
+        <table class="table">
+         <tr>
+          <th width="22" class="text-center"><input name='chkall' type='checkbox' id='chkall'
+            onclick='selectcheckbox(this.form)' value='check'></th>
+          <th class="m-none text-center" width="40">{$lang.record_id}</th>
+          <th class="text-left">{$lang.aigc_quota_user}</th>
+          <th width="100" class="text-center">{$lang.aigc_quota_type}</th>
+          <th class="m-none text-center" width="100">{$lang.aigc_quota_total_limit}</th>
+          <th class="m-none text-center" width="100">{$lang.aigc_quota_used_amount}</th>
+          <th width="80" class="text-center">{$lang.aigc_quota_usage_percent}</th>
+          <th class="m-none text-center" width="80">{$lang.aigc_quota_reset_cycle}</th>
+          <th class="m-none text-center" width="120">{$lang.aigc_quota_expires_at}</th>
+          <th width="80" class="text-center">{$lang.handler}</th>
+         </tr>
+         <!-- {foreach from=$quota_list item=quota} -->
+         <tr>
+          <td class="text-center"><input type="checkbox" name="checkbox[]" value="{$quota.id}" /></td>
+          <td class="m-none text-center">{$quota.id}</td>
+          <td>
+           <a href="{url link='admin.user.edit' id=$quota.user_id}" target="_blank">
+            {if $quota.user.avatar}<img src="{$quota.user.avatar}" width="20" height="20" class="aigc-user-avatar" />{/if}
+            {$quota.user.nickname}
+           </a>
+          </td>
+          <td class="text-center">{$quota.quota_type.format}</td>
+          <td class="m-none text-center">
+           {if $quota.total_limit > 0}
+           {$quota.total_limit}
+           {else}
+           {$lang.aigc_quota_unlimited}
+           {/if}
+          </td>
+          <td class="m-none text-center">{$quota.used_amount}</td>
+          <td class="text-center">
+           {if $quota.total_limit > 0}
+           {if $quota.usage_percent > 80}
+           <span class="aigc-percent-danger">{$quota.usage_percent}%</span>
+           {elseif $quota.usage_percent > 50}
+           <span class="aigc-percent-warning">{$quota.usage_percent}%</span>
+           {else}
+           {$quota.usage_percent}%
+           {/if}
+           {else}
+           -
+           {/if}
+          </td>
+          <td class="m-none text-center">{$quota.reset_cycle.format}</td>
+          <td class="m-none text-center">{$quota.expires_at}</td>
+          <td class="text-center"><a href="{url link='admin.aigc.quota.edit' id=$quota.id}">{$lang.edit}</a> | <a
+            href="javascript:;" class="js-delete" data-url="{url link='admin.aigc.quota.destroy' id=$quota.id}">{$lang.del}</a></td>
+         </tr>
+         <!-- {/foreach} -->
+        </table>
+        <div class="action">
+         <select class="select" name="action" onchange="douAction()">
+          <option value="0">{$lang.select}</option>
+          <option value="del_all">{$lang.del}</option>
+          <option value="reset">{$lang.aigc_quota_reset}</option>
+         </select>
+         <input class="btn" type="submit" value="{$lang.btn_execute}" />
+        </div>
+       </form>
+      </div>
+      <div class="clear"></div>
+      {include file="inc/pager.tpl"}
+      <!-- {/if} -->
+      <!-- {if $rec eq 'create' || $rec eq 'edit'} 配额添加或编辑 -->
+      {include file="inc/page_header.tpl"}
+      <form action="{$form_action}" method="post"><input type="hidden" name="_method" value="{$form_method}" />
+       <div class="form">
+        <div class="form-item">
+         <div class="form-label">{$lang.aigc_quota_username}<em>*</em></div>
+         <div class="input-block">
+          <input type="text" name="username" value="{$quota.username}" size="40" class="input" />
+          <p class="cue">{$lang.aigc_quota_username_cue}</p>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.aigc_quota_type}<em>*</em></div>
+         <div class="input-block">
+          <select name="quota_type" class="select">
+           <option value="tokens" {if $quota.quota_type eq 'tokens' || !$quota.id}selected{/if}>{$lang.aigc_quota_type_tokens}</option>
+           <option value="requests" {if $quota.quota_type eq 'requests'}selected{/if}>{$lang.aigc_quota_type_requests}</option>
+          </select>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.aigc_quota_total_limit}</div>
+         <div class="input-block">
+          <input type="text" name="total_limit" value="{$quota.total_limit}" size="20" class="input" />
+          <p class="cue">{$lang.aigc_quota_total_limit_cue}</p>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.aigc_quota_reset_cycle}</div>
+         <div class="input-block">
+          <select name="reset_cycle" class="select">
+           <option value="never" {if $quota.reset_cycle eq 'never'}selected{/if}>{$lang.aigc_quota_reset_cycle_never}</option>
+           <option value="daily" {if $quota.reset_cycle eq 'daily'}selected{/if}>{$lang.aigc_quota_reset_cycle_daily}</option>
+           <option value="weekly" {if $quota.reset_cycle eq 'weekly'}selected{/if}>{$lang.aigc_quota_reset_cycle_weekly}</option>
+           <option value="monthly" {if $quota.reset_cycle eq 'monthly' || !$quota.id}selected{/if}>{$lang.aigc_quota_reset_cycle_monthly}</option>
+           <option value="yearly" {if $quota.reset_cycle eq 'yearly'}selected{/if}>{$lang.aigc_quota_reset_cycle_yearly}</option>
+          </select>
+         </div>
+        </div>
+        <div class="form-item">
+         <div class="form-label">{$lang.aigc_quota_expires_at}</div>
+         <div class="input-block">
+          <input type="text" name="expires_at" value="{$quota.expires_at}" size="30" class="input" placeholder="YYYY-MM-DD HH:MM" />
+          <p class="cue">{$lang.aigc_quota_expires_at_cue}</p>
+         </div>
+        </div>
+        <!-- {if $quota.id} -->
+        <div class="form-item">
+         <div class="form-label">{$lang.aigc_quota_used_amount}</div>
+         <div class="input-block">
+          <span class="cue">{$quota.used_amount}</span>
+         </div>
+        </div>
+        <!-- {/if} -->
+        <div class="form-item">
+         <input type="hidden" name="token" value="{$token}" />
+         <input type="hidden" name="id" value="{$quota.id}">
+         <input class="btn" type="submit" value="{$lang.btn_submit}" />
+        </div>
+       </div>
+      </form>
+      <!-- {/if} -->
+     </div>
+
+   </div>
+  </div>
+  {include file="inc/footer.tpl"}
+ </div>
+</body>
+
+</html>
+

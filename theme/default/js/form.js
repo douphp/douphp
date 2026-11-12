@@ -64,6 +64,8 @@ document.addEventListener("alpine:init", function () {
         this.bind("city");
         this.bind("district");
 
+        // 默认只露出第一级，下级等上级选定后再逐级展示
+        this.hideAll();
         this.loadRoot();
       },
 
@@ -81,16 +83,46 @@ document.addEventListener("alpine:init", function () {
             self.fill("country", rows, only);
             self.toggle("country", false);
             if (only) {
-              self.load("province", self.id.country, self.value.province);
+              self.load("province", self.id.country, self.value.province).then(function () {
+                self.loadSubLevels();
+              });
             }
             return;
           }
 
           self.fill("country", rows, self.value.country);
           if (self.value.country) {
-            self.load("province", self.id.country, self.value.province);
+            self.load("province", self.id.country, self.value.province).then(function () {
+              self.loadSubLevels();
+            });
           }
         });
+      },
+
+      /**
+       * 回填时按已选上级继续加载市、区；上级为空则停在本级。
+       */
+      loadSubLevels: function () {
+        var self = this;
+        if (!this.value.province) {
+          return;
+        }
+
+        this.load("city", this.id.province, this.value.city).then(function () {
+          if (self.value.city) {
+            self.load("district", self.id.city, self.value.district);
+          }
+        });
+      },
+
+      /**
+       * 收起全部层级，等待逐级选择后展示。
+       */
+      hideAll: function () {
+        this.toggle("country", false);
+        this.toggle("province", false);
+        this.toggle("city", false);
+        this.toggle("district", false);
       },
 
       /**
@@ -140,7 +172,7 @@ document.addEventListener("alpine:init", function () {
        */
       load: function (part, parentId, current) {
         var self = this;
-        this.request(part, parentId, current, function (rows) {
+        return this.request(part, parentId, current, function (rows) {
           self.fill(part, rows, current);
         });
       },
@@ -154,7 +186,7 @@ document.addEventListener("alpine:init", function () {
           body += "&parent_id=" + encodeURIComponent(parentId);
         }
 
-        fetch(route("user.area"), {
+        return fetch(route("user.area"), {
           method: "POST",
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
@@ -191,7 +223,7 @@ document.addEventListener("alpine:init", function () {
 
         var placeholder = document.createElement("option");
         placeholder.value = "";
-        placeholder.textContent = "-";
+        placeholder.textContent = typeof lang === "function" ? lang("select", "请选择") : "请选择";
         select.appendChild(placeholder);
 
         for (var i = 0; i < rows.length; i++) {

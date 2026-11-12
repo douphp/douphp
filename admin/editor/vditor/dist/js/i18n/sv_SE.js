@@ -1,4 +1,4 @@
-window.VditorI18n = {
+﻿window.VditorI18n = {
   'alignCenter': 'Centrera',
   'alignLeft': 'Vänsterställ',
   'alignRight': 'Högerställ',

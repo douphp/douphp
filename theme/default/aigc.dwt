@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <meta name="keywords" content="{$keywords}" />
+ <meta name="description" content="{$description}" />
+ <meta name="generator" content="{$generator}" />
+ <meta name="csrf-token" content="{$csrf_token}">
+ <title>{$page_title}</title>
+ <link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+ <link href="css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+ <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css" />
+ <link href="css/common.css" rel="stylesheet" type="text/css" />
+ <link href="css/style.css" rel="stylesheet" type="text/css" />
+ <link href="css/aigc.css" rel="stylesheet" type="text/css" />
+ {include file="inc/code_head.tpl"}
+</head>
+
+<body>
+ <div id="wrapper">
+  {include file="inc/header.tpl"}
+  <div class="container aigc-page">
+   <div class="aigc-hero">
+    <h1>{$lang.aigc}</h1>
+    <p>{$lang.aigc_index_desc}</p>
+   </div>
+
+   <div class="aigc-grid">
+    {foreach from=$app_list item=app}
+    <a class="aigc-card" href="{$app.url}">
+     <div class="aigc-card-icon">{if $app.icon}<img src="{$app.icon}" alt="{$app.name}" />{else}<i class="bi bi-stars"></i>{/if}</div>
+     <div class="aigc-card-body">
+      <div class="aigc-card-name">{$app.name}{if !$app.is_free}<span class="aigc-badge">{$lang.aigc_paid}</span>{/if}</div>
+      <div class="aigc-card-desc">{$app.description}</div>
+     </div>
+    </a>
+    {foreachelse}
+    <p class="cue">{$lang.aigc_empty}</p>
+    {/foreach}
+   </div>
+  </div>
+  {include file="inc/footer.tpl"}
+ </div>
+ {include file="inc/code_footer.tpl"}
+ <script src="js/bootstrap.min.js"></script>
+</body>
+
+</html>

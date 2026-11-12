@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <meta name="keywords" content="{$keywords}" />
+ <meta name="description" content="{$description}" />
+ <meta name="generator" content="{$generator}" />
+ <meta name="csrf-token" content="{$csrf_token}">
+ <title>{$page_title}</title>
+ <link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+ <link href="css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+ <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css" />
+ <link href="css/common.css" rel="stylesheet" type="text/css" />
+ <link href="css/style.css" rel="stylesheet" type="text/css" />
+ <link href="css/aigc.css" rel="stylesheet" type="text/css" />
+ {include file="inc/code_head.tpl"}
+</head>
+
+<body>
+ <div id="wrapper">
+  {include file="inc/header.tpl"}
+  <div class="container aigc-page">
+   <div class="aigc-app-head">
+    <h1>{$lang.aigc_user}</h1>
+    <div class="aigc-app-links">
+     <a href="{$package_url}">{$lang.aigc_package}</a>
+    </div>
+   </div>
+
+   <div class="aigc-tabs">
+    <a href="{$user_index_url}" class="{if $tab eq 'index'}active{/if}">{$lang.aigc_user_overview}</a>
+    <a href="{$user_works_url}" class="{if $tab eq 'works'}active{/if}">{$lang.aigc_works}</a>
+    <a href="{$user_history_url}" class="{if $tab eq 'history'}active{/if}">{$lang.aigc_history}</a>
+   </div>
+
+   {if $tab eq 'index'}
+   <div class="aigc-quota">
+    <span>{$lang.aigc_quota_status}</span>
+    <span>{$lang.aigc_quota_requests}: {if $quota_status.requests_limit > 0}{$quota_status.requests_remaining_format} / {$quota_status.requests_limit_format}{else}{$lang.aigc_quota_unlimited}{/if}</span>
+    <span>{$lang.aigc_quota_tokens}: {if $quota_status.tokens_limit > 0}{$quota_status.tokens_remaining_format} / {$quota_status.tokens_limit_format}{else}{$lang.aigc_quota_unlimited}{/if}</span>
+   </div>
+   <div class="aigc-section-title">{$lang.aigc_subscription_list}</div>
+   <table class="table">
+    <tr><th>{$lang.aigc_package}</th><th>{$lang.aigc_price}</th><th>{$lang.aigc_period}</th><th>{$lang.aigc_status}</th></tr>
+    {foreach from=$subscription_list item=sub}
+    <tr>
+     <td>{$sub.package_name}</td>
+     <td>{$sub.price}</td>
+     <td>{$sub.start_at} ~ {$sub.end_at}</td>
+     <td>{if $sub.is_active}{$lang.aigc_active}{else}{$lang.aigc_expired}{/if}</td>
+    </tr>
+    {foreachelse}
+    <tr><td colspan="4">{$lang.aigc_no_subscription}</td></tr>
+    {/foreach}
+   </table>
+   {elseif $tab eq 'works'}
+   <div class="aigc-works">
+    {foreach from=$work_list item=work}
+    <div class="aigc-work" data-task-id="{$work.id}">
+     <div class="aigc-work-head">
+      <span class="aigc-work-type">{$work.type_name}</span>
+      <span class="aigc-work-status status-{$work.status}">{$work.status_name}</span>
+      <span class="aigc-work-time">{$work.created_at}</span>
+     </div>
+     <div class="aigc-work-prompt">{$work.prompt}</div>
+     {if $work.error}<div class="cue-red">{$work.error}</div>{/if}
+     <div class="aigc-work-files">
+      {foreach from=$work.files item=file key=fi}
+      <a href="{$file_url}?id={$work.id}&index={$fi}&mode=download">{$file.name|default:$lang.aigc_download}</a>
+      {/foreach}
+     </div>
+    </div>
+    {foreachelse}
+    <p class="cue">{$lang.aigc_works_empty}</p>
+    {/foreach}
+   </div>
+   {$pager}
+   {else}
+   <div class="aigc-history">
+    {foreach from=$session_list item=session}
+    <div class="aigc-history-item">
+     <div class="aigc-history-title">{$session.title}</div>
+     <div class="aigc-history-meta">{$session.app_name} · {$session.message_count} · {$session.updated_at}</div>
+     <a href="{url link='aigc.app'}?slug={$session.slug}&session_sn={$session.session_sn}">{$lang.aigc_continue}</a>
+    </div>
+    {foreachelse}
+    <p class="cue">{$lang.aigc_history_empty}</p>
+    {/foreach}
+   </div>
+   {/if}
+  </div>
+  {include file="inc/footer.tpl"}
+ </div>
+ {include file="inc/code_footer.tpl"}
+ <script src="js/bootstrap.min.js"></script>
+ <script src="js/aigc.js"></script>
+</body>
+
+</html>

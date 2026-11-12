@@ -189,6 +189,8 @@ class DataController extends BaseController
         $data = $bundle['data'];
         $pageActions = array(
             array('href' => $bundle['action_link']['href'], 'text' => $bundle['action_link']['text'], 'style' => ''),
+        );
+        $pageSubActions = array(
             array(
                 'href'  => route('admin.data.lock', array('id' => $data['id'])),
                 'text'  => $data['is_locked'] ? lang('data_unlock') : lang('data_lock'),
@@ -197,7 +199,7 @@ class DataController extends BaseController
             ),
         );
         if (!$data['is_locked']) {
-            $pageActions[] = array(
+            $pageSubActions[] = array(
                 'href'   => route('admin.data.destroy', array('id' => $data['id'])),
                 'text'   => lang('del'),
                 'style'  => 'gray',
@@ -208,6 +210,7 @@ class DataController extends BaseController
         return $this->view('data.htm', $navVars + [
             'ur_here' => $bundle['ur_here'],
             'page_actions' => $pageActions,
+            'page_sub_actions' => $pageSubActions,
             'rec' => 'edit',
             'data' => $data,
             'btn_lang' => $bundle['btn_lang'],

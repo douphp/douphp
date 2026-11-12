@@ -22,8 +22,9 @@ $_LANG['data_unlock'] = '解除锁定';
 $_LANG['data_all'] = '显示所有片段';
 $_LANG['data_all_hidden'] = '隐藏已分组片段';
 $_LANG['data_info'] = '片段信息';
-$_LANG['data_sync_from_template'] = '同步模板数据';
-$_LANG['data_sync_result'] = '同步完成：扫描 {scanned} 项，新增 {inserted} 项，跳过已存在 {skipped} 项';
+$_LANG['data_init_template'] = '初始化模板数据';
+$_LANG['data_init_template_confirm'] = '仅在模板配套的内容片段缺失时才需要初始化：系统只补建缺失项，生成的内容为空，需到「内容片段」填写，不会覆盖已存在的数据，确定继续？';
+$_LANG['data_init_result'] = '初始化完成：扫描 {scanned} 项，新增 {inserted} 项，跳过已存在 {skipped} 项';
 
 // 字段
 $_LANG['data_theme'] = '关联模板';
@@ -32,6 +33,7 @@ $_LANG['data_name'] = '片段名称';
 $_LANG['data_code'] = '唯一标记';
 $_LANG['data_image'] = '图片内容';
 $_LANG['data_text'] = '文字内容';
+$_LANG['data_slots'] = '分区文本';
 $_LANG['data_link'] = '链接';
 $_LANG['data_is_class'] = '设置为分组';
 $_LANG['data_is_locked'] = '是否锁定';
@@ -48,6 +50,7 @@ $_LANG['data_name_cue'] = '前台调用标签：<em class="copytext">{$data.唯�
 $_LANG['data_code_cue'] = '唯一标记不能为空且只能使用小写字母、数字、下划线，前台调用标签为：<em class="copytext">{$data.唯一标记.code}</em>，建议手动输入便于记忆的英文单词或拼音作为标记';
 $_LANG['data_image_cue'] = '前台调用标签：<em class="copytext">{$data.唯一标记.image}</em>';
 $_LANG['data_text_cue'] = '前台调用标签：<em class="copytext">{$data.唯一标记.text}</em>';
+$_LANG['data_slots_cue'] = '前台调用标签：<em class="copytext">{$data.唯一标记.slots.标识}</em>，标识需与上方分区文本中的标识一致';
 $_LANG['data_link_cue'] = '前台调用标签：<em class="copytext">{$data.唯一标记.link}</em>';
 
 // 小程序端备注（小程序模板不支持多语言，调用代码为 WXML 写法，数据来自 commonStore.data）
@@ -57,6 +60,7 @@ $_LANG['data_mp_name_cue'] = '小程序调用代码：<em class="copytext">{{dat
 $_LANG['data_mp_code_cue'] = '唯一标记不能为空且只能使用小写字母、数字、下划线，小程序调用代码为：<em class="copytext">{{data.唯一标记.code}}</em>，建议手动输入便于记忆的英文单词或拼音作为标记';
 $_LANG['data_mp_image_cue'] = '小程序调用代码：<em class="copytext">{{data.唯一标记.image}}</em>';
 $_LANG['data_mp_text_cue'] = '小程序调用代码：<em class="copytext">{{data.唯一标记.text}}</em>';
+$_LANG['data_mp_slots_cue'] = '小程序调用代码：<em class="copytext">{{data.唯一标记.slots.标识}}</em>，标识需与上方分区文本中的标识一致';
 $_LANG['data_mp_link_cue'] = '小程序调用代码：<em class="copytext">{{data.唯一标记.link}}</em>';
 $_LANG['data_mp_class_cue'] = '设置为分组后，可以在当前片段下添加子片段，小程序调用代码（子项字段用 item.xxx）：<em class="copytext">' . htmlspecialchars('<block wx:for="{{data.唯一标记.child}}" wx:key="code"> {{item.name}} </block>', ENT_QUOTES | ENT_HTML5, 'UTF-8') . '</em>';
 

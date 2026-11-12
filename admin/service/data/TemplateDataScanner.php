@@ -18,6 +18,7 @@ use Dou\Admin\Model\Data\Data;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Service\Admin\AdminLogAction;
 use Dou\Core\Service\BaseService;
+use Dou\Core\Support\Slots;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
@@ -42,6 +43,7 @@ if (!defined('IN_DOUCO')) {
  *   {$data.about.name|default:"关于我们"}
  *   {$data.about.text|default:"公司简介..."|group:"index"}
  *   {$data.partner.name|parent:"partner_group"|group:"common"|item:""}
+ *   {$data.hero.slots.title|default:"标题"}（分区文本：slots 后的 .<key> 为槽位标识）
  */
 class TemplateDataScanner extends BaseService
 {
@@ -49,15 +51,18 @@ class TemplateDataScanner extends BaseService
      * 扫描时识别的字段名 → 落库列名映射。
      *
      * 模板里 `{$data.<code>.<field>}` 的 field 段会被解析成对应的列。
-     * 未在此映射里的 field 会被忽略（如 `id`、`content`、`is_class` 等运行期合成字段）。
+     * `text_array` 是 text 按换行拆出的数组（见 DataService::fetchTree），落库仍写 text 列。
+     * 未在此映射里的 field 会被忽略（如 `id`、`content`、`is_class` 等运行期合成字段）；
+     * 其中 `child` 单独处理：只表示该 code 是分组容器，不落库，见 {@see parseDeclarations()}。
      *
      * @var array
      */
     private static $fieldMap = array(
-        'name'  => 'name',
-        'text'  => 'text',
-        'image' => 'image',
-        'link'  => 'link',
+        'name'       => 'name',
+        'text'       => 'text',
+        'text_array' => 'text',
+        'image'      => 'image',
+        'link'       => 'link',
     );
 
     /**
@@ -115,9 +120,16 @@ class TemplateDataScanner extends BaseService
             }
 
             $row = $this->buildRow($code, $decl, $theme);
-            $newId = (int) Data::insertData($row);
+            try {
+                $newId = (int) Data::insertData($row);
+            } catch (\Exception $e) {
+                // 并发重复点击时可能已被另一次请求建过，唯一索引拦截后按跳过处理
+                continue;
+            } catch (\Throwable $e) {
+                continue;
+            }
             if ($newId <= 0) {
-                // insert 失败（异常已由 Model 层抛出，这里兜底防止计数错位）
+                // insert 未返回自增 ID，兜底防止计数错位
                 continue;
             }
             $inserted++;
@@ -332,13 +344,31 @@ class TemplateDataScanner extends BaseService
         }
 
         foreach ($matches as $m) {
-            $code = $m[1];
+            // code 统一小写：模板匹配本身不区分大小写，避免 {$data.About.x} 建出大写 code
+            $code = strtolower($m[1]);
             $field = strtolower($m[2]);
             $modifierChain = $m[3];
 
-            if (!isset(self::$fieldMap[$field])) {
+            // child 是 is_class 父级的运行期合成字段，不落库：
+            // 出现 {$data.x.child} 只说明 x 是分组容器，建行时标 is_class=1 即可
+            $isChildField = ($field === 'child');
+            // slots 按槽位拆存：{$data.x.slots.<key>|default:"..."}，落库为 slots 列的 JSON map
+            $isSlotsField = ($field === 'slots');
+
+            if (!$isChildField && !$isSlotsField && !isset(self::$fieldMap[$field])) {
                 // 非落库字段（如 id/content/is_class），跳过
                 continue;
+            }
+
+            $slotKey = '';
+            if ($isSlotsField) {
+                // 槽位标识紧跟在 slots 之后（点号后只接受 \w，不支持中文 key）
+                if (!preg_match('/^\.([a-z0-9_]+)/i', $modifierChain, $keyMatch)) {
+                    // 裸 {$data.x.slots} 或直接接修饰器：无槽位可登记
+                    continue;
+                }
+                $slotKey = strtolower($keyMatch[1]);
+                $modifierChain = substr($modifierChain, strlen($keyMatch[0]));
             }
 
             if (!isset($declarations[$code])) {
@@ -351,8 +381,18 @@ class TemplateDataScanner extends BaseService
                 );
             }
 
+            if ($isChildField) {
+                // 声明了 child 即视为分组容器，落库时写 is_class=1
+                $declarations[$code]['_is_class'] = 1;
+            }
+
+            if ($slotKey !== '' && !isset($declarations[$code]['_slots'][$slotKey])) {
+                // 无 default 也登记空值，后台可看到待填槽位
+                $declarations[$code]['_slots'][$slotKey] = '';
+            }
+
             // 解析修饰器链：default / parent / group / item
-            $this->applyModifiers($declarations[$code], $modifierChain, $field);
+            $this->applyModifiers($declarations[$code], $modifierChain, $field, $slotKey);
         }
     }
 
@@ -360,7 +400,7 @@ class TemplateDataScanner extends BaseService
      * 解析修饰器链片段，把识别到的修饰器值写入声明数组。
      *
      * 识别的修饰器：
-     *   - default:"xxx"  写入对应 field 列（name/text/image/link）
+     *   - default:"xxx"  写入对应 field 列（name/text/image/link）；slots 场景写入 _slots[<key>]
      *   - parent:"xxx"   写入 _parent（→ parent_code）
      *   - group:"xxx"    写入 _group（→ data_group，覆盖文件默认）
      *   - item:"xxx"     写入 _item（→ data_item）
@@ -371,9 +411,10 @@ class TemplateDataScanner extends BaseService
      * @param array  $decl         引用回填的声明数组
      * @param string $modifierChain 修饰器链原文（如 '|default:"关于我们"|group:"index"'）
      * @param string $field         当前调用的 field 名
+     * @param string $slotKey       分区文本的槽位标识（非 slots 场景为空串）
      * @return void
      */
-    private function applyModifiers(array &$decl, $modifierChain, $field)
+    private function applyModifiers(array &$decl, $modifierChain, $field, $slotKey = '')
     {
         // 拆分修饰器：每个修饰器形如 |name:"arg" 或 |name:'arg' 或 |name（无参）
         // 此处用正则一次性抓所有 (name, quoted_arg) 对；未带引号的裸参不识别（够用）
@@ -384,12 +425,17 @@ class TemplateDataScanner extends BaseService
 
         foreach ($modMatches as $mod) {
             $modName = strtolower($mod[1]);
-            $modArg = isset($mod[2]) ? $mod[2] : (isset($mod[3]) ? $mod[3] : '');
+            // 未参与匹配的捕获组会以空串填充，须用 !== '' 判空才能回退到单引号参数
+            $modArg = (isset($mod[2]) && $mod[2] !== '') ? $mod[2] : (isset($mod[3]) ? $mod[3] : '');
 
             switch ($modName) {
                 case 'default':
-                    // 写入对应字段列（已通过 fieldMap 校验过）
-                    $decl[self::$fieldMap[$field]] = $modArg;
+                    // 写入对应字段列；child 等无对应列的虚拟字段忽略
+                    if ($slotKey !== '') {
+                        $decl['_slots'][$slotKey] = $modArg;
+                    } elseif (isset(self::$fieldMap[$field])) {
+                        $decl[self::$fieldMap[$field]] = $modArg;
+                    }
                     break;
                 case 'parent':
                     $decl['_parent'] = $modArg;
@@ -433,6 +479,7 @@ class TemplateDataScanner extends BaseService
             'code'        => $code,
             'image'       => isset($decl['image']) ? (string) $decl['image'] : '',
             'text'        => isset($decl['text']) ? (string) $decl['text'] : '',
+            'slots'       => isset($decl['_slots']) ? Slots::encode($decl['_slots']) : '',
             'link'        => isset($decl['link']) ? (string) $decl['link'] : '',
             'is_class'    => isset($decl['_is_class']) ? (int) $decl['_is_class'] : 0,
             'is_locked'   => 1,

@@ -1,0 +1,203 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+ <meta name="copyright" content="DouCo Co.,Ltd." />
+ <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+ <meta name="csrf-token" content="{$csrf_token}">
+ <title>{$lang.home}{if $ur_here} - {$ur_here} {/if}</title>
+ <link href="{$site.root_url}favicon.ico" rel="shortcut icon" type="image/x-icon" />
+ <link href="css/bootstrap-icons.css" rel="stylesheet" type="text/css">
+ <link href="css/common.css" rel="stylesheet" type="text/css">
+ <link href="css/aigc.css" rel="stylesheet" type="text/css">
+ {include file="inc/javascript.tpl"}
+</head>
+
+<body>
+ <div id="dou"> {include file="inc/header.tpl"}
+  {include file="inc/sidebar.tpl"}
+  <div id="dou-content"> {include file="inc/toolbar.tpl"}
+   <div class="dou-main has-submenu">
+    {include file="inc/submenu.tpl"}
+    <div class="dou-page">
+      <!-- {if $rec eq 'default'} 订阅记录列表 -->
+      {include file="inc/page_header.tpl"}
+      <div class="filter">
+       <form action="{url link='admin.aigc.subscription'}" method="get" onsubmit="return hideEmpty(this)">
+        <input name="username" type="text" class="input" value="{$req.username}" size="15" placeholder="{$lang.aigc_subscription_user}" />
+        <input name="order_sn" type="text" class="input" value="{$req.order_sn}" size="20" placeholder="{$lang.aigc_subscription_order_sn}" />
+        <select name="package_id" class="select">
+         <option value="">{$lang.aigc_subscription_package}</option>
+         <!-- {foreach from=$package_list item=package} -->
+         <option value="{$package.id}" {if $req.package_id eq $package.id}selected{/if}>{$package.name}</option>
+         <!-- {/foreach} -->
+        </select>
+        <select name="order_status" class="select">
+         <option value="">{$lang.aigc_subscription_order_status}</option>
+         <option value="pending" {if $req.order_status eq 'pending'}selected{/if}>{$lang.aigc_subscription_order_status_pending}</option>
+         <option value="paid" {if $req.order_status eq 'paid'}selected{/if}>{$lang.aigc_subscription_order_status_paid}</option>
+         <option value="completed" {if $req.order_status eq 'completed'}selected{/if}>{$lang.aigc_subscription_order_status_completed}</option>
+         <option value="cancelled" {if $req.order_status eq 'cancelled'}selected{/if}>{$lang.aigc_subscription_order_status_cancelled}</option>
+         <option value="awaiting_confirmation" {if $req.order_status eq 'awaiting_confirmation'}selected{/if}>{$lang.aigc_subscription_order_status_awaiting_confirmation}</option>
+        </select>
+        <input class="btn-secondary" type="submit" value="{$lang.btn_filter}" />
+        <a class="btn-secondary" href="{url link='admin.aigc.subscription'}">{$lang.btn_reset}</a>
+       </form>
+      </div>
+      <div id="list">
+       <form name="action" method="post" action="{url link='admin.aigc.subscription.action'}">
+        <input type="hidden" name="token" value="{$token}" />
+        <table class="table">
+         <tr>
+          <th width="22" class="text-center"><input name='chkall' type='checkbox' id='chkall' onclick='selectcheckbox(this.form)' value='check'></th>
+          <th class="m-none text-center" width="50">{$lang.record_id}</th>
+          <th class="text-left">{$lang.aigc_subscription_user}</th>
+          <th class="text-center">{$lang.aigc_subscription_package}</th>
+          <th class="m-none text-center" width="150">{$lang.aigc_subscription_order_sn}</th>
+          <th class="m-none text-center" width="80">{$lang.aigc_subscription_price}</th>
+          <th width="120" class="text-center">{$lang.aigc_subscription_usage}</th>
+          <th class="m-none text-center" width="100">{$lang.aigc_subscription_end_at}</th>
+          <th width="80" class="text-center">{$lang.aigc_subscription_order_status}</th>
+          <th class="m-none text-center" width="130">{$lang.aigc_subscription_created_at}</th>
+          <th width="80" class="text-center">{$lang.handler}</th>
+         </tr>
+         <!-- {foreach from=$subscription_list item=sub} -->
+         <tr>
+          <td class="text-center"><input type="checkbox" name="checkbox[]" value="{$sub.id}" /></td>
+          <td class="m-none text-center">{$sub.id}</td>
+          <td>
+           {if $sub.user.avatar}<img src="{$sub.user.avatar}" width="20" height="20" class="aigc-user-avatar" />{/if}
+           {$sub.user.nickname}
+          </td>
+          <td class="text-center">{$sub.package_name}</td>
+          <td class="m-none text-center"><small>{$sub.order_sn}</small></td>
+          <td class="m-none text-center">{$site.currency_base_symbol}{$sub.price}</td>
+          <td class="text-center">
+           <small>
+            Tokens: {$sub.tokens_used}/{$sub.tokens_limit} ({$sub.tokens_percent}%)<br>
+            {$lang.aigc_subscription_requests}: {$sub.requests_used}/{$sub.requests_limit} ({$sub.requests_percent}%)
+           </small>
+          </td>
+          <td class="m-none text-center">
+           {if $sub.is_expired}
+           <span class="danger">{$sub.end_at}</span>
+           {else}
+           {$sub.end_at}
+           {/if}
+          </td>
+          <td class="text-center">
+           {if $sub.order_status.value eq 'paid' || $sub.order_status.value eq 'completed'}
+           <span class="success">{$sub.order_status.format}</span>
+           {elseif $sub.order_status.value eq 'pending' || $sub.order_status.value eq 'awaiting_confirmation'}
+           <span class="warning">{$sub.order_status.format}</span>
+           {else}
+           <span class="danger">{$sub.order_status.format}</span>
+           {/if}
+          </td>
+          <td class="m-none text-center">{$sub.created_at}</td>
+          <td class="text-center"><a href="{url link='admin.aigc.subscription.show' id=$sub.id}">{$lang.view}</a> | <a href="javascript:;" class="js-delete" data-url="{url link='admin.aigc.subscription.destroy' id=$sub.id}">{$lang.del}</a></td>
+         </tr>
+         <!-- {/foreach} -->
+        </table>
+        <div class="action">
+         <select class="select" name="action">
+          <option value="0">{$lang.select}</option>
+          <option value="del_all">{$lang.del}</option>
+         </select>
+         <input class="btn" type="submit" value="{$lang.btn_execute}" />
+        </div>
+       </form>
+      </div>
+      <div class="clear"></div>
+      {include file="inc/pager.tpl"}
+      <!-- {/if} -->
+      <!-- {if $rec eq 'show'} 订阅记录详情 -->
+      {include file="inc/page_header.tpl"}
+      <div class="view">
+       <h4>{$lang.aigc_subscription_basic_info}</h4>
+       <table class="table">
+        <tr>
+         <td width="120">{$lang.aigc_subscription_user}：</td>
+         <td>
+          {if $subscription.user.avatar}<img src="{$subscription.user.avatar}" width="20" height="20" class="aigc-user-avatar" />{/if}
+          {$subscription.user.nickname}
+         </td>
+         <td width="120">{$lang.aigc_subscription_created_at}：</td>
+         <td>{$subscription.created_at}</td>
+        </tr>
+        <tr>
+         <td>{$lang.aigc_subscription_package}：</td>
+         <td>{$subscription.package_name}</td>
+         <td>{$lang.aigc_subscription_order_sn}：</td>
+         <td>{$subscription.order_sn}</td>
+        </tr>
+        <tr>
+         <td>{$lang.aigc_subscription_price}：</td>
+         <td>{$site.currency_base_symbol}{$subscription.price}</td>
+         <td>{$lang.aigc_subscription_order_status}：</td>
+         <td>
+          {if $subscription.order_status_format.value eq 'paid' || $subscription.order_status_format.value eq 'completed'}
+          <span class="success">{$subscription.order_status_format.format}</span>
+          {elseif $subscription.order_status_format.value eq 'pending' || $subscription.order_status_format.value eq 'awaiting_confirmation'}
+          <span class="warning">{$subscription.order_status_format.format}</span>
+          {else}
+          <span class="danger">{$subscription.order_status_format.format}</span>
+          {/if}
+         </td>
+        </tr>
+       </table>
+       <h4>{$lang.aigc_subscription_quota_info}</h4>
+       <table class="table">
+        <tr>
+         <td width="120">{$lang.aigc_subscription_tokens_limit}：</td>
+         <td>{$subscription.tokens_limit}</td>
+         <td width="120">{$lang.aigc_subscription_tokens_used}：</td>
+         <td>{$subscription.tokens_used}</td>
+        </tr>
+        <tr>
+         <td>{$lang.aigc_subscription_tokens_remaining}：</td>
+         <td>{$subscription.tokens_remaining}</td>
+         <td>{$lang.aigc_subscription_tokens_percent}：</td>
+         <td>{$subscription.tokens_percent}%</td>
+        </tr>
+        <tr>
+         <td>{$lang.aigc_subscription_requests_limit}：</td>
+         <td>{$subscription.requests_limit}</td>
+         <td>{$lang.aigc_subscription_requests_used}：</td>
+         <td>{$subscription.requests_used}</td>
+        </tr>
+        <tr>
+         <td>{$lang.aigc_subscription_requests_remaining}：</td>
+         <td>{$subscription.requests_remaining}</td>
+         <td>{$lang.aigc_subscription_requests_percent}：</td>
+         <td>{$subscription.requests_percent}%</td>
+        </tr>
+       </table>
+       <h4>{$lang.aigc_subscription_time_info}</h4>
+       <table class="table">
+        <tr>
+         <td width="120">{$lang.aigc_subscription_start_at}：</td>
+         <td>{$subscription.start_at}</td>
+         <td width="120">{$lang.aigc_subscription_end_at}：</td>
+         <td>
+          {if $subscription.is_expired}
+          <span class="danger">{$subscription.end_at} ({$lang.aigc_subscription_expired})</span>
+          {else}
+          <span class="success">{$subscription.end_at} ({$lang.aigc_subscription_valid})</span>
+          {/if}
+         </td>
+        </tr>
+       </table>
+      </div>
+      <!-- {/if} -->
+     </div>
+
+   </div>
+  </div>
+  {include file="inc/footer.tpl"}
+ </div>
+</body>
+
+</html>
+

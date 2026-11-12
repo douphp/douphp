@@ -136,5 +136,4 @@ class AdminResolver
 
         return new DispatchPlan($fqcn, $method, $hit['params'], $middlewares);
     }
-
 }

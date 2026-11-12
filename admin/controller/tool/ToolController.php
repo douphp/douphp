@@ -18,6 +18,7 @@ use Dou\Admin\Controller\BaseController;
 use Dou\Admin\Request\Tool\ToolFormRequest;
 use Dou\Admin\Service\Tool\ToolService;
 use Dou\Core\Foundation\Configuration\Config;
+use Dou\Core\Service\System\ModuleLanguageManifest;
 use Dou\Core\Support\Check;
 use Dou\Core\Web\Http\ApiResponse;
 use Dou\Core\Web\Http\Request;
@@ -277,7 +278,11 @@ class ToolController extends BaseController
      */
     public function langJs()
     {
-        $pack = (string) Config::get('site.language', 'zh_cn') . '/admin';
+        // 与 admin Init 解析出的实际生效语言包一致：站点语言缺 admin/common.lang.php 时回退中文
+        $pack = (string) Config::get('admin.lang_pack', '');
+        if ($pack === '') {
+            $pack = ModuleLanguageManifest::resolveAdminPack(Config::get('site.language', ''));
+        }
         $js = JsLangExporter::ensureCachedLangScript('admin', $pack);
         $hash = JsLangExporter::manifestHash('admin', $pack);
 

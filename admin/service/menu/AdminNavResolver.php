@@ -28,7 +28,8 @@ if (!defined('IN_DOUCO')) {
  * 输出契约（{@see self::resolve()} 返回的 $nav）：
  *   - route_name        string 当前命中的路由名
  *   - submenu           null | array('key','title','icon','items')；
- *                       items 项为 array('key','name','url','is_active')，url 已绝对化
+ *                       items 项为 array('key','name','icon','url','is_active')，url 已绝对化，
+ *                       icon 为声明里的图标 class（未声明时为空串，模板据此决定是否输出 <i>）
  *   - sidebar           array(id => array('is_active','is_all_active','is_category_active','children'))；
  *                       含全部侧栏节点（未命中者恒 false），is_all_active / is_category_active
  *                       仅栏目模块节点有意义（对应侧栏「全部 / 分类」二级项）；children 为
@@ -269,6 +270,20 @@ class AdminNavResolver
             }
         }
 
+        // 族级 icons 挂载表：array(项别名或 key => 图标 class)，纯展示数据，与 items 分离书写；
+        // 未在表里出现的项不渲染图标，因此旧声明文件（不含 icons）无需改动也能正常工作
+        $icons = (array) (isset($family['icons']) ? $family['icons'] : array());
+        foreach ($items as $index => $item) {
+            if ($icons === array() || !empty($item['icon'])) {
+                continue;
+            }
+            if ($itemAliases[$index] !== '' && isset($icons[$itemAliases[$index]])) {
+                $items[$index]['icon'] = (string) $icons[$itemAliases[$index]];
+            } elseif (isset($icons[$item['key']])) {
+                $items[$index]['icon'] = (string) $icons[$item['key']];
+            }
+        }
+
         foreach ((array) (isset($family['also']) ? $family['also'] : array()) as $subAlias => $ownerAlias) {
             $patterns = self::expandAliases(array($subAlias));
             if (empty($patterns)) {
@@ -363,6 +378,8 @@ class AdminNavResolver
         $item['exclude'] = isset($item['exclude']) ? self::expandAliases($item['exclude']) : array();
         $item['when'] = isset($item['when']) ? (array) $item['when'] : array();
         $item['params'] = isset($item['params']) ? (array) $item['params'] : array();
+        // 图标（Bootstrap Icons class，如 bi-people）：可写在 item 上，也可集中在族级 icons 表
+        $item['icon'] = isset($item['icon']) ? (string) $item['icon'] : '';
         $item['renders'] = isset($item['renders']) ? $item['renders'] : $familyKey;
 
         // 既无指向又无匹配模式的声明为无效项（如旧版 source=user_center 占位声明被
@@ -401,6 +418,7 @@ class AdminNavResolver
             $items[] = array(
                 'key' => $item['key'],
                 'name' => $name,
+                'icon' => $item['icon'],
                 'url' => $url,
                 'is_active' => ($activeItemKey !== null && $item['key'] === $activeItemKey),
             );

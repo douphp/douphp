@@ -208,6 +208,7 @@ export function request<T = any>(config: RequestConfig, opts?: RequestOpts): Pro
       {
         'Content-Type': 'application/x-www-form-urlencoded',
         Authorization: 'Bearer ' + (wx.getStorageSync('api_token') || ''),
+        'X-Chat-Visitor': wx.getStorageSync('chat_visitor_token') || '',
       },
       config.header || {}
     ),
@@ -287,6 +288,7 @@ export function request<T = any>(config: RequestConfig, opts?: RequestOpts): Pro
         }
 
         const successData: Record<string, any> = parsed.data || {}
+        if (successData.visitor_token) wx.setStorageSync('chat_visitor_token', successData.visitor_token)
         // 成功 data 上附只读、不可枚举元信息，便于业务读取 message / request_id；
         // 不可枚举保证 setData / JSON.stringify 不会序列化它们。
         try {

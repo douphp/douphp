@@ -19,7 +19,6 @@ use Dou\Core\Foundation\Event\Scene\SceneHandler;
 use Dou\Core\Foundation\Event\Scene\SceneNames;
 use Dou\Core\Foundation\Event\Scene\SceneRegistry;
 use Dou\Core\Foundation\Extension\Module;
-use Dou\Core\Service\Chat\SubscriptionService;
 use Dou\Core\Service\Vip\VipService;
 use Dou\Core\Service\Wallet\WalletService;
 
@@ -64,19 +63,26 @@ class OrderPaidSceneRegistrar
             'money' => function () {
                 return new WalletService();
             },
-            'chat' => function () {
-                return new SubscriptionService();
+            'aigc' => function () {
+                return new \Dou\Core\Service\Aigc\SubscriptionService();
             },
         );
 
         foreach ($keys as $key) {
             $key = trim((string) $key);
-            if ($key === '' || !Module::has($key)) {
+            if ($key === '') {
                 continue;
             }
 
             if (isset($map[$key])) {
-                SceneRegistry::register(SceneNames::ORDER_PAID, $key, $map[$key]);
+                // 内置映射不依赖 Module::make 的命名规约，只校验功能开关
+                if (Config::get('features.' . $key, false)) {
+                    SceneRegistry::register(SceneNames::ORDER_PAID, $key, $map[$key]);
+                }
+                continue;
+            }
+
+            if (!Module::has($key)) {
                 continue;
             }
 

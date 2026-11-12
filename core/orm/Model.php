@@ -258,6 +258,39 @@ abstract class Model implements ArrayAccess, IteratorAggregate, Countable, JsonS
     }
 
     /**
+     * 注册保存后事件监听器（新增与更新均触发）；回调形参为当前实例。
+     *
+     * @param callable $callback
+     * @return void
+     */
+    public static function saved($callback)
+    {
+        static::registerModelEvent('saved', $callback);
+    }
+
+    /**
+     * 注册新增后事件监听器；回调形参为当前实例。
+     *
+     * @param callable $callback
+     * @return void
+     */
+    public static function created($callback)
+    {
+        static::registerModelEvent('created', $callback);
+    }
+
+    /**
+     * 注册更新后事件监听器；回调形参为当前实例。
+     *
+     * @param callable $callback
+     * @return void
+     */
+    public static function updated($callback)
+    {
+        static::registerModelEvent('updated', $callback);
+    }
+
+    /**
      * 按调用类分桶登记模型事件监听器。
      *
      * @param string $event
@@ -1107,6 +1140,8 @@ abstract class Model implements ArrayAccess, IteratorAggregate, Countable, JsonS
                 ->update($dirty);
             if ($result !== false) {
                 $this->syncOriginal();
+                $this->fireModelEvent('updated');
+                $this->fireModelEvent('saved');
             }
 
             return $result !== false;
@@ -1124,6 +1159,8 @@ abstract class Model implements ArrayAccess, IteratorAggregate, Countable, JsonS
         }
         $this->exists = true;
         $this->syncOriginal();
+        $this->fireModelEvent('created');
+        $this->fireModelEvent('saved');
 
         return true;
     }

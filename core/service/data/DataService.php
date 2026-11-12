@@ -18,6 +18,7 @@ use Dou\Core\Contract\DataServiceContract;
 use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Service\BaseService;
+use Dou\Core\Support\Slots;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
@@ -173,6 +174,15 @@ class DataService extends BaseService implements DataServiceContract
         $query->order('sort ASC, id ASC');
         $result = $query->select();
 
+        // 分区文本多语言覆盖：整页 ids 一次性预热，避免循环内逐行查询
+        $slotsIds = array();
+        foreach ((array) $result as $slotsRow) {
+            if (isset($slotsRow['id'])) {
+                $slotsIds[] = (int) $slotsRow['id'];
+            }
+        }
+        language()->warmup('data', $slotsIds, 'slots');
+
         foreach ((array) $result as $row) {
             $row = language()->langBox($row, 'data', 'name, image, text, link');
 
@@ -180,6 +190,10 @@ class DataService extends BaseService implements DataServiceContract
             $textArray = $text === ''
                 ? array()
                 : explode("\n", str_replace(array("\r\n", "\r"), "\n", $text));
+
+            // 分区文本：主表 map 为基底，多语言覆盖仅替换默认已有键
+            $rawSlots = isset($row['slots']) ? $row['slots'] : '';
+            $slots = Slots::merge($rawSlots, language()->langValue($rawSlots, 'data', $row['id'], 'slots'));
 
             $child = array();
             if ($row['is_class']) {
@@ -195,6 +209,8 @@ class DataService extends BaseService implements DataServiceContract
                 'image' => attachment()->url($row['image']),
                 'text' => $row['text'],
                 'text_array' => $textArray,
+                'slots' => $slots,
+                'slots_count' => count($slots),
                 'link' => $row['link'],
                 'is_class' => $row['is_class'],
                 'child' => $row['is_class'] ? $child : array(),

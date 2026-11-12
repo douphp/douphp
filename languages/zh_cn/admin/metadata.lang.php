@@ -11,7 +11,6 @@
  * Author: DouCo Co.,Ltd.
  * Release Date: 2026-09-08
  */
-
 $_LANG['metadata'] = '扩展字段';
 $_LANG['metadata_slug'] = '字段标识';
 $_LANG['metadata_label'] = '显示名';

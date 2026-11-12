@@ -1,0 +1,66 @@
+/* aigc 后台专用样式 */
+.aigc-user-avatar {
+  border-radius: 50%;
+  vertical-align: middle;
+  margin-right: 5px;
+}
+.aigc-percent-danger {
+  color: #d9534f;
+}
+.aigc-percent-warning {
+  color: #e6a23c;
+}
+.aigc-session-toolbar {
+  margin: 10px 0;
+}
+
+/* 会话详情 */
+.aigc-workbench {
+  display: flex;
+  flex-direction: column;
+  max-width: 900px;
+}
+.aigc-msg-box {
+  border: 1px solid #e5e5e5;
+  border-radius: 4px;
+  background: #fafafa;
+  padding: 12px;
+  height: 420px;
+  overflow-y: auto;
+}
+.aigc-msg {
+  margin-bottom: 12px;
+}
+.aigc-msg .meta {
+  font-size: 12px;
+  color: #999;
+  margin-bottom: 2px;
+}
+.aigc-msg .bubble {
+  display: inline-block;
+  max-width: 75%;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.aigc-msg.role-user .bubble {
+  background: #fff;
+}
+.aigc-msg.role-ai .bubble {
+  background: #eef6ff;
+  border-color: #cfe5fb;
+}
+.aigc-msg.role-system {
+  text-align: center;
+}
+.aigc-msg.role-system .bubble {
+  background: #f3f3f3;
+  color: #888;
+  font-size: 12px;
+}
+.aigc-session-meta td {
+  padding: 4px 8px;
+}

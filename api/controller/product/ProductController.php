@@ -141,5 +141,4 @@ class ProductController extends BaseController
         }
         return ApiResponse::success($data);
     }
-
 }

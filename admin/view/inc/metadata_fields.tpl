@@ -4,7 +4,7 @@
  <!-- {foreach from=$metadata_form.panes item=pane} -->
  <div class="metadata-lang-pane" id="metadata-pane-{$pane.language_pack}"{if !$pane.is_default} style="display:none"{/if}>
   <!-- {foreach from=$pane.fields item=metadata_field} -->
-  <div class="form-item metadata-field" data-slug="{$metadata_field.slug}">
+  <div class="form-item metadata-field" data-dou-metadata-field data-slug="{$metadata_field.slug}">
    <div class="form-label">{$metadata_field.label|escape}{if $metadata_field.required_display} <i>*</i>{/if}</div>
    <div class="input-block">
     <!-- {if !$pane.is_default} -->

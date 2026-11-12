@@ -32,6 +32,9 @@
 }
 #theme .enable .action {
   margin-top: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
 }
 #theme .enable .action a {
   display: flex;
@@ -41,6 +44,7 @@
   font-size: 12px;
   padding: 8px 20px 8px 11px;
   align-items: center;
+  white-space: nowrap;
 }
 #theme .enable .action a i {
   margin-right: 10px;
@@ -51,6 +55,9 @@
 }
 #theme .enable .action a:hover {
   border: 1px solid #28b779;
+}
+#theme .enable .action a + a {
+  margin-left: 8px;
 }
 /* -- theme-list -- */
 #theme .theme-list {

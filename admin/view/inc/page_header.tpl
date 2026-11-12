@@ -5,7 +5,13 @@
    <!-- {if $page_sub_actions} -->
    <div class="page-header-action-sub">
     <!-- {foreach from=$page_sub_actions item=sub} -->
-    <a href="{$sub.href}"<!-- {if $sub.style || $sub.cur} --> class="<!-- {if $sub.style} -->{$sub.style}<!-- {/if} --><!-- {if $sub.cur} --> cur<!-- {/if} -->"<!-- {/if} --> <!-- {if $sub.attrs} --><!-- {foreach from=$sub.attrs key=k item=v} -->{$k}="{$v|escape}" <!-- {/foreach} --><!-- {/if} -->>{$sub.text}</a>
+    <!-- {if $sub.delete} -->
+    <a href="javascript:;" class="js-delete{if $sub.style} {$sub.style}{/if}{if $sub.icon} is-icon{/if}" data-url="{$sub.href}"<!-- {if $sub.confirm} --> data-confirm="{$sub.confirm}"<!-- {/if} --><!-- {if $sub.icon} --> title="{$sub.text}" aria-label="{$sub.text}"<!-- {/if} -->><!-- {if $sub.icon} --><i class="{$sub.icon}"></i><!-- {else} -->{$sub.text}<!-- {/if} --></a>
+    <!-- {elseif $sub.post} -->
+    <a href="javascript:;" class="js-post{if $sub.style} {$sub.style}{/if}{if $sub.icon} is-icon{/if}" data-url="{$sub.href}"<!-- {if $sub.modal_confirm} --> data-modal-confirm="{$sub.modal_confirm}"<!-- {if $sub.modal_title} --> data-modal-title="{$sub.modal_title}"<!-- {/if} --><!-- {elseif $sub.confirm} --> data-confirm="{$sub.confirm}"<!-- {/if} --><!-- {if $sub.icon} --> title="{$sub.text}" aria-label="{$sub.text}"<!-- {/if} -->><!-- {if $sub.icon} --><i class="{$sub.icon}"></i><!-- {else} -->{$sub.text}<!-- {/if} --></a>
+    <!-- {else} -->
+    <a href="{$sub.href}"<!-- {if $sub.style || $sub.cur || $sub.icon} --> class="<!-- {if $sub.style} -->{$sub.style}<!-- {/if} --><!-- {if $sub.cur} --> cur<!-- {/if} --><!-- {if $sub.icon} --> is-icon<!-- {/if} -->"<!-- {/if} --> <!-- {if $sub.attrs} --><!-- {foreach from=$sub.attrs key=k item=v} -->{$k}="{$v|escape}" <!-- {/foreach} --><!-- {/if} --><!-- {if $sub.icon} --> title="{$sub.text}" aria-label="{$sub.text}"<!-- {/if} -->><!-- {if $sub.icon} --><i class="{$sub.icon}"></i><!-- {else} -->{$sub.text}<!-- {/if} --></a>
+    <!-- {/if} -->
     <!-- {/foreach} -->
    </div>
    <!-- {/if} -->

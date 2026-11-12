@@ -207,6 +207,15 @@ class WalletService extends BaseService implements SceneHandler
                 $total = ($snapshot === null || $snapshot === false) ? 0.0 : (float) $snapshot;
             }
 
+            if ($action === 'withdraw' && $money < 0) {
+                $rows = (array) DB::table('money')->where('user_id', $user_id)
+                    ->order('id ASC')->lock('FOR UPDATE')->select();
+                $funds = MoneyBalancePolicy::summarize($rows, $total);
+                if (-$money > $funds['withdrawable'] + 0.005) {
+                    DB::rollback();
+                    return false;
+                }
+            }
             $total = round($total + $money, 2);
             if ($total < 0) {
                 DB::rollback();

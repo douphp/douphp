@@ -40,7 +40,7 @@ export function sendCaptcha(options: SendCaptchaOptions): Promise<Verification> 
         return Promise.reject(
           new ApiError({
             code: 'BUSINESS_RULE_VIOLATION',
-            message: (data && data.message) || '发送失败',
+            message: '发送失败',
             statusCode: 0,
             data: data || {},
           })

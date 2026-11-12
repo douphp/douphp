@@ -32,7 +32,9 @@ use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Container\Container;
 use Dou\Core\Foundation\Provider\ProviderRegistry;
 use Dou\Core\Init\InitTrait;
+use Dou\Core\Service\Chat\Knowledge\KnowledgeHookRegistrar;
 use Dou\Core\Service\Nav\MiniprogramNavigationBuilder;
+use Dou\Core\Service\System\ModuleLanguageManifest;
 use Dou\Core\Service\System\ModuleSettingReader;
 use Dou\Core\Support\Cdkey;
 use Dou\Core\Support\Util;
@@ -220,11 +222,10 @@ class Init
     private function loadModules()
     {
         SiteBootstrap::loadParameter();
-        $defaultLanguage = Config::get('site.language', '') ?: 'zh_cn';
-        $adminLangCandidate = $defaultLanguage . '/admin';
-        $langPack = file_exists(ROOT_PATH . 'languages/' . $adminLangCandidate)
-            ? $adminLangCandidate
-            : 'zh_cn/admin';
+        // 后台界面语言不跟随站点（前台）语言：站点语言自带 admin/common.lang.php 时才启用其后台
+        // 文案，否则（无 admin 目录或目录为空）一律回退 zh_cn/admin，避免后台文案整表缺失。
+        $langPack = ModuleLanguageManifest::resolveAdminPack(Config::get('site.language', ''));
+        Config::set('admin.lang_pack', $langPack);
         $boot = SystemBootstrap::loadCore(array(
             'isAdmin' => true,
             'langPack' => $langPack,
@@ -237,6 +238,11 @@ class Init
         Config::set('module', $module);
         Config::set('system', isset($boot['system']) ? $boot['system'] : array());
         Config::set('features', $features);
+
+        // 客服知识库增量同步：内容模块保存/删除时只入轻量队列，实际分块由 tick / CLI 消费
+        if (!empty($features['chat']) && class_exists(KnowledgeHookRegistrar::class)) {
+            KnowledgeHookRegistrar::register();
+        }
         $this->languageManifest = isset($boot['lang']) ? (array) $boot['lang'] : array();
         Config::set('pagination', !empty(Config::get('site.display', '')) ? unserialize(Config::get('site.display', '')) : array());
         Config::set('defined', !empty(Config::get('site.defined', '')) ? unserialize(Config::get('site.defined', '')) : array());
@@ -356,8 +362,12 @@ class Init
         $engine->assign('param', ViewVars::param(Config::get('param', array())));
         $engine->assign('js_route_config_json', JsRouteExporter::toJsonScript(JsRouteExporter::buildAdminConfig()));
         $engine->assign('js_routes_script_url', route('admin.tool.routes_js', array(), array('query' => array('v' => JsRouteExporter::manifestUrlVersion('Admin')))));
-        $langPack = (string) Config::get('site.language', 'zh_cn') . '/admin';
-        $engine->assign('js_lang_script_url', route('admin.tool.lang_js', array(), array('query' => array('v' => JsLangExporter::manifestUrlVersion('admin', $langPack)))));
+        // 与 loadModules 解析出的实际生效语言包保持一致，避免 HTML 侧指纹与端点输出错位
+        $adminLangPack = (string) Config::get('admin.lang_pack', '');
+        if ($adminLangPack === '') {
+            $adminLangPack = ModuleLanguageManifest::resolveAdminPack(Config::get('site.language', ''));
+        }
+        $engine->assign('js_lang_script_url', route('admin.tool.lang_js', array(), array('query' => array('v' => JsLangExporter::manifestUrlVersion('admin', $adminLangPack)))));
     }
 
     /**

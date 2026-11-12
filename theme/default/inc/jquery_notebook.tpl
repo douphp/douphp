@@ -34,23 +34,4 @@ $(document).ready(function(){
 });
 {/literal}
 </script>
-<style>
-{literal}
-.btn-visualize {
- display: inline-block;
- position: fixed;
- left: 20px;
- bottom: 20px;
- background-color: #55B66E;
- color: #FFF;
- padding: 8px 30px;
- font-size: 18px;
- z-index: 999999;
-}
-.btn-visualize:hover {
- background-color: #0072C6;
- color: #FFF;
-}
-{/literal}
-</style>
 <a id="btnVisualize" class="btn-visualize" data-id="{$page.id}" href="javascript:;">{$lang.btn_visualize_submit}</a>

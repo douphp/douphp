@@ -51,6 +51,37 @@ class ModuleLanguageManifest extends BaseService
     const CUSTOM_FILENAME = '_custom.lang.php';
 
     /**
+     * 后台语言包核心文案文件名。
+     *
+     * 判定某个语言包是否提供后台界面翻译，只看该文件是否存在：
+     * 后台文案遍布全部页面，缺了核心文件即等于整表缺键（界面只剩键名或空白），
+     * 仅建了空的 `languages/{lang}/admin/` 目录不算提供后台翻译。
+     */
+    const ADMIN_CORE_FILENAME = 'common.lang.php';
+
+    /**
+     * 解析后台实际生效的语言包路径。
+     *
+     * 规则：站点语言提供了 `languages/{lang}/admin/common.lang.php` 时才跟随站点语言，
+     * 否则一律回退 `zh_cn/admin` —— 后台界面语言不随前台站点语言切换而切换。
+     *
+     * @param string $siteLanguage 站点当前语言包标识（如 zh_cn、en_us）
+     * @return string 后台语言包路径（如 zh_cn/admin、en_us/admin）
+     */
+    public static function resolveAdminPack($siteLanguage = '')
+    {
+        $siteLanguage = trim((string) $siteLanguage);
+        $siteLanguage = $siteLanguage !== '' ? $siteLanguage : 'zh_cn';
+        $pack = $siteLanguage . '/admin';
+
+        if (is_file(ROOT_PATH . 'languages/' . $pack . '/' . self::ADMIN_CORE_FILENAME)) {
+            return $pack;
+        }
+
+        return 'zh_cn/admin';
+    }
+
+    /**
      */
     public function __construct()
     {

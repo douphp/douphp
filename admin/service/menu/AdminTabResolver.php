@@ -39,7 +39,7 @@ if (!defined('IN_DOUCO')) {
  * 静态项字段：
  *   - key       组内唯一标识（缺省由 anchor / link 推导）；
  *   - name      语言键（显示名，解析时经 lang() 求值）；
- *   - anchor    页面内锚点 id；给出时渲染为 data-toggle="tab" 的锚点触发器；
+ *   - anchor    页面内锚点 id；给出时渲染为 data-dou-toggle="tab" 的锚点触发器；
  *   - link      指向路由名（route($link)）；anchor 为空时必填；
  *   - active    补充高亮路由别名（可选）：与 link 指向同一入口的其它路由名，
  *               如 metadata 资源 index 与 metadata.fields 共用「扩展字段」页；

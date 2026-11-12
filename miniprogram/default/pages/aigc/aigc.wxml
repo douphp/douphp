@@ -1,0 +1,31 @@
+<!--pages/aigc/aigc.wxml AI应用中心-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="aigc-entries">
+   <view class="aigc-entry" bindtap="toWorks"><text class="bi bi-collection"></text> 我的作品</view>
+   <view class="aigc-entry" bindtap="toPackage"><text class="bi bi-gem"></text> AI套餐</view>
+   <view class="aigc-entry" bindtap="toUser"><text class="bi bi-person-gear"></text> 我的订阅</view>
+  </view>
+
+  <view class="aigc-app-list">
+   <view class="aigc-app-item" wx:for="{{app_list}}" wx:key="id" wx:for-item="item" data-item="{{item}}" bindtap="openApp">
+    <view class="aigc-app-icon">
+     <image wx:if="{{item.icon}}" src="{{item.icon}}" mode="aspectFill"></image>
+     <text wx:else class="bi bi-stars"></text>
+    </view>
+    <view class="aigc-app-info">
+     <view class="aigc-app-name">
+      {{item.name}}
+      <text class="aigc-badge" wx:if="{{!item.is_free}}">付费</text>
+     </view>
+     <view class="aigc-app-desc">{{item.description}}</view>
+     <view class="aigc-app-type">{{item.type_name}}</view>
+    </view>
+    <text class="bi bi-chevron-right aigc-arrow"></text>
+   </view>
+   <view class="aigc-empty" wx:if="{{!app_list.length && !loading}}">暂无可用应用</view>
+   <view class="aigc-empty" wx:if="{{loading}}">加载中...</view>
+  </view>
+ </view>
+</view>

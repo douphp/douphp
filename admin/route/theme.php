@@ -28,5 +28,5 @@ if (!defined('IN_DOUCO')) {
 Route::group('theme', ThemeController::class)->name('admin.')
     ->prefix('theme')
     ->get(['index', 'install', 'set'])
-    ->post(['enable', 'module', 'module_clear'])
+    ->post(['enable', 'module', 'module_clear', 'sync_data'])
     ->delete(['destroy']);

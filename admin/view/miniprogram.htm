@@ -18,7 +18,7 @@
 <div id="dou"> {include file="inc/header.tpl"}
  {include file="inc/sidebar.tpl"}
  <div id="dou-content"> {include file="inc/toolbar.tpl"}
-  <div class="dou-main{if $nav.submenu} has-subnav{/if}">
+  <div class="dou-main{if $nav.submenu} has-submenu{/if}">
    <!-- {if $nav.submenu} -->
    {include file="inc/submenu.tpl"}
    <!-- {/if} -->
@@ -88,7 +88,7 @@
      <!-- {if $rec eq 'nav'} 小程序导航 开始 -->
      {include file="inc/page_header.tpl"}
       <!-- {if $act eq 'default'} 导航列表 -->
-      <div class="tab" id="miniprogram-nav-tabs">
+      <div class="tab" data-dou-tab id="miniprogram-nav-tabs">
        <ul class="tab-nav">
         <li class="nav-item"><a class="nav-link{if $type eq 'miniprogram_top'} active{/if}" href="{url link='admin.miniprogram.nav'}">{$lang.miniprogram_nav_miniprogram_top}</a></li>
         <li class="nav-item"><a class="nav-link{if $type eq 'miniprogram_tabbar'} active{/if}" href="{url link='admin.miniprogram.nav' type=miniprogram_tabbar}">{$lang.miniprogram_nav_miniprogram_tabbar}</a></li>

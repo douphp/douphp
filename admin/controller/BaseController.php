@@ -225,7 +225,7 @@ abstract class BaseController extends CoreBaseController
 
         if ($banner) {
             // 幻灯面板统一以 show 为模块名（字段中文名走 dou_show 列的语言包）
-            $data['ai_config'] = $toolbar->pageConfig('show', 'form', true);
+            $data['ai_config'] = $toolbar->pageConfig($cur, 'form', true);
 
             return $data;
         }

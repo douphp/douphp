@@ -16,8 +16,8 @@ namespace Dou\Admin\Service\Article;
 
 use Dou\Admin\Model\Article\Article;
 use Dou\Admin\Service\Concerns\DecoratesAdminMetadata;
-use Dou\Admin\Service\Concerns\SavesMetadata;
 use Dou\Admin\Service\Concerns\SavesLanguageDrafts;
+use Dou\Admin\Service\Concerns\SavesMetadata;
 use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Service\Admin\AdminLogAction;
@@ -66,7 +66,7 @@ class ArticleService extends BaseService
      * @param int $page
      * @return array list、pager
      */
-    public function buildArticleListData($catId, $keyword, $page)
+    public function buildArticleListData($catId, $keyword, $page, $sort = '', $order = '')
     {
         $pageUrl = route('admin.article');
         $catId = (int) $catId;
@@ -76,12 +76,18 @@ class ArticleService extends BaseService
         if ($keyword !== '') {
             $pageUrl .= '&keyword=' . $keyword;
         }
+        if ($sort !== '') {
+            $pageUrl .= '&sort=' . rawurlencode($sort);
+        }
+        if ($order !== '') {
+            $pageUrl .= '&order=' . rawurlencode($order);
+        }
 
         $result = Article::with('category')
             ->filterByCategory($catId)
             ->filterByKeyword($keyword)
             ->field('id, title, category_id, image, sort, status, created_at, metadata')
-            ->applyDefaultOrder()
+            ->applyListOrder($sort, $order, array('id', 'title', 'sort', 'status', 'created_at'))
             ->paginate(15, $page, Util::normalizeQueryString($pageUrl));
 
         $articleList = array();

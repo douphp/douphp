@@ -14,8 +14,8 @@
 
 namespace Dou\Admin\Request\Article;
 
-use Dou\Core\Foundation\Configuration\Config;
 use Dou\Admin\Request\Concerns\HasMetadataRules;
+use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Web\Http\FormRequest;
 
 if (!defined('IN_DOUCO')) {
@@ -72,7 +72,7 @@ class ArticleFormRequest extends FormRequest
             'description' => '',
             'sort' => 'integer',
             'created_at' => 'required|date',
-            // 仅用于处理内容中远程图片本地化的行为开关，不是 article 表字段    
+            // 仅用于处理内容中远程图片本地化的行为开关，不是 article 表字段
             'content_remote_image_local' => 'boolean',
             // 主图删除标记：随主表单提交后由 Service 清空字段并回收旧图
             'image_delete' => '',

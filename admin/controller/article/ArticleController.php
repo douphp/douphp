@@ -15,6 +15,8 @@
 namespace Dou\Admin\Controller\Article;
 
 use Dou\Admin\Controller\BaseController;
+use Dou\Admin\Controller\Concerns\QuickEditable;
+use Dou\Admin\Model\Article\Article;
 use Dou\Admin\Model\Article\ArticleCategory;
 use Dou\Admin\Request\Article\ArticleFormRequest;
 use Dou\Admin\Service\Article\ArticleService;
@@ -35,6 +37,8 @@ if (!defined('IN_DOUCO')) {
  */
 class ArticleController extends BaseController
 {
+    use QuickEditable;
+
     /** @var ArticleService */
     private $articleService;
 
@@ -52,6 +56,22 @@ class ArticleController extends BaseController
     }
 
     /**
+     * 文章列表快速编辑字段声明。
+     *
+     * @return array
+     */
+    protected function quickEditConfig()
+    {
+        return array(
+            'model' => Article::class,
+            'fields' => array(
+                'title' => array('type' => 'text', 'max' => 150),
+                'sort' => array('type' => 'int'),
+            ),
+        );
+    }
+
+    /**
      * 文章列表
      *
      * @param Request $request
@@ -62,9 +82,11 @@ class ArticleController extends BaseController
         $catId = $request->integer('category_id', 0);
         $keyword = trim((string) $request->input('keyword', ''));
         $page = $request->integer('page', 1);
+        $sort = (string) $request->plainText('sort');
+        $order = (string) $request->plainText('order');
 
         // 获取带分页的列表
-        $result = $this->articleService->buildArticleListData($catId, $keyword, $page);
+        $result = $this->articleService->buildArticleListData($catId, $keyword, $page, $sort, $order);
 
         return $this->view('article.htm', [
             'ur_here' => lang('article_list'),

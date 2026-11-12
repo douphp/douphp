@@ -29,8 +29,9 @@ if (!defined('IN_DOUCO')) {
  *   - 模块：站点根 `_action/`（包根即站点根镜像，安装时落盘后整包删除）
  *   - 主题：`theme/<slug>/_action/`（装/升完成后整目录删除）
  *
- * 目录契约（引擎只认这三个固定位置，其它文件一律不执行、不拷贝）：
- *   resources/sql/install.sql   安装期演示数据（install / local）
+ * 目录契约（引擎只认这几个固定位置，其它文件一律不执行、不拷贝）：
+ *   resources/seed.json         安装期骨架数据（install / local，推荐；存在时忽略 install.sql）
+ *   resources/sql/install.sql   旧版安装期骨架数据（仅 seed.json 不存在时执行）
  *   resources/sql/upgrade.sql   升级期增量数据（update，只允许补齐/新增）
  *   resources/images/**         素材根，与站点根 images/** 同构镜像（目标已存在则跳过）
  *
@@ -158,11 +159,19 @@ class SeedRunner
             $this->mirrorImages();
         }
 
-        // 2. 演示数据 SQL（安装读 install.sql，升级读 upgrade.sql）
-        $sqlName = $phase === self::PHASE_UPDATE ? 'upgrade' : 'install';
-        $sqlFile = $this->sqlRoot() . $sqlName . '.sql';
-        if (is_file($sqlFile)) {
-            $this->runSqlFile($sqlFile);
+        // 2. 骨架数据：主题安装优先 seed.json，其次旧版 install.sql；升级只读 upgrade.sql
+        $seedJson = $this->resourcesRoot() . 'seed.json';
+        if ($phase === self::PHASE_INSTALL && $this->extensionType === 'theme' && is_file($seedJson)) {
+            $jsonRunner = new SeedJsonRunner($this->rootPath, $this->materialsRoot, $this->extensionId);
+            $stats = $jsonRunner->run($seedJson);
+            $this->notes[] = '已执行 seed.json 骨架数据：新增 ' . $stats['inserted'] . ' 行、跳过 ' . $stats['skipped']
+                . ' 行、登记图片 ' . $stats['files'] . ' 张、翻译 ' . $stats['translations'] . ' 条（install.sql 已忽略）。';
+        } else {
+            $sqlName = $phase === self::PHASE_UPDATE ? 'upgrade' : 'install';
+            $sqlFile = $this->sqlRoot() . $sqlName . '.sql';
+            if (is_file($sqlFile)) {
+                $this->runSqlFile($sqlFile);
+            }
         }
 
         // 3. PHP 钩子
@@ -282,7 +291,7 @@ class SeedRunner
     }
 
     /**
-     * 把 resources/images/** 镜像到站点根 images/**（目标已存在则跳过，保护用户替换过的演示图）。
+     * 把 resources/images/** 镜像到站点根 images/**（目标已存在则跳过，保护用户替换过的图片）。
      *
      * @return void
      * @throws \RuntimeException 任一文件落盘失败
@@ -297,10 +306,10 @@ class SeedRunner
         $failed = array();
         $copied = $this->copyTreeSkipExisting($source, $this->rootPath . 'images/', '', $failed);
         if ($failed) {
-            throw new \RuntimeException('演示素材写入失败（' . $this->label() . '）：' . implode('、', array_slice($failed, 0, 5)));
+            throw new \RuntimeException('素材写入失败（' . $this->label() . '）：' . implode('、', array_slice($failed, 0, 5)));
         }
         if ($copied > 0) {
-            $this->notes[] = '已写入演示素材 ' . $copied . ' 个文件。';
+            $this->notes[] = '已写入素材 ' . $copied . ' 个文件。';
         }
     }
 
@@ -374,11 +383,11 @@ class SeedRunner
 
         DB::transaction(function () use ($sql, $label) {
             if (!DB::fnExecute($sql)) {
-                throw new \RuntimeException('演示数据执行失败：' . $label . '（' . $this->label() . '），已回滚，请检查 SQL。');
+                throw new \RuntimeException('骨架数据执行失败：' . $label . '（' . $this->label() . '），已回滚，请检查 SQL。');
             }
         });
 
-        $this->notes[] = '已执行演示数据 ' . $label . '。';
+        $this->notes[] = '已执行骨架数据 ' . $label . '。';
     }
 
     /**
@@ -400,7 +409,7 @@ class SeedRunner
             }
             if (preg_match('/^(' . implode('|', self::$ddlKeywords) . ')\b/i', $statement, $matches)) {
                 throw new \RuntimeException(
-                    '演示数据文件禁止结构变更（' . basename($file) . '）：命中 ' . strtoupper($matches[1])
+                    '骨架数据文件禁止结构变更（' . basename($file) . '）：命中 ' . strtoupper($matches[1])
                     . ' 语句。结构请交给模块 storage/backup/<module>.sql 与 SchemaSync 处理（' . $this->label() . '）。'
                 );
             }

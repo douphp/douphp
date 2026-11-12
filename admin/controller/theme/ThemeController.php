@@ -17,6 +17,7 @@ namespace Dou\Admin\Controller\Theme;
 use Dou\Admin\Controller\BaseController;
 use Dou\Admin\Request\Theme\ThemeSlugFormRequest;
 use Dou\Admin\Service\Cloud\CloudService;
+use Dou\Admin\Service\Data\TemplateDataScanner;
 use Dou\Admin\Service\Theme\ThemeService;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Service\Admin\AdminLogAction;
@@ -43,16 +44,21 @@ class ThemeController extends BaseController
     /** @var SiteThemePolicy */
     private $themePolicy;
 
+    /** @var TemplateDataScanner */
+    private $dataScanner;
+
     /**
-     * @param ThemeService    $themeService
-     * @param CloudService    $cloudService
-     * @param SiteThemePolicy $themePolicy
+     * @param ThemeService         $themeService
+     * @param CloudService         $cloudService
+     * @param SiteThemePolicy      $themePolicy
+     * @param TemplateDataScanner  $dataScanner
      */
-    public function __construct(ThemeService $themeService, CloudService $cloudService, SiteThemePolicy $themePolicy)
+    public function __construct(ThemeService $themeService, CloudService $cloudService, SiteThemePolicy $themePolicy, TemplateDataScanner $dataScanner)
     {
         $this->themeService = $themeService;
         $this->cloudService = $cloudService;
         $this->themePolicy = $themePolicy;
+        $this->dataScanner = $dataScanner;
     }
 
     /**
@@ -146,6 +152,26 @@ class ThemeController extends BaseController
         $this->themeService->clearSupportModule();
 
         return redirect(route('admin.theme'));
+    }
+
+    /**
+     * 按当前启用主题的模板声明补齐缺失的数据片段。
+     *
+     * 路由：POST ?route=theme/sync_data（模板管理页「当前启用模板」内的同步按钮）。
+     *
+     * @return Response
+     */
+    public function syncData()
+    {
+        $result = $this->dataScanner->syncCurrentTheme();
+
+        $message = strtr(lang('data_init_result'), array(
+            '{scanned}'  => $result['scanned'],
+            '{inserted}' => $result['inserted'],
+            '{skipped}'  => $result['skipped'],
+        ));
+
+        return redirect(route('admin.theme'))->with('success', $message);
     }
 
     /**

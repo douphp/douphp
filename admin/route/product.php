@@ -30,7 +30,7 @@ if (!defined('IN_DOUCO')) {
 
 Route::name('admin.')->compositeModule()->group(function () {
     Route::resource('product', ProductController::class)
-        ->post(['thumb', 'model', 'action']);
+        ->post(['thumb', 'model', 'action', 'import_execl', 'quick_edit']);
 
     Route::resource('product', CategoryController::class)
         ->prefix('product/category')

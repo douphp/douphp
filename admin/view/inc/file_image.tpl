@@ -19,7 +19,7 @@
  *             前台单图走 douFileBox 的独立请求 + 整表回填。
  +----------------------------------------------------------
 -->
-<div class="file-image{if $value} file-image-filled{/if}" data-initial-src="{$value}" data-initial-number="{$file_number}" data-crop-ratio="{if $crop_ratio}{$crop_ratio}{else}{if $site.thumb_width && $site.thumb_height}{$site.thumb_width}/{$site.thumb_height}{/if}{/if}" data-defer-delete="{if $defer_delete}1{else}0{/if}">
+<div class="file-image{if $value} file-image-filled{/if}" data-dou-file-image data-initial-src="{$value}" data-initial-number="{$file_number}" data-crop-ratio="{if $crop_ratio}{$crop_ratio}{else}{if $site.thumb_width && $site.thumb_height}{$site.thumb_width}/{$site.thumb_height}{/if}{/if}" data-defer-delete="{if $defer_delete}1{else}0{/if}">
  <!-- {if $hidden_name} --><input type="hidden" class="file-number" name="{$hidden_name}" value="{$file_number}" /><!-- {/if} -->
  <!-- {if $defer_delete neq 1} --><input type="hidden" class="file-delete-flag" name="{$name}_delete" value="0" /><!-- {/if} -->
  <div class="file-image-stage">

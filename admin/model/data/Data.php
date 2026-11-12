@@ -41,6 +41,7 @@ class Data extends Model
         'name',
         'code',
         'text',
+        'slots',
         'image',
         'link',
         'is_class',

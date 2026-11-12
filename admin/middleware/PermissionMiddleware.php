@@ -14,8 +14,11 @@
 
 namespace Dou\Admin\Middleware;
 
+use Dou\Admin\Service\Ai\ApplicationAccess;
 use Dou\Admin\Service\Authorization\AdminGate;
+use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Middleware\MiddlewareInterface;
+use Dou\Core\Web\Http\ApiResponse;
 use Dou\Core\Web\Http\HttpResponseException;
 
 if (!defined('IN_DOUCO')) {
@@ -63,6 +66,33 @@ class PermissionMiddleware implements MiddlewareInterface
         $targetId = $request->integer('id', 0);
         $entry = $request->routeEntry();
         $parentModule = $entry !== null ? (string) $entry->parent_module : '';
+
+        // 应用运行端点按业务模块授权；管理页面仍走原 AI 模块权限。
+        $sub = (string) $request->routeSub();
+        $aiResource = $cur === 'ai' || $parentModule === 'ai';
+        if ($aiResource && in_array($sub, array('generate_batch', 'generate_form', 'generate_field', 'generate_translate'), true)) {
+            $module = (string) $request->input('module', '');
+            if ($sub === 'generate_batch' || $sub === 'generate_form') {
+                $module = (string) DB::table('ai')->where('id', $request->integer('app_id', 0))->value('module');
+            }
+            if (!app(ApplicationAccess::class)->allows($admin, $module)
+                || ($action === 'products' && !app(ApplicationAccess::class)->allows($admin, 'product'))
+            ) {
+                ApiResponse::throwError('AI_USAGE_DENIED', lang('ai_usage_denied'), array(), 403);
+            }
+            return $next();
+        }
+        // 业务编辑人员只能轮询和取回自己创建的图片任务，不能访问任务管理。
+        if ($aiResource && $sub === 'task' && in_array($action, array('show', 'image'), true)
+            && !$this->gate->canAccess($admin, $cur, $action, $targetId, $parentModule)
+        ) {
+            $id = $action === 'image' ? $request->integer('task_id', 0) : $targetId;
+            $owner = (int) DB::table('ai_task')->where('id', $id)->value('admin_id');
+            if ($owner < 1 || $owner !== (int) auth('admin')->id()) {
+                ApiResponse::throwError('AI_USAGE_DENIED', lang('ai_usage_denied'), array(), 403);
+            }
+            return $next();
+        }
 
         if (!$this->gate->canAccess($admin, $cur, $action, $targetId, $parentModule)) {
             throw new HttpResponseException(redirect(ROOT_URL . ADMIN_DIR));

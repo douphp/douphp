@@ -23,6 +23,7 @@ use Dou\Core\Service\BaseService;
 use Dou\Core\Service\Content\MarkdownRenderer;
 use Dou\Core\Service\Language\LanguageImageCleaner;
 use Dou\Core\Support\Check;
+use Dou\Core\Support\Slots;
 use Dou\Core\Web\Http\UploadedFile;
 
 if (!defined('IN_DOUCO')) {
@@ -267,6 +268,19 @@ class LanguageDraftService extends BaseService
                     continue;
                 }
 
+                if ($kind === LanguageDraftFields::KIND_SLOTS) {
+                    // 覆盖式翻译：只保留主表已存在的 key，丢弃空值，全空时存空串由 commit 删行
+                    $defaultKeys = Slots::decode(isset($data['slots']) ? $data['slots'] : '');
+                    $override = array();
+                    foreach (Slots::decode($value) as $slotKey => $slotValue) {
+                        if (isset($defaultKeys[$slotKey]) && trim($slotValue) !== '') {
+                            $override[$slotKey] = $slotValue;
+                        }
+                    }
+                    $plan['drafts'][$pack][$field] = Slots::encode($override);
+                    continue;
+                }
+
                 $plan['drafts'][$pack][$field] = $value;
             }
         }
@@ -492,7 +506,8 @@ class LanguageDraftService extends BaseService
             );
             if ($kind === LanguageDraftFields::KIND_IMAGE) {
                 $target['accept'] = 'image/*';
-            } else {
+            } elseif ($kind !== LanguageDraftFields::KIND_SLOTS) {
+                // 分区文本为 JSON map，不设 AI 整段字段，避免把 JSON 当普通文本翻译
                 $target['ai_field'] = $field;
                 $target['ai_type'] = $kind === LanguageDraftFields::KIND_EDITOR ? 'content' : $kind;
             }
@@ -653,6 +668,9 @@ class LanguageDraftService extends BaseService
         }
         if ($kind === LanguageDraftFields::KIND_IMAGE) {
             return 'image';
+        }
+        if ($kind === LanguageDraftFields::KIND_SLOTS) {
+            return 'json';
         }
 
         return $kind === LanguageDraftFields::KIND_TEXTAREA ? 'textarea' : 'text';

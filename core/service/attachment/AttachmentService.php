@@ -1110,6 +1110,37 @@ class AttachmentService
     }
 
     /**
+     * 单 number → 相对站点根的存储路径（如 storage/image/xxx.jpg）。
+     *
+     * 用于需要本地文件路径而非 URL 的场景（如导出 Excel 内嵌图片）；
+     * number 不存在时返回空串。
+     *
+     * @param mixed $number
+     * @return string
+     */
+    public function relativePath($number)
+    {
+        if (!is_string($number) || $number === '') {
+            return '';
+        }
+
+        return (string) $this->repository->getRelativePathByNumber($number);
+    }
+
+    /**
+     * 批量 number → 相对存储路径。
+     *
+     * 导出等大批量场景必须走本方法，避免逐个 number 查询。
+     *
+     * @param array $numbers
+     * @return array number => 相对路径（未命中的 number 不出现在结果中）
+     */
+    public function relativePathBatch(array $numbers)
+    {
+        return $this->repository->getRelativePathsByNumbers($numbers);
+    }
+
+    /**
      * 批量 → URL 映射。
      *
      * @param mixed $numbers

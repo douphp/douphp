@@ -15,8 +15,8 @@
 namespace Dou\Admin\Service\Article;
 
 use Dou\Admin\Model\Article\ArticleCategory;
-use Dou\Admin\Service\Nav\NavCategorySyncService;
 use Dou\Admin\Service\Concerns\SavesLanguageDrafts;
+use Dou\Admin\Service\Nav\NavCategorySyncService;
 use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Exception\DomainException;

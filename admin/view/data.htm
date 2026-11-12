@@ -19,7 +19,7 @@
  <div id="dou"> {include file="inc/header.tpl"}
   {include file="inc/sidebar.tpl"}
   <div id="dou-content"> {include file="inc/toolbar.tpl"}
-   <div class="dou-main has-subnav{if $in_page} is-in-page{/if}">
+   <div class="dou-main has-submenu{if $in_page} is-in-page{/if}">
     {include file="inc/submenu.tpl"}
     <div class="dou-page">
       {include file="inc/page_header.tpl"}
@@ -57,13 +57,28 @@
            <p class="cue">{$lang.data_image_cue nofilter}</p>
           </div>
          </div>
-         <div class="form-item">
-          <div class="form-label">{$lang.data_text}</div>
-          <div class="input-block">
-           <textarea name="text" cols="92" rows="7" class="textarea-auto auto-textarea">{$data.text}</textarea>
-           <!-- {if $btn_lang.text} --><p class="action" data-field="text">{$btn_lang.text nofilter}</p><!-- {/if} -->
-           <p class="cue">{$lang.data_text_cue nofilter}</p>
+         <div class="slots-tab" data-dou-tab id="data-content-tabs" data-dou-tab-default="{if $data.content_mode eq 'slots'}#data-content-slots{else}#data-content-text{/if}">
+          <div class="form-item">
+           <div class="form-label">
+            <ul class="tab-nav">
+             <li class="nav-item"><a class="nav-link" href="#data-content-text" data-dou-toggle="tab">{$lang.data_text}</a></li>
+             <li class="nav-item"><a class="nav-link" href="#data-content-slots" data-dou-toggle="tab">{$lang.slots_mode_slots}</a></li>
+            </ul>
+           </div>
+           <div class="tab-content">
+            <div class="tab-pane" id="data-content-text">
+             <div class="input-block">
+              <textarea name="text" cols="92" rows="7" class="textarea-auto auto-textarea">{$data.text}</textarea>
+              <!-- {if $btn_lang.text} --><p class="action" data-field="text">{$btn_lang.text nofilter}</p><!-- {/if} -->
+              <p class="cue">{$lang.data_text_cue nofilter}</p>
+             </div>
+            </div>
+            <div class="tab-pane" id="data-content-slots" data-slots-pane>
+             {include file="inc/slots_field.tpl" rows=$data.slot_rows cue=$lang.data_slots_cue locked=$data.is_locked}
+            </div>
+           </div>
           </div>
+          <input type="hidden" name="content_mode" value="{$data.content_mode}" />
          </div>
          <div class="form-item">
           <div class="form-label">{$lang.data_link}</div>
@@ -110,6 +125,7 @@
  </div>
 <script type="text/javascript" src="js/cropper.min.js"></script>
 <script type="text/javascript" src="js/data.js"></script>
+<script type="text/javascript" src="js/slots.js"></script>
 </body>
 
 </html>

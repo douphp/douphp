@@ -15,6 +15,7 @@
 namespace Dou\Admin\Model\Product;
 
 use Dou\Admin\Model\Concerns\PurgesRelatedOnDelete;
+use Dou\Admin\Model\Concerns\SortableList;
 use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Model\Concerns\ContentMutators;
@@ -35,6 +36,7 @@ class Product extends Model
     use ContentMutators;
     use HasCategoryFilter;
     use PurgesRelatedOnDelete;
+    use SortableList;
 
     /**
      * 对应的数据表名（主键沿用默认 id）。

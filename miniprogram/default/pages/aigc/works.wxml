@@ -1,0 +1,31 @@
+<!--pages/aigc/works.wxml 我的作品-->
+<navbar title="{{title}}"></navbar>
+<view class="body">
+ <view class="wrap">
+  <view class="aigc-filter">
+   <view class="aigc-filter-item {{type === item.key ? 'active' : ''}}" wx:for="{{types}}" wx:key="key" wx:for-item="item" data-type="{{item.key}}" bindtap="switchType">{{item.label}}</view>
+  </view>
+
+  <view class="aigc-work-list">
+   <view class="aigc-work" wx:for="{{work_list}}" wx:key="id" wx:for-item="work">
+    <view class="aigc-work-head">
+     <text class="aigc-work-type">{{work.type_name}}</text>
+     <text class="aigc-work-status status-{{work.status}}">{{work.status_name}}</text>
+     <text class="aigc-work-time">{{work.created_at}}</text>
+    </view>
+    <view class="aigc-work-prompt">{{work.prompt}}</view>
+    <view class="aigc-work-error" wx:if="{{work.error}}">{{work.error}}</view>
+    <view class="aigc-work-files">
+     <view class="aigc-work-file" wx:for="{{work.files}}" wx:key="index" wx:for-item="file" data-task-id="{{work.id}}" data-file-index="{{file.index}}" data-format="{{file.format}}" data-work-type="{{work.type}}" bindtap="previewWork">
+      <text class="bi bi-file-earmark-arrow-down"></text>
+      <text class="aigc-work-file-name">{{file.name}}</text>
+     </view>
+    </view>
+    <view class="aigc-work-actions">
+     <text class="aigc-work-del" data-task-id="{{work.id}}" bindtap="removeWork">删除</text>
+    </view>
+   </view>
+   <view class="aigc-empty" wx:if="{{!work_list.length}}">暂无作品</view>
+  </view>
+ </view>
+</view>
