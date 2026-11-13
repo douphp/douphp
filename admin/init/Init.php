@@ -209,9 +209,36 @@ class Init
         SiteBootstrap::loadParameter();
 
         $engine->assign('site', Config::get('site', array()));
+        $engine->assign('asset_ver', $this->resolveAssetVersion());
         $engine->assign('admin_url', defined('ADMIN_URL') ? ADMIN_URL : '');
         $engine->assign('upload_max_kb', attachment()->effectiveUploadMaxKb());
         // param 在 loadModules 中 Config::set 后再次 assign，避免模板读到过时参数
+    }
+
+    /**
+     * 后台静态资源版本串（系统最近更新日期 Ymd）。
+     *
+     * 与 douphp_version 末 8 位同源（升级引擎以 substr($newVersion, -8) 写入 update_date），
+     * 补丁更新亦会刷新该日期，故后台样式/脚本在每次升级后自动击穿浏览器缓存。
+     * 优先级：update_date.system.update -> douphp_version 末 8 位 -> '1'（保证模板端永不为空）。
+     *
+     * @return string
+     */
+    private function resolveAssetVersion()
+    {
+        $updateDate = @unserialize((string) Config::get('site.update_date', ''));
+        if (is_array($updateDate) && isset($updateDate['system']['update'])) {
+            $date = trim((string) $updateDate['system']['update']);
+            if (preg_match('/^\d{8}$/', $date)) {
+                return $date;
+            }
+        }
+
+        if (preg_match('/(\d{8})$/', trim((string) Config::get('site.douphp_version', '')), $m)) {
+            return $m[1];
+        }
+
+        return '1';
     }
 
     /**

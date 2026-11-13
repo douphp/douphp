@@ -14,10 +14,12 @@
 
 namespace Dou\Front\Service\Mail;
 
+use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Event\Event;
 use Dou\Core\Foundation\Event\SystemEvents;
 use Dou\Core\Infra\Database\Connection;
+use Dou\Core\Infra\Log\Log;
 use Dou\Core\Support\Util;
 use Dou\Vendor\Mail\Mail;
 
@@ -33,6 +35,29 @@ if (!defined('IN_DOUCO')) {
  */
 class SiteMail
 {
+    /**
+     * 首次整单付款事件：发送失败只记日志，不影响已提交的付款状态。
+     *
+     * @param array $payload 付款事件载荷（需含 order_sn）
+     * @return void
+     */
+    public static function onOrderPaid($payload)
+    {
+        if (!is_array($payload) || empty($payload['order_sn']) || !Config::get('site.email', '')) {
+            return;
+        }
+        $orderSn = (string) $payload['order_sn'];
+        try {
+            if (!self::sendOrderPaymentToSite(DB::getFacadeRoot(), lang_all(), $orderSn)) {
+                Log::error('order payment mail failed', array('channel' => 'mail', 'order_sn' => $orderSn));
+            }
+        } catch (\Exception $e) {
+            Log::error('order payment mail failed: ' . $e->getMessage(), array('channel' => 'mail', 'order_sn' => $orderSn));
+        } catch (\Throwable $e) {
+            Log::error('order payment mail failed: ' . $e->getMessage(), array('channel' => 'mail', 'order_sn' => $orderSn));
+        }
+    }
+
     /**
      * 发送「站点订单通知」邮件给 `site.email`，并在成功后触发
      * `SystemEvents::ORDER_PAYMENT_SITE_MAIL_SENT` 供扩展监听。
@@ -60,7 +85,7 @@ class SiteMail
         }
 
         // 收货联系人字段已迁出 dou_order，统一从 dou_order_address 快照补齐
-        $addrRow = $db->table('order_address')->where('order_id', (int) $order['order_id'])->find();
+        $addrRow = $db->table('order_address')->where('order_id', (int) $order['id'])->find();
         $order['contact'] = is_array($addrRow) && isset($addrRow['contact_name']) ? $addrRow['contact_name'] : '';
         $order['phone'] = is_array($addrRow) && isset($addrRow['phone']) ? $addrRow['phone'] : '';
         $order['address'] = is_array($addrRow) && isset($addrRow['address']) ? $addrRow['address'] : '';
@@ -88,7 +113,13 @@ class SiteMail
 
         $sent = self::deliver($siteEmail, $title, $body, $altBody);
         if ($sent) {
-            Event::fire(SystemEvents::ORDER_PAYMENT_SITE_MAIL_SENT, array('order' => $order));
+            try {
+                Event::fire(SystemEvents::ORDER_PAYMENT_SITE_MAIL_SENT, array('order' => $order));
+            } catch (\Exception $e) {
+                Log::error('order payment mail extension failed: ' . $e->getMessage(), array('channel' => 'mail', 'order_sn' => $orderSn));
+            } catch (\Throwable $e) {
+                Log::error('order payment mail extension failed: ' . $e->getMessage(), array('channel' => 'mail', 'order_sn' => $orderSn));
+            }
         }
 
         return (bool) $sent;

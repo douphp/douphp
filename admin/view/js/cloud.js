@@ -257,7 +257,7 @@
     var note = (result && result.finish_note_html) ? String(result.finish_note_html) : '';
     var m = meta.mode ? String(meta.mode) : '';
     var isUpdate = (m === 'update' || m === 'patch');
-    // 更新/补丁：返回更新主页 → 启用模板/插件 → 查看还原点（同一行，还原点最后）
+    // 更新/补丁：返回更新主页 → 查看还原点（同一行，还原点最后；无「启用」按钮）
     // 全新安装：启用在前、返回在后（维持原顺序）
     var html = isUpdate ? (back + action + note) : (action + back);
     if (html !== '') { appendActionRow(html); }

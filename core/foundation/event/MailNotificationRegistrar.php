@@ -47,6 +47,7 @@ class MailNotificationRegistrar
         }
         self::$registered = true;
 
+        Event::listen(SystemEvents::ORDER_PAID, array(FrontSiteMail::class, 'onOrderPaid'), 0);
         Event::listen(SystemEvents::ADMIN_LOGIN_SUCCESS, array(AdminSiteMail::class, 'onAdminLoginSuccess'), 0);
         Event::listen(SystemEvents::AFTERSALE_HANDLED, array(AdminSiteMail::class, 'onAftersaleHandled'), 0);
         Event::listen(SystemEvents::ORDER_PAYMENT_SITE_MAIL_SENT, array(FrontSiteMail::class, 'onOrderPaymentSiteMailSent'), 0);

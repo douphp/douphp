@@ -23,6 +23,9 @@ if (!defined('IN_DOUCO')) {
  */
 class SystemEvents
 {
+    /** 整张订单首次付款完成，事务已提交；每次商品履约不重复触发。 */
+    const ORDER_PAID = 'order.paid';
+
     /** 后台账号密码登录成功（会话已写入） */
     const ADMIN_LOGIN_SUCCESS = 'admin.login.success';
 

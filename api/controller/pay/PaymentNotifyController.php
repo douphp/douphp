@@ -48,27 +48,28 @@ class PaymentNotifyController
             return $this->respond('fail');
         }
 
-        $data = array_merge((array) $request->get(), (array) $request->post());
+        // 业务参数只来自通知正文，避免 query 与已验签原文混用。
+        $data = (array) $request->post();
 
         try {
-            $result = (string) $provider->notify(new PaymentCallbackPayload($pluginId, $data));
+            $result = $provider->notify(new PaymentCallbackPayload($pluginId, $data, $request->rawBody(), $request->headers()));
         } catch (\Exception $e) {
             Log::error('payment notify exception: ' . $e->getMessage(), array(
                 'channel' => 'pay',
                 'plugin' => $pluginId,
                 'exception' => get_class($e),
             ));
-            return $this->respond('fail');
+            return $this->respond('fail', 500);
         } catch (\Throwable $e) {
             Log::error('payment notify error: ' . $e->getMessage(), array(
                 'channel' => 'pay',
                 'plugin' => $pluginId,
                 'exception' => get_class($e),
             ));
-            return $this->respond('fail');
+            return $this->respond('fail', 500);
         }
 
-        return $this->respond($result);
+        return $result instanceof Response ? $result : $this->respond($result);
     }
 
     /**
@@ -98,13 +99,13 @@ class PaymentNotifyController
      * @param string $body
      * @return Response
      */
-    private function respond($body)
+    private function respond($body, $statusCode = 200)
     {
         $body = (string) $body;
         $trimmed = ltrim($body);
         $isXml = strncmp($trimmed, '<?xml', 5) === 0 || strncmp($trimmed, '<xml', 4) === 0;
 
-        return new Response($body, 200, array(
+        return new Response($body, $statusCode, array(
             'Content-Type' => $isXml ? 'application/xml; charset=utf-8' : 'text/plain; charset=utf-8',
         ));
     }

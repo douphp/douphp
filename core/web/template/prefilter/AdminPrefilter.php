@@ -36,7 +36,11 @@ class AdminPrefilter
     {
         $source = preg_replace('/^<meta\shttp-equiv=["|\']Content-Type["|\']\scontent=["|\']text\/html;\scharset=(?:.*?)["|\'][^>]*?>\r?\n?/i', '', $source);
         // 静态资源改为绝对地址（{$admin_url} 渲染期解析，含 host），后台深路径（伪静态）下不受相对基准目录影响。
+        // 无查询串的链接追加 ?v={$asset_ver}（系统最近更新日期）：升级后自动击穿浏览器缓存。
+        // 已带查询串的链接（如 cloud.js?v={$cloud_js_ver} 的文件级 filemtime）仅绝对化、不覆盖。
+        $source = preg_replace('/href\s*=\s*(["\'])css\/([^"\'?]+)\1/i', 'href=$1{$admin_url}view/css/$2?v={$asset_ver}$1', $source);
         $source = preg_replace('/href\s*=\s*(["\'])css\//i', 'href=$1{$admin_url}view/css/', $source);
+        $source = preg_replace('/src\s*=\s*(["\'])js\/([^"\'?]+)\1/i', 'src=$1{$admin_url}view/js/$2?v={$asset_ver}$1', $source);
         $source = preg_replace('/src\s*=\s*(["\'])js\//i', 'src=$1{$admin_url}view/js/', $source);
         $source = preg_replace('/src\s*=\s*(["\'])images\//i', 'src=$1{$admin_url}view/images/', $source);
         // 模板内硬编码的 href / action 裸 index.php?route= 链接绝对化前缀（深路径下仍可用；

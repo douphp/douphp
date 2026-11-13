@@ -3624,6 +3624,9 @@ class InstallService extends BaseService
      * 还原点入口（note）：仅在流程真正创建了还原点时输出「查看还原点」按钮
      * （system + update/patch、module|theme|plugin + update）；其余场景（全新安装等）为空串。
      *
+     * 启用入口（action）：插件 / 模板仅在全新安装（install / local）时输出，
+     * 更新与补丁后保持原有启用状态，不再提示「启用插件 / 启用模板」。
+     *
      * 自定义返回地址（$backUrl）只作为 module 全新安装时的「进入模块」附加按钮，
      * 且必须通过 {@see isAdminBackUrl} 校验；「返回××管理中心」按钮始终回对应中心，
      * 避免按钮文案与跳转目标不一致（历史缺陷：模块安装后被自定义地址覆盖成前台形态 URL）。
@@ -3647,11 +3650,17 @@ class InstallService extends BaseService
                 $btnBack = '<a href="' . Util::absolutizeEntryUrl(route('admin.miniprogram')) . '" class="btn-secondary">' . lang('cloud_miniprogram_home') . '</a>';
                 break;
             case 'plugin':
-                $btnAction = '<a href="' . Util::absolutizeEntryUrl(route('admin.plugin.create', array('slug' => $cloudId))) . '" class="btn-secondary">' . lang('cloud_plugin_enable') . '</a>';
+                // 启用入口只属于全新安装：更新/补丁后插件维持原有启用状态
+                if ($mode === 'install' || $mode === 'local') {
+                    $btnAction = '<a href="' . Util::absolutizeEntryUrl(route('admin.plugin.create', array('slug' => $cloudId))) . '" class="btn-secondary">' . lang('cloud_plugin_enable') . '</a>';
+                }
                 $btnBack = '<a href="' . Util::absolutizeEntryUrl(route('admin.plugin')) . '" class="btn-secondary">' . lang('cloud_plugin_home') . '</a>';
                 break;
             case 'theme':
-                $btnAction = '<a href="' . Util::absolutizeEntryUrl(route('admin.theme.enable', array('slug' => $cloudId))) . '" class="btn-secondary js-post">' . lang('cloud_theme_enable') . '</a>';
+                // 启用入口只属于全新安装：更新/补丁后模板维持原有启用状态
+                if ($mode === 'install' || $mode === 'local') {
+                    $btnAction = '<a href="' . Util::absolutizeEntryUrl(route('admin.theme.enable', array('slug' => $cloudId))) . '" class="btn-secondary js-post">' . lang('cloud_theme_enable') . '</a>';
+                }
                 $btnBack = '<a href="' . Util::absolutizeEntryUrl(route('admin.theme')) . '" class="btn-secondary">' . lang('cloud_theme_home') . '</a>';
                 break;
             case 'module':
