@@ -12,6 +12,11 @@
     return el;
   }
 
+  // 语言项取词（lang.js 由 code_footer.tpl 先于本文件加载，缺失时回退中文）
+  function t(key, fallback) {
+    return typeof window.lang === "function" ? window.lang(key, fallback) : fallback;
+  }
+
   function fileUrl(base, taskId, index, mode) {
     return base + "?id=" + encodeURIComponent(taskId) + "&index=" + encodeURIComponent(index) + "&mode=" + (mode || "inline");
   }
@@ -21,11 +26,11 @@
     box.className = "aigc-result-files";
     var files = data.result && data.result.files ? data.result.files : [];
     if (!files.length) {
-      box.appendChild(text("p", "生成完成，但没有返回文件。", "cue"));
+      box.appendChild(text("p", t("aigc_result_empty", "生成完成，但没有返回文件。"), "cue"));
       return box;
     }
     files.forEach(function (file, index) {
-      var name = file.name || ("文件 " + (index + 1));
+      var name = file.name || t("aigc_file_name", "文件 %s").replace("%s", index + 1);
       if (type === "image") {
         var img = document.createElement("img");
         img.src = fileUrl(data.file_url, data.task_id, index, "inline");
@@ -47,7 +52,7 @@
       }
       var link = document.createElement("a");
       link.href = fileUrl(data.file_url, data.task_id, index, "download");
-      link.textContent = "下载 " + name;
+      link.textContent = t("aigc_download_file", "下载 %s").replace("%s", name);
       link.className = "aigc-download";
       box.appendChild(link);
     });
@@ -61,15 +66,15 @@
     var status = data.status || "";
 
     if (status === "succeeded") {
-      resultBox.appendChild(text("div", "生成完成", "aigc-success"));
+      resultBox.appendChild(text("div", t("aigc_succeeded", "生成完成"), "aigc-success"));
       resultBox.appendChild(renderFiles(data, type));
       return;
     }
     if (status === "failed" || status === "timeout") {
-      resultBox.appendChild(text("div", data.error || "生成失败", "cue-red"));
+      resultBox.appendChild(text("div", data.error || t("aigc_generate_failed", "生成失败"), "cue-red"));
       return;
     }
-    resultBox.appendChild(text("div", "生成中，请稍候…", "aigc-loading"));
+    resultBox.appendChild(text("div", t("aigc_generating_cue", "生成中，请稍候…"), "aigc-loading"));
   }
 
   function poll(pollUrl, fileUrl, taskId) {
@@ -80,7 +85,7 @@
     var tick = function () {
       attempts++;
       if (attempts > 300) {
-        render({ status: "failed", error: "生成超时，请稍后重试" });
+        render({ status: "failed", error: t("aigc_timeout_retry", "生成超时，请稍后重试") });
         return;
       }
       fetch(route("aigc.poll", {}, { query: { id: id } }))
@@ -88,7 +93,7 @@
         .then(function (payload) {
           var data = payload && payload.data ? payload.data : payload;
           if (!data || !data.success) {
-            render({ status: "failed", error: (data && data.error) || "轮询失败" });
+            render({ status: "failed", error: (data && data.error) || t("aigc_poll_failed", "轮询失败") });
             return;
           }
           data.file_url = fileUrl;
@@ -116,7 +121,7 @@
       data.append("slug", form.getAttribute("data-slug") || "");
 
       if (resultBox) {
-        resultBox.innerHTML = '<div class="aigc-loading">正在提交…</div>';
+        resultBox.innerHTML = '<div class="aigc-loading">' + t("aigc_submitting", "正在提交…") + '</div>';
       }
 
       fetch(submitUrl, { method: "POST", body: data })
@@ -124,7 +129,7 @@
         .then(function (payload) {
           var data = payload && payload.data ? payload.data : payload;
           if (!data || !data.success) {
-            render({ status: "failed", error: (data && data.error) || "提交失败" });
+            render({ status: "failed", error: (data && data.error) || t("aigc_submit_failed", "提交失败") });
             return;
           }
           if (data.status === "succeeded") {
@@ -135,7 +140,7 @@
           }
         })
         .catch(function () {
-          render({ status: "failed", error: "提交失败，请检查网络" });
+          render({ status: "failed", error: t("aigc_submit_failed_network", "提交失败，请检查网络") });
         });
     });
   }
@@ -146,7 +151,7 @@
       var btn = this;
       var id = btn.getAttribute("data-task-id");
       var url = btn.getAttribute("data-del-url");
-      if (!confirm("确定删除该作品？")) return;
+      if (!confirm(t("aigc_delete_confirm", "确定删除该作品？"))) return;
       var body = new URLSearchParams();
       body.append("id", id);
       fetch(url, {
@@ -159,10 +164,10 @@
             var card = btn.closest(".aigc-work");
             if (card) card.parentNode.removeChild(card);
           } else {
-            alert((payload && payload.message) || "删除失败");
+            alert((payload && payload.message) || t("aigc_delete_failed", "删除失败"));
           }
         })
-        .catch(function () { alert("删除失败"); });
+        .catch(function () { alert(t("aigc_delete_failed", "删除失败")); });
     });
   }
 })();

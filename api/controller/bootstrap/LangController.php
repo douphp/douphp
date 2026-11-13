@@ -32,7 +32,7 @@ class LangController extends BaseController
      */
     public function index()
     {
-        $pack = (string) Config::get('site.language', 'zh_cn');
+        $pack = (string) Config::get('site.language.default', 'zh_cn');
         $json = JsLangExporter::ensureCachedLangJson('api', $pack);
         $hash = JsLangExporter::manifestHash('api', $pack);
         $lang = json_decode($json, true);

@@ -72,6 +72,6 @@ class LangController extends BaseController
             return (string) locale()->pack();
         }
 
-        return (string) Config::get('site.language', 'zh_cn');
+        return (string) Config::get('site.language.default', 'zh_cn');
     }
 }

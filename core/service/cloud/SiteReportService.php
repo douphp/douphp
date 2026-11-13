@@ -159,7 +159,7 @@ class SiteReportService
             'system_sign' => defined('SYSTEM_SIGN') ? (string) SYSTEM_SIGN : '',
             'cms_version' => (string) Config::get('site.douphp_version', ''),
             'theme' => (string) Config::get('site.theme', ''),
-            'language' => (string) Config::get('site.language', ''),
+            'language' => (string) Config::get('site.language.default', ''),
             'php_version' => PHP_VERSION,
             'mysql_version' => $this->detectMysqlVersion(),
             'server_software' => isset($_SERVER['SERVER_SOFTWARE']) ? (string) $_SERVER['SERVER_SOFTWARE'] : '',

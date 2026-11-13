@@ -113,6 +113,8 @@
       placement: "right",
       size: "lg",
       bodyHtml: buildFormHtml($trigger),
+      // 文件导入不是「填完表单按回车」的交互，回车不触发「开始导入」
+      noEnterSubmit: true,
       buttons: [
         {
           text: text("excel_import_submit", "开始导入"),

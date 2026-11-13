@@ -2,7 +2,7 @@
 <!-- {if $site.show_customer} -->
 <link href="css/online_service.css" rel="stylesheet" type="text/css" />
 <div class="online-service">
- <!-- {if $cur_lang eq 'en_us'} -->
+ <!-- {if $site.language.pack eq 'en_us'} -->
  <!-- {if $site.facebook} -->
  <div class="item">
   <a class="item-icon bi bi-facebook" href="{$site.facebook}" target="_blank" title="Facebook"></a>

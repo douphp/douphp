@@ -38,6 +38,11 @@
   font-size: 14px;
   margin-bottom: 3px;
 }
+#module .handler .list ul li em .rows {
+  margin-left: 6px;
+  font-size: 12px;
+  color: #bbb;
+}
 
 /* 云端扩展列表：按子分类分组（仅模块页，三列网格见 cloud.css 的 .cloud-extend-list）
 ----------------------------------------------- */

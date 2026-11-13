@@ -438,7 +438,7 @@ function AddFavorite(url, title) {
     try {
       window.sidebar.addPanel(title, url, "");
     } catch (e) {
-      alert("加入收藏失败，请使用Ctrl+D进行添加");
+      alert(typeof lang === "function" ? lang("add_favorite_failed", "加入收藏失败，请使用Ctrl+D进行添加") : "加入收藏失败，请使用Ctrl+D进行添加");
     }
   }
 }

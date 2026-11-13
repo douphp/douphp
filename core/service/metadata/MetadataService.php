@@ -271,7 +271,7 @@ class MetadataService extends BaseService
             }
         }
 
-        return (string) Config::get('site.language', 'zh_cn');
+        return (string) Config::get('site.language.default', 'zh_cn');
     }
 
     /**
@@ -283,7 +283,7 @@ class MetadataService extends BaseService
      */
     private function mergeDefinitionTranslations(array $schema, $pack)
     {
-        $default = (string) Config::get('site.language', 'zh_cn');
+        $default = (string) Config::get('site.language.default', 'zh_cn');
         $translations = array();
 
         if ($pack !== $default && !empty($schema)) {

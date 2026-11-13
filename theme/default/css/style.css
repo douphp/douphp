@@ -566,12 +566,12 @@ Author URI: https://www.douphp.com/
  background-color: rgba(243,156,18,.1);
 }
 .coupon-get-list {
- display: inline-block;
+ display: inline-flex;
+ flex-wrap: wrap;
+ gap: 8px;
 }
 .coupon-get-list .get-coupon {
- display: inline-block;
  font-size: 12px;
- margin: 0 8px 8px 0;
  cursor: pointer;
 }
 .coupon-get-list .get-coupon em {

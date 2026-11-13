@@ -281,7 +281,7 @@ class ToolController extends BaseController
         // 与 admin Init 解析出的实际生效语言包一致：站点语言缺 admin/common.lang.php 时回退中文
         $pack = (string) Config::get('admin.lang_pack', '');
         if ($pack === '') {
-            $pack = ModuleLanguageManifest::resolveAdminPack(Config::get('site.language', ''));
+            $pack = ModuleLanguageManifest::resolveAdminPack(Config::get('site.language.default', ''));
         }
         $js = JsLangExporter::ensureCachedLangScript('admin', $pack);
         $hash = JsLangExporter::manifestHash('admin', $pack);

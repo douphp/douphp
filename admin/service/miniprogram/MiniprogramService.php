@@ -19,6 +19,7 @@ use Dou\Admin\Model\Miniprogram\MiniprogramParameter;
 use Dou\Core\Service\Admin\AdminLogAction;
 use Dou\Core\Service\BaseService;
 use Dou\Core\Foundation\Configuration\Config;
+use Dou\Core\Infra\Plugin\PluginConfig;
 use Dou\Core\Support\FileHelper;
 
 use Dou\Core\Facade\DB;
@@ -173,9 +174,26 @@ class MiniprogramService extends BaseService
     public function buildMiniprogramSystemIndexData()
     {
         $this->ensureMiniprogramParameters();
+        $this->migrateLegacyPayParametersToPlugin();
+
+        $hidden = array('miniprogram_pay_mch_id', 'miniprogram_pay_key');
+        $parameter_list = array();
+        foreach (MiniprogramParameter::listMiniprogramGroup() as $row) {
+            if (is_object($row) && method_exists($row, 'toArray')) {
+                $row = $row->toArray();
+            }
+            if (!is_array($row)) {
+                continue;
+            }
+            $name = isset($row['name']) ? (string) $row['name'] : '';
+            if (in_array($name, $hidden, true)) {
+                continue;
+            }
+            $parameter_list[] = $row;
+        }
 
         return array(
-            'parameter_list' => MiniprogramParameter::listMiniprogramGroup(),
+            'parameter_list' => $parameter_list,
         );
     }
 
@@ -188,12 +206,60 @@ class MiniprogramService extends BaseService
     public function updateMiniprogramParameters(array $validated)
     {
         MiniprogramParameter::updateMiniprogramValues($validated, self::$parameterNames);
+        $this->migrateLegacyPayParametersToPlugin();
         $domain = null;
         if (array_key_exists('miniprogram_domain', $validated)) {
             $domain = $validated['miniprogram_domain'];
         }
         $this->syncMiniprogramConfig($domain);
         audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::UPDATE, 1, 'miniprogram_system', 'miniprogram');
+    }
+
+    /**
+     * 把旧的小程序支付商户参数迁移到 wxpay 插件。
+     *
+     * 小程序 AppID 仍留在小程序模块；商户号/密钥统一由 wxpay 插件持有。
+     * 仅在插件对应字段为空时搬入，避免覆盖管理员已在插件页填写的新值。
+     *
+     * @return void
+     */
+    private function migrateLegacyPayParametersToPlugin()
+    {
+        if (!DB::tableExist('plugin')) {
+            return;
+        }
+
+        $row = DB::table('plugin')->where('slug', 'wxpay')->find();
+        if (!is_array($row)) {
+            return;
+        }
+
+        $config = PluginConfig::decode(isset($row['config']) ? $row['config'] : array());
+        $legacyMchId = (string) DB::table('parameter')
+            ->where('name', 'miniprogram_pay_mch_id')
+            ->where('group', 'miniprogram')
+            ->value('value');
+        $legacyKey = (string) DB::table('parameter')
+            ->where('name', 'miniprogram_pay_key')
+            ->where('group', 'miniprogram')
+            ->value('value');
+
+        $changed = false;
+        if ((!isset($config['mchid']) || (string) $config['mchid'] === '') && $legacyMchId !== '') {
+            $config['mchid'] = $legacyMchId;
+            $changed = true;
+        }
+        if ((!isset($config['key']) || (string) $config['key'] === '') && $legacyKey !== '') {
+            $config['key'] = $legacyKey;
+            $changed = true;
+        }
+
+        if ($changed) {
+            DB::table('plugin')
+                ->where('slug', 'wxpay')
+                ->data(array('config' => PluginConfig::encode($config)))
+                ->update();
+        }
     }
 
     /**

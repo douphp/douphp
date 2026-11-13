@@ -35,6 +35,20 @@ $_LANG['aigc_submit'] = '開始生成';
 $_LANG['aigc_field_required'] = '必填';
 $_LANG['aigc_field_numeric'] = '必須是數字';
 $_LANG['aigc_download'] = '下載';
+
+// 前台結果提示
+$_LANG['aigc_result_empty'] = '生成完成，但沒有返回檔案。';
+$_LANG['aigc_file_name'] = '檔案 %s';
+$_LANG['aigc_download_file'] = '下載 %s';
+$_LANG['aigc_succeeded'] = '生成完成';
+$_LANG['aigc_generating_cue'] = '生成中，請稍候…';
+$_LANG['aigc_timeout_retry'] = '生成逾時，請稍後重試';
+$_LANG['aigc_poll_failed'] = '輪詢失敗';
+$_LANG['aigc_submitting'] = '正在提交…';
+$_LANG['aigc_submit_failed'] = '提交失敗';
+$_LANG['aigc_submit_failed_network'] = '提交失敗，請檢查網路';
+$_LANG['aigc_delete_confirm'] = '確定刪除該作品？';
+$_LANG['aigc_delete_failed'] = '刪除失敗';
 $_LANG['aigc_delete'] = '刪除';
 $_LANG['aigc_all'] = '全部';
 $_LANG['aigc_continue'] = '繼續對話';

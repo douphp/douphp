@@ -126,6 +126,10 @@ class InstallService extends BaseService
         $authStatus = isset($params['auth_status']) ? (string) $params['auth_status'] : 'ok';
         $source = isset($params['source']) ? (string) $params['source'] : 'cloud';
 
+        // 上次下载 / 上传被中断会留下半截包：每次升级起步先清掉不完整的包，
+        // 避免它被后续步骤或离线升级页当成可用安装包。
+        $this->purgeIncompletePackages();
+
         // 「本地包来源」：mode=local（模块本地安装页）与 source=offline（离线升级）都不从云端取包，
         // 因此授权门禁不得阻断流程，失败清理也不得删除用户手工放置的安装包。
         $isLocalSource = ($mode === 'local') || ($source === 'offline');
@@ -553,6 +557,39 @@ class InstallService extends BaseService
         }
 
         return array('ok' => true, 'error' => '', 'logs' => $logs);
+    }
+
+    /**
+     * 清理包目录内不完整的安装包（下载中断 / 上传截断）。
+     *
+     * 判定口径与 {@see evaluatePackage()} 的 valid 一致：ZIP 归档签名 + 归档可打开，
+     * 因此不会误删可正常解压的包。用于两处：进入离线升级页时、以及每次升级流程
+     * 起步（preflight）时，避免半截包被当成可用安装包展示或误用。
+     *
+     * @param string|null $dir 覆盖包目录（缺省为 cacheDir；供 CLI 烟测）
+     * @return string[] 被删除的包文件名
+     */
+    public function purgeIncompletePackages($dir = null)
+    {
+        $dir = $this->normalizePackageDir($dir);
+        $removed = array();
+        $files = glob($dir . '*.zip');
+        if (!is_array($files)) {
+            return $removed;
+        }
+        foreach ($files as $file) {
+            if (!is_file($file)) {
+                continue;
+            }
+            if ($this->fileLooksLikeZip($file) && $this->zipArchiveIsReadable($file)) {
+                continue;
+            }
+            if (@unlink($file)) {
+                $removed[] = basename($file);
+            }
+        }
+
+        return $removed;
     }
 
     /**
@@ -1455,8 +1492,8 @@ class InstallService extends BaseService
             $moduleFilesPrepared = ($type === 'module');
         }
         if ($copyFailed) {
-            // 拷贝失败必须进入 $wrong：否则主题 / 插件更新会「半更新」被记为成功，
-            // 失败快照回滚分支永远不会触发。仅逐条展示前 10 个，避免大目录刷屏。
+            // 拷贝失败必须进入 $wrong：否则更新会「半更新」被记为成功，
+            // 后续升级门禁与扩展快照回滚也依赖此错误。仅逐条展示前 10 个，避免大目录刷屏。
             $shown = 0;
             foreach ($copyFailed as $rel) {
                 if ($shown >= 10) {
@@ -1544,7 +1581,10 @@ class InstallService extends BaseService
                 }
             }
         } elseif ($type === 'system' || $type === 'miniprogram' || $type === 'dou') {
-            $this->includeOptionalScript($updateFile, $wrong);
+            // 系统文件未完整覆盖时禁止继续执行数据库升级。
+            if ($type !== 'system' || !$wrong) {
+                $this->includeOptionalScript($updateFile, $wrong);
+            }
         } elseif ($type === 'theme') {
             if (!$wrong) {
                 // 主题物料：resources/images 镜像 + resources/sql（install/update）+ 钩子
@@ -1977,6 +2017,10 @@ class InstallService extends BaseService
                     @unlink($packageFile);
                 }
             }
+        }
+
+        if ($type === 'system') {
+            return $this->copyDirCollectFailures($itemDir, $this->rootDir, '');
         }
 
         FileHelper::copyDir($itemDir, $this->rootDir);
@@ -2474,7 +2518,7 @@ class InstallService extends BaseService
             return;
         }
 
-        $langFile = ROOT_PATH . 'languages/' . Config::get('site.language', '') . '/admin/' . $cloudId . '.lang.php';
+        $langFile = ROOT_PATH . 'languages/' . Config::get('site.language.default', '') . '/admin/' . $cloudId . '.lang.php';
         if (!file_exists($langFile)) {
             $langFile = ROOT_PATH . 'languages/zh_cn/admin/' . $cloudId . '.lang.php';
         }
@@ -3279,7 +3323,7 @@ class InstallService extends BaseService
 
         $routeTable = RouteTableExporter::exportForEnd('Api');
 
-        $frontPack = (string) Config::get('site.language', 'zh_cn');
+        $frontPack = (string) Config::get('site.language.default', 'zh_cn');
         $allModules = (array) Config::get('module.all_module', array());
         if (!$allModules) {
             $allModules = array_merge(

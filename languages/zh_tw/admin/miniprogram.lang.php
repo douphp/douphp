@@ -17,6 +17,7 @@ $_LANG['miniprogram'] = '微信小程式';
 $_LANG['miniprogram_list'] = '我的小程式';
 $_LANG['miniprogram_delete'] = '刪除小程式';
 $_LANG['miniprogram_system'] = '小程式參數設定';
+$_LANG['miniprogram_pay_config_moved'] = '微信支付商戶號/密鑰已遷移到「外掛 -> 微信支付」中維護；此處僅保留小程式 AppID/AppSecret。';
 $_LANG['miniprogram_show'] = '幻燈片圖片';
 $_LANG['miniprogram_data'] = '小程式數據';
 $_LANG['miniprogram_release'] = '發佈小程式';

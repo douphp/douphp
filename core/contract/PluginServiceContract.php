@@ -93,10 +93,12 @@ interface PluginServiceContract
     public function getWithConfig($slug);
 
     /**
-     * 小程序/API 默认支付方式标识（offlinepay 优先，否则 wxpay）。
+     * 网页端默认支付方式标识（offlinepay 优先，否则 wxpay）。
+     *
+     * 小程序端请使用支付方式列表（会额外校验 Provider 的小程序能力）。
      *
      * @param string $currency 目标币种；为空时不按币种过滤（保持旧行为）
-     * @return string
+     * @return string 无可用网关时返回空串
      */
     public function defaultPaymentSlug($currency = '');
 

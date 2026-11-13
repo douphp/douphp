@@ -1,9 +1,9 @@
 -- DouPHP v2.x SQL Dump Program
 -- http://localhost/douphp/
 -- 
--- DATE : 2026-11-12 19:20:04
+-- DATE : 2026-11-13 20:13:59
 -- MYSQL SERVER VERSION : 5.7.44-log
--- PHP VERSION : 7.4.33
+-- PHP VERSION : 8.2.30
 -- DouPHP VERSION : v2.0 Release 20261112
 
 DROP TABLE IF EXISTS `dou_admin`;
@@ -47,7 +47,9 @@ CREATE TABLE `dou_admin_log` (
   KEY `ip` (`ip`),
   KEY `created_at` (`created_at`),
   KEY `action` (`action`(191))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO dou_admin_log VALUES('1','1','[RESTORE]','backup','127.0.0.1','2026-11-12 19:20:22','1','douphp.sql');
 
 DROP TABLE IF EXISTS `dou_article`;
 CREATE TABLE `dou_article` (

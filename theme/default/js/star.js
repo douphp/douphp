@@ -2,7 +2,7 @@ $(document).ready(function() {
     var activeInd = 5;
     // 主题使用 Bootstrap Icons（.bi-star）；兼容旧主题的 .fa-star
     var starSelector = '.star-box .bi-star, .star-box .fa-star';
-    var starUnit = $('.star-box').data('star-unit') || '分';
+    var starUnit = $('.star-box').data('star-unit') || (typeof lang === 'function' ? lang('comment_star_unit', '分') : '分');
     
     // 鼠标移入
     $(starSelector).on('mouseenter', function() {

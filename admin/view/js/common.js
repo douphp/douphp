@@ -2273,6 +2273,9 @@ $(document).on("click", '[data-dou-toggle="radio"]', function (e) {
     $modal.appendTo("body");
     $modal.data("douCloseOnOverlay", options.closeOnOverlay !== false);
     $modal.data("douStacked", options.stack === true);
+    // 回车提交开关：默认开启（焦点在文本输入框时回车等同点主提交按钮），
+    // 非「正常表单」语义的弹窗（AI 生成、图片裁剪、备份恢复等）传 noEnterSubmit 关闭
+    $modal.attr("data-dou-no-enter-submit", options.noEnterSubmit ? "1" : "0");
     bindModalActions($modal, shell, options);
 
     show($modal);
@@ -2374,6 +2377,8 @@ $(document).on("click", '[data-dou-toggle="radio"]', function (e) {
     open({
       title: (typeof lang === "function" ? lang("backup_sql_pre") : "Restore") + " " + filename,
       placement: "right",
+      // 备份恢复不可逆：不允许回车误触「安全导入 / 直接导入」
+      noEnterSubmit: true,
       bodyHtml:
         '<div class="dou-modal-message">如果选择 "安全恢复"，系统将会先进行一次自动备份（防止导入后想恢复原来的，备份文件以 "AUTO" 开头），然后再进行导入操作，当然您也可以 "直接恢复"。</div>',
       buttons: [
@@ -3620,6 +3625,12 @@ $(document).on("click", '[data-dou-toggle="radio"]', function (e) {
           ? '<div class="dou-modal-lang-toolbar"><span class="action ai-lang-translate"></span></div>'
           : "";
         $body.html(toolbar + buildDraftLangForm($trigger, initial));
+        // 草稿表单没有 action：编辑器脚本对 document 内 input 的回车会直接 $form.submit()，
+        // 触发浏览器原生提交并整页跳到「当前地址?value=…」。这里统一拦下提交事件，
+        // 回车改由 douModal 的全局 Enter 处理转成「提交」按钮点击。
+        $body.off("submit.draftLang").on("submit.draftLang", "form", function (e) {
+          e.preventDefault();
+        });
         if (window.douFileImage) {
           window.douFileImage.init($body[0] || document);
         }
@@ -3682,13 +3693,60 @@ $(document).on("click", '[data-dou-toggle="radio"]', function (e) {
     }
   });
 
-  $(document).on("keydown", function (event) {
-    if (activeModal && activeModal.find(".dou-modal-lang-form").length && (event.key === "Enter" || event.keyCode === 13)) {
-      if (!$(event.target).is("textarea")) {
-        event.preventDefault();
-        activeModal.find(".dou-modal-lang-submit").trigger("click");
-      }
+  /**
+   * 回车提交的控件白名单：只认文本类 input。
+   *
+   * textarea（回车换行）、contenteditable（Vditor 等富文本）、file / checkbox /
+   * radio / date / select 等控件一律放行原行为，避免把「输入」误解成「提交」。
+   *
+   * @param {Element} el 事件目标
+   * @returns {boolean}
+   */
+  function isEnterSubmittable(el) {
+    if (!el || el.nodeType !== 1 || el.tagName !== "INPUT") {
+      return false;
     }
+    var type = String(el.type || "text").toLowerCase();
+    if (
+      type !== "text" &&
+      type !== "search" &&
+      type !== "email" &&
+      type !== "url" &&
+      type !== "tel" &&
+      type !== "password" &&
+      type !== "number"
+    ) {
+      return false;
+    }
+    return !el.readOnly && !el.disabled;
+  }
+
+  // 通用回车提交：弹窗内有主提交按钮、焦点在文本输入框时，回车等同点主按钮。
+  // 只认 .dou-modal-submit（submitText + onSubmit 型）与 .dou-modal-lang-submit（多语言弹窗）；
+  // buttons 型弹窗（确认框、备份恢复、图片裁剪、Excel 导入等）没有该按钮类，天然不参与。
+  $(document).on("keydown", function (event) {
+    if (event.keyCode !== 13 && event.key !== "Enter") {
+      return;
+    }
+    // jQuery 1.10 的事件对象不会拷贝 isComposing / repeat，必须回到原生事件取
+    var nativeEvent = event.originalEvent || event;
+    // 输入法候选未上屏时回车用于选词；长按回车的重复事件也只处理一次
+    if (nativeEvent.isComposing || event.keyCode === 229 || nativeEvent.repeat) {
+      return;
+    }
+    var $modal = $(event.target).closest(modalSel);
+    if (!$modal.length || $modal.attr("data-dou-no-enter-submit") === "1") {
+      return;
+    }
+    if (!isEnterSubmittable(event.target)) {
+      return;
+    }
+    var $btn = $modal.find(".dou-modal-submit, .dou-modal-lang-submit").first();
+    if (!$btn.length || $btn.hasClass("dou-modal-loading")) {
+      return;
+    }
+    event.preventDefault();
+    $btn.trigger("click");
   });
 
   global.douModal = {
@@ -4553,6 +4611,8 @@ $(document).on("click", '[data-dou-toggle="radio"]', function (e) {
       width: 720,
       closeOnOverlay: false,
       stack: true,
+      // 宽高输入框回车不应直接「确认裁剪」并覆盖原图
+      noEnterSubmit: true,
       bodyHtml: buildToolbarHtml(ratioValue),
       onOpen: function ($m) {
         var $img = $m.find(".dou-crop-stage img");

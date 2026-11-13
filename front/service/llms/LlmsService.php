@@ -17,6 +17,7 @@ namespace Dou\Front\Service\Llms;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Module\ContentTypeRegistry;
 use Dou\Core\Service\BaseService;
+use Dou\Core\Support\LocaleCode;
 use Dou\Core\Support\Str;
 use Dou\Front\Model\Page\Page;
 
@@ -61,7 +62,7 @@ class LlmsService extends BaseService
         $langMenu = language()->getLangMenu();
         if ($langMenu) {
             foreach ($langMenu as $lang) {
-                $lang_code = str_replace('_', '-', $lang['language_pack']);
+                $lang_code = LocaleCode::sign($lang['language_pack']);
                 $lang_url = Config::get('site.rewrite', false) ? ROOT_URL . $lang_code . '/llms.txt' : ROOT_URL . 'llms.php?lang=' . $lang['language_pack'];
                 $lang_links[] = '[' . $lang['name'] . '](' . $lang_url . ')';
             }

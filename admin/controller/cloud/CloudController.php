@@ -239,9 +239,6 @@ class CloudController extends BaseController
             'cloud_offline_step_verify' => lang('cloud_offline_step_verify'),
             'cloud_install_offline_btn' => lang('cloud_install_offline_btn'),
             'cloud_install_offline_hint' => lang('cloud_install_offline_hint'),
-            'cloud_download_recover_waiting' => lang('cloud_download_recover_waiting'),
-            'cloud_download_recover_ready' => lang('cloud_download_recover_ready'),
-            'cloud_download_recover_failed' => lang('cloud_download_recover_failed'),
         );
 
         // 失败提示里的「离线升级」入口：把升级包下载地址带过去（离线页只展示不抓取）。
@@ -263,13 +260,6 @@ class CloudController extends BaseController
             'type_label' => $viewData['type_label'],
             'source' => $source,
             'offline_url' => route('admin.cloud.offline', array(), array('query' => $offlineQuery)),
-            // 仅在线核心更新启用「下载断连恢复」：下载可能因网关超时被切断，服务端状态可续跑
-            'recover_download' => $this->isOnlineCoreUpdate(array(
-                'type' => $type,
-                'mode' => $mode,
-                'source' => $source,
-                'cloud_id' => $cloudId,
-            )),
         );
 
         return $this->view('cloud.htm', $this->installNavVars($type, $mode) + [
@@ -304,6 +294,11 @@ class CloudController extends BaseController
     public function offline(Request $request)
     {
         $downloadUrl = $this->sanitizeDisplayDownloadUrl($request->query('download_url', ''));
+
+        // 上次在线下载（超时 / 网关 503）会在包目录留下半截包，进入本页时先清掉，
+        // 避免它出现在下方包列表里被当成可用升级包。
+        $this->installService->purgeIncompletePackages();
+
         $list = $this->installService->listLocalPackages();
 
         $packages = array();
@@ -466,8 +461,6 @@ class CloudController extends BaseController
         if (function_exists('set_time_limit')) {
             @set_time_limit(0);
         }
-        // 网关提前断开客户端时仍把当前步骤跑完（尤其下载），断连恢复才能查到真实结果
-        @ignore_user_abort(true);
 
         if (!$request->isMethod('POST')) {
             return $this->installStepJson(array('ok' => false, 'error' => lang('illegal')), 405);
@@ -480,7 +473,6 @@ class CloudController extends BaseController
 
         $installId = (string) $request->input('install_id', '');
         $step = (string) $request->input('step', '');
-        $resumeDownload = (string) $request->input('resume_download', '') === '1';
 
         if (!$this->installSession->isValidId($installId)) {
             return $this->installStepJson(array('ok' => false, 'error' => lang('illegal')), 400);
@@ -531,21 +523,12 @@ class CloudController extends BaseController
         // 本请求是否持有升级锁（preflight 获取 / 后续步骤续锁），会话落盘后统一收口
         $lockHeld = false;
 
-        $updatedState = $session->withLock($installId, function ($state) use ($service, $step, &$response, $session, $runLock, $installId, &$lockHeld, $resumeDownload) {
+        $updatedState = $session->withLock($installId, function ($state) use ($service, $step, &$response, $session, $runLock, $installId, &$lockHeld) {
             if (!empty($state['finished'])) {
                 $response['ok'] = true;
                 $response['finished'] = true;
                 $response['success'] = !empty($state['success']);
                 $response['result'] = isset($state['result']) ? $state['result'] : null;
-                return $state;
-            }
-
-            // 断连续跑只允许从解压步骤进入，且下载必须已就绪，防止错步或重复下载
-            if ($resumeDownload && ($step !== InstallService::STEP_UNZIP
-                || $this->downloadRecoveryStatus($state) !== 'ready')) {
-                $response['error'] = lang_has('cloud_download_resume_invalid')
-                    ? (string) lang('cloud_download_resume_invalid')
-                    : '安装会话已进入其他步骤，不能再次从解压继续。';
                 return $state;
             }
 
@@ -650,13 +633,6 @@ class CloudController extends BaseController
                 $response['result'] = $state['result'];
             }
 
-            // 下载完成即交接全局锁，让恢复请求随后取得锁并从解压续跑
-            if ($runLock !== null && $step === InstallService::STEP_DOWNLOAD && $lockHeld
-                && $this->downloadRecoveryStatus($state) === 'ready') {
-                $runLock->handoff($installId);
-                $lockHeld = false;
-            }
-
             return $state;
         });
 
@@ -701,8 +677,8 @@ class CloudController extends BaseController
      * 本接口不触碰安装会话锁、不写 PHP Session，可安全与下载长请求并发
      * （installStep() 在 download 步骤已提前 session_write_close()）。
      *
-     * 入参：install_id / token（query）；可选 recover=download（断连续跑：无锁读会话，附服务端权威下载状态）
-     * 出参：{ ok, percent: int|null, now: int, total: int, download_state?: ready|pending|failed|unavailable }
+     * 入参：install_id / token（query）
+     * 出参：{ ok, percent: int|null, now: int, total: int }
      *
      * @param Request $request
      * @return JsonResponse
@@ -718,10 +694,6 @@ class CloudController extends BaseController
         if (!$this->installSession->isValidId($installId)) {
             return $this->installStepJson(array('ok' => false, 'error' => lang('illegal')), 400);
         }
-
-        // 断连恢复轮询：无锁读取会话状态（下载长请求可能仍持有会话锁）
-        $recover = (string) $request->input('recover', '') === 'download';
-        $sessionState = $recover ? $this->installSession->load($installId, false) : null;
 
         $percent = null;
         $now = 0;
@@ -745,58 +717,12 @@ class CloudController extends BaseController
             }
         }
 
-        $result = array(
+        return $this->installStepJson(array(
             'ok' => true,
             'percent' => $percent,
             'now' => $now,
             'total' => $total,
-        );
-        if ($recover) {
-            // 会话被清理/丢失时直接失败，避免客户端空等
-            $result['download_state'] = is_array($sessionState)
-                ? $this->downloadRecoveryStatus($sessionState)
-                : 'unavailable';
-        }
-
-        return $this->installStepJson($result, 200);
-    }
-
-    /**
-     * 在线核心更新（可启用下载断连恢复）：系统包 + 更新模式 + 非字体包 + 云端取包。
-     *
-     * @param array $state
-     * @return bool
-     */
-    private function isOnlineCoreUpdate(array $state)
-    {
-        return isset($state['type'], $state['mode'], $state['cloud_id'])
-            && $state['type'] === 'system'
-            && $state['mode'] === 'update'
-            && $state['cloud_id'] !== 'font'
-            && (!isset($state['source']) || $state['source'] === 'cloud');
-    }
-
-    /**
-     * 断连续跑用的服务端下载状态：ready / pending / failed / unavailable。
-     *
-     * @param array $state
-     * @return string
-     */
-    private function downloadRecoveryStatus(array $state)
-    {
-        if (!$this->isOnlineCoreUpdate($state) || !empty($state['finished'])) {
-            return 'unavailable';
-        }
-        if (!empty($state['failed_step'])) {
-            return $state['failed_step'] === InstallService::STEP_DOWNLOAD ? 'failed' : 'unavailable';
-        }
-        $currentStep = isset($state['current_step']) ? (string) $state['current_step'] : '';
-        if ($currentStep === InstallService::STEP_UNZIP
-            && isset($state['completed_steps'])
-            && in_array(InstallService::STEP_DOWNLOAD, (array) $state['completed_steps'], true)) {
-            return 'ready';
-        }
-        return $currentStep === InstallService::STEP_DOWNLOAD ? 'pending' : 'unavailable';
+        ), 200);
     }
 
     /**

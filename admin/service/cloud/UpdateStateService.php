@@ -77,7 +77,7 @@ class UpdateStateService extends BaseService
             'ver' => Config::get('site.douphp_version', ''),
             'update' => isset($systemInfo['update']) ? $systemInfo['update'] : 0,
             'patch' => isset($systemInfo['patch']) ? $systemInfo['patch'] : 0,
-            'lang' => Config::get('site.language', ''),
+            'lang' => Config::get('site.language.default', ''),
             'php_ver' => PHP_VERSION,
             'mysql_ver' => DB::version(),
             'os' => PHP_OS,

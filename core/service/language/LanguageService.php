@@ -19,6 +19,7 @@ use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Service\BaseService;
 use Dou\Core\Support\LanguageValuePurger;
+use Dou\Core\Support\LocaleCode;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
@@ -252,7 +253,7 @@ class LanguageService extends BaseService implements LanguageContract
     }
 
     /**
-     * 构造前台语言切换菜单：根据 site.language 与 language 表生成可切换语言列表。
+     * 构造前台语言切换菜单：根据 site.language.default 与 language 表生成可切换语言列表。
      *
      * @param string $cur_language_pack 当前语言包标识
      * @return array
@@ -263,14 +264,14 @@ class LanguageService extends BaseService implements LanguageContract
             return array();
         }
 
-        $cur_language_pack = $cur_language_pack ? $cur_language_pack : Config::get('site.language', '');
+        $cur_language_pack = $cur_language_pack ? $cur_language_pack : Config::get('site.language.default', '');
 
-        if (Config::get('site.language', '')) {
-            require(ROOT_PATH . 'languages/' . Config::get('site.language', '') . '/common.lang.php');
+        if (Config::get('site.language.default', '')) {
+            require(ROOT_PATH . 'languages/' . Config::get('site.language.default', '') . '/common.lang.php');
             $lang_list_array = array(
                 array(
                     'name' => isset($_LANG['cur_language']) ? $_LANG['cur_language'] : 'Default',
-                    'language_pack' => Config::get('site.language', ''),
+                    'language_pack' => Config::get('site.language.default', ''),
                     'url' => ROOT_URL,
                 ),
             );
@@ -290,7 +291,7 @@ class LanguageService extends BaseService implements LanguageContract
         foreach ($lang_list_array as $row) {
             if ($cur_language_pack != $row['language_pack']) {
                 $url = Config::get('site.rewrite', false)
-                    ? ROOT_URL . str_replace('_', '-', $row['language_pack'])
+                    ? ROOT_URL . LocaleCode::sign($row['language_pack'])
                     : ROOT_URL . '?lang=' . $row['language_pack'];
 
                 $lang_list[] = array(

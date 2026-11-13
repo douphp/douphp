@@ -232,7 +232,7 @@ class Init
         define('HOME_URL', Config::get('site.home_url', ROOT_URL));
         define('PLUGIN_URL', ROOT_URL . 'plugin/');
 
-        $defaultLanguage = Config::get('site.language', '') ?: 'zh_cn';
+        $defaultLanguage = Config::get('site.language.default', '') ?: 'zh_cn';
         $langPack = locale()->isActive() ? locale()->pack() : $defaultLanguage;
         $boot = SystemBootstrap::loadCore(array(
             'isAdmin' => false,
@@ -594,7 +594,6 @@ class Init
         $engine->assign('js_route_config_json', JsRouteExporter::toJsonScript(JsRouteExporter::buildFrontConfig()));
         $engine->assign('js_routes_script_url', route('routes_js', array(), array('query' => array('v' => JsRouteExporter::manifestUrlVersion('Front')))));
         $frontLangPack = LangController::currentPack();
-        $engine->assign('cur_lang', $frontLangPack);
         $engine->assign('js_lang_script_url', route('lang_js', array(), array('query' => array('v' => JsLangExporter::manifestUrlVersion('front', $frontLangPack)))));
         $engine->assign('about', Page::about());
         $engine->assign('param', ViewVars::param(Config::get('param', array())));

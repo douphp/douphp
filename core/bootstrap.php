@@ -27,17 +27,6 @@ define('ROOT_PATH', str_replace('\\', '/', dirname(dirname(__FILE__))) . '/');
 define('CONFIG_PATH', ROOT_PATH . 'config/');
 define('STORAGE_PATH', ROOT_PATH . 'storage/');
 
-// 判断传输协议。
-// 仅采信服务器自身变量（HTTPS / SERVER_PORT / REQUEST_SCHEME）：X-Forwarded-Proto 等转发头
-// 由客户端可伪造，其判定统一交给 Request::isSecure()，只有 REMOTE_ADDR 命中
-// security.trusted_proxies 时才生效。
-define('HTTP', (
-    (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off') ||
-    (isset($_SERVER['SERVER_PORT']) && (string) $_SERVER['SERVER_PORT'] === '443') ||
-    (isset($_SERVER['REQUEST_SCHEME']) && $_SERVER['REQUEST_SCHEME'] === 'https')
-) ? 'https://' : 'http://');
-define('IS_HTTPS', HTTP === 'https://');
-
 // 未安装时跳转安装程序（须在载入 config/config.php 之前）
 // 三级判定（新→旧）：storage/state/install.lock → storage/install.lock → data/install.lock
 if (!file_exists(STORAGE_PATH . 'state/install.lock')
@@ -116,6 +105,23 @@ if (!defined('DOU_DB_CONFIG')) {
 
 // 注册自动加载（ClassMap + PSR-4）
 require_once(CORE_PATH . 'autoload.php');
+
+// 判断传输协议。
+// 须在 autoload 之后：复用 Request::isSecureServer()，保证 HTTP 常量与 Request::isSecure()
+// 结论一致。仅采信服务器自身变量（HTTPS / SERVER_PORT / REQUEST_SCHEME）；X-Forwarded-Proto
+// 等转发头由客户端可伪造，仅当 REMOTE_ADDR 命中 config/security.php 的
+// security.trusted_proxies（反代 / CDN 终止 TLS 场景）时才采信。
+$trustedProxies = array();
+if (file_exists($securityConfigFile = CONFIG_PATH . 'security.php')) {
+    $securityConfig = include $securityConfigFile;
+    if (is_array($securityConfig) && isset($securityConfig['security']['trusted_proxies'])
+        && is_array($securityConfig['security']['trusted_proxies'])) {
+        $trustedProxies = $securityConfig['security']['trusted_proxies'];
+    }
+}
+define('HTTP', \Dou\Core\Web\Http\Request::isSecureServer($_SERVER, $trustedProxies) ? 'https://' : 'http://');
+define('IS_HTTPS', HTTP === 'https://');
+unset($trustedProxies, $securityConfig, $securityConfigFile);
 
 // 注册根命名空间短别名（AliasLoader 内部走惰性 class_alias）
 // 已注册的短名清单：见 map 本身；插件 / 模块如需补充自身短名，可在自身引导阶段

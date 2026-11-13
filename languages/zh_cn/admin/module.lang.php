@@ -24,6 +24,7 @@ $_LANG['module_install_local_success'] = '成功安装离线模块';
 $_LANG['module_uninstall'] = '卸载已安装模块'; // 卸载模块
 $_LANG['module_uninstall_check'] = '您确定要卸载模块"d%"吗？';
 $_LANG['module_uninstall_list'] = '待删除模块';
+$_LANG['module_uninstall_rows'] = '该模块全部表的数据总量';
 $_LANG['module_uninstall_btn'] = '卸载';
 $_LANG['module_uninstall_wrong'] = '无法卸载，模块不存在！';
 $_LANG['module_uninstall_exist_data'] = '模块中存在数据，请先删除后再卸载';

@@ -224,7 +224,7 @@ class Init
         SiteBootstrap::loadParameter();
         // 后台界面语言不跟随站点（前台）语言：站点语言自带 admin/common.lang.php 时才启用其后台
         // 文案，否则（无 admin 目录或目录为空）一律回退 zh_cn/admin，避免后台文案整表缺失。
-        $langPack = ModuleLanguageManifest::resolveAdminPack(Config::get('site.language', ''));
+        $langPack = ModuleLanguageManifest::resolveAdminPack(Config::get('site.language.default', ''));
         Config::set('admin.lang_pack', $langPack);
         $boot = SystemBootstrap::loadCore(array(
             'isAdmin' => true,
@@ -365,7 +365,7 @@ class Init
         // 与 loadModules 解析出的实际生效语言包保持一致，避免 HTML 侧指纹与端点输出错位
         $adminLangPack = (string) Config::get('admin.lang_pack', '');
         if ($adminLangPack === '') {
-            $adminLangPack = ModuleLanguageManifest::resolveAdminPack(Config::get('site.language', ''));
+            $adminLangPack = ModuleLanguageManifest::resolveAdminPack(Config::get('site.language.default', ''));
         }
         $engine->assign('js_lang_script_url', route('admin.tool.lang_js', array(), array('query' => array('v' => JsLangExporter::manifestUrlVersion('admin', $adminLangPack)))));
     }

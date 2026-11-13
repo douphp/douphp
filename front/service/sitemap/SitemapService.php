@@ -17,6 +17,7 @@ namespace Dou\Front\Service\Sitemap;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Module\ContentTypeRegistry;
 use Dou\Core\Service\BaseService;
+use Dou\Core\Support\LocaleCode;
 use Dou\Front\Model\Page\Page;
 
 if (!defined('IN_DOUCO')) {
@@ -71,7 +72,7 @@ class SitemapService extends BaseService
             foreach ($langMenu as $lang) {
                 $GLOBALS['_CUR_LANG_DEFINE'] = array(
                     'mode' => Config::get('site.rewrite', false) ? 'rewrite_open' : 'rewrite_close',
-                    'sign' => Config::get('site.rewrite', false) ? str_replace('_', '-', $lang['language_pack']) : $lang['language_pack'],
+                    'sign' => Config::get('site.rewrite', false) ? LocaleCode::sign($lang['language_pack']) : $lang['language_pack'],
                     'pack' => $lang['language_pack'],
                 );
 

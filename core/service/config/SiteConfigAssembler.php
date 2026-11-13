@@ -17,6 +17,7 @@ namespace Dou\Core\Service\Config;
 use Dou\Core\Domain\Currency\CurrencyCatalog;
 use Dou\Core\Facade\DB;
 use Dou\Core\Service\BaseService;
+use Dou\Core\Support\LocaleCode;
 use Dou\Core\Support\Util;
 
 if (!defined('IN_DOUCO')) {
@@ -98,6 +99,11 @@ class SiteConfigAssembler extends BaseService
 
         $config = $this->applyBaseCurrency($config);
 
+        $config['language'] = $this->buildLanguageMeta(
+            isset($config['language']) ? $config['language'] : '',
+            $currentLang
+        );
+
         if (!empty($currentLang)) {
             if (isset($currentLang['mode']) && $currentLang['mode'] === 'rewrite_open') {
                 $config['home_url'] = $_ROOT_URL . $currentLang['sign'] . '/';
@@ -119,6 +125,31 @@ class SiteConfigAssembler extends BaseService
         }
 
         return $config;
+    }
+
+    /**
+     * 站点语言标识结构：默认语言包、当前语言包及其规范化形态。
+     *
+     * 装配期 Config 尚未写入，默认语言必须来自本次库表读取结果（$config['language']）。
+     *
+     * @param string $defaultPack 站点默认语言包（config.language 原值，可为空）
+     * @param array $currentLang 当前请求语言选择（locale()->toArray()，默认语言时为空数组）
+     * @return array
+     */
+    private function buildLanguageMeta($defaultPack, array $currentLang)
+    {
+        $defaultPack = (string) $defaultPack;
+        $pack = !empty($currentLang['pack']) ? (string) $currentLang['pack'] : $defaultPack;
+        if ($pack === '') {
+            $pack = 'zh_cn';
+        }
+
+        return array(
+            'default' => $defaultPack,
+            'pack' => $pack,
+            'sign' => LocaleCode::sign($pack),
+            'tag' => LocaleCode::tag($pack),
+        );
     }
 
     /**

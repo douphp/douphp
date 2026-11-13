@@ -35,6 +35,20 @@ $_LANG['aigc_submit'] = 'Generate';
 $_LANG['aigc_field_required'] = 'Required';
 $_LANG['aigc_field_numeric'] = 'Must be a number';
 $_LANG['aigc_download'] = 'Download';
+
+// Front-end result messages
+$_LANG['aigc_result_empty'] = 'Generation completed but no file was returned.';
+$_LANG['aigc_file_name'] = 'File %s';
+$_LANG['aigc_download_file'] = 'Download %s';
+$_LANG['aigc_succeeded'] = 'Generation completed';
+$_LANG['aigc_generating_cue'] = 'Generating, please wait...';
+$_LANG['aigc_timeout_retry'] = 'Generation timed out. Please try again later.';
+$_LANG['aigc_poll_failed'] = 'Failed to query task status';
+$_LANG['aigc_submitting'] = 'Submitting...';
+$_LANG['aigc_submit_failed'] = 'Submission failed';
+$_LANG['aigc_submit_failed_network'] = 'Submission failed. Please check your network.';
+$_LANG['aigc_delete_confirm'] = 'Delete this work?';
+$_LANG['aigc_delete_failed'] = 'Delete failed';
 $_LANG['aigc_delete'] = 'Delete';
 $_LANG['aigc_all'] = 'All';
 $_LANG['aigc_continue'] = 'Continue';

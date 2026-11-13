@@ -46,7 +46,7 @@ class LanguagePath
             return '';
         }
 
-        $default = (string) Config::get('site.language', '');
+        $default = (string) Config::get('site.language.default', '');
 
         return $default !== '' && $pack === $default ? '' : $pack;
     }

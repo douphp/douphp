@@ -24,6 +24,7 @@ $_LANG['module_install_local_success'] = '成功安裝離線模組';
 $_LANG['module_uninstall'] = '解除安裝已安裝模組'; // 解除安裝模組
 $_LANG['module_uninstall_check'] = '您確定要解除安裝模組"d%"嗎？';
 $_LANG['module_uninstall_list'] = '待刪除模組';
+$_LANG['module_uninstall_rows'] = '該模組全部表的資料總量';
 $_LANG['module_uninstall_btn'] = '解除安裝';
 $_LANG['module_uninstall_wrong'] = '無法解除安裝，模組不存在！';
 $_LANG['module_uninstall_exist_data'] = '模組中存在資料，請先刪除後再解除安裝';

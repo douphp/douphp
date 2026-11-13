@@ -43,7 +43,7 @@ class BootstrapService extends BaseService
 
         // 语言包内容指纹：与独立 route=lang 接口返回的 lang_all() 同源同算法（见 JsLangExporter），
         // 客户端据其变化决定是否重新拉取语言包，避免在 bootstrap 内嵌整包译串。
-        $pack = (string) Config::get('site.language', 'zh_cn');
+        $pack = (string) Config::get('site.language.default', 'zh_cn');
         $data['lang_v'] = JsLangExporter::manifestHash('api', $pack);
 
         // 缓存失效校验：site / param / features / lang_v 任一变更即令小程序端本地缓存失效重新拉取。

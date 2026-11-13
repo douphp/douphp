@@ -418,7 +418,7 @@ class SettingService extends BaseService
      */
     private function installedLanguagePacks()
     {
-        $packs = array(Config::get('site.language', ''));
+        $packs = array(Config::get('site.language.default', ''));
 
         if (DB::tableExist('language')) {
             $rows = DB::table('language')->field('language_pack')->select();

@@ -166,6 +166,6 @@ class MetadataDefinitionTranslationService extends BaseService
      */
     private function defaultLanguage()
     {
-        return (string) Config::get('site.language', 'zh_cn');
+        return (string) Config::get('site.language.default', 'zh_cn');
     }
 }

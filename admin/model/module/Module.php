@@ -58,4 +58,57 @@ class Module extends Model
 
         return (int) $row['dou_row_cnt'];
     }
+
+    /**
+     * 当前库全部表名（不含表前缀）。
+     *
+     * @return array
+     */
+    public static function listTableNames()
+    {
+        $prefix = (string) DB::getPrefix();
+        $result = DB::query('SHOW TABLES');
+
+        $tables = array();
+        while ($row = DB::fetchRow($result)) {
+            $name = (string) $row[0];
+            if ($prefix !== '' && strpos($name, $prefix) === 0) {
+                $name = substr($name, strlen($prefix));
+            }
+            if ($name !== '') {
+                $tables[] = $name;
+            }
+        }
+
+        return $tables;
+    }
+
+    /**
+     * 统计多个逻辑表的数据总量（不存在的表跳过），单条 SQL 完成。
+     *
+     * @param array $tables 不含表前缀的表名列表
+     * @return int
+     */
+    public static function countRowsByTables($tables)
+    {
+        $selects = array();
+        foreach ((array) $tables as $table) {
+            $table = (string) $table;
+            if ($table === '' || !DB::tableExist($table)) {
+                continue;
+            }
+            $selects[] = '(SELECT COUNT(*) FROM ' . DB::tableName($table) . ')';
+        }
+
+        if (empty($selects)) {
+            return 0;
+        }
+
+        $row = DB::fetchAssoc(DB::query('SELECT ' . implode(' + ', $selects) . ' AS dou_row_cnt'));
+        if (!$row || !isset($row['dou_row_cnt'])) {
+            return 0;
+        }
+
+        return (int) $row['dou_row_cnt'];
+    }
 }

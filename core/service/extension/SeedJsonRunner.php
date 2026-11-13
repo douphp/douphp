@@ -616,7 +616,7 @@ class SeedJsonRunner
      */
     private function defaultLanguagePack()
     {
-        $pack = (string) Config::get('site.language', 'zh_cn');
+        $pack = (string) Config::get('site.language.default', 'zh_cn');
         if (!preg_match('/^[a-z_]+$/', $pack)) {
             return 'zh_cn';
         }

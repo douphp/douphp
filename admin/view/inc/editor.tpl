@@ -2,6 +2,7 @@
 <!-- {if $site.editor eq 'vditor'} -->
 <link href="{$site.admin_url}editor/vditor/dist/index.css" rel="stylesheet" type="text/css">
 <script type="text/javascript" src="{$site.admin_url}editor/vditor/dist/index.js"></script>
+<script type="text/javascript" src="{$site.admin_url}editor/vditor/paste.js"></script>
 <script type="text/javascript" src="{$site.admin_url}editor/vditor/init.js"></script>
 <script>var cur_editor = "vditor";</script>
 <!-- {else} -->

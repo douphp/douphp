@@ -177,10 +177,13 @@ class Init
         if (!defined('API_URL')) {
             define('API_URL', ROOT_URL . API_DIR . '/');
         }
+        if (!defined('PLUGIN_URL')) {
+            define('PLUGIN_URL', ROOT_URL . 'plugin/');
+        }
 
         $this->defineShellConstants('mini', 'miniprogram');
 
-        $defaultLanguage = Config::get('site.language', '') ?: 'zh_cn';
+        $defaultLanguage = Config::get('site.language.default', '') ?: 'zh_cn';
         $boot = SystemBootstrap::loadCore(array(
             'isAdmin' => false,
             'langPack' => $defaultLanguage,

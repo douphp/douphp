@@ -25,6 +25,8 @@
  *   trusted_proxies - 可信反向代理名单（精确 IP 或 CIDR）。空 = 不信任任何代理：
  *                     Request::ip() 仅用 REMOTE_ADDR，X-Forwarded-* 一律忽略。
  *                     部署在负载均衡 / Nginx 反代后时，把代理出口 IP 配进来才采信转发头。
+ *                     该名单同时决定 bootstrap 的 HTTP / IS_HTTPS：反代终止 TLS 时
+ *                     只有命中名单，X-Forwarded-Proto: https 才会被当作真实协议。
  *   trusted_hosts   - 可信 Host 白名单（精确域名或 '*.example.com' 子域通配）。空 = 不校验；
  *                     非空时 Request::host() 对未命中的 Host 回落到名单首项，
  *                     防止客户端伪造 Host 头污染对外 URL（邮件链接 / 跳转 / 缓存投毒）。
@@ -60,6 +62,9 @@ if (!defined('IN_DOUCO')) {
 return [
     'security' => [
         // 默认不信任任何代理（trust-none）。示例：['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16']
+        // CDN / 反代终止 TLS 时（源站只收到 HTTP 80，仅带 X-Forwarded-Proto: https），
+        // 必须把代理出口 IP（或 CIDR）配进来，否则站点地址、强制 HTTPS 跳转、会话 Cookie
+        // Secure 全部按 http 处理。
         'trusted_proxies' => [],
 
         // 可信 Host 白名单（精确域名或 '*.example.com' 子域通配）。

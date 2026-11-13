@@ -1018,7 +1018,7 @@ class Request
             return false;
         }
         foreach (self::$trustedProxies as $proxy) {
-            if ($this->ipMatches($remote, $proxy)) {
+            if (self::ipMatches($remote, $proxy)) {
                 return true;
             }
         }
@@ -1032,7 +1032,7 @@ class Request
      * @param string $rule
      * @return bool
      */
-    private function ipMatches($ip, $rule)
+    private static function ipMatches($ip, $rule)
     {
         if (strpos($rule, '/') === false) {
             return $ip === $rule;
@@ -1148,25 +1148,61 @@ class Request
      */
     public function isSecure()
     {
-        if (isset($this->server['HTTPS']) && strtolower((string) $this->server['HTTPS']) !== 'off' && $this->server['HTTPS'] !== '') {
+        return self::isSecureServer($this->server, self::$trustedProxies);
+    }
+
+    /**
+     * 按服务器变量判定请求是否为 HTTPS（全站单一实现）。
+     *
+     * bootstrap.php 定义 HTTP / IS_HTTPS 常量时同样调用本方法，保证常量与
+     * {@see isSecure()} 结论一致（否则反代终止 TLS 时会出现「常量 http、Request 判 https」）。
+     *
+     * 判定顺序：
+     *   1) 服务器自身变量：HTTPS / SERVER_PORT=443 / REQUEST_SCHEME
+     *   2) 仅当 REMOTE_ADDR 命中可信代理名单时，采信 X-Forwarded-Proto
+     *
+     * @param array $server $_SERVER 快照
+     * @param array $trustedProxies 可信反向代理名单（精确 IP 或 CIDR）
+     * @return bool
+     */
+    public static function isSecureServer(array $server, array $trustedProxies)
+    {
+        if (isset($server['HTTPS']) && $server['HTTPS'] !== '' && strtolower((string) $server['HTTPS']) !== 'off') {
             return true;
         }
-        if (isset($this->server['SERVER_PORT']) && (string) $this->server['SERVER_PORT'] === '443') {
+        if (isset($server['SERVER_PORT']) && (string) $server['SERVER_PORT'] === '443') {
             return true;
         }
-        // 仅当请求来自可信代理时，才采信其 X-Forwarded-Proto 标注的原始协议。
-        if ($this->isFromTrustedProxy() && !empty($this->server['HTTP_X_FORWARDED_PROTO'])) {
-            $proto = strtolower(trim((string) $this->server['HTTP_X_FORWARDED_PROTO']));
-            // 多级代理时可能逗号分隔，取最左（最接近客户端）。
-            if (strpos($proto, ',') !== false) {
-                $segs = explode(',', $proto);
-                $proto = trim($segs[0]);
-            }
-            if ($proto === 'https') {
-                return true;
+        if (isset($server['REQUEST_SCHEME']) && $server['REQUEST_SCHEME'] === 'https') {
+            return true;
+        }
+
+        // 转发头可被客户端伪造：仅当请求确实来自我方可信代理时才采信。
+        if (empty($trustedProxies) || empty($server['HTTP_X_FORWARDED_PROTO'])) {
+            return false;
+        }
+        $remote = isset($server['REMOTE_ADDR']) ? (string) $server['REMOTE_ADDR'] : '';
+        if ($remote === '') {
+            return false;
+        }
+        $fromProxy = false;
+        foreach ($trustedProxies as $proxy) {
+            if (self::ipMatches($remote, (string) $proxy)) {
+                $fromProxy = true;
+                break;
             }
         }
-        return false;
+        if (!$fromProxy) {
+            return false;
+        }
+
+        $proto = strtolower(trim((string) $server['HTTP_X_FORWARDED_PROTO']));
+        // 多级代理时可能逗号分隔，取最左（最接近客户端）。
+        if (strpos($proto, ',') !== false) {
+            $segs = explode(',', $proto);
+            $proto = trim($segs[0]);
+        }
+        return $proto === 'https';
     }
 
     /**

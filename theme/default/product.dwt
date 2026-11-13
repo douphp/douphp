@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="{$site.language.tag}">
 
 <head>
  <meta charset="utf-8">
@@ -47,6 +47,9 @@
         <ul>
          <!-- {if $site.show_price} -->
          <li class="product-price">{$lang.price}：<em id="salePrice" class="price">{$product.sale_price.format}</em><!-- {if $product.sale_price.name} --><i class="price-cue">{$product.sale_price.name}</i><!-- {/if} --><!-- {if $product.sale_price.type neq 'original'} --><em id="price" class="price-gray">{$product.price}</em><!-- {/if} --></li>
+         <!-- {/if} -->
+         <!-- {if $site.stock} -->
+         <li class="product-stock">{$lang.product_stock}：<span class="stock-number">{$product.stock}</span></li>
          <!-- {/if} -->
          <!-- {if $product.brand} -->
          <li>{$lang.brand}：<a href="{$product.brand.url}" target="_blank">{$product.brand.name}</a></li>

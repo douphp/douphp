@@ -162,8 +162,11 @@
 #product .product-img-info .product-info ul {
  margin-bottom: 50px;
 }
-#product .product-img-info .product-info .product-price {
+#product .product-img-info .product-info ul li {
  margin-bottom: 5px;
+}
+#product .product-img-info .product-info .product-price {
+ margin-bottom: 15px;
 }
 #product .product-img-info .product-info .product-price .price {
  font-family: Arial;

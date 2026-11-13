@@ -16,7 +16,7 @@
  * 支付回调声明式路由（公开 webhook，靠第三方验签鉴权）。
  */
 
-use Dou\Api\Controller\Pay\WxpayNotifyController;
+use Dou\Api\Controller\Pay\PaymentNotifyController;
 use Dou\Core\Web\Routing\Route;
 
 if (!defined('IN_DOUCO')) {
@@ -24,5 +24,12 @@ if (!defined('IN_DOUCO')) {
 }
 
 Route::name('api.')->group(function () {
-    Route::post('pay/wxpay_notify', WxpayNotifyController::class, 'notify', 'pay');
+    Route::post(
+        'pay/{plugin_id}/notify',
+        PaymentNotifyController::class,
+        'notify',
+        'pay',
+        'api.pay.notify',
+        array('plugin_id' => '[a-zA-Z][a-zA-Z0-9_-]{0,29}')
+    );
 });

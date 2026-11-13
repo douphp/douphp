@@ -181,25 +181,60 @@ class ModuleService extends BaseService
     /**
      * 卸载列表页数据。
      *
-     * 列表项按「模块标识 + 后台语言包名称」输出，模板只消费这两个字段：名称取
+     * 列表项按「模块标识 + 后台语言包名称」输出，模板只消费名称与数据量：名称取
      * `$_LANG[<module>]`（如 solution => 解决方案），缺失时回退模块标识（第三方模块
      * 未带模块名键时不至于空白）；与后台菜单 / 审计日志对模块名的取值口径一致。
+     * rows 为模块名下全部表（`<module>` 及 `<module>_*`）的数据总量。
      *
      * @return array token、uninstall_list
      */
     public function buildModuleUninstallData()
     {
+        $moduleIds = $this->buildUninstallIdList();
+        $tableMap = $this->buildModuleTableMap($moduleIds);
+
         $uninstallList = array();
-        foreach ($this->buildUninstallIdList() as $moduleId) {
+        foreach ($moduleIds as $moduleId) {
             $uninstallList[] = array(
                 'id' => $moduleId,
                 'name' => $this->moduleLabel($moduleId),
+                'rows' => Module::countRowsByTables(isset($tableMap[$moduleId]) ? $tableMap[$moduleId] : array()),
             );
         }
 
         return array(
             'uninstall_list' => $uninstallList,
         );
+    }
+
+    /**
+     * 按表名前缀把库中全部表归属到模块（`<module>` 或 `<module>_*`）。
+     *
+     * 同一张表可能命中多个模块标识（如 ai 与 aigc），取最长匹配，避免统计串表。
+     *
+     * @param array $moduleIds 可卸载模块标识列表
+     * @return array moduleId => 不含表前缀的表名列表
+     */
+    private function buildModuleTableMap($moduleIds)
+    {
+        $map = array();
+        foreach (Module::listTableNames() as $table) {
+            $owner = '';
+            foreach ($moduleIds as $moduleId) {
+                $moduleId = (string) $moduleId;
+                if ($table !== $moduleId && strpos($table, $moduleId . '_') !== 0) {
+                    continue;
+                }
+                if (strlen($moduleId) > strlen($owner)) {
+                    $owner = $moduleId;
+                }
+            }
+            if ($owner !== '') {
+                $map[$owner][] = $table;
+            }
+        }
+
+        return $map;
     }
 
     /**

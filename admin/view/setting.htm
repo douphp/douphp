@@ -217,9 +217,12 @@ $(function () {
                 }
 
                 $input.prop("disabled", true);
+                // 与其它弹窗一致在 body 内携带令牌：site.domain 与当前协议不一致时
+                // 请求被判为 crossDomain，dou.csrf.js 不会注入 X-CSRF-Token 头。
+                var token = $("#dou-post-form input[name=token]").val() || "";
                 // 显式声明 dataType：服务端返回 JSON 必须按 JSON 解析，
                 // 否则一旦响应头或响应体被污染就会拿到原始字符串，res.success 恒为 undefined。
-                $.post(route(routeName), { mail_test_email: email }, null, "json")
+                $.post(route(routeName), { mail_test_email: email, token: token }, null, "json")
                     .done(function (res) {
                         if (res && res.success) {
                             // 成功：在弹窗内展示结果，不自动关闭

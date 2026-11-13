@@ -359,6 +359,8 @@
         title: name ? label + " - " + name : label,
         bodyHtml: bodyHtml,
         size: "big",
+        // 主按钮是「复制代码」而非提交表单，回车不触发
+        noEnterSubmit: true,
         // 打开即全选，Ctrl+C 也能直接复制
         load: function ($modal) {
           var area = $modal.find(".embed-code").get(0);

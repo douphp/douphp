@@ -106,6 +106,18 @@ export type Features = CoreFeatures & OptionalFeatures
 
 /* ============================ 应用引导 ============================ */
 
+/** 站点语言标识（对应 PHP 侧 site.language 结构） */
+export interface SiteLanguage {
+  /** 站点默认语言包（config.language 原值，可为空） */
+  default: string
+  /** 当前请求语言包 */
+  pack: string
+  /** URL 前缀用连字符小写形 */
+  sign: string
+  /** BCP-47 标签 */
+  tag: string
+}
+
 /** 站点配置（Config::get('site')）——字段动态，提供常用键 + index 兜底 */
 export interface SiteConfig {
   name?: string
@@ -117,7 +129,8 @@ export interface SiteConfig {
   email?: string
   icp?: string
   copyright?: string
-  [key: string]: string | undefined
+  language?: SiteLanguage
+  [key: string]: string | SiteLanguage | undefined
 }
 
 /** 站点参数（Config::get('param')） */

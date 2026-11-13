@@ -144,7 +144,7 @@ class MetadataAdminService extends BaseService
         }
 
         $translations = $this->definitionTranslations->load($id);
-        $defaultPack = (string) Config::get('site.language', 'zh_cn');
+        $defaultPack = (string) Config::get('site.language.default', 'zh_cn');
         $btnLang = language()->buildLangButtons('metadata', $id, array('label', 'options'), array(
             'draft' => true,
             'draft_create' => true,

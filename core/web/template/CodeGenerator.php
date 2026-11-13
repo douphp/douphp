@@ -30,7 +30,7 @@ if (!defined('IN_DOUCO')) {
  *   1) 按指令出现顺序把每个节点交由对应 TagCompiler emit 为一段 PHP/字面（compiledTags[]），
  *      与扁平文本块（texts[]）一一对应；表达式经 {@see ExpressionCompiler} 零 preg 前端 lowering，
  *      {strip} 以哨兵 '{strip}' / '{/strip}' 标记。
- *   2) 复用与现网一致的空白后处理（{strip} 去空白、空标签吞行首换行、<? 防注入护栏、去尾换行），
+ *   2) 复用与现网一致的空白后处理（{strip} 去空白、空标签吞行首换行、属性内去追加换行、<? 防注入护栏、去尾换行），
  *      保证渲染输出与旧引擎字节对齐——此段空白语义字节敏感，集中保留在本类 {@see assemble()}。
  */
 class CodeGenerator
@@ -133,7 +133,7 @@ class CodeGenerator
     }
 
     /**
-     * 把 compiledTags[] 与 texts[] 装配为最终 PHP（{strip} 去空白 + 空标签吞行首换行 + <? 护栏 + 去尾换行）。
+     * 把 compiledTags[] 与 texts[] 装配为最终 PHP（{strip} 去空白 + 空标签吞行首换行 + 属性内去追加换行 + <? 护栏 + 去尾换行）。
      *
      * @param string[] $compiled_tags 指令片段序列
      * @param string[] $text_blocks 文本块序列（比指令多一项）
@@ -168,14 +168,28 @@ class CodeGenerator
 
         $compiled_content = '';
         $tag_guard = '%%%DOUVIEWOTG' . md5(uniqid(rand(), true)) . '%%%';
+        $htmlState = array('inside' => false, 'raw' => '');
 
         for ($i = 0, $for_max = count($compiled_tags); $i < $for_max; $i++) {
             if ($compiled_tags[$i] == '') {
                 $text_blocks[$i + 1] = preg_replace('~^(\r\n|\r|\n)~', '', $text_blocks[$i + 1]);
             }
+            $isPhpText = strpos($text_blocks[$i], '<?php echo ') === 0;
             $text_blocks[$i] = str_replace('<?', $tag_guard, $text_blocks[$i]);
             $compiled_tags[$i] = str_replace('<?', $tag_guard, $compiled_tags[$i]);
-            $compiled_content .= $text_blocks[$i] . $compiled_tags[$i];
+
+            $compiled_content .= $text_blocks[$i];
+            if (!$isPhpText) {
+                $htmlState = $this->htmlTagStateAfter($htmlState, $text_blocks[$i]);
+            }
+
+            // 标签位于 HTML 标签/属性或 script/style 原始文本内部时，丢弃标签编译器追加的换行：
+            // 避免 lang / content / href 等属性值与 JS/CSS 字符串末尾混入换行；文本节点仍保留原换行策略。
+            $compiled_tag = $compiled_tags[$i];
+            if (($htmlState['inside'] || $htmlState['raw'] !== '') && substr($compiled_tag, -1) === "\n") {
+                $compiled_tag = substr($compiled_tag, 0, -1);
+            }
+            $compiled_content .= $compiled_tag;
         }
         $compiled_content .= str_replace('<?', $tag_guard, $text_blocks[$i]);
 
@@ -188,5 +202,72 @@ class CodeGenerator
         }
 
         return $compiled_content;
+    }
+
+    /**
+     * 根据字面文本更新 HTML 解析状态。
+     *
+     * 返回 array('inside' => bool, 'raw' => 'script'|'style'|'')：
+     *  - inside：当前是否位于 HTML 标签内部（含属性）；
+     *  - raw：当前是否位于 script/style 原始文本体内。
+     *
+     * 仅把后面紧跟字母、/、!、? 的 < 视为标签开始，避免把文本中的比较符号误判为标签；
+     * 原始文本体内只识别对应的结束标签，其余 < 不作标签解析。
+     *
+     * @param array $state 进入文本块前的状态
+     * @param string $text 字面文本（已做 <? 护栏）
+     * @return array
+     */
+    private function htmlTagStateAfter(array $state, $text)
+    {
+        $inside = !empty($state['inside']);
+        $raw = isset($state['raw']) ? (string) $state['raw'] : '';
+        $tagName = '';
+        $closing = false;
+        $length = strlen($text);
+
+        for ($i = 0; $i < $length; $i++) {
+            if ($raw !== '') {
+                if ($text[$i] === '<' && $i + 1 < $length && $text[$i + 1] === '/') {
+                    $end = '</' . $raw;
+                    if (strtolower(substr($text, $i, strlen($end))) === $end) {
+                        $raw = '';
+                        $inside = true;
+                    }
+                }
+                continue;
+            }
+
+            $char = $text[$i];
+            if ($char === '<') {
+                if ($inside) {
+                    continue;
+                }
+
+                $next = $i + 1 < $length ? $text[$i + 1] : '';
+                if ($next === '' || !(ctype_alpha($next) || $next === '/' || $next === '!' || $next === '?')) {
+                    continue;
+                }
+
+                $inside = true;
+                $closing = $next === '/';
+                $offset = $i + ($closing ? 2 : 1);
+                $tagName = '';
+                while ($offset < $length && (ctype_alnum($text[$offset]) || $text[$offset] === '-' || $text[$offset] === ':')) {
+                    $tagName .= $text[$offset];
+                    $offset++;
+                }
+                $tagName = strtolower($tagName);
+            } elseif ($char === '>' && $inside) {
+                $inside = false;
+                if (!$closing && ($tagName === 'script' || $tagName === 'style')) {
+                    $raw = $tagName;
+                }
+                $tagName = '';
+                $closing = false;
+            }
+        }
+
+        return array('inside' => $inside, 'raw' => $raw);
     }
 }

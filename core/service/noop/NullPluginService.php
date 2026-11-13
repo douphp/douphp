@@ -108,14 +108,16 @@ class NullPluginService extends BaseService implements PluginServiceContract
     }
 
     /**
-     * 与真实现兜底分支一致：无插件时默认 wxpay。
+     * 无 plugin 表时没有可用支付方式，与真实现"过滤后为空"分支一致。
      *
      * @param string $currency 目标币种（兜底实现忽略）
      * @return string
      */
     public function defaultPaymentSlug($currency = '')
     {
-        return 'wxpay';
+        unset($currency);
+
+        return '';
     }
 
     /**

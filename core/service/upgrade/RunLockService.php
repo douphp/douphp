@@ -40,7 +40,7 @@ class RunLockService
     /** 交接宽限（秒）：handoff 之后其他 holder 需等待的时间 */
     const HANDOFF_SECONDS = 30;
 
-    /** 兜底阈值（秒）：仅用于 flock 完全不可用时放行，以及清扫遗留的旧 upgrade.lock */
+    /** 过期阈值（秒）：用于清扫遗留的旧 upgrade.lock */
     const STALE_SECONDS = 900;
 
     /** @var string 运行态文件绝对路径 */
@@ -86,13 +86,6 @@ class RunLockService
 
         if (!@flock($fp, LOCK_EX | LOCK_NB)) {
             $current = $this->readFrom($fp);
-            $age = $this->age($current);
-            if ($age !== null && $age >= self::STALE_SECONDS) {
-                // flock 不可用环境的兜底：行为与旧版 15 分钟阈值一致
-                @fclose($fp);
-
-                return array('ok' => true, 'error' => '');
-            }
             $error = $this->busyError($current, $holder);
             @fclose($fp);
 

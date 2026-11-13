@@ -8,6 +8,12 @@ var douEditor = {};
 $(function() {
   $(document).on('keydown', 'input', function(e) {
       if (e.keyCode === 13) {
+          // 弹窗内的回车交给 douModal 统一处理（如多语言草稿弹窗转成「提交」按钮点击）；
+          // 这里直接 $form.submit() 会让没有 action 的弹窗表单整页跳到「当前地址?value=…」
+          if ($(this).closest('[data-dou-modal-dynamic]').length) {
+              return;
+          }
+
           e.preventDefault();
           e.stopPropagation(); // 阻止事件冒泡，防止 Vditor 捕获
 
@@ -25,6 +31,11 @@ $(function() {
       // 初始化编辑器
       initEditor(editorId)
   });
+
+  // 粘贴 Markdown 源码时按 Markdown 渲染，避免被包成代码块（公共逻辑见 paste.js）
+  if (typeof douVditorBindMarkdownPaste === 'function') {
+      douVditorBindMarkdownPaste(douEditor);
+  }
 
   // 提交前同步（兜底）：把各 vditor 实例的当前值（Markdown 源码）写回对应 textarea
   $(document).on('submit', 'form', function() {

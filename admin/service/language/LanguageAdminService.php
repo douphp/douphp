@@ -65,7 +65,7 @@ class LanguageAdminService extends CoreLanguageService implements AdminLanguageC
         $previews = isset($options['previews']) && is_array($options['previews']) ? $options['previews'] : array();
         $defaultPack = isset($options['default_pack'])
             ? (string) $options['default_pack']
-            : (string) Config::get('site.language', 'zh_cn');
+            : (string) Config::get('site.language.default', 'zh_cn');
         $excludePack = isset($options['exclude_pack']) ? (string) $options['exclude_pack'] : '';
         $uploadUrl = isset($options['upload_url']) ? (string) $options['upload_url'] : '';
         $releaseUrl = isset($options['release_url']) ? (string) $options['release_url'] : '';
