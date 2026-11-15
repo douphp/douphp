@@ -90,7 +90,7 @@
         <td class="m-none text-center js-quick-edit" data-field="sort" data-value="{$product.sort}">{$product.sort}</td>
         <td class="m-none text-center"><em class="link js-toggle status-pill" data-url="{url link='admin.tool.change_field' module='product' item_id=$product.id field='status'}" data-state="{if $product.status.value}on{else}off{/if}">{$product.status.format}</em></td>
         <td class="m-none text-center">{$product.created_at}</td>
-        <!-- {foreach from=$product.metadata_list item=meta} -->
+        <!-- {foreach from=$product.metadata_fields item=meta} -->
         <td class="text-center">{include file="inc/metadata_cell.tpl" field=$meta}</td>
         <!-- {/foreach} -->
         <td class="text-center"><a href="{url link='admin.product.edit' id=$product.id}">{$lang.edit}</a> | <a href="javascript:;" class="js-delete" data-url="{url link='admin.product.destroy' id=$product.id}">{$lang.del}</a></td>

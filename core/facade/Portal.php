@@ -492,7 +492,6 @@ class Portal
         $userId = $userId === null ? self::frontMemberId() : (int) $userId;
 
         $tree = $cls::withItems((int) $itemNumber, 0, (bool) $includeChildren, $userId);
-        MetadataValues::decorateTree($module, $tree);
 
         return self::applyDescriptionExcerptToTree($tree, $excerptLength);
     }

@@ -16,6 +16,7 @@ namespace Dou\Front\Model\Concerns;
 
 use Dou\Core\Facade\DB;
 use Dou\Core\Foundation\Module\ModuleModelResolver;
+use Dou\Core\Service\Metadata\MetadataValues;
 use Dou\Core\Support\CategoryIds;
 
 if (!defined('IN_DOUCO')) {
@@ -27,7 +28,7 @@ if (!defined('IN_DOUCO')) {
  *
  * module 由分类表名推导（article_category -> article）；内容行走对应内容 Model 的
  * published / with('category') / forUser / filterByCategory 单产线，由 accessor + $appends
- * 在水合阶段产出 Presenter 字段。
+ * 在水合阶段产出 Presenter 字段，内容行在分组缓存前批量补齐扩展字段展示结构。
  * 节点 list 为该分类及其全部子孙分类内容的合并（对齐 {list} 标签 cat= 的子树语义），
  * id DESC 截取每类 $itemNumber 条。
  *
@@ -68,7 +69,7 @@ trait HasCategoryWithItems
 
         $categories = self::withItemsCategoryRows($table);
 
-        $catIdsNeedItems = self::withItemsCollectCatIds($categories, $parentId, $itemNumber);
+        $catIdsNeedItems = self::withItemsCollectCatIds($parentId, $itemNumber);
 
         $groupedItems = ($itemNumber > 0 && !empty($catIdsNeedItems))
             ? self::withItemsContentRows($module, $catIdsNeedItems, $userId)
@@ -113,12 +114,11 @@ trait HasCategoryWithItems
     /**
      * 收集起始 parent_id 下（含全部子孙）所有分类的 id，用于 IN 取内容。
      *
-     * @param array $categories 全部分类行（未使用，保留以维持主流程签名稳定）
      * @param int $parentId 起始父级
      * @param int $itemNumber 0 时不收集（视图层不需 list）
      * @return array<int, int>
      */
-    private static function withItemsCollectCatIds(array $categories, $parentId, $itemNumber)
+    private static function withItemsCollectCatIds($parentId, $itemNumber)
     {
         if ($itemNumber <= 0) {
             return array();
@@ -167,6 +167,7 @@ trait HasCategoryWithItems
             ->order('id DESC')
             ->get()
             ->toArray();
+        MetadataValues::decorateRows($module, $rows);
 
         $grouped = array();
         foreach ((array) $rows as $row) {
