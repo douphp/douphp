@@ -234,7 +234,7 @@ class LanguageAdminService extends CoreLanguageService implements AdminLanguageC
         if (in_array($field, array('image', 'file', 'show_img'), true)) {
             return 'file';
         }
-        if (in_array($field, array('description', 'show_text', 'text', 'defined', 'answer', 'brief'), true)) {
+        if (in_array($field, array('description', 'show_text', 'text', 'answer', 'brief'), true)) {
             return 'textarea';
         }
 

@@ -73,10 +73,12 @@ class ThemeService extends BaseService
             $theme_info = $this->parseThemeMeta($slug);
             if ($theme_info) {
                 if (!empty($theme_info['cloud'])) {
-                    $previewUrl = $this->fetchCloudPreviewFrameUrl($slug);
-                    if ($previewUrl !== '') {
-                        $theme_info['preview_frame_url'] = $previewUrl;
+                    $cloudItem = $this->fetchCloudThemeItem($slug);
+                    if ($cloudItem !== null && !empty($cloudItem['preview_frame_url'])) {
+                        $theme_info['preview_frame_url'] = (string) $cloudItem['preview_frame_url'];
                     }
+                    // 云端不可达时仍给出弹窗文案，模块段回退为「无」
+                    $theme_info['install_popup_text'] = $this->buildInstallPopupText($theme_info, is_array($cloudItem) ? $cloudItem : array());
                 }
                 $theme_list[] = $theme_info;
             }
@@ -91,21 +93,35 @@ class ThemeService extends BaseService
     }
 
     /**
-     * 从云服务拉取扩展 Web 预览 iframe URL（已安装云主题列表用）。
+     * 从云服务拉取扩展详情（已安装云主题列表用：预览 iframe URL 与需配套模块）。
      *
      * @param string $slug 主题 slug
-     * @return string
+     * @return array<string, mixed>|null 未登录或获取失败时为 null
      */
-    protected function fetchCloudPreviewFrameUrl($slug)
+    protected function fetchCloudThemeItem($slug)
     {
         $data = CloudApi::getJson(CloudApi::PATH_EXTEND_ITEM, array(
             'slug' => (string) $slug,
         ));
-        if (!is_array($data) || empty($data['preview_frame_url'])) {
-            return '';
-        }
 
-        return (string) $data['preview_frame_url'];
+        return is_array($data) ? $data : null;
+    }
+
+    /**
+     * 拼装已安装云端模板重新安装时的确认弹窗文案。
+     *
+     * 与云端模板列表的安装弹窗保持同一口径：模板名称 + 需配套模块。
+     *
+     * @param array<string, mixed> $themeInfo 模板元信息
+     * @param array<string, mixed> $cloudItem 云端详情
+     * @return string
+     */
+    protected function buildInstallPopupText(array $themeInfo, array $cloudItem)
+    {
+        return strtr((string) lang('theme_install_popup_text'), array(
+            '{theme}' => isset($themeInfo['theme_name']) ? (string) $themeInfo['theme_name'] : '',
+            '{modules}' => CloudService::themeNeedModuleText($cloudItem),
+        ));
     }
 
     /**

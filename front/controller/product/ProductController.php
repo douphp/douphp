@@ -225,7 +225,6 @@ class ProductController extends BaseController
             'product' => $product,
             'related_product' => Product::related($catId, 4, (int) auth('front')->id(), (int) $id),
             'lift' => Product::lift($id, $catId),
-            'defined' => isset($product['defined']) ? $product['defined'] : array(),
             'column_name' => Product::categoryLabel($cateInfo),
         );
         if ($dataList !== null) {

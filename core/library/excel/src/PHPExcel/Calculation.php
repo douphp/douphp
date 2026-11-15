@@ -2266,6 +2266,8 @@ class PHPExcel_Calculation
      */
     public function renameCalculationCacheForWorksheet($fromWorksheetName, $toWorksheetName)
     {
+        $fromWorksheetName = (string) $fromWorksheetName;
+        $toWorksheetName = (string) $toWorksheetName;
         if (isset($this->calculationCache[$fromWorksheetName])) {
             $this->calculationCache[$toWorksheetName] = &$this->calculationCache[$fromWorksheetName];
             unset($this->calculationCache[$fromWorksheetName]);

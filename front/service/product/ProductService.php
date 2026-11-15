@@ -159,7 +159,6 @@ class ProductService extends BaseService
                 'id' => $row['id'],
                 'category_id' => $row['category_id'],
                 'title' => $row['title'],
-                'defined' => $row['defined'],
                 'price' => $rawPrice > 0 ? Util::formatPrice($rawPrice) : lang('price_discuss'),
                 'sale_price' => $rawPrice > 0 ? $this->pricingService->salePrice('product', $row['id'], $userId, $model->getAttributes()) : $emptySale,
                 'thumb' => $row['thumb'],
@@ -223,7 +222,7 @@ class ProductService extends BaseService
             return null;
         }
 
-        // AR：casts(image/created_at/defined)、translatable(title/content/description) 已在 toArray 承接；
+        // AR：casts(image/created_at)、translatable(title/content/description) 已在 toArray 承接；
         // 这里转成数组形态，避免后续 langBox（NullLanguageService 等实现）按 is_array 判断而把 Model 整体清空。
         $product = $model->toArray();
 
@@ -251,10 +250,7 @@ class ProductService extends BaseService
         if (!(defined('IS_API') && IS_API)) {
             $product['image_other'] = attachment()->galleryFirst('product', $productId);
             $product['model_list'] = $this->buildModelList($product['model'], $productId);
-            $product = language()->langBox($product, 'product', 'title, content, defined, keywords, description');
-            // langBox 在多语言翻译命中时会把 cast 后的 pairs 数组覆写为翻译后的 raw 字符串，
-            // 这里走 parseDefinedPairs 重归一化：未翻译时（数组）幂等返回，翻译命中时再解析。
-            $product['defined'] = Util::parseDefinedPairs(isset($product['defined']) ? $product['defined'] : '');
+            $product = language()->langBox($product, 'product', 'title, content, keywords, description');
         }
 
         MetadataValues::decorateRow('product', $product);

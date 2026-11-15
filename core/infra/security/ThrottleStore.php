@@ -142,37 +142,80 @@ class ThrottleStore
      */
     public function clear($key)
     {
-        $file = $this->file($key);
-        if (is_file($file)) {
-            @unlink($file);
+        $guard = $this->directoryLock(LOCK_EX);
+        if ($guard === false) {
+            return;
+        }
+        try {
+            $file = $this->file($key);
+            if (is_file($file)) {
+                @unlink($file);
+            }
+        } finally {
+            @flock($guard, LOCK_UN);
+            @fclose($guard);
         }
     }
 
     /**
-     * 机会式清理已过期的计数文件。
+     * 机会式清理已过期的计数文件，保留未知及损坏文件。
      *
-     * @return void
+     * @return int 已删除文件数量；目录不存在或正在使用时返回 0
      */
     public function purgeExpired()
     {
         if (!is_dir($this->dir)) {
-            return;
+            return 0;
         }
-        $now = time();
-        $files = glob($this->dir . '*.json');
-        if (!is_array($files)) {
-            return;
+        $guard = $this->directoryLock(LOCK_EX | LOCK_NB);
+        if ($guard === false) {
+            return 0;
         }
-        foreach ($files as $file) {
-            $raw = @file_get_contents($file);
-            if ($raw === false || $raw === '') {
-                continue;
+        try {
+            $deleted = 0;
+            $now = time();
+            foreach ((array) glob($this->dir . '*.json') as $file) {
+                if (is_link($file) || !is_file($file) || !preg_match('/^[a-f0-9]{32}\.json$/D', basename($file))) {
+                    continue;
+                }
+                $data = json_decode((string) @file_get_contents($file), true);
+                if (is_array($data) && isset($data['count'], $data['reset'])
+                    && is_numeric($data['reset']) && (int) $data['reset'] > 0
+                    && $now >= (int) $data['reset'] && @unlink($file)) {
+                    $deleted++;
+                }
             }
-            $data = @json_decode($raw, true);
-            if (!is_array($data) || !isset($data['reset']) || $now >= (int) $data['reset']) {
-                @unlink($file);
-            }
+            return $deleted;
+        } finally {
+            @flock($guard, LOCK_UN);
+            @fclose($guard);
         }
+    }
+
+    /**
+     * 获取目录级清理协调锁，先拿共享锁再打开计数文件。
+     *
+     * @param int $mode flock 锁模式
+     * @return resource|false 锁句柄；无法加锁返回 false
+     */
+    private function directoryLock($mode)
+    {
+        if (!is_dir($this->dir) && !@mkdir($this->dir, 0777, true) && !is_dir($this->dir)) {
+            return false;
+        }
+        $file = $this->dir . '.cleanup.lock';
+        if (is_link($file)) {
+            return false;
+        }
+        $handle = @fopen($file, 'c');
+        if ($handle === false) {
+            return false;
+        }
+        if (!@flock($handle, $mode)) {
+            @fclose($handle);
+            return false;
+        }
+        return $handle;
     }
 
     /**
@@ -215,11 +258,14 @@ class ThrottleStore
      */
     private function withLock($key, $callback)
     {
-        if (!is_dir($this->dir)) {
-            @mkdir($this->dir, 0777, true);
+        $guard = $this->directoryLock(LOCK_SH);
+        if ($guard === false) {
+            return null;
         }
         $handle = @fopen($this->file($key), 'c+');
         if ($handle === false) {
+            @flock($guard, LOCK_UN);
+            @fclose($guard);
             return null;
         }
 
@@ -253,6 +299,8 @@ class ThrottleStore
         } finally {
             @flock($handle, LOCK_UN);
             @fclose($handle);
+            @flock($guard, LOCK_UN);
+            @fclose($guard);
         }
     }
 }

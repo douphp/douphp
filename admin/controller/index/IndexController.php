@@ -23,6 +23,7 @@ use Dou\Admin\Service\Index\IndexService;
 use Dou\Admin\Service\Workspace\UpdateBadgeBuilder;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Service\Admin\AdminLogAction;
+use Dou\Core\Service\System\TempCleanupService;
 use Dou\Core\Web\Http\ApiResponse;
 use Dou\Core\Web\Http\Request;
 use Dou\Core\Web\Http\Response;
@@ -73,6 +74,15 @@ class IndexController extends BaseController
             // 清理失败不影响首页渲染，下次加载会再次触发
         } catch (\Throwable $e) {
             // PHP 7+ 的 \Error 同样吞掉
+        }
+
+        // 临时文件独立按日清理，失败不影响首页渲染。
+        try {
+            (new TempCleanupService(STORAGE_PATH))->runScheduled();
+        } catch (\Exception $e) {
+            // 下次首页加载重试。
+        } catch (\Throwable $e) {
+            // PHP 7+ 的错误同样不影响首页。
         }
 
         $this->indexService->syncEmptyConfigDomainToRootUrl();

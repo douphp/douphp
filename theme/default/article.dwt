@@ -26,11 +26,7 @@
     <div class="col-md-10"> {include file="inc/ur_here.tpl"}
      <div id="article">
       <h1>{$article.title}</h1>
-      <div class="info">{$lang.created_at}：{$article.created_at} {$lang.click}：{$article.click}
-       <!-- {if $defined} -->
-       <!-- {foreach from=$defined name=defined item=defined} --> {$defined.arr}：{$defined.value}<!-- {/foreach} -->
-       <!-- {/if} -->
-      </div>
+      <div class="info">{$lang.created_at}：{$article.created_at} {$lang.click}：{$article.click}</div>
       <div class="content"> {$article.content nofilter} </div>
       <!-- {if $article.attach_list} -->
       <div class="attach">

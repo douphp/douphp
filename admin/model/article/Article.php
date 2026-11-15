@@ -74,7 +74,6 @@ class Article extends Model
         'category_id',
         'title',
         'slug',
-        'defined',
         'content',
         'keywords',
         'description',

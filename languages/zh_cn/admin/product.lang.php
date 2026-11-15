@@ -16,8 +16,6 @@
 $_LANG['top_add_product'] = '商品';
 $_LANG['display_product'] = '商品列表数量';
 $_LANG['display_home_product'] = '首页展示商品数量';
-$_LANG['defined_product'] = '商品自定义属性';
-$_LANG['defined_product_cue'] = '如"颜色,尺寸,型号"中间以英文逗号隔开';
 $_LANG['nav_product'] = '产品中心';
 $_LANG['mobile_display_product'] = '手机版商品列表数量';
 $_LANG['mobile_display_home_product'] = '手机版首页展示商品数量';
@@ -55,8 +53,6 @@ $_LANG['product_level_price'] = '等级价格';
 $_LANG['product_stock'] = '库存';
 $_LANG['product_sales'] = '销量';
 $_LANG['product_point'] = '消耗积分';
-$_LANG['product_defined'] = '自定义属性';
-$_LANG['product_defined_cue'] = '以英文逗号 , 隔开';
 $_LANG['product_content'] = '商品描述';
 $_LANG['product_add_succes'] = '添加商品成功';
 $_LANG['product_edit_succes'] = '编辑商品成功';

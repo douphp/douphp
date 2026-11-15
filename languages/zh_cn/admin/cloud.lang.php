@@ -197,6 +197,11 @@ $_LANG['cloud_extend_update_time_label'] = '更新时间：';
 $_LANG['cloud_extend_min_version_label'] = '最低版本要求：';
 $_LANG['cloud_extend_detail'] = '详细信息';
 
+// 模板安装确认弹窗（cloud_extend_action.tpl 中 theme 的安装按钮）
+$_LANG['cloud_theme_install_popup_title'] = '安装提示';
+$_LANG['cloud_theme_install_popup_text'] = '模板名称：{theme}；支持模块：{modules}';
+$_LANG['cloud_theme_install_popup_no_module'] = '无';
+
 // 升级还原点（T7：unzip 与 apply 之间的快照步骤）
 $_LANG['cloud_snapshot_ing'] = '正在创建升级还原点…';
 $_LANG['cloud_snapshot_begin'] = '开始创建升级还原点（升级失败时用于回滚）…';

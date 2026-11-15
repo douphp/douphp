@@ -400,8 +400,9 @@ p.cue {
   height: 25px;
   padding: 10px 0;
 }
+/* 视口高度减去顶栏 51px 与顶部区块 46px（25px 行高 + 上下 10px 内边距 + 1px 底边框） */
 #dou-sidebar .menu-scroll {
-  height: calc(100vh - 95px);
+  height: calc(100vh - 97px);
   overflow-y: scroll;
   overflow-x: hidden;
 }
@@ -485,12 +486,10 @@ p.cue {
 #dou-sidebar li.has-sub.cur > a {
   background-color: #19b4ea;
 }
-#dou-sidebar > ul.top > li:not(.cur):hover,
+/* 顶部菜单项只保留当前页高亮，不做悬停变色 */
 #dou-sidebar .menu-scroll > ul > li:not(.cur):hover {
   background-color: #19b4ea;
 }
-#dou-sidebar > ul.top > li:not(.cur):hover > a,
-#dou-sidebar > ul.top > li:not(.cur):hover > a i,
 #dou-sidebar .menu-scroll > ul > li:not(.cur):hover > a,
 #dou-sidebar .menu-scroll > ul > li:not(.cur):hover > a i {
   color: #fff;

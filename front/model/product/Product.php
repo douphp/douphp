@@ -36,7 +36,7 @@ if (!defined('IN_DOUCO')) {
 /**
  * 前台商品数据模型。
  *
- * 列表读取走 AR：with('category') 批量取分类、casts 格式化 image / defined / created_at、
+ * 列表读取走 AR：with('category') 批量取分类、casts 格式化 image / created_at、
  * thumb / image_other accessor 提供缩略图与附加主图 URL，prefetchers 预热
  * url / 多语言 / 附件（缩略图）/ 相册首图。
  *
@@ -65,7 +65,6 @@ class Product extends Model
         'stock' => 'int',
         'sales' => 'int',
         'image' => 'attachment',
-        'defined' => 'defined_pairs',
         'created_at' => 'datetime:Y-m-d',
     );
 

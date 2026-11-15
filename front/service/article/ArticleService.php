@@ -79,7 +79,6 @@ class ArticleService extends BaseService
                 'id' => $row['id'],
                 'category_id' => $row['category_id'],
                 'title' => $row['title'],
-                'defined' => $row['defined'],
                 'image' => $row['image'],
                 'created_at' => $row['created_at'],
                 'add_time_short' => $row['add_time_short'],
@@ -118,7 +117,7 @@ class ArticleService extends BaseService
             return null;
         }
 
-        // AR：casts(image/created_at/defined)、appends(time)、translatable(title/content/keywords/description) 已在 toArray 承接
+        // AR：casts(image/created_at)、appends(time)、translatable(title/content/keywords/description) 已在 toArray 承接
         $data = $article->toArray();
         MetadataValues::decorateRow('article', $data);
         $data['content'] = $this->markdown->toHtml($data['content']);

@@ -518,6 +518,10 @@ class CloudService extends BaseService
             $data['items'][$idx]['state'] = ExtendStateResolver::resolve($item);
         }
 
+        if ($slug === 'theme') {
+            $this->applyThemeInstallPopup($data);
+        }
+
         if ($baseRoute !== '') {
             if (!empty($data['meta']['theme_filters'])) {
                 $data['meta']['theme_filters']['all_url'] = $this->extendListUrl(
@@ -573,6 +577,67 @@ class CloudService extends BaseService
         }
 
         return $data;
+    }
+
+    /**
+     * 模板安装确认弹窗改为本地文案：模板名称 + 需配套的模块。
+     *
+     * 云端下发的 popup.text 为旧版「会清空数据」提示，统一用语言包重写；
+     * 只处理安装态（state=install）且带弹窗的项，更新 / 已安装项保持云端原样。
+     *
+     * @param array<string, mixed> $data fetchExtendList 返回结构（items[].action.popup）
+     * @return void
+     */
+    private function applyThemeInstallPopup(array &$data)
+    {
+        if (!isset($data['items']) || !is_array($data['items'])) {
+            return;
+        }
+
+        foreach ($data['items'] as $idx => $item) {
+            if (!is_array($item) || !isset($item['action']['popup']) || !is_array($item['action']['popup'])) {
+                continue;
+            }
+            if (isset($item['state']) && (string) $item['state'] !== 'install') {
+                continue;
+            }
+
+            $data['items'][$idx]['action']['popup']['title'] = (string) lang('cloud_theme_install_popup_title', '安装提示');
+            $data['items'][$idx]['action']['popup']['text'] = strtr(
+                (string) lang('cloud_theme_install_popup_text', '模板名称：{theme}；支持模块：{modules}'),
+                array(
+                    '{theme}' => isset($item['title']) ? (string) $item['title'] : '',
+                    '{modules}' => self::themeNeedModuleText($item),
+                )
+            );
+        }
+    }
+
+    /**
+     * 主题需配套模块的纯文本描述（复用列表卡片展示的 need_module_parsed）。
+     *
+     * 云端 text 带 <b>/<em> 标记与「已安装 / 未安装」悬停标题，弹窗只展示模块名，
+     * 因此去标签并压缩空白；无模块信息时取语言包里的「无」。
+     *
+     * @param array<string, mixed> $item 云端列表单条
+     * @return string
+     */
+    public static function themeNeedModuleText(array $item)
+    {
+        $text = isset($item['need_module_parsed']['text']) ? (string) $item['need_module_parsed']['text'] : '';
+        if ($text === '' && isset($item['need_module'])) {
+            $text = (string) $item['need_module'];
+        }
+        $text = html_entity_decode(strip_tags($text), ENT_QUOTES, DOU_CHARSET);
+        // 去标签后残留的「， 文章模块」类空格统一剔除，中文分隔符前后不留空白
+        $text = preg_replace('/\s+/u', ' ', $text);
+        $text = str_replace(array('， ', ' ，', ', ', ' ,'), array('，', '，', '，', '，'), $text);
+        $text = trim($text);
+        if ($text === '') {
+            return (string) lang('cloud_theme_install_popup_no_module', '无');
+        }
+
+        return $text;
     }
 
     /**

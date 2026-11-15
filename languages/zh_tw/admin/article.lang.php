@@ -16,8 +16,6 @@
 $_LANG['top_add_article'] = '文章';
 $_LANG['display_article'] = '文章列表數量';
 $_LANG['display_home_article'] = '首頁展示文章數量';
-$_LANG['defined_article'] = '文章自訂屬性';
-$_LANG['defined_article_cue'] = '如「顏色,尺寸,型號」中間以英文逗號隔開';
 $_LANG['nav_article'] = '文章中心';
 $_LANG['mobile_display_article'] = '手機版文章列表數量';
 $_LANG['mobile_display_home_article'] = '手機版首頁展示文章數量';
@@ -42,8 +40,6 @@ $_LANG['article_edit'] = '編輯文章';
 $_LANG['article_delete'] = '刪除文章';
 $_LANG['article_name'] = '文章標題';
 $_LANG['article_title'] = '文章標題';
-$_LANG['article_defined'] = '自訂屬性';
-$_LANG['article_defined_cue'] = '以英文逗號 , 隔開';
 $_LANG['article_content'] = '文章描述';
 
 // 提示

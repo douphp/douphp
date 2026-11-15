@@ -22,7 +22,7 @@ Page({
       .get(route('page'), { slug: 'about' })
       .then(function (data) {
         const page = data.page || {}
-        that.setData({ title: page.name, page, defined: data.defined })
+        that.setData({ title: page.name, page })
         wx.setStorageSync('shareTitle', page.name || '')
       })
       .catch(function (err) {

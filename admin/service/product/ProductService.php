@@ -708,7 +708,7 @@ class ProductService extends BaseService
      * 导入商品（受限：仅标量字段）。
      *
      * 列顺序见 {@see ProductExcelDefinition::importLabels()}，首行为表头。
-     * 不支持图库、自定义字段 defined、会员价 level_price、多语言 metadata、促销起止时间。
+     * 不支持图库、会员价 level_price、多语言 metadata、促销起止时间。
      *
      * @return array ok / code / row（失败行号）/ created（新增条数）
      */

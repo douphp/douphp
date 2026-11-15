@@ -50,15 +50,15 @@ class BackupService extends BaseService
     /**
      * 备份包解压条目白名单。
      *
-     * 备份包由 {@see runBackup()} 以 `Zip::create($zipfile, [分卷 sql..., ROOT_PATH.'images'], ROOT_PATH)`
-     * 生成，包内条目形如 `storage/backup/xxx.sql` 与 `images/**`，还原时先解压到隔离目录。
+     * 备份包由 {@see packBackup()} 生成，SQL 直接放在包根目录，资源保留 `images/**` 路径，
+     * 还原时先解压到隔离目录。
      * 这里限定只放行这两类条目，杜绝包内夹带 `admin/x.php` 之类的
      * 合法相对路径覆盖站内文件；`images/` 下再排除可执行与配置扩展名。
      *
      * @var array
      */
     protected static $restoreAllowRules = array(
-        'storage/backup/*.sql',
+        '*.sql',
         'images/**',
     );
 
@@ -572,7 +572,7 @@ class BackupService extends BaseService
             if (substr($entry, -1) === '/') {
                 continue;
             }
-            if (preg_match('#^storage/backup/([^/]+\.sql)$#D', $entry, $match)) {
+            if (preg_match('#^([^/]+\.sql)$#D', $entry, $match)) {
                 $name = $match[1];
                 if (!$this->isBackupFile($name)) {
                     throw new DomainException(lang('backup_zip_sql_invalid'), route('admin.backup.restore'));
@@ -618,7 +618,7 @@ class BackupService extends BaseService
         }
         $expected = array();
         foreach ($files as $file) {
-            $entry = 'storage/backup/' . basename($file);
+            $entry = basename($file);
             $expected[] = $entry;
             $content = Zip::read($zipfile, $entry);
             if ($content === false || !is_file($file) || hash('sha256', $content) !== hash_file('sha256', $file)) {
@@ -627,10 +627,7 @@ class BackupService extends BaseService
         }
         $actual = array();
         foreach ($entries as $entry) {
-            if (substr($entry, -1) === '/' && in_array($entry, array('storage/', 'storage/backup/'), true)) {
-                continue;
-            }
-            if (strpos($entry, 'storage/backup/') === 0 || $sqlOnly) {
+            if (strpos($entry, '/') === false || $sqlOnly) {
                 $actual[] = $entry;
             }
         }
@@ -652,12 +649,14 @@ class BackupService extends BaseService
     protected function packBackup($zipfile, array $files, $asset, $mtime = 0)
     {
         $temporary = $zipfile . '.tmp_' . uniqid('', true);
-        $paths = $files;
-        if ($asset && is_dir(ROOT_PATH . 'images')) {
-            $paths[] = ROOT_PATH . 'images';
-        }
+        $withAssets = $asset && is_dir(ROOT_PATH . 'images');
         try {
-            $result = Zip::create($temporary, $paths, ROOT_PATH);
+            // 资源保留站点相对路径，SQL 单独追加以去掉备份目录层级。
+            $result = Zip::create($temporary, $withAssets ? array(ROOT_PATH . 'images') : $files,
+                $withAssets ? ROOT_PATH : STORAGE_PATH . 'backup/');
+            if (!empty($result['ok']) && $withAssets) {
+                $result = Zip::append($temporary, $files, STORAGE_PATH . 'backup/');
+            }
             if (empty($result['ok']) || !$this->zipMatchesSql($temporary, $files)) {
                 throw new DomainException(str_replace('d%', basename($zipfile), lang('backup_zip_create_failed')), route('admin.backup.restore'));
             }
@@ -688,7 +687,7 @@ class BackupService extends BaseService
             $mtime = filemtime($file);
             if (!@unlink($file)) {
                 foreach ($deleted as $source => $time) {
-                    $content = Zip::read($zipfile, 'storage/backup/' . basename($source));
+                    $content = Zip::read($zipfile, basename($source));
                     if ($content !== false && @file_put_contents($source, $content) !== false) {
                         @touch($source, $time);
                     }

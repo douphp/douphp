@@ -89,7 +89,6 @@ class WorkProductService extends BaseService
                 'id' => $row['id'],
                 'category_id' => $row['category_id'],
                 'title' => $row['title'],
-                'defined' => Util::parseDefinedPairs($row['defined']),
                 'price' => $row['price'] > 0 ? Util::formatPrice($row['price']) : lang('price_discuss'),
                 'sale_price' => $this->pricingService->salePrice('product', $row['id'], $userId),
                 'thumb' => attachment()->url(language()->langValue(isset($row['image']) ? $row['image'] : '', 'product', (int) $row['id'], 'image'), true),
@@ -115,7 +114,7 @@ class WorkProductService extends BaseService
     }
 
     /**
-     * 新增页默认数据：预分配 id、初始化自定义字段与图库。
+     * 新增页默认数据：预分配 id、初始化图库。
      *
      * @return array 含 item_id、product、img_list
      */
@@ -127,15 +126,6 @@ class WorkProductService extends BaseService
             'name' => '',
             'stock' => 100,
         );
-
-        $defined = Config::get('defined.product', '');
-        if (!empty($defined)) {
-            $definedText = '';
-            foreach (explode(',', $defined) as $row) {
-                $definedText .= $row . "：\n";
-            }
-            $product['defined'] = trim($definedText);
-        }
 
         return array(
             'item_id' => 0,
@@ -172,15 +162,6 @@ class WorkProductService extends BaseService
         $product['image'] = attachment()->url($product['image']);
         $product['model_list'] = $this->buildProductModelHtml($product['model'], $id, $workId);
 
-        $defined = Config::get('defined.product', '');
-        if (!empty($defined) || !empty($product['defined'])) {
-            $definedText = '';
-            foreach (explode(',', $defined) as $row) {
-                $definedText .= $row . "：\n";
-            }
-            $product['defined'] = $product['defined'] ? str_replace(',', "\n", $product['defined']) : trim($definedText);
-        }
-
         return array(
             'product' => $product,
             'img_list' => attachment()->gallery('product', $id, 'gallery', true),
@@ -188,7 +169,7 @@ class WorkProductService extends BaseService
     }
 
     /**
-     * 新增提交：会员价序列化、defined 换行归一化后入库。
+     * 新增提交：会员价序列化后入库。
      *
      * 字段白名单与校验规则定义在 WorkProductFormRequest::rules()。
      *
@@ -200,7 +181,6 @@ class WorkProductService extends BaseService
     {
         unset($data['id']);
         $data['level_price'] = !empty($data['level_price']) ? $this->pricingService->levelPrice($data['level_price']) : '';
-        $data['defined'] = $this->normalizeDefined(isset($data['defined']) ? $data['defined'] : '');
         $data['created_at'] = date('Y-m-d H:i:s');
         $data['operator_type'] = 'work';
         $data['operator_id'] = (int) $workId;
@@ -236,10 +216,6 @@ class WorkProductService extends BaseService
         }
 
         $data['level_price'] = !empty($data['level_price']) ? $this->pricingService->levelPrice($data['level_price']) : '';
-        // 工作端表单未提交 defined 时保持原值（default 主题已移除该输入项，shop 主题仍会提交）
-        if (array_key_exists('defined', $data)) {
-            $data['defined'] = $this->normalizeDefined($data['defined']);
-        }
 
         if (isset($data['image']) && $data['image'] === '') {
             unset($data['image']);
@@ -363,20 +339,5 @@ class WorkProductService extends BaseService
         }
 
         return $html;
-    }
-
-    /**
-     * 将多行 defined 文本统一为逗号分隔单行写入。
-     *
-     * @param string $defined
-     * @return string
-     */
-    private function normalizeDefined($defined)
-    {
-        if ($defined === '' || $defined === null) {
-            return '';
-        }
-
-        return str_replace("\r\n", ',', str_replace("\n", ',', $defined));
     }
 }

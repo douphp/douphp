@@ -99,7 +99,6 @@ class ProductController extends BaseController
         }
 
         $data = array(
-            'defined' => isset($product['defined']) ? $product['defined'] : array(),
             'title' => lang('product_detail'),
             'product' => $product,
             'open' => array(

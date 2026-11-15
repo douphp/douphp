@@ -9,14 +9,13 @@
 
 RewriteEngine On
 
-# Apache + PHP-CGI/FPM 默认会吃掉 Authorization 头（自己处理 Basic Auth），
-# 透传给后端 PHP（会以 $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] 暴露）。
+# 安全拦截：运行时临时文件禁止访问，images 目录禁止执行脚本（含 x.php.jpg 变体）
+RewriteRule ^storage/tmp(/|$) - [F,L,NC]
+RewriteRule ^images/.*\.(php[0-9]?|phtml|phar|pht|cgi|pl|py|asp|aspx|jsp|shtml)($|\.) - [F,L,NC]
+
+# 透传 Authorization 头给 PHP：Apache + PHP-CGI/FPM 默认会吃掉它
 RewriteCond %{HTTP:Authorization} .
 RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
-
-# images 目录禁止执行脚本：该目录只允许图片等静态资源，远程图导入等支路落下的
-# 脚本在此双保险拦截（含 x.php.jpg 这类多扩展名变体），防止被 PHP 解析执行
-RewriteRule ^images/.*\.(php[0-9]?|phtml|phar|pht|cgi|pl|py|asp|aspx|jsp|shtml)($|\.) - [F,L,NC]
 
 # 静态入口文件
 RewriteRule ^index\.html$  index.php  [L]

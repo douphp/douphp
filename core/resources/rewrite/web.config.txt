@@ -4,7 +4,12 @@
     <system.webServer>
       <rewrite>
         <rules>
-          <!-- images/ 目录禁止执行脚本：须置于 dead-end-php 之前，否则 .php 请求会先被终止放行 -->
+          <!-- 安全拦截：运行时临时文件禁止访问，images 目录禁止执行脚本（含 x.php.jpg 变体） -->
+          <!-- 须置于 dead-end-php 之前，否则 .php 请求会先被放行 -->
+          <rule name="deny-runtime-tmp" stopProcessing="true">
+            <match url="^storage/tmp(/|$)" ignoreCase="true" />
+            <action type="CustomResponse" statusCode="403" statusReason="Forbidden" statusDescription="Forbidden" />
+          </rule>
           <rule name="deny-images-script" stopProcessing="true">
             <match url="^images/.*\.(php[0-9]?|phtml|phar|pht|cgi|pl|py|asp|aspx|jsp|shtml)($|\.)" ignoreCase="true" />
             <action type="CustomResponse" statusCode="403" statusReason="Forbidden" statusDescription="Forbidden" />

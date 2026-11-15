@@ -9,7 +9,6 @@ import { pageTitle } from '../../utils/page_title.js'
 Page({
   data: {
     article: {},
-    defined: [],
   } as Record<string, any>,
 
   onLoad(options) {
@@ -31,7 +30,6 @@ Page({
       .then(function (data) {
         that.setData({
           article: data.article || {},
-          defined: data.defined || [],
         })
         wx.setStorageSync('shareTitle', data.article ? data.article.title : '')
       })

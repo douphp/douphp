@@ -26,7 +26,7 @@ if (!defined('IN_DOUCO')) {
  * 字段类型转换器：在 getAttribute / toArray 读取时按声明把原始值转成模板/业务就绪形态。
  *
  * 内置：int/bool/float/string/json/array；业务：datetime[:fmt]、date[:fmt]、timestamp、
- * attachment / attachment_thumb、defined_pairs、data_lang:prefix_。业务侧可 register() 扩展。
+ * attachment / attachment_thumb、data_lang:prefix_。业务侧可 register() 扩展。
  *
  * datetime/date/timestamp 读取兼容 int 时间戳与 DATETIME 字符串双态（时间字段统一过渡期）；
  * set_datetime 写入统一产出 'Y-m-d H:i:s'（DATETIME 存储态），空值 → null。
@@ -127,8 +127,6 @@ class CastResolver
                 return attachment()->url((string) $value);
             case 'attachment_thumb':
                 return attachment()->url((string) $value, true);
-            case 'defined_pairs':
-                return Util::parseDefinedPairs($value);
             case 'data_lang':
                 $language = language();
                 return $language !== null ? $language->dataLangFormat($param, $value) : $value;
@@ -140,8 +138,7 @@ class CastResolver
     /**
      * 写入方向转换：仅对有明确逆变换的 cast 反向转换，纯展示 cast 原样返回。
      *
-     * 关键：避免对「已是存储态」的值二次转换。attachment / attachment_thumb /
-     * defined_pairs / data_lang / timestamp 等纯展示 cast 直接返回原值（不反向）。
+     * 关键：避免对「已是存储态」的值二次转换。attachment / attachment_thumb / data_lang / timestamp 等纯展示 cast 直接返回原值（不反向）。
      *
      * @param string $type 形如 'int' / 'datetime' / 'datetime:Y-m-d'
      * @param mixed $value
@@ -168,7 +165,7 @@ class CastResolver
             case 'date':
                 return self::apply('set_datetime', $value, $model);
             default:
-                // attachment / attachment_thumb / defined_pairs / data_lang / timestamp / 自定义：不反向
+                // attachment / attachment_thumb / data_lang / timestamp / 自定义：不反向
                 return $value;
         }
     }

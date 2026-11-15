@@ -230,48 +230,6 @@ class Util
     }
 
     /**
-     * 解析“键：值”定义列表。
-     *
-     * 幂等：入参已是 cast 'defined_pairs' 输出的数组结构时直接返回，避免
-     * Controller 在 Model::toArray() 之后再调 getDefinedFormatted() 触发
-     * "strpos() expects parameter 1 to be string, array given"。
-     *
-     * @param mixed $defined 参数 defined。
-     * @return array
-     */
-    public static function parseDefinedPairs($defined)
-    {
-        if (is_array($defined)) {
-            return $defined;
-        }
-
-        $formatDefined = array();
-
-        if ($defined) {
-            if (strpos($defined, ',') !== false) {
-                $definedArray = explode(',', $defined);
-            } else {
-                $defined = str_replace(array("\r\n", "\r"), "\n", $defined);
-                $definedArray = explode("\n", $defined);
-            }
-
-            foreach ((array) $definedArray as $row) {
-                $row = str_replace(":", "：", $row);
-                $array = explode('：', $row);
-
-                if (isset($array[1])) {
-                    $formatDefined[] = array(
-                        "arr" => $array[0],
-                        "value" => $array[1]
-                    );
-                }
-            }
-        }
-
-        return $formatDefined;
-    }
-
-    /**
      * 解析 QQ 列表字符串。
      *
      * @param mixed $im 参数 im。

@@ -41,7 +41,5 @@ $_LANG['product_level_price'] = 'Tiered Pricing';
 $_LANG['product_stock'] = 'Stock';
 $_LANG['product_model'] = 'Model';
 $_LANG['product_point'] = 'Points Required';
-$_LANG['product_defined'] = 'Custom Attributes';
-$_LANG['product_defined_cue'] = 'Separate values with commas';
 $_LANG['product_content'] = 'Product Description';
 $_LANG['product_description'] = 'Short Description';

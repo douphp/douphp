@@ -63,7 +63,6 @@ class WorkProductFormRequest extends FormRequest
             'level_price' => '',
             'promote_price' => 'price',
             'stock' => 'integer',
-            'defined' => '',
             'content' => '',
             'image' => '',
             'point' => 'integer',

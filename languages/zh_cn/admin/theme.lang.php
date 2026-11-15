@@ -26,6 +26,11 @@ $_LANG['theme_no_support_module_hide'] = '隐藏当前模板不支持的模块';
 $_LANG['theme_delete_current_denied'] = '当前启用的模板不可删除，请先启用其他模板';
 $_LANG['theme_delete_default_denied'] = '默认模板不可删除（其他模板的启用以它为拷贝基准）';
 
+// 已安装云端模板的重新安装确认弹窗（theme.htm 已安装列表，占位符由 ThemeService 填充）
+$_LANG['theme_install_popup_title'] = '安装提示';
+$_LANG['theme_install_popup_text'] = '模板名称：{theme}；支持模块：{modules}';
+$_LANG['theme_install_continue'] = '继续安装';
+
 // 参数设置项
 $_LANG['theme_support_module_lang'] = '当前启用模板支持的模块';
 $_LANG['theme_support_module_cue'] = '输入模块英文名称，以英文逗号隔开，如设置将会隐藏不支持的模块';

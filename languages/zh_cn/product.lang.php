@@ -41,7 +41,5 @@ $_LANG['product_level_price'] = '等级价格';
 $_LANG['product_stock'] = '库存';
 $_LANG['product_model'] = '型号';
 $_LANG['product_point'] = '消耗积分';
-$_LANG['product_defined'] = '自定义属性';
-$_LANG['product_defined_cue'] = '以英文逗号 , 隔开';
 $_LANG['product_content'] = '产品介绍';
 $_LANG['product_description'] = '产品描述';

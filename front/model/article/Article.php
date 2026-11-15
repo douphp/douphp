@@ -32,7 +32,7 @@ if (!defined('IN_DOUCO')) {
 /**
  * 前台文章数据模型。
  *
- * 列表读取走 AR：with('category') 批量取分类、casts 格式化 image / defined / created_at、
+ * 列表读取走 AR：with('category') 批量取分类、casts 格式化 image / created_at、
  * prefetchers 预热 url / 多语言 / 附件，translatable 覆写 title / content / description 当前语言值。
  * 列表 Presenter 字段（url / name / description / cate_info / add_time_short / time）
  * 由 concerns trait 经 accessor + $appends 承接。
@@ -50,12 +50,11 @@ class Article extends Model
 
     protected $table = 'article';
 
-    /** @var array 列表读取时格式化（image→附件URL、defined→键值对、created_at→Y-m-d） */
+    /** @var array 列表读取时格式化（image→附件URL、created_at→Y-m-d） */
     protected $casts = array(
         'category_id' => 'int',
         'click' => 'int',
         'image' => 'attachment',
-        'defined' => 'defined_pairs',
         'created_at' => 'datetime:Y-m-d',
     );
 

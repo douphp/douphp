@@ -71,10 +71,15 @@ class PHPExcel_Autoloader
             str_replace('_', DIRECTORY_SEPARATOR, $pClassName) .
             '.php';
 
-        if ((file_exists($pClassFilePath) === false) || (is_readable($pClassFilePath) === false)) {
-            // Can't load
+        if (file_exists($pClassFilePath) === false) {
             return false;
         }
+        // Windows 受限环境的权限探测可能误判，以实际打开结果判断可读性。
+        $handle = @fopen($pClassFilePath, 'r');
+        if ($handle === false) {
+            return false;
+        }
+        fclose($handle);
 
         require($pClassFilePath);
     }

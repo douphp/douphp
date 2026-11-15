@@ -3,12 +3,13 @@
 # 注意：server 块须有包含 index.php 的 index 指令（如 index index.php index.html;），
 # 否则真实目录（如 doubak/）无法命中目录索引。
 
-# images 目录禁止执行脚本：该目录只输出静态资源，远程图导入等支路落下的脚本在此
-# 双保险拦截；^~ 前缀保证优先于 PHP 正则 location，与配置顺序无关
-location ^~ /images/ {
-    if ($uri ~* \.(php[0-9]?|phtml|phar|pht|cgi|pl|py|asp|aspx|jsp|shtml)$) {
-        return 403;
-    }
+# 安全拦截：运行时临时文件禁止访问，images 目录禁止执行脚本（含 x.php.jpg 变体）
+# server 阶段直接返回 403，先于 location 匹配执行，与配置顺序无关
+if ($uri ~* ^/storage/tmp(/|$)) {
+    return 403;
+}
+if ($uri ~* ^/images/.*\.(php[0-9]?|phtml|phar|pht|cgi|pl|py|asp|aspx|jsp|shtml)($|\.)) {
+    return 403;
 }
 
 location / {

@@ -207,7 +207,6 @@ class ArticleController extends BaseController
             'lift' => Article::lift($id, $catId),
             'article' => $article,
             'related_article' => Article::related($catId, 4, (int) $id),
-            'defined' => $article['defined'],
             'column_name' => Article::categoryLabel($cateInfo),
         );
         if ($commentData !== null) {

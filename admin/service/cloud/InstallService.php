@@ -47,7 +47,7 @@ if (!defined('IN_DOUCO')) {
  * 主要职责：
  * - 为 cloud/install 多步 API 提供：runPreflight / runDownload / runUnzip / runApply / runFinalize；
  * - 处理模块 / 主题 / 插件 / 系统 / 小程序等不同 type 的目录拷贝与 SQL 注入。
- * - 维护 config/module.php、nav 表、display/defined 配置以及小程序 app.json 同步。
+ * - 维护 config/module.php、nav 表、display 配置以及小程序 app.json 同步。
  */
 class InstallService extends BaseService
 {
@@ -1387,7 +1387,7 @@ class InstallService extends BaseService
             return null;
         }
 
-        $installKeys = array('display', 'home_display', 'defined', 'nav');
+        $installKeys = array('display', 'home_display', 'nav');
         $flagKeys = array(
             'link_user_center',
             'link_work_center',
@@ -1538,9 +1538,6 @@ class InstallService extends BaseService
                             }
                             if ($manifest['install']['home_display']) {
                                 $operate[] = 'CREATE-CONFIG-HOME-DISPLAY';
-                            }
-                            if ($manifest['install']['defined']) {
-                                $operate[] = 'CREATE-CONFIG-DEFINED';
                             }
                             if ($operate) {
                                 $this->changeSystemConfig($cloudId, $operate);
@@ -2475,7 +2472,7 @@ class InstallService extends BaseService
     }
 
     /**
-     * 改写 display / defined 配置（按 CREATE-CONFIG-* 信号增删 cloud_id 的展示项）。
+     * 改写 display 配置（按 CREATE-CONFIG-* 信号增删 cloud_id 的展示项）。
      *
      * @param string $cloudId
      * @param array|string $operate
@@ -2484,9 +2481,12 @@ class InstallService extends BaseService
     public function changeSystemConfig($cloudId, $operate)
     {
         $display = unserialize(Config::get('site.display', ''));
-        $defined = unserialize(Config::get('site.defined', ''));
+        // 配置缺失时 unserialize 返回 false，PHP 8.1+ 对 false 做下标写入 / unset 会触发弃用警告，先归一为数组。
+        if (!is_array($display)) {
+            $display = array();
+        }
         if ($operate === 'DELL') {
-            unset($display[$cloudId], $display['home_' . $cloudId], $defined[$cloudId]);
+            unset($display[$cloudId], $display['home_' . $cloudId]);
         } else {
             if (in_array('CREATE-CONFIG-DISPLAY', $operate)) {
                 $display[$cloudId] = 10;
@@ -2494,12 +2494,8 @@ class InstallService extends BaseService
             if (in_array('CREATE-CONFIG-HOME-DISPLAY', $operate)) {
                 $display['home_' . $cloudId] = 5;
             }
-            if (in_array('CREATE-CONFIG-DEFINED', $operate)) {
-                $defined[$cloudId] = '';
-            }
         }
 
-        DB::table('config')->where('name', 'defined')->update(array('value' => serialize($defined)));
         DB::table('config')->where('name', 'display')->update(array('value' => serialize($display)));
     }
 

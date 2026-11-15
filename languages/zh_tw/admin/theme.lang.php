@@ -26,6 +26,11 @@ $_LANG['theme_no_support_module_hide'] = '隱藏當前樣板不支援的模組';
 $_LANG['theme_delete_current_denied'] = '當前啟用的樣板不可刪除，請先啟用其他樣板';
 $_LANG['theme_delete_default_denied'] = '預設樣板不可刪除（其他樣板的啟用以它為複製基準）';
 
+// 已安裝雲端樣板的重新安裝確認彈窗（theme.htm 已安裝列表，佔位符由 ThemeService 填充）
+$_LANG['theme_install_popup_title'] = '安裝提示';
+$_LANG['theme_install_popup_text'] = '樣板名稱：{theme}；支援模組：{modules}';
+$_LANG['theme_install_continue'] = '繼續安裝';
+
 // 參數設定項
 $_LANG['theme_support_module_lang'] = '當前啟用樣板支援的模組';
 $_LANG['theme_support_module_cue'] = '輸入模組英文名稱，以英文逗號隔開，如設定將會隱藏不支援的模組';

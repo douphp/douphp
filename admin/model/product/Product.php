@@ -81,7 +81,6 @@ class Product extends Model
         'promote_price',
         'level_price',
         'stock',
-        'defined',
         'content',
         'image',
         'point',

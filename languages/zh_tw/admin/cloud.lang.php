@@ -197,6 +197,11 @@ $_LANG['cloud_extend_update_time_label'] = '更新時間：';
 $_LANG['cloud_extend_min_version_label'] = '最低版本要求：';
 $_LANG['cloud_extend_detail'] = '詳細資訊';
 
+// 樣板安裝確認彈窗（cloud_extend_action.tpl 中 theme 的安裝按鈕）
+$_LANG['cloud_theme_install_popup_title'] = '安裝提示';
+$_LANG['cloud_theme_install_popup_text'] = '樣板名稱：{theme}；支援模組：{modules}';
+$_LANG['cloud_theme_install_popup_no_module'] = '無';
+
 // 升級還原點（T7：unzip 與 apply 之間的快照步驟）
 $_LANG['cloud_snapshot_ing'] = '正在建立升級還原點…';
 $_LANG['cloud_snapshot_begin'] = '開始建立升級還原點（升級失敗時用於還原）…';

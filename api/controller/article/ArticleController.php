@@ -113,7 +113,6 @@ class ArticleController extends BaseController
         $article['click'] = (int) $article['click'] + 1;
 
         // 数据封装
-        $data['defined'] = $article['defined'];
         $data['title'] = lang('article_detail');
         $comment = Module::make('comment');
         $data['comment'] = $comment ? $comment->data('article', $id, 10, $request->integer('page', 1)) : array();

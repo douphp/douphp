@@ -249,7 +249,7 @@ class RewriteRuleService
         }
 
         $file = CORE_PATH . 'resources/rewrite/' . $name;
-        if (!is_file($file) || !is_readable($file) || !function_exists('file_get_contents')) {
+        if (!is_file($file) || !function_exists('file_get_contents')) {
             return '';
         }
 

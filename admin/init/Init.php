@@ -272,7 +272,6 @@ class Init
         }
         $this->languageManifest = isset($boot['lang']) ? (array) $boot['lang'] : array();
         Config::set('pagination', !empty(Config::get('site.display', '')) ? unserialize(Config::get('site.display', '')) : array());
-        Config::set('defined', !empty(Config::get('site.defined', '')) ? unserialize(Config::get('site.defined', '')) : array());
 
         // 会员衍生模块依赖检查（清单由 Module::userDerivedFeatures() 提供；阻断由 Router 闸住，本处仅记录警告）。
         $this->warnFeaturesRequireUser();

@@ -24,6 +24,7 @@ use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Service\Admin\AdminLogAction;
 use Dou\Core\Service\Snapshot\SnapshotRepository;
 use Dou\Core\Service\Snapshot\SnapshotService;
+use Dou\Core\Service\System\TempCleanupService;
 use Dou\Core\Service\Upgrade\RunLockService;
 use Dou\Core\Web\Http\Request;
 use Dou\Core\Web\Http\Response;
@@ -342,34 +343,48 @@ class SnapshotController extends BaseController
             throw new DomainException(lang('illegal'), route('admin.cloud.snapshot'));
         }
 
+        if (!TempCleanupService::holdUsageLock()) {
+            throw new DomainException(str_replace('d%', 'cannot lock temporary storage', lang('snapshot_download_fail')), route('admin.cloud.snapshot'));
+        }
+
         @set_time_limit(0);
         $tmpDir = STORAGE_PATH . 'tmp/';
         if (!is_dir($tmpDir)) {
             @mkdir($tmpDir, 0777, true);
         }
-        $tmpZip = $tmpDir . 'snapshot-' . $dirName . '.zip';
-        @unlink($tmpZip);
-
-        $created = Zip::create($tmpZip, array(rtrim($row['path'], '/')), $repository->baseDir());
-        if (empty($created['ok']) || !is_file($tmpZip)) {
-            @unlink($tmpZip);
-            throw new DomainException(str_replace('d%', (string) $created['error'], lang('snapshot_download_fail')), route('admin.cloud.snapshot'));
+        $tmpZip = $tmpDir . 'snapshot-' . $dirName . '-' . substr(md5(uniqid('', true)), 0, 16) . '.zip';
+        $reserved = @fopen($tmpZip, 'x');
+        if (!$reserved) {
+            throw new DomainException(str_replace('d%', 'cannot create temporary archive', lang('snapshot_download_fail')), route('admin.cloud.snapshot'));
         }
+        fclose($reserved);
 
-        ob_clean();
-        $fp = @fopen($tmpZip, 'r');
-        if ($fp) {
-            header('Content-type: application/zip');
-            header('Content-Disposition: attachment; filename=' . $dirName . '.zip');
-            header('Accept-Ranges: bytes');
-            header('Content-Length:' . filesize($tmpZip));
-            header('Content-transfer-encoding: binary');
-            while (!@feof($fp)) {
-                echo fread($fp, 10240);
+        $fp = false;
+        try {
+            $created = Zip::create($tmpZip, array(rtrim($row['path'], '/')), $repository->baseDir());
+            if (empty($created['ok']) || !is_file($tmpZip)) {
+                throw new DomainException(str_replace('d%', (string) $created['error'], lang('snapshot_download_fail')), route('admin.cloud.snapshot'));
             }
-            fclose($fp);
+
+            ob_clean();
+            $fp = @fopen($tmpZip, 'r');
+            if ($fp) {
+                header('Content-type: application/zip');
+                header('Content-Disposition: attachment; filename=' . $dirName . '.zip');
+                header('Accept-Ranges: bytes');
+                header('Content-Length:' . filesize($tmpZip));
+                header('Content-transfer-encoding: binary');
+                while (!@feof($fp)) {
+                    echo fread($fp, 10240);
+                }
+                fclose($fp);
+            }
+        } finally {
+            if (is_resource($fp)) {
+                fclose($fp);
+            }
+            @unlink($tmpZip);
         }
-        @unlink($tmpZip);
     }
 
     /**

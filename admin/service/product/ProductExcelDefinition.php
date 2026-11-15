@@ -24,7 +24,7 @@ if (!defined('IN_DOUCO')) {
  * 只描述「哪些列、表头文案、按列顺序取哪个键」，读写能力由
  * {@see \Dou\Vendor\Excel\Excel} 承担，入库由 ProductService 自己完成。
  *
- * 导出覆盖列表可见列与 SEO / 详情文本；会员价 level_price、自定义字段 defined、
+ * 导出覆盖列表可见列与 SEO / 详情文本；会员价 level_price、
  * 多语言 metadata、促销起止时间属于序列化结构，不入表。
  * 导入仅覆盖标量字段，不支持图库、自定义字段、会员价与多语言 metadata。
  */

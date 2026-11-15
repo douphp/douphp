@@ -67,8 +67,8 @@
        <a href="javascript:;" class="del js-delete" data-url="{url link='admin.theme.destroy' slug=$theme.slug}">{$lang.del}</a>
        <span>
         <!-- {if $theme.cloud} -->
-        <a href="javascript:;" class="action-btn gray" data-dou-toggle="modal" data-dou-modal="message" data-title="安装提示"
-         data-html="安装新模板会清空内容片段数据，如果要保存原来模板的数据，安装前请先备份数据库和images/data图片目录" data-btn-name="继续安装"
+        <a href="javascript:;" class="action-btn gray" data-dou-toggle="modal" data-dou-modal="message" data-title="{$lang.theme_install_popup_title}"
+         data-html="{$theme.install_popup_text}" data-btn-name="{$lang.theme_install_continue}"
          data-placement="center"
          data-btn-link="{url link='admin.cloud.install' type=theme cloud_id=$theme.slug}">{$lang.enabled}</a>
         <!-- {else} -->
