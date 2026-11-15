@@ -14,6 +14,7 @@
 
 namespace Dou\Admin\Service\Cloud;
 
+use Dou\Admin\Service\Authorization\AdminGate;
 use Dou\Admin\Service\Cache\CacheClearService;
 use Dou\Core\Facade\DB;
 use Dou\Core\Facade\Session;
@@ -3680,9 +3681,10 @@ class InstallService extends BaseService
         // 全新安装等无快照场景不显示，避免误导。
         $snapshotCreated = ($type === 'system' && ($mode === 'update' || $mode === 'patch'))
             || (in_array($type, array('module', 'theme', 'plugin'), true) && $mode === 'update');
-        if ($snapshotCreated) {
+        if ($snapshotCreated && !Config::get('site.close_update', false)
+            && app(AdminGate::class)->canAccess((array) auth('admin')->user(), 'cloud', 'snapshot')) {
             $viewLabel = lang_has('cloud_finish_note_view') ? (string) lang('cloud_finish_note_view') : '查看还原点';
-            $btnNote = '<a class="btn-secondary" href="' . Util::absolutizeEntryUrl(route('admin.backup.snapshot')) . '">' . $viewLabel . '</a>';
+            $btnNote = '<a class="btn-secondary" href="' . Util::absolutizeEntryUrl(route('admin.cloud.snapshot')) . '">' . $viewLabel . '</a>';
         }
 
         if ($mode === 'update' || $mode === 'patch') {

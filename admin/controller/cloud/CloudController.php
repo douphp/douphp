@@ -1124,19 +1124,29 @@ class CloudController extends BaseController
     {
         $closeUpdate = (bool) Config::get('site.close_update', false);
         $pageActions = array();
+        $pageSubActions = array();
         $pageCue = '';
         $canManage = $this->canManageUpdateNotice();
 
+        if (!$closeUpdate) {
+            $pageActions[] = array(
+                'href' => route('admin.cloud.snapshot'),
+                'text' => lang('snapshot_page_title'),
+                'style' => '',
+            );
+        }
+
+        // 升级提示开关属于页面的轻量附加动作，放在标题行子动作区
         if ($canManage) {
             if ($closeUpdate) {
-                $pageActions[] = array(
+                $pageSubActions[] = array(
                     'href' => route('admin.cloud.open_update'),
                     'text' => lang('cloud_open_update'),
                     'post' => true,
                     'style' => '',
                 );
             } else {
-                $pageActions[] = array(
+                $pageSubActions[] = array(
                     'href' => route('admin.cloud.close_update'),
                     'text' => lang('cloud_close_update'),
                     'post' => true,
@@ -1180,6 +1190,7 @@ class CloudController extends BaseController
             'ur_here' => lang('cloud_update'),
             'rec' => 'update',
             'page_actions' => $pageActions,
+            'page_sub_actions' => $pageSubActions,
             'page_cue' => $pageCue,
             'update_closed' => $closeUpdate,
             'update_html' => $updateHtml,

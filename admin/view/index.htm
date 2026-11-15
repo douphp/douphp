@@ -117,7 +117,9 @@
        <div class="index-box">
         <h2>
          {$lang.title_backup}
-         <a href="{url link='admin.backup.snapshot'}" class="backup-clean" title="{$lang.snapshot_cleanup_entry_cue}">{$lang.snapshot_cleanup_entry}</a>
+         <!-- {if $backup.show_snapshots} -->
+         <a href="{url link='admin.cloud.snapshot'}" class="backup-clean" title="{$lang.snapshot_cleanup_entry_cue}">{$lang.snapshot_cleanup_entry}</a>
+         <!-- {/if} -->
         </h2>
         <div class="backup">
          <!-- {if $backup.rows} -->

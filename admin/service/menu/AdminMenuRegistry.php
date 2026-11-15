@@ -219,7 +219,9 @@ class AdminMenuRegistry
                     'id' => 'setting', 'name' => 'setting', 'icon' => 'setting',
                     'link' => 'admin.setting', 'permission' => 'setting',
                     // 兼管扩展字段、系统更新、云账号与多语言：这些页面仍高亮设置并内联展开子菜单
-                    'match' => array('metadata', 'cloud.update', 'cloud.close_update', 'cloud.open_update', 'cloud.account', 'language'),
+                    'match' => array('metadata', 'cloud.update', 'cloud.close_update', 'cloud.open_update', 'cloud.account', 'language',
+                        'cloud.snapshot', 'cloud.snapshot_down', 'cloud.snapshot_rescue', 'cloud.snapshot_abandon',
+                        'cloud.snapshot_maintenance_off', 'cloud.snapshot_restore', 'cloud.snapshot_cleanup', 'cloud.snapshot_destroy'),
                     // 设置二级菜单：子项活跃态由 AdminNavResolver 按当前路由名统一计算，
                     // 模板只消费 $nav.sidebar.setting.children.<id>.is_active，不比较路由名
                     'children' => array(
@@ -228,7 +230,9 @@ class AdminMenuRegistry
                         ),
                         'update' => array(
                             'name' => 'cloud_update', 'link' => 'admin.cloud.update',
-                            'match' => array('cloud.close_update', 'cloud.open_update'),
+                            'match' => array('cloud.close_update', 'cloud.open_update',
+                                'cloud.snapshot', 'cloud.snapshot_down', 'cloud.snapshot_rescue', 'cloud.snapshot_abandon',
+                                'cloud.snapshot_maintenance_off', 'cloud.snapshot_restore', 'cloud.snapshot_cleanup', 'cloud.snapshot_destroy'),
                         ),
                         'cloud' => array('name' => 'cloud', 'link' => 'admin.cloud.account'),
                         'language' => array('name' => 'language', 'link' => 'admin.language'),

@@ -15,10 +15,11 @@
 /**
  * cloud 后台声明式路由
  *
- * 声明 ?route=cloud[/<action>] 形态：豆壳云服务（安装 / 订单 / 账号 / 版权）。
+ * 声明 ?route=cloud[/<action>] 形态：豆壳云服务（安装 / 订单 / 账号 / 版权 / 升级还原点）。
  */
 
 use Dou\Admin\Controller\Cloud\CloudController;
+use Dou\Admin\Controller\Cloud\SnapshotController;
 use Dou\Core\Web\Routing\Route;
 
 if (!defined('IN_DOUCO')) {
@@ -32,6 +33,14 @@ Route::name('admin.')->group(function () {
         ->prefix('cloud')
         ->get(['index', 'install', 'offline', 'account', 'update'])
         ->post(['details', 'order', 'account_post', 'copyright', 'account_clean', 'close_update', 'open_update']);
+
+    // 升级还原点：恢复为确认 POST + 带令牌的 GET 链式续跑，清理为 POST，删除为 DELETE。
+    Route::group('cloud', SnapshotController::class)
+        ->prefix('cloud')
+        ->get(['snapshot', 'snapshot_down', 'snapshot_rescue', 'snapshot_abandon', 'snapshot_maintenance_off'])
+        ->any(['snapshot_restore'])
+        ->post(['snapshot_cleanup'])
+        ->delete(['snapshot_destroy']);
 
     // install_step：安装单步 JSON API，控制器自带 csrf()->verify() 并返回 JSON 419，
     // 不能走 CsrfMiddleware 的 HTML 提示页拒绝（会破坏 API 契约），故路由级豁免 csrf。

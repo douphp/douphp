@@ -26,7 +26,11 @@ if (!defined('IN_DOUCO')) {
  * 2. categoryInfoFromRow()  — 已有分类行时复用，避免重复查询；
  * 3. getCateInfoAttribute() — 模型 $appends 白名单触发的列表字段，读已加载的 category 关联。
  *
- * 数据源走 Model::findCategoryById()（基类按 {table}_category 约定取行），
+ * 宿主模型须继承 Dou\Core\Orm\Model：依赖基类的静态 findCategoryById()
+ * （按 {table}_category 约定取行）与 tableName()（推导语言域与路由名）。
+ * 两者均为静态方法，PHP 5.6 不允许 trait 声明 abstract static（E_STRICT），
+ * 故此处仅以文档约定，不做抽象声明。
+ *
  * 路由名固定 {table}.category（Route::column 展开时统一声明）。
  *
  * 返回键集：分类行全部字段（icon 已转真实 URL，模块特有列如 item_category.type 原样透传）
@@ -38,22 +42,6 @@ if (!defined('IN_DOUCO')) {
  */
 trait HasCategoryInfoQuery
 {
-    /**
-     * 使用本 trait 的模型须继承 Dou\Core\Orm\Model（按 {table}_category 约定取行）。
-     * 抽象声明仅用于声明依赖契约，实际实现由基类 Model 提供。
-     *
-     * @param int|string $catId
-     * @return mixed 分类行（Model 实例或数组），无记录时为 null
-     */
-    abstract public static function findCategoryById($catId);
-
-    /**
-     * 使用本 trait 的模型须继承 Dou\Core\Orm\Model（提供表名，用于推导语言域与路由名）。
-     *
-     * @return string
-     */
-    abstract public static function tableName();
-
     /**
      * 分类展示信息（按 ID 取行）。
      *

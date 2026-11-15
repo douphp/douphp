@@ -51,8 +51,8 @@ class BackupService extends BaseService
      * 备份包解压条目白名单。
      *
      * 备份包由 {@see runBackup()} 以 `Zip::create($zipfile, [分卷 sql..., ROOT_PATH.'images'], ROOT_PATH)`
-     * 生成，包内条目形如 `storage/backup/xxx.sql` 与 `images/**`，还原时必须解压回站点根才能
-     * 同时恢复 SQL 与附件。这里限定只放行这两类条目，杜绝包内夹带 `admin/x.php` 之类的
+     * 生成，包内条目形如 `storage/backup/xxx.sql` 与 `images/**`，还原时先解压到隔离目录。
+     * 这里限定只放行这两类条目，杜绝包内夹带 `admin/x.php` 之类的
      * 合法相对路径覆盖站内文件；`images/` 下再排除可执行与配置扩展名。
      *
      * @var array
@@ -101,71 +101,77 @@ class BackupService extends BaseService
     }
 
     /**
-     * 恢复页：列出 storage/backup 下可用备份（按时间排序，分卷合并为一行）。
-     *
-     * 一套分卷只出一行：filename 取集合内序号最小的卷（删除 / 导入的真实入口），
-     * showname 去掉 `_序号`，vol_number 为卷数。这样即便首卷缺失（备份中断、手工
-     * 删过一套中的部分卷），其余分卷仍然可见、可删，不会变成列表里看不见也删不掉的孤儿文件。
+     * 恢复页：转换旧 SQL 后，按时间倒序列出 ZIP 备份。
      *
      * @return array 备份文件行数据列表
      */
     public function buildRestoreFileList()
     {
-        $backup_file_list = array_merge(
-            (array) glob(STORAGE_PATH . 'backup/*.sql'),
-            (array) glob(STORAGE_PATH . 'backup/*.zip')
-        );
-        $backup_file_list = FileHelper::buildFileListByTime($backup_file_list);
+        $this->convertLegacyBackups();
 
-        $file_list = array();
-        $set_index = array();
-        $set_min = array();
-        foreach ((array) $backup_file_list as $row) {
-            // 分卷按「_序号.sql」整体形态判定：buildFileListByTime 的 number 只截到末位数字
-            // （X_10.sql 被读成 0），拿它判分卷会把 X_10.sql 当成一套独立备份
-            if ($row['ext'] === 'sql' && preg_match('/^(.*)_([0-9]+)\.sql$/', $row['filename'], $match)) {
-                $stem = $match[1];
-                $volno = (int) $match[2];
-                if (isset($set_index[$stem])) {
-                    $idx = $set_index[$stem];
-                    $file_list[$idx]['vol_number']++;
-                    if ($volno < $set_min[$stem]) {
-                        // 换代表行：展示口径（文件名 / 大小 / 时间）跟着序号最小的卷走，卷数累计保留
-                        $set_min[$stem] = $volno;
-                        $file_list[$idx] = $this->volumeHeadRow($row, $stem, $file_list[$idx]['vol_number']);
-                    }
-                    continue;
-                }
-                $set_index[$stem] = count($file_list);
-                $set_min[$stem] = $volno;
-                $file_list[] = $this->volumeHeadRow($row, $stem, 1);
-                continue;
-            }
-            $row['vol_number'] = 1;
-            $file_list[] = $row;
-        }
-
-        return $file_list;
+        return (array) FileHelper::buildFileListByTime((array) glob(STORAGE_PATH . 'backup/*.zip'));
     }
 
     /**
-     * 把一套分卷的代表文件行整理成列表行（列名去 `_序号`、卷数、可操作标记）。
+     * 在文件锁内转换旧 SQL，避免多个还原页重复打包同一套文件。
      *
-     * `number` 归 1：列表一行就是一套备份的头，旧编译产物里「非首卷不给操作列」的
-     * `number` 判定分支必须仍然成立，否则孤儿卷（如只剩 X_5.sql）会又看不见又删不掉。
-     *
-     * @param array $row buildFileListByTime 产出的单文件行
-     * @param string $stem 分卷主干名（不含扩展名）
-     * @param int $volNumber 已累计的卷数
-     * @return array
+     * @return void
      */
-    protected function volumeHeadRow(array $row, $stem, $volNumber)
+    protected function convertLegacyBackups()
     {
-        $row['showname'] = $stem . '.sql';
-        $row['number'] = 1;
-        $row['vol_number'] = (int) $volNumber;
-
-        return $row;
+        $lock = @fopen(STORAGE_PATH . 'backup/convert.lock', 'c');
+        if (!$lock || !flock($lock, LOCK_EX)) {
+            if ($lock) {
+                fclose($lock);
+            }
+            throw new DomainException(lang('backup_zip_lock_failed'), route('admin.backup'));
+        }
+        try {
+            $backup_filename = '';
+            if (is_file(STORAGE_PATH . 'backup/tables.php')) {
+                include STORAGE_PATH . 'backup/tables.php';
+            }
+            $sets = array();
+            foreach ((array) glob(STORAGE_PATH . 'backup/*.sql') as $file) {
+                $name = basename($file);
+                $stem = FileHelper::filename($name);
+                $volume = preg_match('/^(.+)_([0-9]+)\.sql$/', $name, $match);
+                if ($volume) {
+                    $stem = $match[1];
+                }
+                if (!$this->isBackupFile($name) || $stem === $backup_filename) {
+                    continue;
+                }
+                // 独立 SQL 与同名分卷必须分组，不能混装到一个归档中。
+                $key = ($volume ? 'volume:' : 'single:') . $stem;
+                if (!isset($sets[$key])) {
+                    $sets[$key] = array('stem' => $stem, 'files' => array());
+                }
+                $sets[$key]['files'][] = $file;
+            }
+            foreach ($sets as $set) {
+                $mtime = 0;
+                foreach ($set['files'] as $file) {
+                    $mtime = max($mtime, filemtime($file));
+                }
+                $suffix = 0;
+                do {
+                    $zipfile = STORAGE_PATH . 'backup/' . $set['stem']
+                        . ($suffix ? '_legacy_' . $suffix : '') . '.zip';
+                    if (!file_exists($zipfile) || $this->zipMatchesSql($zipfile, $set['files'], true)) {
+                        break;
+                    }
+                    $suffix++;
+                } while (true);
+                if (!file_exists($zipfile)) {
+                    $this->packBackup($zipfile, $set['files'], false, $mtime);
+                }
+                $this->deleteSqlFiles($set['files'], $zipfile);
+            }
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
     }
 
     /**
@@ -178,12 +184,37 @@ class BackupService extends BaseService
      */
     public function runBackup($prefix, array $req)
     {
+        $lock = @fopen(STORAGE_PATH . 'backup/convert.lock', 'c');
+        if (!$lock || !flock($lock, LOCK_EX)) {
+            if ($lock) {
+                fclose($lock);
+            }
+            throw new DomainException(lang('backup_zip_lock_failed'), route('admin.backup'));
+        }
+        try {
+            return $this->runBackupLocked($prefix, $req);
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+    }
+
+    /**
+     * 在转换锁内导出分卷并生成 ZIP，避免工作 SQL 被还原页提前打包。
+     *
+     * @param string $prefix 表名前缀
+     * @param array $req 备份请求参数
+     * @return array 消息及续传地址
+     */
+    protected function runBackupLocked($prefix, array $req)
+    {
         $act = Check::rec(Arr::get($req, 'act', '')) ? $req['act'] : 'select';
         $restore_filename = Arr::get($req, 'restore_filename', '');
         $back = !empty($req['back']) ? $req['back'] : route('admin.backup.restore');
 
-        if (FileHelper::extension($restore_filename) === 'zip') {
-            $asset = 'yes';
+        if ($restore_filename !== '') {
+            $package = $this->inspectRestorePackage($restore_filename);
+            $asset = $package['asset'] ? 'yes' : 'no';
         } else {
             $asset = Check::rec(Arr::get($req, 'asset', '')) ? $req['asset'] : 'no';
         }
@@ -220,9 +251,7 @@ class BackupService extends BaseService
             throw new DomainException(lang('backup_filename_not_valid'), route('admin.backup'));
         }
 
-        $showname = $this->isBackupFile(Arr::get($req, 'showname', ''))
-            ? $req['showname']
-            : $filename . ($act === 'asset' ? '.zip' : '.sql');
+        $showname = $filename . '.zip';
 
         if ($volid == 1) {
             // 首卷必须由请求显式给出表清单：未勾选任何表时直接回落到备份页提示，
@@ -236,8 +265,11 @@ class BackupService extends BaseService
             // 把旧备份的后续卷一并导入，造成新旧数据混装。
             $this->purgeBackupSet($filename);
             $cache_file = STORAGE_PATH . 'backup/tables.php';
-            $content = "<?php\r\n\$data = " . var_export($tables, true) . ";\r\n?>";
-            file_put_contents($cache_file, $content, LOCK_EX);
+            $content = "<?php\r\n\$data = " . var_export($tables, true)
+                . ";\r\n\$backup_filename = " . var_export($filename, true) . ";\r\n?>";
+            if (file_put_contents($cache_file, $content, LOCK_EX) === false) {
+                throw new DomainException(lang('backup_no_save'), route('admin.backup'));
+            }
         } else {
             // 续传卷依赖首卷写下的表清单缓存：缓存缺失或损坏（被清理、手工删除、旧分卷 URL）
             // 时按「没有选择数据表」提示回落，避免 include 打入不存在的文件抛出致命错误
@@ -246,9 +278,10 @@ class BackupService extends BaseService
                 throw new DomainException(lang('backup_no_select'), route('admin.backup'));
             }
             $data = null;
+            $backup_filename = '';
             include $cache_file;
             $tables = is_array($data) ? $data : array();
-            if (!$tables) {
+            if (!$tables || $backup_filename !== $filename) {
                 throw new DomainException(lang('backup_no_select'), route('admin.backup'));
             }
         }
@@ -308,10 +341,10 @@ class BackupService extends BaseService
             // 分卷设定，会把单卷备份硬命名成 _1；而估算偏小又会漏掉后续卷的 _1 起点，
             // 恢复链从无后缀文件开始就找不到续卷。
             $hasMore = $nextTableid < $tablenumber;
-            $sql_filename = ((int) $volid > 1 || $hasMore)
+            // 主干以数字结尾时保留显式卷号，避免自定义名称被还原器误判为缺卷。
+            $sql_filename = ((int) $volid > 1 || $hasMore || preg_match('/_[0-9]+$/', $filename))
                 ? $filename . '_' . $volid . '.sql'
                 : $filename . '.sql';
-            $action_filename = $sql_filename;
             $volid++;
 
             $bakfile = STORAGE_PATH . 'backup/' . $sql_filename;
@@ -323,10 +356,17 @@ class BackupService extends BaseService
             }
             @chmod($bakfile, 0777);
 
-            lang_set('backup_file_success', preg_replace('/d%/Ums', $action_filename, lang('backup_file_success')));
+            // 提示只面向最终产物：工作分卷随后会被打包并删除，不暴露 xxx_1.sql 这类中间文件名；
+            // $volid 本轮已自增，实际写入的是上一号；$nextTableid 即已导完的表数
             $token_val = csrf()->token();
             return array(
-                'message' => lang('backup_file_success'),
+                'message' => sprintf(
+                    lang('backup_volume_progress'),
+                    (int) $volid - 1,
+                    (int) $nextTableid,
+                    (int) $tablenumber,
+                    $showname
+                ),
                 'back_url' => route('admin.backup.backup', array('act' => $act, 'asset' => $asset, 'vol_size' => $vol_size, 'totalsize' => $totalsize, 'filename' => $filename, 'token' => $token_val, 'tableid' => $nextTableid, 'volid' => $volid, 'startfrom' => $nextStartfrom, 'showname' => $showname, 'restore_filename' => $restore_filename, 'back' => $back)),
                 'timeout' => '1',
                 'confirm_url' => '',
@@ -352,7 +392,8 @@ class BackupService extends BaseService
                 }
                 $volFiles = array();
             } elseif ((int) $volid === 2 && count($volFiles) === 1
-                && preg_match('/_1\.sql$/', basename($volFiles[0]))) {
+                && preg_match('/_1\.sql$/', basename($volFiles[0]))
+                && !preg_match('/_[0-9]+$/', $filename)) {
                 // 本次只有一卷（_1）：去掉后缀；同名 .sql 已存在则先删再 rename，与不分卷路径覆盖语义一致
                 if (file_exists($targetSql)) {
                     @unlink($targetSql);
@@ -363,40 +404,18 @@ class BackupService extends BaseService
                 // 本次是多卷备份：无后缀同名文件属于更早的备份，删掉避免列表出现两条同名记录
                 @unlink($targetSql);
             }
+            $sqlFiles = $volFiles ? $volFiles : array($targetSql);
+            $zipfile = STORAGE_PATH . 'backup/' . $filename . '.zip';
+            $this->packBackup($zipfile, $sqlFiles, $asset === 'yes');
+            $this->deleteSqlFiles($sqlFiles, $zipfile);
             @unlink(STORAGE_PATH . 'backup/tables.php');
-
-            if ($asset === 'yes') {
-                $zipfile = STORAGE_PATH . 'backup/' . $filename . '.zip';
-                $vol_file_list = $this->globVolumeFiles($filename, 'sql');
-                $filelist = array();
-                if ($vol_file_list) {
-                    foreach ($vol_file_list as $vol_file) {
-                        $filelist[] = $vol_file;
-                    }
-                } else {
-                    $filelist[] = STORAGE_PATH . 'backup/' . $filename . '.sql';
-                }
-                $filelist[] = ROOT_PATH . 'images';
-                $zipResult = Zip::create($zipfile, $filelist, ROOT_PATH);
-                if (empty($zipResult['ok'])) {
-                    die('Error : ' . $zipResult['error']);
-                } else {
-                    if ($vol_file_list) {
-                        foreach ($vol_file_list as $vol_file) {
-                            @unlink($vol_file);
-                        }
-                    } else {
-                        @unlink(STORAGE_PATH . 'backup/' . $filename . '.sql');
-                    }
-                }
-            }
 
             audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::BACKUP, 1, (string) $showname);
 
             if ($restore_filename) {
                 $token_val = csrf()->token();
                 return array(
-                    'message' => lang('backup_success_restore_auto'),
+                    'message' => str_replace('d%', $showname, lang('backup_success_restore_auto')),
                     'back_url' => route('admin.backup.import', array(), array(
                         'query' => array(
                             'sql_filename' => $restore_filename,
@@ -408,8 +427,15 @@ class BackupService extends BaseService
                 );
             }
 
+            // 收尾提示给出最终包名、大小、分卷数与是否含资源，便于用户核对产物
             return array(
-                'message' => $asset === 'yes' ? lang('backup_file_zip_success') : lang('backup_success'),
+                'message' => sprintf(
+                    lang('backup_zip_success'),
+                    $showname,
+                    $this->formatSize(is_file($zipfile) ? (int) filesize($zipfile) : 0),
+                    count($sqlFiles),
+                    $asset === 'yes' ? lang('backup_zip_with_asset') : ''
+                ),
                 'back_url' => $back,
                 'timeout' => '3',
                 'confirm_url' => '',
@@ -418,111 +444,274 @@ class BackupService extends BaseService
     }
 
     /**
-     * 从备份文件导入 SQL（支持 zip、多分卷按 volid 顺序执行）。
+     * 从 ZIP 备份导入 SQL，续传只使用会话内已校验的卷清单。
      *
-     * @param array $req sql_filename、showname、token、volid 等
+     * @param array $req ZIP 文件名 sql_filename、token、volid 等
      * @return array message、back_url、timeout、confirm_url
      * @throws DomainException 文件名不合法时抛出
      */
     public function runImport(array $req)
     {
-        if (!$this->isBackupFile(Arr::get($req, 'sql_filename', ''))) {
-            throw new DomainException(lang('backup_filename_not_valid'), route('admin.backup.restore'));
-        }
-        $sql_filename = $req['sql_filename'];
-
-        $showname = $this->isBackupFile(Arr::get($req, 'showname', ''))
-            ? $req['showname']
-            : preg_replace('/_[0-9]+(\.sql|\.zip)$/i', '$1', $sql_filename);
-
-        if (FileHelper::extension($sql_filename) === 'zip') {
-            if (Zip::extract(STORAGE_PATH . 'backup/' . $sql_filename, ROOT_PATH, self::$restoreAllowRules, self::$restoreDeniedExtensions)) {
-                $name = FileHelper::filename($sql_filename);
-                $vol_file_list = $this->globVolumeFiles($name, 'sql');
-                $sql_filename = $vol_file_list ? $name . '_1.sql' : $name . '.sql';
+        try {
+            $filename = Arr::get($req, 'sql_filename', '');
+            if (!$this->isBackupFile($filename) || strtolower(FileHelper::extension($filename)) !== 'zip') {
+                throw new DomainException(lang('backup_zip_only'), route('admin.backup.restore'));
+            }
+            if (!is_file(STORAGE_PATH . 'backup/' . $filename)) {
+                throw new DomainException(str_replace('d%', $filename, lang('backup_no_file')), route('admin.backup.restore'));
+            }
+            $state = Session::arr('backup_restore');
+            if (!isset($req['volid'])) {
+                $this->clearRestore();
+                $package = $this->inspectRestorePackage($filename);
+                $directory = STORAGE_PATH . 'cache/backup_restore_' . uniqid('', true) . '/';
+                $state = array(
+                    'filename' => $filename,
+                    'directory' => $directory,
+                    'files' => $package['files'],
+                    'next' => 1,
+                    'failed' => 0,
+                );
+                Session::set('backup_restore', $state);
+                if (!Zip::extract(STORAGE_PATH . 'backup/' . $filename, $directory,
+                    self::$restoreAllowRules, self::$restoreDeniedExtensions)) {
+                    throw new DomainException(lang('backup_zip_extract_failed'), route('admin.backup.restore'));
+                }
+                foreach ($package['files'] as $file) {
+                    if (!is_readable($directory . $file)) {
+                        throw new DomainException(lang('backup_zip_sql_invalid'), route('admin.backup.restore'));
+                    }
+                }
+                foreach ($package['entries'] as $entry) {
+                    if (strpos($entry, 'images/') === 0 && substr($entry, -1) !== '/') {
+                        if (!FileHelper::replace($directory . $entry, ROOT_PATH . $entry)) {
+                            throw new DomainException(lang('backup_zip_asset_failed'), route('admin.backup.restore'));
+                        }
+                    }
+                }
                 return array(
-                    'message' => $showname . lang('backup_file_unzip_success') . $sql_filename,
-                    'back_url' => route('admin.backup.import', array('sql_filename' => $sql_filename, 'showname' => $showname, 'token' => (Arr::get($req, 'token', '')))),
+                    'message' => $filename . lang('backup_file_unzip_success'),
+                    'back_url' => route('admin.backup.import', array('sql_filename' => $filename, 'volid' => 1, 'token' => Arr::get($req, 'token', ''))),
                     'timeout' => '1',
                     'confirm_url' => '',
                 );
             }
-        }
-
-        // 分卷名解析：数字组必须整段捕获（原写法 ([0-9])+ 只保留末位数字，X_12.sql
-        // 会被拆成 X_1 + 12，拼出的 X_1_1.sql 不存在，恢复就此误判为完成）。
-        // 未带 volid 时从文件名里的卷号续跑：首卷缺失时列表行可能是 _2，强行从 _1
-        // 找起同样会「找不到就算完成」，结果一卷都没导入。
-        $match = array();
-        $volid = 0;
-        preg_match('/^(.+)_([0-9]+)\.sql$/i', $sql_filename, $match);
-        if ($match) {
-            $volid = isset($req['volid']) && (int) $req['volid'] > 0
-                ? (int) $req['volid']
-                : (int) $match[2];
-            $sql_filename = $match[1] . '_' . $volid . '.sql';
-        }
-
-        $restore_now = preg_replace('/d%/Ums', $sql_filename, lang('backup_restore_now'));
-        $file_path = STORAGE_PATH . 'backup/' . $sql_filename;
-
-        if ($match) {
-            if (file_exists($file_path)) {
-                // 分卷链起点（点开列表行的那一次请求不带 volid）：清空上一轮恢复遗留的失败累计。
-                // 不能再用 volid === 1 判定：首卷丢失时列表行可能是 _2，从 _2 起恢复同样属于链起点。
-                if (empty($req['volid'])) {
-                    Session::del('backup_restore_failed');
-                }
-                $failed = 0;
-                if (DB::fnExecute(file_get_contents($file_path)) === false) {
-                    $failed = (int) DB::getImportFailedCount();
-                    Session::increment('backup_restore_failed', $failed);
-                }
-                $volid++;
+            $volid = (int) $req['volid'];
+            if (!$state || $state['filename'] !== $filename || $volid !== $state['next']
+                || !isset($state['files'][$volid - 1])) {
+                throw new DomainException(lang('backup_zip_state_invalid'), route('admin.backup.restore'));
+            }
+            $file = $state['files'][$volid - 1];
+            $sql = @file_get_contents($state['directory'] . $file);
+            if ($sql === false) {
+                throw new DomainException(lang('backup_zip_sql_invalid'), route('admin.backup.restore'));
+            }
+            $failed = 0;
+            if (DB::fnExecute($sql) === false) {
+                $failed = max(1, (int) DB::getImportFailedCount());
+            }
+            $state['failed'] += $failed;
+            $state['next']++;
+            Session::set('backup_restore', $state);
+            if ($volid < count($state['files'])) {
                 return array(
-                    'message' => $failed > 0 ? $restore_now . $this->importFailedNotice($failed) : $restore_now,
-                    'back_url' => route('admin.backup.import', array('sql_filename' => $sql_filename, 'showname' => $showname, 'volid' => $volid, 'token' => (Arr::get($req, 'token', '')))),
-                    'timeout' => $failed > 0 ? '5' : '1',
-                    'confirm_url' => '',
-                );
-            } else {
-                if (FileHelper::extension($showname) === 'zip') {
-                    $name = FileHelper::filename($showname);
-                    $vol_file_list = $this->globVolumeFiles($name, 'sql');
-                    if ($vol_file_list) {
-                        foreach ($vol_file_list as $vol_file) {
-                            @unlink($vol_file);
-                        }
-                    } else {
-                        @unlink(STORAGE_PATH . 'backup/' . $name . '.sql');
-                    }
-                }
-                $failed = (int) Session::get('backup_restore_failed', 0);
-                Session::del('backup_restore_failed');
-                audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::RESTORE, 1, (string) $showname);
-                return array(
-                    'message' => $failed > 0 ? lang('backup_restore_success') . $this->importFailedNotice($failed) : lang('backup_restore_success'),
-                    'back_url' => route('admin.backup.restore'),
-                    'timeout' => $failed > 0 ? '5' : '3',
+                    'message' => str_replace('d%', basename($file), lang('backup_restore_now'))
+                        . ($failed ? $this->importFailedNotice($failed) : ''),
+                    'back_url' => route('admin.backup.import', array('sql_filename' => $filename, 'volid' => $state['next'], 'token' => Arr::get($req, 'token', ''))),
+                    'timeout' => $failed ? '5' : '1',
                     'confirm_url' => '',
                 );
             }
+            $this->clearRestore();
+            audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::RESTORE, 1, $filename);
+            return array(
+                'message' => lang('backup_restore_success') . ($state['failed'] ? $this->importFailedNotice($state['failed']) : ''),
+                'back_url' => route('admin.backup.restore'),
+                'timeout' => $state['failed'] ? '5' : '3',
+                'confirm_url' => '',
+            );
+        } catch (\Exception $e) {
+            $this->clearRestore();
+            throw $e;
+        } catch (\Throwable $e) {
+            $this->clearRestore();
+            throw $e;
+        }
+    }
+
+    /**
+     * 校验还原包的路径和 SQL 分卷，读取是否包含资源。
+     *
+     * @param string $filename 备份目录中的 ZIP 文件名
+     * @return array SQL 卷清单、全部条目及资源标记
+     */
+    protected function inspectRestorePackage($filename)
+    {
+        if (!$this->isBackupFile($filename) || strtolower(FileHelper::extension($filename)) !== 'zip') {
+            throw new DomainException(lang('backup_zip_only'), route('admin.backup.restore'));
+        }
+        $entries = Zip::entries(STORAGE_PATH . 'backup/' . $filename,
+            self::$restoreAllowRules, self::$restoreDeniedExtensions);
+        if (!$entries) {
+            throw new DomainException(lang('backup_zip_invalid'), route('admin.backup.restore'));
+        }
+        $entries = array_map(function ($entry) {
+            return str_replace('\\', '/', $entry);
+        }, $entries);
+        if (count($entries) !== count(array_unique($entries))) {
+            throw new DomainException(lang('backup_zip_invalid'), route('admin.backup.restore'));
+        }
+        $files = array();
+        $asset = false;
+        $stem = null;
+        $single = false;
+        foreach ($entries as $entry) {
+            if (strpos($entry, 'images/') === 0) {
+                $asset = true;
+            }
+            if (substr($entry, -1) === '/') {
+                continue;
+            }
+            if (preg_match('#^storage/backup/([^/]+\.sql)$#D', $entry, $match)) {
+                $name = $match[1];
+                if (!$this->isBackupFile($name)) {
+                    throw new DomainException(lang('backup_zip_sql_invalid'), route('admin.backup.restore'));
+                }
+                if (preg_match('/^(.+)_([0-9]+)\.sql$/D', $name, $volume)) {
+                    $number = (int) $volume[2];
+                    if ($single || $number < 1 || isset($files[$number])
+                        || ($stem !== null && $stem !== $volume[1])) {
+                        throw new DomainException(lang('backup_zip_sql_invalid'), route('admin.backup.restore'));
+                    }
+                    $stem = $volume[1];
+                    $files[$number] = $entry;
+                } else {
+                    if ($files) {
+                        throw new DomainException(lang('backup_zip_sql_invalid'), route('admin.backup.restore'));
+                    }
+                    $single = true;
+                    $files[1] = $entry;
+                }
+            }
+        }
+        ksort($files, SORT_NUMERIC);
+        if (!$files || array_keys($files) !== range(1, count($files))) {
+            throw new DomainException(lang('backup_zip_sql_invalid'), route('admin.backup.restore'));
         }
 
-        $failed = 0;
-        if (DB::fnExecute(file_get_contents($file_path)) === false) {
-            $failed = (int) DB::getImportFailedCount();
+        return array('files' => array_values($files), 'entries' => $entries, 'asset' => $asset);
+    }
+
+    /**
+     * 核对包内 SQL 文件名及内容，转换重试时仅复用没有资源的同内容归档。
+     *
+     * @param string $zipfile 归档绝对路径
+     * @param array $files SQL 源文件绝对路径列表
+     * @param bool $sqlOnly 是否要求归档仅含这些 SQL
+     * @return bool 是否与源文件完全一致
+     */
+    protected function zipMatchesSql($zipfile, array $files, $sqlOnly = false)
+    {
+        $entries = Zip::entries($zipfile);
+        if (!$entries) {
+            return false;
         }
-        if (FileHelper::extension($showname) === 'zip') {
-            @unlink(STORAGE_PATH . 'backup/' . FileHelper::filename($showname) . '.sql');
+        $expected = array();
+        foreach ($files as $file) {
+            $entry = 'storage/backup/' . basename($file);
+            $expected[] = $entry;
+            $content = Zip::read($zipfile, $entry);
+            if ($content === false || !is_file($file) || hash('sha256', $content) !== hash_file('sha256', $file)) {
+                return false;
+            }
         }
-        audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::RESTORE, 1, (string) $showname);
-        return array(
-            'message' => $failed > 0 ? lang('backup_restore_success') . $this->importFailedNotice($failed) : lang('backup_restore_success'),
-            'back_url' => route('admin.backup.restore'),
-            'timeout' => $failed > 0 ? '5' : '3',
-            'confirm_url' => '',
-        );
+        $actual = array();
+        foreach ($entries as $entry) {
+            if (substr($entry, -1) === '/' && in_array($entry, array('storage/', 'storage/backup/'), true)) {
+                continue;
+            }
+            if (strpos($entry, 'storage/backup/') === 0 || $sqlOnly) {
+                $actual[] = $entry;
+            }
+        }
+        sort($expected);
+        sort($actual);
+
+        return $actual === $expected;
+    }
+
+    /**
+     * 写临时 ZIP 并核验 SQL 内容，成功后才发布为可见的备份包。
+     *
+     * @param string $zipfile 最终归档绝对路径
+     * @param array $files SQL 源文件绝对路径列表
+     * @param bool $asset 是否加入资源目录
+     * @param int $mtime 旧备份的修改时间，0 表示使用当前时间
+     * @return void
+     */
+    protected function packBackup($zipfile, array $files, $asset, $mtime = 0)
+    {
+        $temporary = $zipfile . '.tmp_' . uniqid('', true);
+        $paths = $files;
+        if ($asset && is_dir(ROOT_PATH . 'images')) {
+            $paths[] = ROOT_PATH . 'images';
+        }
+        try {
+            $result = Zip::create($temporary, $paths, ROOT_PATH);
+            if (empty($result['ok']) || !$this->zipMatchesSql($temporary, $files)) {
+                throw new DomainException(str_replace('d%', basename($zipfile), lang('backup_zip_create_failed')), route('admin.backup.restore'));
+            }
+            if ($mtime && !@touch($temporary, $mtime)) {
+                throw new DomainException(lang('backup_no_save'), route('admin.backup.restore'));
+            }
+            if (!@rename($temporary, $zipfile)) {
+                throw new DomainException(lang('backup_no_save'), route('admin.backup.restore'));
+            }
+        } finally {
+            if (is_file($temporary)) {
+                @unlink($temporary);
+            }
+        }
+    }
+
+    /**
+     * 删除已核验的源 SQL，部分删除失败时从 ZIP 补回，保留完整重试入口。
+     *
+     * @param array $files SQL 源文件绝对路径列表
+     * @param string $zipfile 已核验的归档绝对路径
+     * @return void
+     */
+    protected function deleteSqlFiles(array $files, $zipfile)
+    {
+        $deleted = array();
+        foreach ($files as $file) {
+            $mtime = filemtime($file);
+            if (!@unlink($file)) {
+                foreach ($deleted as $source => $time) {
+                    $content = Zip::read($zipfile, 'storage/backup/' . basename($source));
+                    if ($content !== false && @file_put_contents($source, $content) !== false) {
+                        @touch($source, $time);
+                    }
+                }
+                throw new DomainException(str_replace('d%', basename($file), lang('backup_zip_cleanup_failed')), route('admin.backup.restore'));
+            }
+            $deleted[$file] = $mtime;
+        }
+    }
+
+    /**
+     * 清理当前还原的隔离目录和会话状态。
+     *
+     * @return void
+     */
+    protected function clearRestore()
+    {
+        $state = Session::arr('backup_restore');
+        if (!empty($state['directory'])
+            && preg_match('#^' . preg_quote(STORAGE_PATH . 'cache/backup_restore_', '#') . '[a-z0-9.]+/$#D', $state['directory'])) {
+            FileHelper::delDir($state['directory']);
+        }
+        Session::del('backup_restore');
     }
 
     /**
@@ -540,10 +729,26 @@ class BackupService extends BaseService
     }
 
     /**
-     * 删除备份文件（分卷一并删除）；未确认时由 Controller 调 `respondDeleteResult` 走 dou_msg.htm 二次确认。
+     * 字节数格式化（提示文案用）。
      *
-     * 分卷备份在列表里只占一行（行 filename 即首卷 `X_1.sql`），删除必须连同同名其余分卷
-     * 一起清掉，否则会留下列表里看不见、也就永远删不掉的孤儿分卷。
+     * @param int $bytes
+     * @return string
+     */
+    private function formatSize($bytes)
+    {
+        $bytes = (int) $bytes;
+        if ($bytes >= 1048576) {
+            return round($bytes / 1048576, 2) . ' MB';
+        }
+        if ($bytes >= 1024) {
+            return round($bytes / 1024, 1) . ' KB';
+        }
+
+        return $bytes . ' B';
+    }
+
+    /**
+     * 删除 ZIP 备份；未确认时由 Controller 调 `respondDeleteResult` 走 dou_msg.htm 二次确认。
      *
      * @param array $req
      * @param array $post 含 confirm 时表示已确认删除
@@ -552,11 +757,12 @@ class BackupService extends BaseService
      */
     public function runDelete(array $req, array $post)
     {
-        if (!$this->isBackupFile(Arr::get($req, 'sql_filename', ''))) {
+        if (!$this->isBackupFile(Arr::get($req, 'sql_filename', ''))
+            || strtolower(FileHelper::extension($req['sql_filename'])) !== 'zip') {
             throw new DomainException(lang('backup_filename_not_valid'), route('admin.backup'));
         }
         $sql_filename = $req['sql_filename'];
-        $targets = $this->collectDeleteTargets($sql_filename);
+        $targets = is_file(STORAGE_PATH . 'backup/' . $sql_filename) ? array($sql_filename) : array();
 
         if (!$targets) {
             throw new DomainException(preg_replace('/d%/Ums', $sql_filename, lang('backup_no_file')), route('admin.backup.restore'));
@@ -583,45 +789,12 @@ class BackupService extends BaseService
             );
         }
 
-        // 确认文案与结果提示同形：首卷名 + 「以及分卷 ： 其余卷」，让用户知道会一并删掉几个文件
-        $others = array_slice($targets, 1);
-        $label = $targets[0] . ($others ? ' ' . lang('backup_vol_include') . ' : ' . implode(', ', $others) : '');
-
         return array(
-            'message' => preg_replace('/d%/Ums', $label, lang('del_check')),
+            'message' => preg_replace('/d%/Ums', $sql_filename, lang('del_check')),
             'back_url' => route('admin.backup.restore'),
             'timeout' => '30',
             'confirm_url' => route('admin.backup.destroy', array(), array('query' => array('sql_filename' => $sql_filename))),
         );
-    }
-
-    /**
-     * 归集一次删除应落盘的文件名：点到的文件 + 它的其余分卷。
-     *
-     * 分卷名形如 `X_1.sql … X_N.sql`，主干取「去扩展名后再剥掉尾部 `_序号`」，因此点到的
-     * 无论是哪一卷都能把整套分卷收齐。仅对 sql 生效：zip 备份包在打包时已吞掉同名分卷，
-     * 删包不应连带删掉同名前缀的独立 sql 备份。
-     *
-     * @param string $sql_filename 相对 storage/backup 的文件名
-     * @return string[] 磁盘上确实存在的文件名，点到的文件排在首位
-     */
-    protected function collectDeleteTargets($sql_filename)
-    {
-        $targets = file_exists(STORAGE_PATH . 'backup/' . $sql_filename) ? array($sql_filename) : array();
-
-        if (FileHelper::extension($sql_filename) !== 'sql') {
-            return $targets;
-        }
-
-        $stem = preg_replace('/_[0-9]+$/', '', FileHelper::filename($sql_filename));
-        foreach ($this->globVolumeFiles($stem, 'sql') as $volume) {
-            $volume = basename((string) $volume);
-            if (!in_array($volume, $targets, true)) {
-                $targets[] = $volume;
-            }
-        }
-
-        return $targets;
     }
 
     /**
@@ -660,7 +833,8 @@ class BackupService extends BaseService
      */
     public function streamDownload(array $req)
     {
-        if (!$this->isBackupFile(Arr::get($req, 'sql_filename', ''))) {
+        if (!$this->isBackupFile(Arr::get($req, 'sql_filename', ''))
+            || strtolower(FileHelper::extension($req['sql_filename'])) !== 'zip') {
             throw new DomainException(lang('backup_filename_not_valid'), route('admin.backup'));
         }
         $sql_filename = $req['sql_filename'];

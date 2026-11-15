@@ -38,14 +38,7 @@
 /* 1. Reset & Base — 重置与基础 */
 body {
   background-color: #eeeeee;
-  font-family:
-    "Microsoft YaHei",
-    "微软雅黑",
-    SimSun,
-    "宋体",
-    Arial,
-    Verdana,
-    sans-serif;
+  font-family: "Microsoft YaHei", "微软雅黑", SimSun, "宋体", Arial, Verdana, sans-serif;
   font-size: 12px;
   color: #333;
   margin: 0;
@@ -492,11 +485,14 @@ p.cue {
 #dou-sidebar li.has-sub.cur > a {
   background-color: #19b4ea;
 }
-#dou-sidebar li.has-sub:not(.cur):hover {
+#dou-sidebar > ul.top > li:not(.cur):hover,
+#dou-sidebar .menu-scroll > ul > li:not(.cur):hover {
   background-color: #19b4ea;
 }
-#dou-sidebar li.has-sub:not(.cur):hover > a,
-#dou-sidebar li.has-sub:not(.cur):hover > a i {
+#dou-sidebar > ul.top > li:not(.cur):hover > a,
+#dou-sidebar > ul.top > li:not(.cur):hover > a i,
+#dou-sidebar .menu-scroll > ul > li:not(.cur):hover > a,
+#dou-sidebar .menu-scroll > ul > li:not(.cur):hover > a i {
   color: #fff;
 }
 #dou-sidebar li.has-sub.cur > ul.sub-menu {
@@ -703,7 +699,7 @@ p.cue {
   font-weight: bold;
 }
 .submenu li a.cur {
-  background-color: #F9F9F9;
+  background-color: #f9f9f9;
   margin-right: 0;
 }
 /* 项图标：图标在左、名称在右，与侧栏项同构（图标 class 由子菜单族声明提供） */
@@ -753,10 +749,10 @@ p.cue {
   justify-content: center;
   padding: 0;
   color: #999;
-  background-color: #DDD;
+  background-color: #ddd;
 }
 .submenu li.submenu-add a:hover {
-  background-color: #CCC;
+  background-color: #ccc;
 }
 .submenu li.submenu-add a i {
   font-size: 18px;
@@ -1209,7 +1205,7 @@ p.cue {
 }
 .split-layout .form-edit {
   outline: 4px solid #9fd7ff;
-  padding:15px;
+  padding: 15px;
 }
 .split-layout .active td {
   border-bottom: 4px solid #9fd7ff;
@@ -2713,10 +2709,19 @@ select option.selected {
   list-style: none;
   cursor: pointer;
 }
-.ai-batch-item > summary::-webkit-details-marker { display: none; }
-.ai-batch-item > summary::marker { content: ""; }
-.ai-batch-item > summary:hover { background: #f8fafc; }
-.ai-batch-item > summary:focus-visible { outline: 2px solid #0072c6; outline-offset: -2px; }
+.ai-batch-item > summary::-webkit-details-marker {
+  display: none;
+}
+.ai-batch-item > summary::marker {
+  content: "";
+}
+.ai-batch-item > summary:hover {
+  background: #f8fafc;
+}
+.ai-batch-item > summary:focus-visible {
+  outline: 2px solid #0072c6;
+  outline-offset: -2px;
+}
 .ai-batch-number {
   display: flex;
   align-items: center;
@@ -2727,21 +2732,72 @@ select option.selected {
   background: #eef3f8;
   font-size: 13px;
 }
-.ai-batch-heading { flex: 1; min-width: 0; }
-.ai-batch-heading strong { display: block; color: #293440; font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
-.ai-batch-snippet { display: block; margin-top: 4px; color: #83909e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ai-batch-chevron { color: #8190a0; font-size: 13px; transition: transform .15s; }
-.ai-batch-item[open] > summary { background: #f8fafc; }
-.ai-batch-item[open] .ai-batch-chevron { transform: rotate(180deg); }
-.ai-batch-item[open] .ai-batch-snippet { display: none; }
-.ai-batch-fields { padding: 4px 18px 18px 58px; border-top: 1px solid #edf0f3; }
-.ai-batch-field { padding-top: 16px; }
-.ai-batch-field-label { margin-bottom: 6px; color: #8995a1; font-size: 12px; }
-.ai-batch-field-text { max-height: 320px; overflow: auto; color: #3d4853; line-height: 1.9; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ai-batch-heading {
+  flex: 1;
+  min-width: 0;
+}
+.ai-batch-heading strong {
+  display: block;
+  color: #293440;
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.ai-batch-snippet {
+  display: block;
+  margin-top: 4px;
+  color: #83909e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ai-batch-chevron {
+  color: #8190a0;
+  font-size: 13px;
+  transition: transform 0.15s;
+}
+.ai-batch-item[open] > summary {
+  background: #f8fafc;
+}
+.ai-batch-item[open] .ai-batch-chevron {
+  transform: rotate(180deg);
+}
+.ai-batch-item[open] .ai-batch-snippet {
+  display: none;
+}
+.ai-batch-fields {
+  padding: 4px 18px 18px 58px;
+  border-top: 1px solid #edf0f3;
+}
+.ai-batch-field {
+  padding-top: 16px;
+}
+.ai-batch-field-label {
+  margin-bottom: 6px;
+  color: #8995a1;
+  font-size: 12px;
+}
+.ai-batch-field-text {
+  max-height: 320px;
+  overflow: auto;
+  color: #3d4853;
+  line-height: 1.9;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
 @media (max-width: 600px) {
-  .ai-batch-preview-header { padding: 12px; gap: 8px; }
-  .ai-batch-item > summary { padding: 12px; gap: 10px; }
-  .ai-batch-fields { padding-left: 16px; padding-right: 16px; }
+  .ai-batch-preview-header {
+    padding: 12px;
+    gap: 8px;
+  }
+  .ai-batch-item > summary {
+    padding: 12px;
+    gap: 10px;
+  }
+  .ai-batch-fields {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
 }
 
 /* AI 辅助生成结果预览（ai.assist.js 在所有后台表单页共享，结果渲染在独立 .ai-result 容器内） */
@@ -3137,7 +3193,7 @@ select option.selected {
   height: var(--file-image-height);
   border: 1px dotted #cccccc;
   overflow: hidden;
-  background-color: #F4F4F4;
+  background-color: #f4f4f4;
 }
 .file-image .file-image-stage {
   position: relative;
@@ -3309,7 +3365,7 @@ select option.selected {
   width: var(--file-rail-width);
   height: 100%;
   border-left: 1px solid #e5e7eb;
-  background-color: #EEE;
+  background-color: #eee;
 }
 .file-image .file-rail-icon,
 .file-upload .file-rail-icon {
@@ -3373,7 +3429,7 @@ select option.selected {
   padding: 0;
   border: 1px dotted #cccccc;
   overflow: hidden;
-  background-color: #F4F4F4;
+  background-color: #f4f4f4;
   cursor: default;
   font-size: 14px;
 }
@@ -3747,8 +3803,10 @@ select option.selected {
   color: #fff;
   opacity: 0;
   transform: translateX(12px);
-  transition: opacity .25s ease, transform .25s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, .15);
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 .dou-toast.dou-toast-in {
   opacity: 1;

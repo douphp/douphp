@@ -313,6 +313,74 @@ class Zip
     }
 
     /**
+     * 只读列出归档内条目名。
+     *
+     * @param string $zipPath 归档路径
+     * @param array $allowRules 条目白名单，空数组表示不限定种类
+     * @param array $denyExtensions 禁止落盘的扩展名
+     * @return array|false 条目名列表，读取失败返回 false
+     */
+    public function entries($zipPath, array $allowRules = array(), array $denyExtensions = array())
+    {
+        if (class_exists('ZipArchive')) {
+            $archive = new \ZipArchive();
+            if (@$archive->open($zipPath) !== true) {
+                return false;
+            }
+            $names = array();
+            for ($i = 0; $i < $archive->numFiles; $i++) {
+                $name = $archive->getNameIndex($i);
+                if ($name === false) {
+                    $archive->close();
+                    return false;
+                }
+                $names[] = $name;
+            }
+            $archive->close();
+            return $this->entriesPass($names, $allowRules, $denyExtensions) ? $names : false;
+        }
+
+        $archive = Container::getInstance()->make(PclZip::class, array('p_zipname' => $zipPath));
+        $list = @$archive->listContent();
+        if (!is_array($list)) {
+            return false;
+        }
+        $names = array();
+        foreach ($list as $entry) {
+            $names[] = $entry['filename'];
+        }
+        return $this->entriesPass($names, $allowRules, $denyExtensions) ? $names : false;
+    }
+
+    /**
+     * 只读取得单个归档文件内容，供备份内容核验使用。
+     *
+     * @param string $zipPath 归档路径
+     * @param string $name 完整条目名
+     * @return string|false 文件内容，读取失败返回 false
+     */
+    public function read($zipPath, $name)
+    {
+        if (class_exists('ZipArchive')) {
+            $archive = new \ZipArchive();
+            if (@$archive->open($zipPath) !== true) {
+                return false;
+            }
+            $content = @$archive->getFromName($name);
+            $archive->close();
+            return $content;
+        }
+
+        $archive = Container::getInstance()->make(PclZip::class, array('p_zipname' => $zipPath));
+        $list = @$archive->extract(PCLZIP_OPT_BY_NAME, array($name), PCLZIP_OPT_EXTRACT_AS_STRING);
+        if (!is_array($list) || count($list) !== 1 || $list[0]['filename'] !== $name
+            || $list[0]['status'] !== 'ok') {
+            return false;
+        }
+        return $list[0]['content'];
+    }
+
+    /**
      * 追加一批文件到 zip（不存在则创建）；归档内条目名 = 绝对路径去掉 removePath 前缀。
      *
      * 快照创建按批续传依赖本方法：ZipArchive 增量 addFile 为 O(批)，PclZip add 为兜底。

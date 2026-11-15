@@ -12,13 +12,13 @@
  * Release Date: 2026-10-16
  */
 
-namespace Dou\Admin\Controller\Backup;
+namespace Dou\Admin\Controller\Cloud;
 
 use Dou\Admin\Controller\BaseController;
 use Dou\Admin\Service\Backup\MaintenanceModeService;
 use Dou\Admin\Service\Backup\RestoreService;
 use Dou\Admin\Service\Backup\SnapshotCleanupService;
-use Dou\Admin\Service\Backup\SnapshotPageService;
+use Dou\Admin\Service\Cloud\SnapshotPageService;
 use Dou\Core\Facade\Zip;
 use Dou\Core\Foundation\Exception\DomainException;
 use Dou\Core\Service\Admin\AdminLogAction;
@@ -37,8 +37,8 @@ if (!defined('IN_DOUCO')) {
  *
  * 恢复为 dou_msg 链式续跑：确认（POST）→ 启动跳板页（立即响应，1 秒后自动带 start=1
  * 跳转）→ 每次请求推进一段（GET + token 续跑链接），直至完成；还原执行链本体在
- * 同域 {@see RestoreService}（与模块更新失败自动回滚共用）。
- * 本页属技术人员补救入口，按钮在「恢复备份」页以灰色样式低调提供。
+ * 共享的 {@see RestoreService}（与模块更新失败自动回滚共用）。
+ * 本页属升级故障补救入口，按钮在「系统更新」页以灰色样式提供。
  */
 class SnapshotController extends BaseController
 {
@@ -59,7 +59,7 @@ class SnapshotController extends BaseController
     protected function layoutVars()
     {
         return parent::layoutVars() + array(
-            'cur' => 'backup',
+            'cur' => 'cloud',
         );
     }
 
@@ -85,7 +85,7 @@ class SnapshotController extends BaseController
             'page_cue' => $cue,
             'page_actions' => array(
                 array(
-                    'href' => route('admin.backup.snapshot_cleanup'),
+                    'href' => route('admin.cloud.snapshot_cleanup'),
                     'text' => lang('snapshot_cleanup_btn'),
                     'style' => '',
                     'post' => true,
@@ -130,7 +130,7 @@ class SnapshotController extends BaseController
             $text .= ' ' . str_replace('d%', (string) $stale, lang('snapshot_cleanup_stale'));
         }
 
-        return message()->respond($text, route('admin.backup.snapshot'));
+        return message()->respond($text, route('admin.cloud.snapshot'));
     }
 
     /**
@@ -145,7 +145,7 @@ class SnapshotController extends BaseController
         $dirName = (string) $request->input('snapshot', '');
         $repository = new SnapshotRepository(ROOT_PATH);
         if (!$repository->isValidName($dirName)) {
-            throw new DomainException(lang('illegal'), route('admin.backup.snapshot'));
+            throw new DomainException(lang('illegal'), route('admin.cloud.snapshot'));
         }
 
         $confirm = (string) $request->post('confirm', '');
@@ -158,7 +158,7 @@ class SnapshotController extends BaseController
         if ($start === '' && $active !== $dirName) {
             $row = $repository->row($dirName);
             if ($row === null) {
-                throw new DomainException(str_replace('d%', $dirName, lang('snapshot_missing')), route('admin.backup.snapshot'));
+                throw new DomainException(str_replace('d%', $dirName, lang('snapshot_missing')), route('admin.cloud.snapshot'));
             }
             $title = !empty($row['manifest']['title']) ? (string) $row['manifest']['title'] : $dirName;
 
@@ -168,10 +168,10 @@ class SnapshotController extends BaseController
             if ($confirm === '') {
                 return message()->respond(
                     str_replace('d%', $title, lang('snapshot_restore_confirm')) . ' ' . lang('snapshot_restore_confirm_cue'),
-                    route('admin.backup.snapshot'),
+                    route('admin.cloud.snapshot'),
                     '',
                     '30',
-                    route('admin.backup.snapshot_restore', array(), array('query' => array('snapshot' => $dirName))),
+                    route('admin.cloud.snapshot_restore', array(), array('query' => array('snapshot' => $dirName))),
                     lang('snapshot_btn_restore_submit')
                 );
             }
@@ -181,7 +181,7 @@ class SnapshotController extends BaseController
             // 若在确认请求内直接执行，长时间空白等待会被误认为「没有点上」而重复提交。
             return message()->respond(
                 str_replace('d%', $title, lang('snapshot_restore_starting')),
-                route('admin.backup.snapshot_restore', array(), array('query' => array('snapshot' => $dirName, 'token' => csrf()->token(), 'start' => '1'))),
+                route('admin.cloud.snapshot_restore', array(), array('query' => array('snapshot' => $dirName, 'token' => csrf()->token(), 'start' => '1'))),
                 '',
                 '1'
             );
@@ -193,14 +193,14 @@ class SnapshotController extends BaseController
         $runLock = new RunLockService(ROOT_PATH);
         $locked = $runLock->acquire($holder);
         if (empty($locked['ok'])) {
-            return message()->respond((string) $locked['error'], route('admin.backup.snapshot'));
+            return message()->respond((string) $locked['error'], route('admin.cloud.snapshot'));
         }
 
         if ($active !== $dirName) {
             $begin = $restore->begin($dirName);
             if (empty($begin['ok'])) {
                 $runLock->release($holder);
-                return message()->respond((string) $begin['error'], route('admin.backup.snapshot'));
+                return message()->respond((string) $begin['error'], route('admin.cloud.snapshot'));
             }
         }
 
@@ -229,7 +229,7 @@ class SnapshotController extends BaseController
         if ($error !== '') {
             $runLock->release($holder);
             audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::RESTORE, 0, $dirName . '：' . $error, 'snapshot');
-            return message()->respond(str_replace('d%', $error, lang('snapshot_restore_failed')), route('admin.backup.snapshot'));
+            return message()->respond(str_replace('d%', $error, lang('snapshot_restore_failed')), route('admin.cloud.snapshot'));
         }
 
         if ($done) {
@@ -239,7 +239,7 @@ class SnapshotController extends BaseController
 
             return message()->respond(
                 lang('snapshot_restore_success') . ($last !== '' ? '（' . $last . '）' : ''),
-                route('admin.backup.snapshot')
+                route('admin.cloud.snapshot')
             );
         }
 
@@ -250,7 +250,7 @@ class SnapshotController extends BaseController
 
         return message()->respond(
             lang('snapshot_restore_running') . ($progress !== '' ? '（' . $progress . '）' : ''),
-            route('admin.backup.snapshot_restore', array(), array('query' => array('snapshot' => $dirName, 'token' => csrf()->token()))),
+            route('admin.cloud.snapshot_restore', array(), array('query' => array('snapshot' => $dirName, 'token' => csrf()->token()))),
             '',
             '1'
         );
@@ -271,12 +271,12 @@ class SnapshotController extends BaseController
         $dirName = (string) $request->query('snapshot', '');
         $repository = new SnapshotRepository(ROOT_PATH);
         if (!$repository->isValidName($dirName)) {
-            throw new DomainException(lang('illegal'), route('admin.backup.snapshot'));
+            throw new DomainException(lang('illegal'), route('admin.cloud.snapshot'));
         }
 
         $restore = new RestoreService(ROOT_PATH);
         if ($restore->activeDir() !== $dirName) {
-            throw new DomainException(lang('snapshot_abandon_none'), route('admin.backup.snapshot'));
+            throw new DomainException(lang('snapshot_abandon_none'), route('admin.cloud.snapshot'));
         }
 
         $restore->abandon($dirName);
@@ -284,7 +284,7 @@ class SnapshotController extends BaseController
         $runLock->release('snapshot:' . $dirName);
         audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::RESTORE, 0, $dirName . '：' . lang('snapshot_abandon_done'), 'snapshot');
 
-        return redirect(route('admin.backup.snapshot'))->with('success', lang('snapshot_abandon_done'));
+        return redirect(route('admin.cloud.snapshot'))->with('success', lang('snapshot_abandon_done'));
     }
 
     /**
@@ -298,7 +298,7 @@ class SnapshotController extends BaseController
         $dirName = (string) $request->query('snapshot', '');
         $repository = new SnapshotRepository(ROOT_PATH);
         if (!$repository->isValidName($dirName)) {
-            throw new DomainException(lang('illegal'), route('admin.backup.snapshot'));
+            throw new DomainException(lang('illegal'), route('admin.cloud.snapshot'));
         }
 
         // 超过 24 小时未推进的还原状态先按放弃处理，避免它永久阻止删除该快照
@@ -307,13 +307,13 @@ class SnapshotController extends BaseController
         $post = $request->post();
         if (isset($post['confirm'])) {
             if (!$repository->delete($dirName)) {
-                throw new DomainException(str_replace('d%', $dirName, lang('snapshot_delete_fail')), route('admin.backup.snapshot'));
+                throw new DomainException(str_replace('d%', $dirName, lang('snapshot_delete_fail')), route('admin.cloud.snapshot'));
             }
             audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::DELETE, 1, $dirName, 'snapshot');
 
             return $this->respondDeleteResult(array(
                 'message' => str_replace('d%', $dirName, lang('snapshot_delete_success')),
-                'back_url' => route('admin.backup.snapshot'),
+                'back_url' => route('admin.cloud.snapshot'),
                 'timeout' => '3',
                 'confirm_url' => '',
             ));
@@ -321,9 +321,9 @@ class SnapshotController extends BaseController
 
         return $this->respondDeleteResult(array(
             'message' => str_replace('d%', $dirName, lang('snapshot_delete_confirm')),
-            'back_url' => route('admin.backup.snapshot'),
+            'back_url' => route('admin.cloud.snapshot'),
             'timeout' => '30',
-            'confirm_url' => route('admin.backup.snapshot_destroy', array(), array('query' => array('snapshot' => $dirName))),
+            'confirm_url' => route('admin.cloud.snapshot_destroy', array(), array('query' => array('snapshot' => $dirName))),
         ));
     }
 
@@ -339,7 +339,7 @@ class SnapshotController extends BaseController
         $repository = new SnapshotRepository(ROOT_PATH);
         $row = $repository->row($dirName);
         if ($row === null) {
-            throw new DomainException(lang('illegal'), route('admin.backup.snapshot'));
+            throw new DomainException(lang('illegal'), route('admin.cloud.snapshot'));
         }
 
         @set_time_limit(0);
@@ -353,7 +353,7 @@ class SnapshotController extends BaseController
         $created = Zip::create($tmpZip, array(rtrim($row['path'], '/')), $repository->baseDir());
         if (empty($created['ok']) || !is_file($tmpZip)) {
             @unlink($tmpZip);
-            throw new DomainException(str_replace('d%', (string) $created['error'], lang('snapshot_download_fail')), route('admin.backup.snapshot'));
+            throw new DomainException(str_replace('d%', (string) $created['error'], lang('snapshot_download_fail')), route('admin.cloud.snapshot'));
         }
 
         ob_clean();
@@ -384,7 +384,7 @@ class SnapshotController extends BaseController
         $snapshot = new SnapshotService(ROOT_PATH);
         $result = $snapshot->mintRescueToken($dirName);
         if (empty($result['ok'])) {
-            throw new DomainException((string) $result['error'], route('admin.backup.snapshot'));
+            throw new DomainException((string) $result['error'], route('admin.cloud.snapshot'));
         }
 
         audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::RESTORE, 1, $dirName . '：生成急救链接', 'snapshot');
@@ -396,7 +396,7 @@ class SnapshotController extends BaseController
             . (string) $result['url'] . ' '
             . lang('snapshot_rescue_keep');
 
-        return message()->respond($text, route('admin.backup.snapshot'), '', '60');
+        return message()->respond($text, route('admin.cloud.snapshot'), '', '60');
     }
 
     /**
@@ -408,11 +408,11 @@ class SnapshotController extends BaseController
     {
         $maintenance = new MaintenanceModeService(ROOT_PATH);
         if (!$maintenance->isActive()) {
-            return message()->respond(lang('snapshot_maintenance_none'), route('admin.backup.snapshot'));
+            return message()->respond(lang('snapshot_maintenance_none'), route('admin.cloud.snapshot'));
         }
         $maintenance->restore();
         audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::UPDATE, 1, 'maintenance off', 'snapshot');
 
-        return message()->respond(lang('snapshot_maintenance_off_done'), route('admin.backup.snapshot'));
+        return message()->respond(lang('snapshot_maintenance_off_done'), route('admin.cloud.snapshot'));
     }
 }

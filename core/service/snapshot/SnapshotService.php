@@ -395,9 +395,8 @@ class SnapshotService
             return array('ok' => false, 'token' => '', 'url' => '', 'expires_at' => 0, 'error' => $this->t('snapshot_error_rescue_scope', '仅系统还原点提供救援脚本'));
         }
         $dir = $this->snapshotRoot . $dirName . '/';
-        if (!is_file($dir . 'rescue.php')) {
-            $this->writeRescueArtifacts($dir);
-        }
+        // 每次签发都重写脚本，确保救援入口与当前版本界面/逻辑一致
+        $this->writeRescueArtifacts($dir);
         if (!is_file($dir . 'rescue.php')) {
             return array('ok' => false, 'token' => '', 'url' => '', 'expires_at' => 0, 'error' => $this->t('snapshot_error_rescue_write', '救援脚本写入失败'));
         }
@@ -783,9 +782,8 @@ class SnapshotService
      */
     protected function writeRescueArtifacts($dir)
     {
-        if (!is_file($dir . 'rescue.php')) {
-            @file_put_contents($dir . 'rescue.php', $this->rescueScriptSource(), LOCK_EX);
-        }
+        // 脚本不含敏感信息，每次写入以保持救援入口为当前版本
+        @file_put_contents($dir . 'rescue.php', $this->rescueScriptSource(), LOCK_EX);
         if (!is_file($this->snapshotRoot . '.htaccess')) {
             @file_put_contents($this->snapshotRoot . '.htaccess', $this->htaccessSource(), LOCK_EX);
         }
@@ -1004,6 +1002,13 @@ error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED & ~E_WARNING);
 if (function_exists('mysqli_report')) {
     mysqli_report(MYSQLI_REPORT_OFF);
 }
+// 恢复过程需要实时回显进度：禁用压缩、清空输出缓冲层，否则日志会积压到结束后才显示
+@ini_set('zlib.output_compression', '0');
+@ini_set('output_buffering', '0');
+@header('Content-Type: text/html; charset=UTF-8');
+while (ob_get_level() > 0) {
+    @ob_end_flush();
+}
 
 $baseDir = rtrim(str_replace('\\', '/', dirname(__FILE__)), '/');
 $rootDir = rtrim(str_replace('\\', '/', dirname(dirname(dirname($baseDir)))), '/') . '/';
@@ -1013,24 +1018,52 @@ function ds_h($s)
     return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
 }
 
+function ds_page_open($title)
+{
+    echo '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
+        . '<title>' . ds_h($title) . ' - DouPHP</title>'
+        . '<style>body{margin:0;background:#eee;color:#333;font:13px/1.7 "Microsoft YaHei","微软雅黑",SimSun,Arial,sans-serif}'
+        . '.wrap{max-width:820px;margin:40px auto 60px;background:#fff;border:1px solid #ddd;padding:30px 36px 40px}'
+        . '.page-header{padding-bottom:20px;margin-bottom:24px;border-bottom:1px solid #d7d7d7;color:#555}'
+        . 'h1{font-size:24px;font-weight:bold;line-height:1.3;margin:0}'
+        . '.cue{color:#999;font-size:13px;line-height:1.6;margin:8px 0 0}'
+        . 'p{margin:0 0 14px}'
+        . '.panel{background:#f7f9fc;border:1px solid #eaeef3;padding:16px 22px;margin:0 0 20px}'
+        . '.info{width:100%;border-collapse:collapse;font-size:13px;line-height:1.8}'
+        . '.info th{width:110px;padding:7px 0;text-align:left;font-weight:normal;color:#999;border-bottom:1px solid #eaeef3;vertical-align:top}'
+        . '.info td{padding:7px 0;color:#333;border-bottom:1px solid #eaeef3;word-break:break-all}'
+        . '.info tr:last-child th,.info tr:last-child td{border-bottom:0}'
+        . '.notice{background:#fcf9e8;border-left:4px solid #dba617;color:#555;font-size:13px;line-height:1.7;padding:10px 16px;margin:0 0 20px}'
+        . '.notice.ok{background:#eff9f1;border-left-color:#00a32a}'
+        . '.notice.err{background:#fcf0f1;border-left-color:#d63638}'
+        . '.actions{margin-top:26px;padding-top:22px;border-top:1px solid #eaeef3}'
+        . '.btn{display:inline-block;height:32px;line-height:32px;padding:0 24px;background:#28b779;border:0;color:#fff;font-size:13px;font-weight:bold;font-family:inherit;cursor:pointer}'
+        . '.btn:hover{background:#1f9e68}.btn:disabled{background:#9fcfb8;cursor:default}'
+        . '.log{background:#f7f9fc;border:1px solid #eaeef3;border-left:4px solid #19b4ea;padding:12px 16px;margin:0 0 20px;font:12px/1.9 Consolas,Menlo,monospace;color:#555;word-break:break-all;max-height:420px;overflow:auto}'
+        . '.log .err,.err{color:#d63638}.log .ok,.ok{color:#00a32a}.log .muted,.muted{color:#999;font-size:12px}'
+        . '@media (max-width:768px){.wrap{margin:0;border:0;min-height:100vh;padding:22px 18px 32px}h1{font-size:20px}.info th{width:86px}}'
+        . '</style></head><body><div class="wrap"><div class="page-header"><h1>' . ds_h($title) . '</h1>'
+        . '<p class="cue">DouPHP 轻量级企业网站管理系统 · 升级还原点独立救援脚本</p></div>';
+}
+
+function ds_page_close($bodyHtml, $inLog = false)
+{
+    echo ($inLog ? '</div>' : '') . $bodyHtml . '</div></body></html>';
+    exit;
+}
+
 function ds_render($title, $bodyHtml)
 {
-    echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
-        . '<title>' . ds_h($title) . '</title>'
-        . '<style>body{font:14px/1.7 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif;margin:0;background:#f5f6f8;color:#2b2f36}'
-        . '.wrap{max-width:760px;margin:40px auto;background:#fff;border-radius:8px;padding:28px 32px;box-shadow:0 2px 12px rgba(0,0,0,.06)}'
-        . 'h1{font-size:20px;margin:0 0 12px}.err{color:#c0392b}.ok{color:#1e8e3e}'
-        . '.log{background:#0f172a;color:#d7e3f4;padding:14px 16px;border-radius:6px;font:12px/1.8 Consolas,Menlo,monospace;white-space:pre-wrap;word-break:break-all;max-height:420px;overflow:auto}'
-        . 'a.btn,.btn{display:inline-block;margin-top:14px;padding:9px 22px;background:#2f6fed;color:#fff;border:0;border-radius:5px;text-decoration:none;cursor:pointer;font-size:14px}'
-        . '.btn-danger{background:#c0392b}.muted{color:#8a9099;font-size:12px}</style></head><body><div class="wrap"><h1>' . ds_h($title) . '</h1>' . $bodyHtml . '</div></body></html>';
-    exit;
+    ds_page_open($title);
+    ds_page_close($bodyHtml);
 }
 
 function ds_out($log, $cls, $msg)
 {
-    $log .= '<div class="' . $cls . '">' . ds_h($msg) . "</div>\n";
-    echo str_repeat(' ', 4096) . "\n";
-    @ob_flush();
+    // 当场输出日志行：旧实现只输出空白占位、日志攒到结束才渲染，导致恢复过程看不到任何进度
+    $line = '<div class="' . $cls . '">' . ds_h($msg) . '</div>';
+    $log .= $line;
+    echo $line . '<!--' . str_repeat(' ', 4096) . '-->';
     @flush();
 
     return $log;
@@ -1071,31 +1104,35 @@ if (empty($_POST['confirm'])) {
     $zipFile = $baseDir . '/files.zip';
     $zipInfo = is_file($zipFile) ? '有（' . number_format((float) @filesize($zipFile)) . ' 字节）' : '无';
     $dbCount = count((array) (isset($manifest['db_files']) ? $manifest['db_files'] : array()));
-    $body = '<p>即将把本还原点备份的<b>文件</b>与<b>数据库</b>恢复回站点。</p>'
-        . '<ul><li>还原点：' . ds_h(isset($manifest['title']) && $manifest['title'] !== '' ? $manifest['title'] : $baseDir) . '</li>'
-        . '<li>创建时间：' . ds_h(!empty($manifest['created_at']) ? date('Y-m-d H:i:s', (int) $manifest['created_at']) : '-') . '</li>'
-        . '<li>文件包：' . ds_h($zipInfo) . '</li>'
-        . '<li>数据库分卷：' . $dbCount . ' 个</li></ul>'
-        . '<p class="err">恢复为覆盖写操作，且不可自动撤销；如有条件请先单独备份当前数据库。</p>'
-        . '<form method="post" onsubmit="this.querySelector(\'button\').disabled=true;this.querySelector(\'button\').textContent=\'正在恢复…\';return true;">'
+    $body = '<p>即将把本还原点备份的 <b>文件</b> 与 <b>数据库</b> 恢复回站点，请确认以下信息：</p>'
+        . '<div class="panel"><table class="info">'
+        . '<tr><th>还原点</th><td>' . ds_h(isset($manifest['title']) && $manifest['title'] !== '' ? $manifest['title'] : $baseDir) . '</td></tr>'
+        . '<tr><th>创建时间</th><td>' . ds_h(!empty($manifest['created_at']) ? date('Y-m-d H:i:s', (int) $manifest['created_at']) : '-') . '</td></tr>'
+        . '<tr><th>文件包</th><td>' . ds_h($zipInfo) . '</td></tr>'
+        . '<tr><th>数据库分卷</th><td>' . $dbCount . ' 个</td></tr>'
+        . '</table></div>'
+        . '<div class="notice">恢复为覆盖写操作，且不可自动撤销；如有条件请先单独备份当前数据库。</div>'
+        . '<div class="actions"><form method="post" onsubmit="this.querySelector(\'button\').disabled=true;this.querySelector(\'button\').textContent=\'正在恢复…\';return true;">'
         . '<input type="hidden" name="token" value="' . ds_h($given) . '">'
         . '<input type="hidden" name="confirm" value="1">'
-        . '<button type="submit" class="btn btn-danger">开始恢复</button></form>';
+        . '<button type="submit" class="btn">开始恢复</button></form></div>';
     ds_render('DouPHP 救援恢复', $body);
 }
 
 // ——— 执行恢复（POST） ———
 $log = '';
+ds_page_open('正在恢复站点');
+echo '<div class="notice">恢复进行中，请保持页面打开；日志会实时输出，完成后自动给出结果。</div><div class="log">';
 
 // 1. 文件恢复
 $zipFile = $baseDir . '/files.zip';
 if (is_file($zipFile)) {
     if (!class_exists('ZipArchive')) {
-        ds_render('环境不支持', '<p class="err">当前 PHP 未启用 zip 扩展（ZipArchive），无法恢复文件。请启用扩展后重试。</p>');
+        ds_page_close('<div class="notice err">当前 PHP 未启用 zip 扩展（ZipArchive），无法恢复文件。请启用扩展后重试。</div>', true);
     }
     $za = new ZipArchive();
     if (@$za->open($zipFile) !== true) {
-        ds_render('打开文件包失败', '<p class="err">files.zip 无法打开。</p>');
+        ds_page_close('<div class="notice err">files.zip 无法打开。</div>', true);
     }
     $total = (int) $za->numFiles;
     $log = ds_out($log, 'muted', '开始恢复文件（共 ' . $total . ' 项）…');
@@ -1132,7 +1169,7 @@ if (is_file($zipFile)) {
     }
     $za->close();
     if ($failedFiles > 0) {
-        ds_render('恢复未完成', '<p class="err">有 ' . $failedFiles . ' 个文件恢复失败，已中止（数据库未改动）。请检查目录权限后重试。</p><div class="log">' . $log . '</div>');
+        ds_page_close('<div class="notice err">有 ' . $failedFiles . ' 个文件恢复失败，已中止（数据库未改动）。请检查目录权限后重试。</div>', true);
     }
     $log = ds_out($log, 'ok', '文件恢复完成：' . $total . ' 项');
 } else {
@@ -1178,7 +1215,7 @@ $dbFiles = (array) (isset($manifest['db_files']) ? $manifest['db_files'] : array
 if ($dbFiles) {
     $cfgFile = $rootDir . 'config/config.php';
     if (!is_file($cfgFile)) {
-        ds_render('缺少数据库配置', '<p class="err">config/config.php 不存在，无法恢复数据库。</p><div class="log">' . $log . '</div>');
+        ds_page_close('<div class="notice err">config/config.php 不存在，无法恢复数据库。</div>', true);
     }
     $dbhost = '';
     $dbname = '';
@@ -1189,7 +1226,7 @@ if ($dbFiles) {
 
     $mysqli = @new mysqli($dbhost, $dbuser, $dbpass, $dbname);
     if ($mysqli->connect_errno) {
-        ds_render('数据库连接失败', '<p class="err">连接数据库失败：' . ds_h($mysqli->connect_error) . '</p><div class="log">' . $log . '</div>');
+        ds_page_close('<div class="notice err">连接数据库失败：' . ds_h($mysqli->connect_error) . '</div>', true);
     }
     if (!@$mysqli->set_charset('utf8mb4')) {
         @$mysqli->set_charset('utf8');
@@ -1244,8 +1281,8 @@ $log = ds_out($log, 'ok', $selfDeleted
     ? '救援令牌已作废，脚本已自删。恢复完成，请立即访问站点核查。'
     : '救援令牌已作废（脚本未能自删：执行中的文件可能被系统占用，请手动删除本文件）。恢复完成，请立即访问站点核查。');
 
-ds_render('恢复完成', '<p class="ok">恢复流程已执行完毕。</p><div class="log">' . $log . '</div>'
-    . '<p class="muted">如站点仍异常，请检查目录权限或联系服务商。</p>');
+ds_page_close('<div class="notice ok">恢复流程已执行完毕。</div>'
+    . '<p class="muted">如站点仍异常，请检查目录权限或联系服务商。</p>', true);
 
 /**
  * 递归收集快照外新增文件（相对路径）与全部目录（供空目录清理）。

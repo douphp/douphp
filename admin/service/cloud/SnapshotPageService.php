@@ -12,8 +12,10 @@
  * Release Date: 2026-10-16
  */
 
-namespace Dou\Admin\Service\Backup;
+namespace Dou\Admin\Service\Cloud;
 
+use Dou\Admin\Service\Backup\MaintenanceModeService;
+use Dou\Admin\Service\Backup\RestoreService;
 use Dou\Core\Service\BaseService;
 use Dou\Core\Service\Snapshot\SnapshotRepository;
 
@@ -25,7 +27,7 @@ if (!defined('IN_DOUCO')) {
  * 后台「升级还原点」页数据组装（展示层，不含还原执行链）。
  *
  * 数据源为 core 侧 {@see SnapshotRepository}（storage/snapshot 扫描）+ 维护模式状态 +
- * 进行中还原状态；还原 / 删除 / 救援令牌等动作由 {@see \Dou\Admin\Controller\Backup\SnapshotController}
+ * 进行中还原状态；还原 / 删除 / 救援令牌等动作由 {@see \Dou\Admin\Controller\Cloud\SnapshotController}
  * 直接驱动服务。
  */
 class SnapshotPageService extends BaseService
@@ -96,14 +98,14 @@ class SnapshotPageService extends BaseService
                 'status_class' => $statusClass,
                 'is_restoring' => $isRestoring,
                 'abandon_url' => $isRestoring
-                    ? route('admin.backup.snapshot_abandon', array(), array('query' => array('snapshot' => $dirName, 'token' => $token)))
+                    ? route('admin.cloud.snapshot_abandon', array(), array('query' => array('snapshot' => $dirName, 'token' => $token)))
                     : '',
                 // GET 也走 CSRF 校验（getTokenRoutes）：首跳确认链接必须携带令牌
-                'restore_url' => route('admin.backup.snapshot_restore', array(), array('query' => array('snapshot' => $dirName, 'token' => $token))),
-                'download_url' => route('admin.backup.snapshot_down', array(), array('query' => array('snapshot' => $dirName))),
-                'delete_url' => route('admin.backup.snapshot_destroy', array(), array('query' => array('snapshot' => $dirName))),
+                'restore_url' => route('admin.cloud.snapshot_restore', array(), array('query' => array('snapshot' => $dirName, 'token' => $token))),
+                'download_url' => route('admin.cloud.snapshot_down', array(), array('query' => array('snapshot' => $dirName))),
+                'delete_url' => route('admin.cloud.snapshot_destroy', array(), array('query' => array('snapshot' => $dirName))),
                 'rescue_url' => $scope === 'system'
-                    ? route('admin.backup.snapshot_rescue', array(), array('query' => array('snapshot' => $dirName, 'token' => $token)))
+                    ? route('admin.cloud.snapshot_rescue', array(), array('query' => array('snapshot' => $dirName, 'token' => $token)))
                     : '',
                 'rescue_state_text' => $rescueState,
             );
@@ -115,9 +117,9 @@ class SnapshotPageService extends BaseService
             'maintenance' => $maintenance,
             'active_restore' => $activeRestore,
             'active_restore_resume_url' => $activeRestore !== null
-                ? route('admin.backup.snapshot_restore', array(), array('query' => array('snapshot' => $activeRestore, 'token' => $token)))
+                ? route('admin.cloud.snapshot_restore', array(), array('query' => array('snapshot' => $activeRestore, 'token' => $token)))
                 : '',
-            'maintenance_off_url' => route('admin.backup.snapshot_maintenance_off', array(), array('query' => array('token' => $token))),
+            'maintenance_off_url' => route('admin.cloud.snapshot_maintenance_off', array(), array('query' => array('token' => $token))),
         );
     }
 

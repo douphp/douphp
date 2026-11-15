@@ -204,7 +204,7 @@ class PHPExcel_Reader_CSV extends PHPExcel_Reader_Abstract implements PHPExcel_R
         $worksheetInfo[0]['totalColumns'] = 0;
 
         // Loop through each line of the file in turn
-        while (($rowData = fgetcsv($fileHandle, 0, $this->delimiter, $this->enclosure)) !== false) {
+        while (($rowData = fgetcsv($fileHandle, 0, $this->delimiter, $this->enclosure, '\\')) !== false) {
             $worksheetInfo[0]['totalRows']++;
             $worksheetInfo[0]['lastColumnIndex'] = max($worksheetInfo[0]['lastColumnIndex'], count($rowData) - 1);
         }
@@ -245,7 +245,10 @@ class PHPExcel_Reader_CSV extends PHPExcel_Reader_Abstract implements PHPExcel_R
     public function loadIntoExisting($pFilename, PHPExcel $objPHPExcel)
     {
         $lineEnding = ini_get('auto_detect_line_endings');
-        ini_set('auto_detect_line_endings', true);
+        // auto_detect_line_endings 自 PHP 8.1 起废弃，仅在低版本切换
+        if (PHP_VERSION_ID < 80100) {
+            ini_set('auto_detect_line_endings', true);
+        }
 
         // Open file
         $this->openFile($pFilename);
@@ -276,7 +279,7 @@ class PHPExcel_Reader_CSV extends PHPExcel_Reader_Abstract implements PHPExcel_R
         }
 
         // Loop through each line of the file in turn
-        while (($rowData = fgetcsv($fileHandle, 0, $this->delimiter, $this->enclosure)) !== false) {
+        while (($rowData = fgetcsv($fileHandle, 0, $this->delimiter, $this->enclosure, '\\')) !== false) {
             $columnLetter = 'A';
             foreach ($rowData as $rowDatum) {
                 if ($rowDatum != '' && $this->readFilter->readCell($columnLetter, $currentRow)) {
@@ -303,7 +306,9 @@ class PHPExcel_Reader_CSV extends PHPExcel_Reader_Abstract implements PHPExcel_R
             $this->contiguousRow = $currentRow;
         }
 
-        ini_set('auto_detect_line_endings', $lineEnding);
+        if (PHP_VERSION_ID < 80100) {
+            ini_set('auto_detect_line_endings', $lineEnding);
+        }
 
         // Return
         return $objPHPExcel;

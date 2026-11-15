@@ -111,7 +111,9 @@ class Client
         }
         if (!empty($options['resolve']) && is_array($options['resolve'])) {
             if (!defined('CURLOPT_RESOLVE')) {
-                curl_close($ch);
+                if (PHP_VERSION_ID < 80000) {
+                    curl_close($ch);
+                }
                 if ($returnMeta) {
                     return array(
                         'body' => false,
@@ -167,7 +169,9 @@ class Client
             // 流式落盘：不把响应体读进 PHP 内存，仅写入文件句柄，适合大体积安装包下载
             $streamFp = @fopen($streamTo, 'wb');
             if ($streamFp === false) {
-                curl_close($ch);
+                if (PHP_VERSION_ID < 80000) {
+                    curl_close($ch);
+                }
                 if ($returnMeta) {
                     return array(
                         'body' => '',

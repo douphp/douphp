@@ -70,43 +70,6 @@ class ProductController extends BaseController
     }
 
     /**
-     * 商品列表快速编辑字段声明。
-     *
-     * @return array
-     */
-    protected function quickEditConfig()
-    {
-        return array(
-            'model' => Product::class,
-            'fields' => array(
-                'title' => array('type' => 'text', 'max' => 150),
-                'price' => array('type' => 'price', 'blank_when_zero' => true),
-                'stock' => array('type' => 'int', 'max' => 4294967295),
-                'sort' => array('type' => 'int'),
-            ),
-        );
-    }
-
-    /**
-     * 属性区 HTML：属性模块是可选模块，缺失时整体降级为空串。
-     *
-     * @param string $module
-     * @param int|string $categoryId
-     * @param int|string $itemId
-     * @param string $mode create|edit
-     * @return string
-     */
-    private function buildAttributeBox($module, $categoryId, $itemId, $mode)
-    {
-        if (!Module::has('attribute') || !class_exists('Dou\\Admin\\Service\\Attribute\\AttributeService')) {
-            return '';
-        }
-
-        return app('Dou\\Admin\\Service\\Attribute\\AttributeService')
-            ->buildBoxHtml($module, $categoryId, $itemId, $mode);
-    }
-
-    /**
      * 商品列表
      *
      * @param Request $request
@@ -285,6 +248,43 @@ class ProductController extends BaseController
             'rec' => 'thumb',
             'mask' => $bundle['mask'],
         ]);
+    }
+
+    /**
+     * 商品列表快速编辑字段声明。
+     *
+     * @return array
+     */
+    protected function quickEditConfig()
+    {
+        return array(
+            'model' => Product::class,
+            'fields' => array(
+                'title' => array('type' => 'text', 'max' => 150),
+                'price' => array('type' => 'price', 'blank_when_zero' => true),
+                'stock' => array('type' => 'int', 'max' => 4294967295),
+                'sort' => array('type' => 'int'),
+            ),
+        );
+    }
+
+    /**
+     * 属性区 HTML：属性模块是可选模块，缺失时整体降级为空串。
+     *
+     * @param string $module
+     * @param int|string $categoryId
+     * @param int|string $itemId
+     * @param string $mode create|edit
+     * @return string
+     */
+    private function buildAttributeBox($module, $categoryId, $itemId, $mode)
+    {
+        if (!Module::has('attribute') || !class_exists('Dou\\Admin\\Service\\Attribute\\AttributeService')) {
+            return '';
+        }
+
+        return app('Dou\\Admin\\Service\\Attribute\\AttributeService')
+            ->buildBoxHtml($module, $categoryId, $itemId, $mode);
     }
 
     /**

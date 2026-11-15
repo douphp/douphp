@@ -25,6 +25,8 @@ if (!defined('IN_DOUCO')) {
  *
  * @method static bool extract(string $zipPath, string $destinationDir, array $allowRules = array(), array $denyExtensions = array())
  * @method static array create(string $zipPath, array $paths, string $removePath)
+ * @method static array|false entries(string $zipPath, array $allowRules = array(), array $denyExtensions = array())
+ * @method static string|false read(string $zipPath, string $name)
  * @method static array append(string $zipPath, array $absolutePaths, string $removePath)
  * @method static array extractRange(string $zipPath, string $destinationDir, int $offset, int $limit)
  * @method static int count(string $zipPath)

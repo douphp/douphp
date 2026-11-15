@@ -148,12 +148,12 @@ $_LANG['cloud_update_next'] = '即将更新下一个模块';
 $_LANG['cloud_update_theme'] = '即将更新下一个模板';
 $_LANG['cloud_update_plugin'] = '即将更新下一个插件';
 $_LANG['cloud_close_update'] = '关闭升级提示';
-$_LANG['cloud_close_update_confirm'] = '关闭后将不再显示升级提醒与侧栏更新角标，确定关闭吗？';
+$_LANG['cloud_close_update_confirm'] = '关闭后将隐藏升级提醒、侧栏更新角标与升级还原点入口，自动清理仍会运行，确定关闭吗？';
 $_LANG['cloud_close_update_success'] = '已关闭升级提示';
 $_LANG['cloud_open_update'] = '开启升级提示';
 $_LANG['cloud_open_update_success'] = '已开启升级提示';
-$_LANG['cloud_update_closed_cue'] = '升级提示已关闭，系统不会主动提示可用更新。';
-$_LANG['cloud_update_closed_manage_cue'] = '点击右上角「开启升级提示」可恢复。';
+$_LANG['cloud_update_closed_cue'] = '升级提示已关闭，升级还原点入口已隐藏，自动清理仍会运行。';
+$_LANG['cloud_update_closed_manage_cue'] = '点击标题旁「开启升级提示」可恢复。';
 
 // 升级风险提示（更新主页与离线升级页的页头提示行共用）
 $_LANG['cloud_upgrade_backup_tips'] = '升级有风险，建议升级前先做一次数据库备份，';
@@ -203,8 +203,8 @@ $_LANG['cloud_snapshot_begin'] = '开始创建升级还原点（升级失败时�
 $_LANG['cloud_snapshot_done'] = '升级还原点已创建：d%';
 $_LANG['cloud_snapshot_engine_missing'] = '还原点引擎缺失（core/service/upgrade 未随包更新），无法创建升级还原点，升级已中止';
 $_LANG['cloud_snapshot_restored'] = '本次更新失败，已从升级还原点自动回滚：文件与数据库均恢复为更新前状态';
-$_LANG['cloud_snapshot_restore_failed'] = '本次更新失败，自动回滚未完成：d%；请在「数据备份 - 升级还原点」页继续或手动恢复';
-$_LANG['cloud_snapshot_restore_pending'] = '本次更新失败，自动回滚超时；请在「数据备份 - 升级还原点」页继续恢复';
+$_LANG['cloud_snapshot_restore_failed'] = '本次更新失败，自动回滚未完成：d%；请在「设置 - 系统更新 - 升级还原点」页继续或手动恢复';
+$_LANG['cloud_snapshot_restore_pending'] = '本次更新失败，自动回滚超时；请在「设置 - 系统更新 - 升级还原点」页继续恢复';
 
 // 完成态安全提示与进行中秒表（cloud/install）
 $_LANG['cloud_finish_note_system'] = '提示：升级前已自动创建还原点（含站点文件与数据库）；若升级后发现异常，可将站点恢复到升级前的状态：';

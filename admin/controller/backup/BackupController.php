@@ -102,12 +102,11 @@ class BackupController extends BaseController
      */
     public function restore()
     {
+        @set_time_limit(0);
         return $this->view('backup.htm', [
             'ur_here' => lang('backup_restore'),
             'page_actions' => array(
                 array('href' => route('admin.backup'), 'text' => lang('backup'), 'style' => ''),
-                // 升级还原点属技术人员补救入口：灰色低调按钮，避免普通管理员误点
-                array('href' => route('admin.backup.snapshot'), 'text' => lang('snapshot_page_title'), 'style' => 'gray'),
             ),
             'rec' => 'restore',
             'file_list' => $this->backupService->buildRestoreFileList(),
@@ -115,13 +114,14 @@ class BackupController extends BaseController
     }
 
     /**
-     * 导入 SQL
+     * 导入 ZIP 备份
      *
      * @param Request $request
      * @return Response
      */
     public function import(Request $request)
     {
+        @set_time_limit(0);
         $result = $this->backupService->runImport($request->all());
 
         return message()->respond(

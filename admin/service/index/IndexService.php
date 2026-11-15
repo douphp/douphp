@@ -14,6 +14,7 @@
 
 namespace Dou\Admin\Service\Index;
 
+use Dou\Admin\Service\Authorization\AdminGate;
 use Dou\Admin\Service\Cache\CacheClearService;
 use Dou\Admin\Service\Manager\ManagerService;
 use Dou\Core\Facade\DB;
@@ -287,7 +288,7 @@ class IndexService extends BaseService
      * 还原点与用户主动执行的数据库备份定位不同（前者是升级应急回退），
      * 但同属「可恢复的数据」在首页合并展示；完整还原点列表在还原点页。
      *
-     * @return array Smarty assign 用 backup 结构（rows / msg / light / back_url）
+     * @return array Smarty assign 用 backup 结构（rows / msg / light / back_url / show_snapshots）
      */
     public function buildBackupAssign()
     {
@@ -330,27 +331,31 @@ class IndexService extends BaseService
             }
         }
 
-        // 还原点：最近 3 个（跨 scope），用 manifest 估算大小，不递归扫描目录
-        $snapshotUrl = route('admin.backup.snapshot');
-        $repository = new SnapshotRepository(ROOT_PATH);
-        foreach (array_slice($repository->all(false), 0, 3) as $row) {
-            $manifest = $row['manifest'];
-            $scope = isset($manifest['scope']) ? (string) $manifest['scope'] : '';
-            if ($scope === 'system') {
-                $label = lang('snapshot_group_system');
-            } elseif ($scope === 'module') {
-                $label = lang('snapshot_group_module');
-            } else {
-                $label = lang('snapshot_group_extend');
+        $showSnapshots = !Config::get('site.close_update', false)
+            && app(AdminGate::class)->canAccess((array) auth('admin')->user(), 'cloud', 'snapshot');
+        if ($showSnapshots) {
+            // 还原点：最近 3 个（跨 scope），用 manifest 估算大小，不递归扫描目录
+            $snapshotUrl = route('admin.cloud.snapshot');
+            $repository = new SnapshotRepository(ROOT_PATH);
+            foreach (array_slice($repository->all(false), 0, 3) as $row) {
+                $manifest = $row['manifest'];
+                $scope = isset($manifest['scope']) ? (string) $manifest['scope'] : '';
+                if ($scope === 'system') {
+                    $label = lang('snapshot_group_system');
+                } elseif ($scope === 'module') {
+                    $label = lang('snapshot_group_module');
+                } else {
+                    $label = lang('snapshot_group_extend');
+                }
+                $rows[] = array(
+                    'label' => $label,
+                    'title' => !empty($manifest['title']) ? (string) $manifest['title'] : $row['name'],
+                    'maketime' => date('Y-m-d H:i:s', (int) $row['created_at']),
+                    'filesize' => $this->formatBytes($row['total_size']),
+                    'timestamp' => (int) $row['created_at'],
+                    'url' => $snapshotUrl,
+                );
             }
-            $rows[] = array(
-                'label' => $label,
-                'title' => !empty($manifest['title']) ? (string) $manifest['title'] : $row['name'],
-                'maketime' => date('Y-m-d H:i:s', (int) $row['created_at']),
-                'filesize' => $this->formatBytes($row['total_size']),
-                'timestamp' => (int) $row['created_at'],
-                'url' => $snapshotUrl,
-            );
         }
 
         usort($rows, function ($a, $b) {
@@ -361,6 +366,7 @@ class IndexService extends BaseService
             return $b['timestamp'] - $a['timestamp'];
         });
         $backup['rows'] = $rows;
+        $backup['show_snapshots'] = $showSnapshots;
 
         return $backup;
     }
