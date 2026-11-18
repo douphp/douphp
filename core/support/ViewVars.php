@@ -98,42 +98,12 @@ class ViewVars
     }
 
     /**
-     * 从主题尺寸 hint 抽出宽/高。
-     * 「宽度>=1920、高度400」或文案中第一处 1000*1000 / 750x500 →「1920/400」。
-     *
-     * @param string $text
-     * @return string 对不上则空串
-     */
-    public static function parseWidthHeightHint($text)
-    {
-        $text = (string) $text;
-        if ($text === '') {
-            return '';
-        }
-        if (preg_match('/宽度[^\d]*(\d+).*高度[^\d]*(\d+)/u', $text, $m)) {
-            $width = (int) $m[1];
-            $height = (int) $m[2];
-        } elseif (preg_match('/(\d+)\s*[*x×]\s*(\d+)/u', $text, $m)) {
-            $width = (int) $m[1];
-            $height = (int) $m[2];
-        } else {
-            return '';
-        }
-        if ($width <= 0 || $height <= 0) {
-            return '';
-        }
-
-        return $width . '/' . $height;
-    }
-
-    /**
      * 后台 $setting.theme：消费 ThemeSettingsReader 标准化 item 表，
-     * 派生旧契约键 {key}_size（文字说明）与 {key}_crop（裁剪预设比例 "宽/高"）。
+     * 派生旧契约键 {key}_size（tip 原样输出）与 {key}_crop（裁剪预设比例 "宽/高"）。
      *
-     * 文字说明：tip 优先原样输出；否则由 width/height 套语言包模板自动生成并追加 note。
      * 主题缺键时补空串，避免 PHP 8 未定义下标。
      *
-     * @param array $theme 标准化 item 表（key => ['width','height','note','tip']）
+     * @param array $theme 标准化 item 表（key => ['width','height','width_min','width_max','height_min','height_max','tip']）
      * @return array
      */
     public static function theme(array $theme)
@@ -142,7 +112,6 @@ class ViewVars
             'article_img_size' => '',
             'doc_img_size' => '',
             'professional_img_size' => '',
-            'case_img_size' => '',
             'cases_img_size' => '',
             'banner_img_size' => '',
             'product_img_size' => '',
@@ -155,24 +124,9 @@ class ViewVars
             }
             $width = isset($item['width']) ? (int) $item['width'] : 0;
             $height = isset($item['height']) ? (int) $item['height'] : 0;
-            $note = isset($item['note']) ? (string) $item['note'] : '';
             $tip = isset($item['tip']) ? (string) $item['tip'] : '';
 
-            $text = '';
-            if ($tip !== '') {
-                $text = $tip;
-            } elseif ($width > 0 && $height > 0) {
-                $text = str_replace(
-                    array('{w}', '{h}'),
-                    array((string) $width, (string) $height),
-                    lang('theme_size_fixed', '推荐尺寸：{w}×{h}px')
-                );
-                if ($note !== '') {
-                    $text .= lang('theme_size_note_sep', '，') . $note;
-                }
-            }
-
-            $out[$key . '_size'] = $text;
+            $out[$key . '_size'] = $tip;
             $out[$key . '_crop'] = ($width > 0 && $height > 0) ? $width . '/' . $height : '';
         }
 
@@ -182,11 +136,6 @@ class ViewVars
             if (!array_key_exists($cropKey, $out)) {
                 $out[$cropKey] = '';
             }
-        }
-
-        if ($out['case_img_size'] !== '' && $out['cases_img_size'] === '') {
-            $out['cases_img_size'] = $out['case_img_size'];
-            $out['cases_img_crop'] = isset($out['case_img_crop']) ? $out['case_img_crop'] : '';
         }
 
         return $out;

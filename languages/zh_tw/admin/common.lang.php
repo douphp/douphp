@@ -440,7 +440,7 @@ $_LANG['config_chat_link_cue'] = '請輸入第三方線上客服的連結；若�
 $thumbSizeCue = '';
 $logoImgSizeCue = '';
 if (isset($_SETTING) && is_array($_SETTING) && isset($_SETTING['theme']) && is_array($_SETTING['theme'])) {
-    // $_SETTING['theme'] 為 ThemeSettingsReader 標準化 item 表（width/height/note/tip）
+    // $_SETTING['theme'] 為 ThemeSettingsReader 標準化 item 表（width/height/tip）
     $thumbItem = isset($_SETTING['theme']['product_thumb']) && is_array($_SETTING['theme']['product_thumb'])
         ? $_SETTING['theme']['product_thumb'] : array();
     if (!empty($thumbItem['width']) && !empty($thumbItem['height'])) {
@@ -460,8 +460,6 @@ if (isset($_SETTING) && is_array($_SETTING) && isset($_SETTING['theme']) && is_a
 
 $_LANG['config_thumb_width_cue'] = '寬度和高度設定成：' . $thumbSizeCue;
 $_LANG['config_site_logo_cue'] = $logoImgSizeCue;
-$_LANG['theme_size_fixed'] = '推薦尺寸：{w}×{h}px';
-$_LANG['theme_size_note_sep'] = '，';
 $_LANG['config_site_logo_other_cue'] = '一般無需上傳該 LOGO，只有部分模板需要使用到兩個 LOGO，比如一個深色、一個白色的';
 
 // 參數設定

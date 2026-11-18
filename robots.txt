@@ -4,7 +4,13 @@ Disallow: /api/
 Disallow: /config/
 Disallow: /core/
 Disallow: /front/
+Disallow: /install/
+Disallow: /upgrade/
+Disallow: /plugin/
 Disallow: /languages/
 Disallow: /miniprogram/
 Disallow: /storage/
 Disallow: /theme/
+Allow: /theme/*/css/
+Allow: /theme/*/js/
+Allow: /theme/*/images/

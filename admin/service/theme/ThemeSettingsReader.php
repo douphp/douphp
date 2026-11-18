@@ -26,9 +26,12 @@ if (!defined('IN_DOUCO')) {
  *
  * 文件格式（JSON 对象，键为声明项）：
  *   {
- *       "product_img": {"width": 1000, "height": 1000, "note": "补充提示", "tip": "手工文案"}
+ *       "product_img": {"width": 1000, "height": 1000, "tip": "提示文案"},
+ *       "banner_img": {"width": {"min": 1920}, "height": 400, "tip": "宽度不小于 1920"}
  *   }
- * 其中 width/height 为裁剪工具预填的固定尺寸；tip 存在时覆盖自动生成的文字说明。
+ * width/height 支持纯数字（精确值）或 {"min": 55, "max": 200}（区间，可只写一侧）；
+ * 标准化后取代表值供裁剪预填与限宽使用：有 max 取 max，否则取 min。
+ * tip 为唯一提示文案，原样输出；缺省时不显示。
  *
  * 用于后台填充 setting.theme.*_img_size 等模块缩略图尺寸提示与裁剪预设。
  */
@@ -40,7 +43,6 @@ class ThemeSettingsReader extends BaseService
     const MODULE_IMAGE_KEYS = array(
         'product' => 'product_img',
         'article' => 'article_img',
-        'case' => 'cases_img',
         'cases' => 'cases_img',
         'doc' => 'doc_img',
         'professional' => 'professional_img',
@@ -59,7 +61,8 @@ class ThemeSettingsReader extends BaseService
      *
      * @param string $theme 空则取当前站点主题
      * @return array|false 文件不存在或 JSON 非法时返回 false；否则返回 ['theme' => [key => item]]，
-     *                     item = ['width' => int, 'height' => int, 'note' => string, 'tip' => string]
+     *                     item = ['width' => int, 'height' => int, 'width_min' => int, 'width_max' => int,
+     *                             'height_min' => int, 'height_max' => int, 'tip' => string]
      */
     public function read($theme = '')
     {
@@ -118,15 +121,47 @@ class ThemeSettingsReader extends BaseService
             if ($key === '' || !is_array($value)) {
                 continue;
             }
+            $width = $this->normalizeDimension(isset($value['width']) ? $value['width'] : 0);
+            $height = $this->normalizeDimension(isset($value['height']) ? $value['height'] : 0);
             $items[$key] = array(
-                'width' => $this->positiveInt(isset($value['width']) ? $value['width'] : 0),
-                'height' => $this->positiveInt(isset($value['height']) ? $value['height'] : 0),
-                'note' => isset($value['note']) ? (string) $value['note'] : '',
+                'width' => $width['value'],
+                'height' => $height['value'],
+                'width_min' => $width['min'],
+                'width_max' => $width['max'],
+                'height_min' => $height['min'],
+                'height_max' => $height['max'],
                 'tip' => isset($value['tip']) ? (string) $value['tip'] : '',
             );
         }
 
         return $items;
+    }
+
+    /**
+     * 宽/高声明标准化。
+     *
+     * 纯数字为精确值；{"min": N, "max": N} 为区间，缺省一侧表示不限。
+     * value 为代表值：有 max 取 max，否则取 min（供裁剪预填与限宽使用）。
+     *
+     * @param mixed $value
+     * @return array ['value' => int, 'min' => int, 'max' => int]
+     */
+    private function normalizeDimension($value)
+    {
+        if (is_array($value)) {
+            $min = $this->positiveInt(isset($value['min']) ? $value['min'] : 0);
+            $max = $this->positiveInt(isset($value['max']) ? $value['max'] : 0);
+
+            return array(
+                'value' => $max > 0 ? $max : $min,
+                'min' => $min,
+                'max' => $max,
+            );
+        }
+
+        $exact = $this->positiveInt($value);
+
+        return array('value' => $exact, 'min' => $exact, 'max' => $exact);
     }
 
     /**
