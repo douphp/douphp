@@ -46,10 +46,14 @@ trait HasContentLift
     {
         $module = (new static())->getTable();
         $field = DB::fieldExist($module, 'title') ? 'title' : 'name';
+        $schema = static::moduleSchema();
 
         $query = DB::table($module)
             ->field('id, description, image, ' . $field)
             ->where('id', '>', intval($id));
+        if (!empty($schema['hasStatus'])) {
+            $query->where('status', $schema['publishedValue']);
+        }
         if ($catId) {
             $query->where('category_id', intval($catId));
         }
@@ -66,6 +70,9 @@ trait HasContentLift
         $query = DB::table($module)
             ->field('id, description, image, ' . $field)
             ->where('id', '<', intval($id));
+        if (!empty($schema['hasStatus'])) {
+            $query->where('status', $schema['publishedValue']);
+        }
         if ($catId) {
             $query->where('category_id', intval($catId));
         }

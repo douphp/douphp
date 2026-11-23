@@ -15,6 +15,7 @@
 namespace Dou\Admin\Service\Article;
 
 use Dou\Admin\Model\Article\Article;
+use Dou\Admin\Model\Article\ArticleCategory;
 use Dou\Admin\Service\Concerns\DecoratesAdminMetadata;
 use Dou\Admin\Service\Concerns\SavesLanguageDrafts;
 use Dou\Admin\Service\Concerns\SavesMetadata;
@@ -178,7 +179,7 @@ class ArticleService extends BaseService
             $newId = (int) DB::transaction(function () use ($data, $image, $draftToken, $adminId, $metadataPlan, $languagePlan) {
                 $article = Article::create($data);
                 if (!$article) {
-                    throw new DomainException(lang('article_add_wrong'), route('admin.article'));
+                    throw new DomainException(lang('operation_failed'), route('admin.article'));
                 }
                 $newId = (int) $article->getKey();
                 if ($newId <= 0) {
@@ -224,7 +225,7 @@ class ArticleService extends BaseService
         $article['file_number'] = $article['image'];
         $article['image'] = attachment()->url($article['image']);
         $article['attach_list_html'] = attachment()->attachList('article', (int) $id, 'attach');
-        $article['created_at'] = date('Y-m-d H:i', strtotime($article['created_at']));
+        $article['created_at'] = date('Y-m-d H:i', Util::toTimestamp($article['created_at']) ?: time());
         $article['item_content'] = $this->markdown->toHtml($article['content']);
 
         return $article;
@@ -280,7 +281,9 @@ class ArticleService extends BaseService
 
         try {
             DB::transaction(function () use ($article, $data, $metadataPlan, $id, $adminId, $languagePlan) {
-                $article->fill($data, 'update')->save();
+                if ($article->fill($data, 'update')->save() === false) {
+                    throw new DomainException(lang('operation_failed'), route('admin.article'));
+                }
                 $this->languageDraftCommit($languagePlan, $id, $adminId);
                 $this->metadataCommit($metadataPlan, $id, $adminId);
             });
@@ -316,7 +319,9 @@ class ArticleService extends BaseService
         $article = $model->getAttributes();
 
         if (isset($data['confirm'])) {
-            Article::destroy((int) $id);
+            if (!Article::destroy((int) $id)) {
+                throw new DomainException(lang('operation_failed'), route('admin.article'));
+            }
             audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::DELETE, 1, (string) $article['title']);
             return array(
                 'message' => lang('article_del_succes'),
@@ -324,7 +329,7 @@ class ArticleService extends BaseService
             );
         }
 
-        $delCheck = preg_replace('/d%/Ums', $article['title'], lang('del_check'));
+        $delCheck = str_replace('d%', $article['title'], lang('del_check'));
         return array(
             'message' => $delCheck,
             'back_url' => route('admin.article'),
@@ -354,13 +359,27 @@ class ArticleService extends BaseService
         }
 
         if ($action === 'del_all') {
-            Article::destroy($ids);
-            audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::DELETE, 1, 'bulk:ARTICLE (' . count($ids) . ' items)', 'article');
-            return array('message' => lang('del_succes'), 'back_url' => route('admin.article'));
+            $deleted = Article::destroy($ids);
+            if ($deleted === 0) {
+                throw new DomainException(lang('operation_failed'), route('admin.article'));
+            }
+            audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::DELETE, 1, 'bulk:ARTICLE (' . $deleted . ' items)', 'article');
+            $message = $deleted < count($ids) ? sprintf(lang('del_batch_partial'), $deleted, count($ids) - $deleted) : lang('del_succes');
+            return array('message' => $message, 'back_url' => route('admin.article'));
         }
 
         if ($action === 'category_move') {
-            Article::whereIn('id', $ids)->update(array('category_id' => (int) Arr::get($data, 'new_cat_id', 0)));
+            $target = Arr::get($data, 'new_cat_id', '');
+            if ((!is_int($target) && !is_string($target)) || !Check::number((string) $target)) {
+                throw new DomainException(lang('category_select_empty'), route('admin.article'));
+            }
+            $categoryId = (int) $target;
+            if ($categoryId !== 0 && !ArticleCategory::whereKey($categoryId)->exists()) {
+                throw new DomainException(lang('category_not_exist'), route('admin.article'));
+            }
+            if (Article::whereIn('id', $ids)->update(array('category_id' => $categoryId)) === false) {
+                throw new DomainException(lang('operation_failed'), route('admin.article'));
+            }
             audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::UPDATE, 1, 'category_move:ARTICLE (' . count($ids) . ' items)', 'article');
             return array('message' => lang('category_move_batch_succes'), 'back_url' => route('admin.article'));
         }

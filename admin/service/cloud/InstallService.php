@@ -29,6 +29,7 @@ use Dou\Core\Service\Metadata\MetadataTranslationStore;
 use Dou\Core\Service\Metadata\MetadataValues;
 use Dou\Core\Service\System\ModuleLanguageManifest;
 use Dou\Core\Service\System\ModuleSettingReader;
+use Dou\Core\Service\Upgrade\ModuleVersionStore;
 use Dou\Core\Support\Arr;
 use Dou\Core\Support\FileHelper;
 use Dou\Core\Support\Naming;
@@ -1468,6 +1469,16 @@ class InstallService extends BaseService
             if ($moduleManifest === null) {
                 $wrong[] = lang('cloud_module_manifest_missing');
                 $preApplyFailed = true;
+            } elseif ($mode === 'update') {
+                $installedVersion = (new ModuleVersionStore())->get($moduleManifest['module']);
+                if (!preg_match('/^\d{8}$/', (string) $moduleVersion)) {
+                    $wrong[] = lang('cloud_module_version_missing');
+                    $preApplyFailed = true;
+                } elseif ($installedVersion !== '' && strcmp($installedVersion, (string) $moduleVersion) > 0) {
+                    $wrong[] = $moduleManifest['module'] . ' 模块升级失败：安装包版本（' . $moduleVersion
+                        . '）低于已安装版本（' . $installedVersion . '），已拒绝执行降级。';
+                    $preApplyFailed = true;
+                }
             }
         }
 
@@ -1575,7 +1586,8 @@ class InstallService extends BaseService
                         }
                     }
                 } elseif (!$wrong) {
-                    $this->runModuleUpgrade($materialsRoot, $wrong, $manifest['module'], (string) $moduleVersion);
+                    $standardFile = $this->moduleMetadataStandard($itemDir, $manifest['module'], $cloudId);
+                    $this->runModuleUpgrade($materialsRoot, $wrong, $manifest['module'], (string) $moduleVersion, $standardFile);
                 }
             }
         } elseif ($type === 'system' || $type === 'miniprogram' || $type === 'dou') {
@@ -1598,13 +1610,12 @@ class InstallService extends BaseService
         }
 
         if ($wrong && !$preApplyFailed) {
-            // 模块 / 主题 / 插件「更新」失败优先快照回滚；模块无快照时回退 clearModule
-            // 卸载语义（含安装失败）；主题 / 插件与其它类型保持现场不动。
+            // 更新失败优先用快照还原。无快照时保留已安装模块，安装失败仍清理本次落地内容。
             // manifest 预校验失败时站点尚未改动，禁止 clearModule 破坏式清理。
             $restoreState = $this->tryRestoreUpdateSnapshot($type, $mode, $cloudId);
-            if ($restoreState === 'none' && $type === 'module' && empty($this->installNotes)) {
+            if ($restoreState === 'none' && $type === 'module' && $mode !== 'update' && empty($this->installNotes)) {
                 // 只有真正尝试过模块 SQL 的安装失败才需要 DROP；纯拷贝失败不得误删同名既有表
-                $this->clearModule($cloudId, $mode === 'update' || $sqlAttempted);
+                $this->clearModule($cloudId, $sqlAttempted);
             }
         }
         // 提示类日志放在回滚判定之后，避免误伤“无快照时是否 clearModule”的既有语义
@@ -1616,7 +1627,9 @@ class InstallService extends BaseService
             @unlink($itemZip);
         }
         FileHelper::delDir($itemDir);
-        @unlink($sqlInstallFile);
+        if (!$preApplyFailed) {
+            @unlink($sqlInstallFile);
+        }
         if ($type === 'module') {
             // 模块流程只清理本次已准备的 _action/；预校验失败时站点 _action/ 未被触碰
             if ($moduleFilesPrepared && is_dir($materialsRoot)) {
@@ -1642,6 +1655,34 @@ class InstallService extends BaseService
     }
 
     /**
+     * 定位应校验扩展字段的模块所带的结构标准。
+     *
+     * @param string $itemDir 本次解包目录
+     * @param string $moduleId 模块标识
+     * @param string $cloudId 云端包标识
+     * @return string|null 空字符串表示应校验但包内缺少标准
+     */
+    private function moduleMetadataStandard($itemDir, $moduleId, $cloudId)
+    {
+        $modules = array('product', 'article', 'doc', 'professional', 'solution', 'support', 'course',
+            'download', 'gallery', 'cases', 'video', 'item', 'equipment');
+        if (!in_array($moduleId, $modules, true)) {
+            return null;
+        }
+
+        foreach (array('storage/backup/', 'data/backup/') as $directory) {
+            foreach (array_unique(array($moduleId, $cloudId)) as $name) {
+                $file = $itemDir . '/' . $directory . $name . '.sql';
+                if (is_file($file)) {
+                    return $file;
+                }
+            }
+        }
+
+        return '';
+    }
+
+    /**
      * 模块更新：由核心 ModuleRunner 统一执行站点根 _action/upgrade.php。
      *
      * 站点根 _update/ 归系统升级专用；降级拒绝属「跳过执行」语义，不触发回滚，
@@ -1651,15 +1692,16 @@ class InstallService extends BaseService
      * @param array $wrong
      * @param string $moduleId 模块标识（manifest module）
      * @param string $moduleVersion 云端下发的模块版本
+     * @param string|null $standardFile 本次解包的模块结构标准
      * @return void
      */
-    private function runModuleUpgrade($materialsRoot, array &$wrong, $moduleId = '', $moduleVersion = '')
+    private function runModuleUpgrade($materialsRoot, array &$wrong, $moduleId = '', $moduleVersion = '', $standardFile = null)
     {
         if (!preg_match('/^\d{8}$/', (string) $moduleVersion)) {
             $wrong[] = lang('cloud_module_version_missing');
             return;
         }
-        if (!is_dir($materialsRoot)) {
+        if ($standardFile === null && !is_dir($materialsRoot)) {
             return;
         }
         if (!class_exists('Dou\\Core\\Service\\Upgrade\\ModuleRunner')) {
@@ -1672,7 +1714,10 @@ class InstallService extends BaseService
         $caught = null;
         try {
             $runner = new \Dou\Core\Service\Upgrade\ModuleRunner($this->rootDir, $materialsRoot);
-            $runner->runUpgrade($moduleId, $moduleVersion);
+            $result = $runner->runUpgrade($moduleId, $moduleVersion, $standardFile);
+            if (!empty($result['metadata_repaired'])) {
+                $this->installNotes[] = $moduleId . ' 模块已按安装包标准补齐扩展字段。';
+            }
         } catch (\Exception $e) {
             $caught = $e;
         } catch (\Throwable $e) {
@@ -1686,7 +1731,7 @@ class InstallService extends BaseService
         if ($caught === null) {
             return;
         }
-        if ($this->isOptionalUpdateHookError($caught)) {
+        if ($standardFile === null && $this->isOptionalUpdateHookError($caught)) {
             if (strpos($caught->getMessage(), '已拒绝执行降级') !== false) {
                 $this->installNotes[] = $caught->getMessage();
             }

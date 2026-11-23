@@ -168,6 +168,7 @@ class CategoryService extends BaseService
         }
 
         $iconMode = Config::get('site.open_icon', '');
+        $previousParentId = (int) $category->getRawAttribute('parent_id');
         $icon = (string) $category->getRawAttribute('icon');
         $oldIconNumber = $icon;
         if ($iconMode === 'image') {
@@ -195,7 +196,9 @@ class CategoryService extends BaseService
         $languagePlan = $this->languageDraftBegin('article_category', $data, $catId, $adminId);
         try {
             DB::transaction(function () use ($category, $data, $catId, $adminId, $languagePlan) {
-                $category->fill($data, 'update')->save();
+                if ($category->fill($data, 'update')->save() === false) {
+                    throw new DomainException(lang('operation_failed'), route('admin.article.category'));
+                }
                 $this->languageDraftCommit($languagePlan, $catId, $adminId);
             });
         } catch (\Exception $e) {
@@ -208,7 +211,7 @@ class CategoryService extends BaseService
         }
 
         if (isset($data['sync_to_nav']) && (int) $data['sync_to_nav'] === 1) {
-            $this->navCategorySync->syncForCategory('article_category', $catId);
+            $this->navCategorySync->syncForCategory('article_category', $catId, $previousParentId);
         }
 
         audit()->writeAdminLog($adminId, AdminLogAction::UPDATE, 1, (string) $data['name']);
@@ -231,15 +234,13 @@ class CategoryService extends BaseService
         $cateInfo = $cateInfoModel->getAttributes();
         $catNameStr = $cateInfo['name'];
 
-        if (ArticleCategory::hasRecords($catId)) {
-            throw new DomainException(lang('category_del_is_used'), route('admin.article.category'), '3');
-        }
-        if (ArticleCategory::hasChildCategory($catId)) {
-            throw new DomainException(lang('category_del_is_parent'), route('admin.article.category'), '3');
+        if (ArticleCategory::hasRecords($catId) || ArticleCategory::hasChildCategory($catId)) {
+            $message = str_replace('d%', $catNameStr, lang('article_category_del_is_parent'));
+            throw new DomainException($message, route('admin.article.category'), '3');
         }
 
         if (!isset($data['confirm'])) {
-            $delCheck = preg_replace('/d%/Ums', $catNameStr, lang('del_check'));
+            $delCheck = str_replace('d%', $catNameStr, lang('del_check'));
             return array(
                 'message' => $delCheck,
                 'back_url' => route('admin.article.category'),
@@ -248,9 +249,15 @@ class CategoryService extends BaseService
             );
         }
 
-        $this->navCategorySync->deleteForCategory('article_category', $catId);
+        $icon = isset($cateInfo['icon']) ? $cateInfo['icon'] : '';
+        if (!ArticleCategory::destroy((int) $catId)) {
+            throw new DomainException(lang('operation_failed'), route('admin.article.category'));
+        }
+        if (Check::fileNumber($icon)) {
+            attachment()->delete($icon);
+        }
 
-        ArticleCategory::destroy((int) $catId);
+        $this->navCategorySync->deleteForCategory('article_category', $catId);
         audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::DELETE, 1, (string) $catNameStr);
 
         return array(

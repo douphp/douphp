@@ -61,7 +61,7 @@ $_LANG['product_del_succes'] = '删除商品成功';
 $_LANG['product_del_has_order'] = '该商品已产生订单，无法删除，请改为下架';
 $_LANG['product_del_skip_has_order'] = '已跳过 %d 个已产生订单的商品，其余商品删除成功';
 $_LANG['product_import'] = '导入商品';
-$_LANG['product_import_message'] = '支持 .xlsx / .xls 文件，导入数据表格式参见导出的 Excel 格式。';
+$_LANG['product_import_message'] = '支持 .xlsx / .xls 文件，请按下方列顺序填写导入表格。';
 $_LANG['product_import_cue'] = '列顺序为：商品名称、分类（ID 或名称）、价格、促销价、库存、积分、型号、排序、状态、网址别名；图片与会员价不支持导入。';
 
 // 提示信息

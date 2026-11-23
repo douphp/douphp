@@ -210,7 +210,9 @@ class CategoryService extends BaseService
         $languagePlan = $this->languageDraftBegin('product_category', $data, $catId, $adminId);
         try {
             DB::transaction(function () use ($catOldModel, $data, $catId, $adminId, $languagePlan) {
-                $catOldModel->fill($data, 'update')->save();
+                if ($catOldModel->fill($data, 'update')->save() === false) {
+                    throw new DomainException(lang('operation_failed'), route('admin.product.category'));
+                }
                 $this->languageDraftCommit($languagePlan, $catId, $adminId);
             });
         } catch (\Exception $e) {
@@ -223,7 +225,7 @@ class CategoryService extends BaseService
         }
 
         if (isset($data['sync_to_nav']) && (int) $data['sync_to_nav'] === 1) {
-            $this->navCategorySync->syncForCategory('product_category', $catId);
+            $this->navCategorySync->syncForCategory('product_category', $catId, $cat_old['parent_id']);
         }
 
         audit()->writeAdminLog($adminId, AdminLogAction::UPDATE, 1, (string) $data['name']);
@@ -250,16 +252,16 @@ class CategoryService extends BaseService
         $isParent = ProductCategory::hasChildCategory($catId);
 
         if ($isUsed) {
-            $msg = preg_replace('/d%/Ums', $catNameStr, lang('product_category_del_is_used'));
+            $msg = str_replace('d%', $catNameStr, lang('product_category_del_is_used'));
             throw new DomainException($msg, route('admin.product.category'), '3');
         }
         if ($isParent) {
-            $msg = preg_replace('/d%/Ums', $catNameStr, lang('product_category_del_is_parent'));
+            $msg = str_replace('d%', $catNameStr, lang('product_category_del_is_parent'));
             throw new DomainException($msg, route('admin.product.category'), '3');
         }
 
         if (!isset($data['confirm'])) {
-            $delCheck = preg_replace('/d%/Ums', $catNameStr, lang('del_check'));
+            $delCheck = str_replace('d%', $catNameStr, lang('del_check'));
             return array(
                 'message' => $delCheck,
                 'back_url' => route('admin.product.category'),
@@ -268,9 +270,15 @@ class CategoryService extends BaseService
             );
         }
 
-        $this->navCategorySync->deleteForCategory('product_category', $catId);
+        $icon = isset($cateInfo['icon']) ? $cateInfo['icon'] : '';
+        if (!ProductCategory::destroy((int) $catId)) {
+            throw new DomainException(lang('operation_failed'), route('admin.product.category'));
+        }
+        if (Check::fileNumber($icon)) {
+            attachment()->delete($icon);
+        }
 
-        ProductCategory::destroy((int) $catId);
+        $this->navCategorySync->deleteForCategory('product_category', $catId);
         audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::DELETE, 1, (string) $catNameStr);
 
         return array(

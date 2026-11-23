@@ -2807,7 +2807,12 @@ class Connection
         // 调整分页链接样式
         if (!defined('IS_ADMIN') && $rewrite_enabled && !$close_rewrite) {
             $get_page = '/o';
-            if ($get) {
+            $query_at = strpos((string) $page_url, '?');
+            if ($query_at !== false) {
+                $query = substr($page_url, $query_at);
+                $page_url = substr($page_url, 0, $query_at);
+                $get = $query . ($get ? '&' . ltrim($get, '?&') : '');
+            } elseif ($get) {
                 $get = preg_replace('/&/', '?', $get, 1);
                 $get = '/' . $get;
             }

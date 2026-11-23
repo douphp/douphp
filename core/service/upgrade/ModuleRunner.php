@@ -14,6 +14,9 @@
 
 namespace Dou\Core\Service\Upgrade;
 
+use Dou\Core\Facade\DB;
+use Dou\Core\Infra\Database\SchemaSync;
+
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
 }
@@ -63,9 +66,10 @@ class ModuleRunner
      *
      * @param string $moduleId 模块标识（manifest module）
      * @param string $moduleVersion 模块版本（8 位 YYYYMMDD）
-     * @return array array('status' => 'skipped'|'upgraded', 'module', 'from', 'to')
+     * @param string|null $standardFile 本次解包的结构标准，null 表示无需校验扩展字段
+     * @return array 执行状态、模块、起止版本及是否补齐扩展字段
      */
-    public function runUpgrade($moduleId = '', $moduleVersion = '')
+    public function runUpgrade($moduleId = '', $moduleVersion = '', $standardFile = null)
     {
         @set_time_limit(0);
         @ignore_user_abort(true);
@@ -93,18 +97,30 @@ class ModuleRunner
         $store = new ModuleVersionStore();
         $installedVersion = $store->get($moduleId);
 
-        // 版本门卫：相等短路 / 降级拒绝（后者消息被 InstallService 白名单豁免，不触发破坏式回滚）
+        if ($installedVersion !== '' && strcmp($installedVersion, $moduleVersion) > 0) {
+            throw new \RuntimeException($moduleId . ' 模块升级失败：安装包版本（' . $moduleVersion
+                . '）低于已安装版本（' . $installedVersion . '），已拒绝执行降级，请使用更新的模块包。');
+        }
+
+        $schema = null;
+        if ($standardFile !== null) {
+            $schema = new SchemaSync(array('standards' => array($standardFile)));
+            $table = $schema->getTableModel($moduleId);
+            if ($schema->hasErrors() || !$table || !in_array('metadata', array_column($table['columns'], 'name'), true)) {
+                throw new \RuntimeException($moduleId . ' 模块升级失败：包内标准 SQL 缺少可用的 ' . $moduleId . '.metadata 列定义。');
+            }
+        }
+
+        // 同版本只核对表结构，避免重复执行升级种子和历史迁移。
         if ($installedVersion !== '' && $installedVersion === $moduleVersion) {
+            $repaired = $schema !== null && $this->ensureMetadataColumn($schema, $moduleId);
             return array(
                 'status' => 'skipped',
                 'module' => $moduleId,
                 'from' => $installedVersion,
                 'to' => $moduleVersion,
+                'metadata_repaired' => $repaired,
             );
-        }
-        if ($installedVersion !== '' && strcmp($installedVersion, $moduleVersion) > 0) {
-            throw new \RuntimeException($moduleId . ' 模块升级失败：安装包版本（' . $moduleVersion
-                . '）低于已安装版本（' . $installedVersion . '），已拒绝执行降级，请使用更新的模块包。');
         }
 
         // 升级载荷由核心 SeedRunner 统一编排：resources/images -> resources/sql/upgrade.sql -> upgrade.php
@@ -126,8 +142,13 @@ class ModuleRunner
             throw new \RuntimeException(implode('；', $wrong));
         }
 
+        $repaired = $schema !== null && $this->ensureMetadataColumn($schema, $moduleId);
+
         // 版本落库放在载荷成功之后：载荷抛错时保持旧版本，便于重试与快照还原
         $store->record($moduleId, $moduleVersion);
+        if ($schema !== null && $store->get($moduleId) !== $moduleVersion) {
+            throw new \RuntimeException($moduleId . ' 模块升级失败：无法写入模块版本账本。');
+        }
 
         $cacheClear = new CacheClearService();
         $cacheClear->clearSiteCache($this->rootPath);
@@ -137,6 +158,32 @@ class ModuleRunner
             'module' => $moduleId,
             'from' => $installedVersion,
             'to' => $moduleVersion,
+            'metadata_repaired' => $repaired,
         );
+    }
+
+    /**
+     * 按模块标准补齐扩展字段，校验实际结构后才允许记账。
+     *
+     * @param SchemaSync $schema 模块结构标准
+     * @param string $moduleId 模块主表名
+     * @return bool 是否补列
+     */
+    private function ensureMetadataColumn(SchemaSync $schema, $moduleId)
+    {
+        if (!DB::tableExist($moduleId)) {
+            throw new \RuntimeException($moduleId . ' 模块升级失败：找不到模块主表。');
+        }
+        if (DB::fieldExist($moduleId, 'metadata')) {
+            return false;
+        }
+
+        $schema->addColumn($moduleId, 'metadata');
+        if ($schema->hasErrors() || !DB::fieldExist($moduleId, 'metadata')) {
+            throw new \RuntimeException($moduleId . ' 模块升级失败：无法补充 metadata 列。'
+                . implode('；', $schema->getErrors()));
+        }
+
+        return true;
     }
 }

@@ -366,7 +366,9 @@ class ProductService extends BaseService
 
         try {
             DB::transaction(function () use ($product, $data, $metadataPlan, $id, $adminId, $languagePlan, $attributeService, $attributePlan) {
-                $product->fill($data, 'update')->save();
+                if ($product->fill($data, 'update')->save() === false) {
+                    throw new DomainException(lang('operation_failed'), route('admin.product'));
+                }
                 $this->languageDraft->commit($languagePlan, $id, $adminId);
                 if ($attributeService && $attributePlan) {
                     $attributeService->commitPending($attributePlan, $id);
@@ -531,15 +533,17 @@ class ProductService extends BaseService
         }
 
         if (isset($data['confirm'])) {
+            if (!Product::destroy($id)) {
+                throw new DomainException(lang('operation_failed'), route('admin.product'));
+            }
             audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::DELETE, 1, (string) $title);
-            Product::destroy($id);
             return array(
                 'message' => lang('product_del_succes'),
                 'back_url' => route('admin.product'),
             );
         }
 
-        $delCheck = preg_replace('/d%/Ums', $title, lang('del_check'));
+        $delCheck = str_replace('d%', $title, lang('del_check'));
         return array(
             'message' => $delCheck,
             'back_url' => route('admin.product'),
@@ -617,17 +621,32 @@ class ProductService extends BaseService
                 throw new DomainException(lang('product_del_has_order'), route('admin.product'));
             }
 
-            Product::destroy($deletable);
-            audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::DELETE, 1, 'bulk:PRODUCT (' . count($deletable) . ' items)' . ($skipped > 0 ? ', skipped:' . $skipped : ''), 'product');
-            $message = $skipped > 0
-                ? sprintf(lang('product_del_skip_has_order'), $skipped)
-                : lang('del_succes');
+            $deleted = Product::destroy($deletable);
+            if ($deleted === 0) {
+                throw new DomainException(lang('operation_failed'), route('admin.product'));
+            }
+            audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::DELETE, 1, 'bulk:PRODUCT (' . $deleted . ' items)' . ($skipped > 0 ? ', skipped:' . $skipped : ''), 'product');
+            if ($deleted < count($deletable)) {
+                $message = sprintf(lang('del_batch_partial'), $deleted, count($ids) - $deleted);
+            } else {
+                $message = $skipped > 0 ? sprintf(lang('product_del_skip_has_order'), $skipped) : lang('del_succes');
+            }
 
             return array('message' => $message, 'back_url' => route('admin.product'));
         }
 
         if ($action === 'category_move') {
-            Product::whereIn('id', $ids)->update(array('category_id' => (int) Arr::get($data, 'new_cat_id', 0)));
+            $target = Arr::get($data, 'new_cat_id', '');
+            if ((!is_int($target) && !is_string($target)) || !Check::number((string) $target)) {
+                throw new DomainException(lang('category_select_empty'), route('admin.product'));
+            }
+            $categoryId = (int) $target;
+            if ($categoryId !== 0 && !ProductCategory::whereKey($categoryId)->exists()) {
+                throw new DomainException(lang('category_not_exist'), route('admin.product'));
+            }
+            if (Product::whereIn('id', $ids)->update(array('category_id' => $categoryId)) === false) {
+                throw new DomainException(lang('operation_failed'), route('admin.product'));
+            }
             audit()->writeAdminLog((int) auth('admin')->id(), AdminLogAction::UPDATE, 1, 'category_move:PRODUCT (' . count($ids) . ' items)', 'product');
             return array('message' => lang('category_move_batch_succes'), 'back_url' => route('admin.product'));
         }

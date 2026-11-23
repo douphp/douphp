@@ -29,6 +29,7 @@ $_LANG['article_category_del_is_parent'] = '"d%"不是末級分類或者分類�
 $_LANG['article_category_cat_name'] = '分類名稱';
 $_LANG['article_category_add_succes'] = '新增文章分類成功';
 $_LANG['article_category_edit_succes'] = '編輯文章分類成功';
+$_LANG['article_category_del_succes'] = '刪除文章分類成功';
 
 // 文章中心
 $_LANG['article'] = '文章';

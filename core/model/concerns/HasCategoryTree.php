@@ -15,6 +15,7 @@
 namespace Dou\Core\Model\Concerns;
 
 use Dou\Core\Facade\DB;
+use Dou\Core\Foundation\Configuration\Config;
 
 if (!defined('IN_DOUCO')) {
     die('Hacking attempt');
@@ -141,18 +142,20 @@ trait HasCategoryTree
     {
         $data = self::categoryRows($table);
         $module = preg_replace('/_category$/', '', $table);
+        $textIcon = Config::get('site.open_icon', '') === 'text';
 
         foreach ((array) $data as $value) {
             if (!is_array($value)) {
                 continue;
             }
             if ($value['parent_id'] == $parentId && $value['id'] != $currentId) {
+                $icon = isset($value['icon']) ? (string) $value['icon'] : '';
                 $acc[] = array(
                     'id' => $value['id'],
                     'slug' => $value['slug'],
                     'parent_id' => $value['parent_id'],
                     'name' => $value['name'],
-                    'icon' => (isset($value['icon']) && $value['icon']) ? attachment()->url($value['icon']) : '',
+                    'icon' => !$textIcon && $icon !== '' ? attachment()->url($icon) : $icon,
                     'description' => $value['description'],
                     'sort' => $value['sort'],
                     'url' => route($module . '.category', array('category_id' => $value['id'])),

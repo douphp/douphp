@@ -323,6 +323,14 @@ class UrlGenerator
         }
 
         if ($n === 2 && $last === 'category') {
+            if (!empty($params['year'])) {
+                return array(
+                    'kind' => 'archive',
+                    'module' => $module,
+                    'year' => (int) $params['year'],
+                    'month' => isset($params['month']) ? (int) $params['month'] : 0,
+                );
+            }
             return array(
                 'kind' => 'category',
                 'module' => $module,
@@ -375,6 +383,9 @@ class UrlGenerator
         }
         if ($kind === 'category' && isset($intent['category_id']) && $intent['category_id'] !== '') {
             $keys[] = 'category_id';
+        }
+        if ($kind === 'archive') {
+            return array('year', 'month');
         }
         if ($kind === 'class' && isset($intent['class']) && $intent['class'] !== '') {
             $keys[] = 'class';

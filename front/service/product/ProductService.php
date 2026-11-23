@@ -87,10 +87,7 @@ class ProductService extends BaseService
         }
 
         if ($archive) {
-            $pageUrl = route('product.category', ['category_id' => 0]) . '/' . $archive['year'];
-            if (!empty($archive['month'])) {
-                $pageUrl .= '/' . $archive['month'];
-            }
+            $pageUrl = route('product.category', ['year' => $archive['year'], 'month' => $archive['month']]);
             if ($brandId) {
                 $pageUrl .= '?brand_id=' . $brandId;
             }

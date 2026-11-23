@@ -122,11 +122,6 @@ class BreadcrumbBuilder extends BaseService
      */
     private function archiveUrl($baseModule, array $archive)
     {
-        $url = route($baseModule . '.category') . '/' . sprintf('%04d', (int) $archive['year']);
-        if (!empty($archive['month'])) {
-            $url .= '/' . sprintf('%02d', (int) $archive['month']);
-        }
-
-        return $url;
+        return route($baseModule . '.category', array('year' => $archive['year'], 'month' => $archive['month']));
     }
 }

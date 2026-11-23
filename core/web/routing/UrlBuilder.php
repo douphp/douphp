@@ -367,6 +367,10 @@ class UrlBuilder
             return $this->buildPrettyCategoryPath($rules, $module, $catId, $columns);
         }
 
+        if ($kind === 'archive') {
+            return $this->buildColumnArchivePath($rules, $module, $intent['year'], $intent['month']);
+        }
+
         if ($kind === 'class') {
             $class = isset($intent['class']) ? $intent['class'] : '';
             if ($class === '' || $class === null) {
@@ -553,6 +557,32 @@ class UrlBuilder
     }
 
     /**
+     * 按当前路由风格生成栏目年月归档路径。
+     *
+     * @param array $rules 当前路由规则
+     * @param string $module 模块名
+     * @param int $year 归档年份
+     * @param int $month 归档月份，0 表示年度归档
+     * @return string
+     */
+    private function buildColumnArchivePath(array $rules, $module, $year, $month)
+    {
+        foreach ($this->columnRules($rules, $module) as $rule) {
+            $pattern = $rule['pattern'];
+            if (isset($rule['target']) && $this->hasPlaceholder($pattern, 'year')
+                && $this->hasPlaceholder($pattern, 'month') === ($month !== 0)) {
+                return PrettyUrlCompiler::fill($pattern, array(
+                    'module' => Naming::urlModule($module),
+                    'year' => sprintf('%04d', $year),
+                    'month' => sprintf('%02d', $month),
+                ));
+            }
+        }
+
+        return $this->buildColumnCategoryPath($rules, Naming::urlModule($module), $module, '');
+    }
+
+    /**
      * 栏目分类页伪静态路径
      *
      * 规则按占位符特征分组：
@@ -711,11 +741,11 @@ class UrlBuilder
         }
 
         if ($this->hasPlaceholder($pattern, 'year') || $this->hasPlaceholder($pattern, 'month')) {
-            $addTime = 0;
+            $addTime = null;
             if ($id && $this->db->fieldExist($baseModule, 'created_at')) {
-                $addTime = (int) $this->cachedField($baseModule . '_add_time', $id, $baseModule, 'created_at');
+                $addTime = Util::toTimestamp($this->cachedField($baseModule . '_add_time', $id, $baseModule, 'created_at'));
             }
-            $ts = $addTime ? $addTime : time();
+            $ts = $addTime !== null ? $addTime : time();
             $values['year'] = date('Y', $ts);
             $values['month'] = date('m', $ts);
         }

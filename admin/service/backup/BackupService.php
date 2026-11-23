@@ -119,7 +119,7 @@ class BackupService extends BaseService
      */
     protected function convertLegacyBackups()
     {
-        $lock = @fopen(STORAGE_PATH . 'backup/convert.lock', 'c');
+        $lock = @fopen(STORAGE_PATH . 'state/backup_convert.lock', 'c');
         if (!$lock || !flock($lock, LOCK_EX)) {
             if ($lock) {
                 fclose($lock);
@@ -184,7 +184,7 @@ class BackupService extends BaseService
      */
     public function runBackup($prefix, array $req)
     {
-        $lock = @fopen(STORAGE_PATH . 'backup/convert.lock', 'c');
+        $lock = @fopen(STORAGE_PATH . 'state/backup_convert.lock', 'c');
         if (!$lock || !flock($lock, LOCK_EX)) {
             if ($lock) {
                 fclose($lock);

@@ -101,7 +101,7 @@ class SnapshotCleanupService
             return null;
         }
 
-        $lockFile = $this->rootPath . 'storage/cache/snapshot_cleanup.lock';
+        $lockFile = $this->rootPath . 'storage/state/snapshot_cleanup.lock';
         $lockDir = dirname($lockFile);
         if (!is_dir($lockDir)) {
             @mkdir($lockDir, 0777, true);

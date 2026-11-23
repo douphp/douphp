@@ -54,10 +54,7 @@ class ArticleService extends BaseService
     public function buildArticleListData($catId, $page, $pageSize = 10, $archive = [])
     {
         if ($archive) {
-            $pageUrl = route('article.category') . '/' . $archive['year'];
-            if ($archive['month']) {
-                $pageUrl .= '/' . $archive['month'];
-            }
+            $pageUrl = route('article.category', ['year' => $archive['year'], 'month' => $archive['month']]);
         } else {
             $pageUrl = route('article.category', ['category_id' => $catId]);
         }

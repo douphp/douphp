@@ -202,8 +202,8 @@ class RouteIdValidator
         // 风格7：URL 里的 year/month 必须与记录真实 created_at 对应；created_at=0 放行（兼容缺时间戳的旧记录）。
         // 与 slug / categorySlug 同级校验：不一致即非法 URL，由控制器抛 DomainException 走统一提示页。
         if ($year !== '' || $month !== '') {
-            $addTime = (int) DB::table($module)->where('id', $final_id)->value('created_at');
-            if ($addTime > 0) {
+            $addTime = Util::toTimestamp(DB::table($module)->where('id', $final_id)->value('created_at'));
+            if ($addTime !== null) {
                 if ($year !== '' && (int) date('Y', $addTime) !== (int) $year) {
                     return -1;
                 }
