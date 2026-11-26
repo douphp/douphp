@@ -51,6 +51,8 @@ class Connection
     private $debug_mode = false;
     /** @var int 最近一次 fnExecute 导入中执行失败的语句数 */
     private $import_failed_count = 0;
+    /** @var string 最近一次 fnExecute 导入中第一条失败语句的错误文本（全部成功时为空串） */
+    private $import_first_error = '';
     /** @var string 最近一次 query() 失败时的 mysqli 原始错误文本（成功时清空） */
     private $last_error = '';
     /** @var array 表存在性探测缓存（表名 => bool），避免同请求内重复 SHOW TABLES */
@@ -750,9 +752,10 @@ class Connection
      * 还原），结束后恢复原 sql_mode，不影响导入之外的业务写入校验。
      *
      * @param mixed $sql 参数sql。
+     * @param bool $stopOnError 遇到第一条失败语句时停止导入。
      * @return bool 是否全部语句执行成功
      */
-    public function fnExecute($sql)
+    public function fnExecute($sql, $stopOnError = false)
     {
         $saved_mode = $this->getOne("SELECT @@SESSION.sql_mode");
         $restore_mode = false;
@@ -785,6 +788,9 @@ class Connection
                         if ($first_error === '') {
                             $first_error = mysqli_error($this->dou_link);
                         }
+                        if ($stopOnError) {
+                            break;
+                        }
                     }
                 }
             }
@@ -804,6 +810,7 @@ class Connection
         }
 
         $this->import_failed_count = $failed;
+        $this->import_first_error = $first_error;
         if ($failed > 0) {
             Log::error('SQL 导入存在执行失败的语句', array(
                 'channel' => 'system',
@@ -823,6 +830,19 @@ class Connection
     public function getImportFailedCount()
     {
         return $this->import_failed_count;
+    }
+
+    /**
+     * 获取最近一次 fnExecute 导入中第一条失败语句的 mysqli 错误文本。
+     *
+     * 与 {@see getLastError()} 的区别：本方法只保留导入期间的首条失败，不会被导入
+     * 收尾的 sql_mode / FOREIGN_KEY_CHECKS 语句覆盖，供恢复 / 升级把库端原因直接告知用户。
+     *
+     * @return string 全部成功时为空串
+     */
+    public function getImportFirstError()
+    {
+        return $this->import_first_error;
     }
 
     /**

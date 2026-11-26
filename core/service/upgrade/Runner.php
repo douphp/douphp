@@ -15,6 +15,7 @@
 namespace Dou\Core\Service\Upgrade;
 
 use Dou\Core\Facade\DB;
+use Dou\Core\Infra\Log\Log;
 use Dou\Core\Service\Snapshot\SnapshotService;
 
 if (!defined('IN_DOUCO')) {
@@ -28,7 +29,7 @@ if (!defined('IN_DOUCO')) {
  * 云渠道（云更新载荷）与向导渠道共用本类，壳只负责兼容自举与上下文装配。
  *
  * 执行顺序（严格）：
- *   S0 环境守卫（set_time_limit / ignore_user_abort）
+ *   S0 环境守卫（执行时限 + 日志落点）
  *   S1 配置合并：Dou\Upgrade\Lib\ConfigMerge::run（升级包基准 x 站点现行文件）
  *   S2 版本链：VersionRegistry 发现待执行版本（ver >= current，含当前版本，重跑幂等）
  *   S3 结构同步引擎就绪（core/infra/database/SchemaSync，单一权威源；缺失即抛错终止）
@@ -90,6 +91,11 @@ class Runner
         // 默认值出发；早回灌 + 权威写点已消除该窗口，环境守卫作为第一道防线保留）。
         @set_time_limit(0);
         @ignore_user_abort(true);
+
+        // 升级日志按渠道落 storage/log/upgrade/ 或 storage/log/_update/：云渠道在本请求内
+        // 接管 admin 已设置的日志路径，与向导渠道分开，避免升级错误混进 admin 日志。
+        $logDir = $ctx->channel === 'cloud' ? '_update' : 'upgrade';
+        Log::setPath(rtrim($ctx->rootPath, '/\\') . '/storage/log/' . $logDir . '/');
 
         // S0.5 向导渠道：升级动作开始前先建「仅数据库」还原点（文件已由用户手工整包上传，
         //      无需也不能再备份文件）。尽力而为：失败只记警告不阻断——向导是最后的修复

@@ -67,6 +67,7 @@ class BackupController extends BaseController
             ),
             'rec' => 'default',
             'table_list' => $data['table_list'],
+            'vector_tables' => $data['vector_tables'],
             'totalsize' => $data['totalsize'],
             'filename' => 'D' . date('Ymd') . 'T' . date('His'),
         ]);

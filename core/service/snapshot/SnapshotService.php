@@ -17,6 +17,7 @@ namespace Dou\Core\Service\Snapshot;
 use Dou\Core\Facade\DB;
 use Dou\Core\Facade\Zip;
 use Dou\Core\Infra\Database\DbDumpService;
+use Dou\Core\Infra\Database\DbDumpRestoreCheck;
 use Dou\Core\Support\FileHelper;
 
 if (!defined('IN_DOUCO')) {
@@ -29,7 +30,7 @@ if (!defined('IN_DOUCO')) {
  * 目录：storage/snapshot/{scope}-{scope_id}-{YmdHis}/
  *   - progress.json     创建进度（分阶段续传游标）
  *   - files.zip         文件集（条目名 = 相对站点根路径）
- *   - db/xx-{table}.sql 数据库分块导出（与备份模块同一引擎 {@see DbDumpService}）
+ *   - db/*.sql        数据库分卷（与备份模块同一引擎 {@see DbDumpService}）
  *   - manifest.json     完成清单（含 files.zip 与各 db 文件的 sha256）
  *   - rescue.php        独立救援脚本（仅 system 域；不含敏感信息，令牌另行签发）
  *   - rescue.token      急救令牌的 sha256 与有效期（明文令牌不落盘）
@@ -39,7 +40,7 @@ if (!defined('IN_DOUCO')) {
  * 创建分四个阶段（均可断点续传）：
  *   collect  收集文件清单与表清单（一次调用）
  *   files    分批打包文件（每批 file_batch 个文件）
- *   db       按字节预算分块导出数据库（每调用 db_bytes 字节）
+ *   db       按字节预算分卷导出数据库（每卷 db_bytes 字节）
  *   finalize 写 manifest / 救援脚本 / 清除活跃指针 / 留存策略清理
  *
  * 文件集模型（three 参数位之一）：
@@ -206,6 +207,7 @@ class SnapshotService
             'table_index' => 0,
             'startfrom' => 0,
             'db_bytes' => 0,
+            'requires_vector' => false,
             'phase' => 'collect',
         );
         $error = $this->saveProgress($dir, $progress);
@@ -630,12 +632,12 @@ class SnapshotService
     }
 
     /**
-     * db 阶段单元：在字节预算内连续导表。
+     * db 阶段单元：导出当前表的一个分卷，成功后推进游标。
      *
      * @param string $dir
      * @param array $progress
-     * @param int $dbBytes 本调用字节预算
-     * @param string $title 快照标题（写进每个 db 文件头）
+     * @param int $dbBytes 单卷字节预算
+     * @param string $title 快照标题（写进每张表的首卷文件头）
      * @param array $logs
      * @return bool 是否全部导完
      */
@@ -648,43 +650,39 @@ class SnapshotService
 
         $tables = (array) $progress['tables'];
         $total = count($tables);
-        $bytesThisCall = 0;
+        $tableIndex = (int) $progress['table_index'];
+        if ($tableIndex >= $total) {
+            return true;
+        }
 
-        while ((int) $progress['table_index'] < $total) {
-            if ($bytesThisCall >= $dbBytes) {
-                break;
-            }
-            $table = (string) $tables[(int) $progress['table_index']];
-            $file = $dir . 'db/' . str_pad((string) ((int) $progress['table_index'] + 1), 3, '0', STR_PAD_LEFT) . '-' . $table . '.sql';
-            if (!is_file($file)) {
-                $appVersion = (string) \Dou\Core\Foundation\Configuration\Config::get('site.douphp_version', '');
-                $header = DbDumpService::headerComment($title, $appVersion);
-                if (@file_put_contents($file, $header, LOCK_EX) === false) {
-                    throw new \RuntimeException($this->t('snapshot_error_db_write', '数据库导出文件写入失败：') . $file);
-                }
-                $bytesThisCall += strlen($header);
-                $progress['db_bytes'] = (int) $progress['db_bytes'] + strlen($header);
-            }
-
-            $chunk = $this->dbDump->dumpTable($table, (int) $progress['startfrom'], $bytesThisCall, $dbBytes);
-            if ($chunk['sql'] !== '') {
-                if (@file_put_contents($file, $chunk['sql'], FILE_APPEND | LOCK_EX) === false) {
-                    throw new \RuntimeException($this->t('snapshot_error_db_write', '数据库导出文件写入失败：') . $file);
-                }
-                $bytesThisCall += strlen($chunk['sql']);
-                $progress['db_bytes'] = (int) $progress['db_bytes'] + strlen($chunk['sql']);
-            }
-            $progress['startfrom'] = (int) $chunk['next_startrow'];
-
-            if ($chunk['sql'] === '' && (int) $progress['startfrom'] === 0) {
-                // 本调用剩余空间连表头都放不下：留给下一次调用
-                break;
-            }
-            if (!empty($chunk['complete'])) {
-                $progress['table_index'] = (int) $progress['table_index'] + 1;
-                $progress['startfrom'] = 0;
-                $logs[] = sprintf($this->t('snapshot_log_db', '正在导出数据库（%d/%d 表）'), (int) $progress['table_index'], $total);
-            }
+        $table = (string) $tables[$tableIndex];
+        $startfrom = (int) $progress['startfrom'];
+        $file = $dir . 'db/' . str_pad((string) ($tableIndex + 1), 3, '0', STR_PAD_LEFT) . '-' . $table . '.sql';
+        $chunk = $this->dbDump->dumpTable($table, $startfrom, 0, $dbBytes);
+        $sql = $chunk['sql'];
+        if ($sql === '') {
+            throw new \RuntimeException('无法生成数据库分卷：' . $table);
+        }
+        if ($startfrom === 0) {
+            $appVersion = (string) \Dou\Core\Foundation\Configuration\Config::get('site.douphp_version', '');
+            $sql = DbDumpService::headerComment($title, $appVersion) . $sql;
+        } else {
+            // 按起始行命名，确保文件名排序与导入顺序一致，重试可覆盖尚未提交游标的分卷。
+            $file .= '.' . str_pad((string) $startfrom, 20, '0', STR_PAD_LEFT) . '.sql';
+        }
+        $size = strlen($sql);
+        if (@file_put_contents($file, $sql, LOCK_EX) !== $size) {
+            throw new \RuntimeException($this->t('snapshot_error_db_write', '数据库导出文件写入失败：') . $file);
+        }
+        $progress['db_bytes'] = (int) $progress['db_bytes'] + $size;
+        if (!empty($chunk['requires_vector'])) {
+            $progress['requires_vector'] = true;
+        }
+        $progress['startfrom'] = (int) $chunk['next_startrow'];
+        if (!empty($chunk['complete'])) {
+            $progress['table_index'] = $tableIndex + 1;
+            $progress['startfrom'] = 0;
+            $logs[] = sprintf($this->t('snapshot_log_db', '正在导出数据库（%d/%d 表）'), (int) $progress['table_index'], $total);
         }
 
         return (int) $progress['table_index'] >= $total;
@@ -719,6 +717,7 @@ class SnapshotService
             'tables_skipped' => array_values(isset($progress['tables_skipped']) ? (array) $progress['tables_skipped'] : array()),
             'db_files' => array(),
             'db_bytes' => (int) $progress['db_bytes'],
+            'requires_vector' => !empty($progress['requires_vector']),
             'douphp_version' => (string) \Dou\Core\Foundation\Configuration\Config::get('site.douphp_version', ''),
             'php_version' => PHP_VERSION,
         );
@@ -985,7 +984,7 @@ class SnapshotService
      */
     protected function rescueScriptSource()
     {
-        return <<<'RESCUE_SCRIPT'
+        $source = <<<'RESCUE_SCRIPT'
 <?php
 /**
  * DouPHP 升级还原点 · 独立救援脚本
@@ -998,7 +997,7 @@ class SnapshotService
 error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED & ~E_WARNING);
 @set_time_limit(0);
 @ini_set('memory_limit', '512M');
-// PHP 8.1+ 默认 mysqli 抛异常（MYSQLI_REPORT_ERROR|STRICT）：救援必须按返回值计失败并继续
+// PHP 8.1+ 默认 mysqli 抛异常（MYSQLI_REPORT_ERROR|STRICT）：救援按返回值处理失败
 if (function_exists('mysqli_report')) {
     mysqli_report(MYSQLI_REPORT_OFF);
 }
@@ -1012,6 +1011,8 @@ while (ob_get_level() > 0) {
 
 $baseDir = rtrim(str_replace('\\', '/', dirname(__FILE__)), '/');
 $rootDir = rtrim(str_replace('\\', '/', dirname(dirname(dirname($baseDir)))), '/') . '/';
+
+/* DOU_DUMP_RESTORE_CHECK */
 
 function ds_h($s)
 {
@@ -1069,6 +1070,19 @@ function ds_out($log, $cls, $msg)
     return $log;
 }
 
+function ds_open_database($dbhost, $dbuser, $dbpass, $dbname)
+{
+    $mysqli = @new mysqli($dbhost, $dbuser, $dbpass, $dbname);
+    if ($mysqli->connect_errno) {
+        ds_page_close('<div class="notice err">连接数据库失败：' . ds_h($mysqli->connect_error) . '</div>', true);
+    }
+    if (!@$mysqli->set_charset('utf8mb4')) {
+        @$mysqli->set_charset('utf8');
+    }
+
+    return $mysqli;
+}
+
 // ——— 令牌校验（一次性；sha256 比对；24 小时有效期） ———
 $tokenFile = $baseDir . '/rescue.token';
 $tokenHash = '';
@@ -1124,8 +1138,9 @@ $log = '';
 ds_page_open('正在恢复站点');
 echo '<div class="notice">恢复进行中，请保持页面打开；日志会实时输出，完成后自动给出结果。</div><div class="log">';
 
-// 1. 文件恢复
+// 文件还原前先检查数据库兼容性，若快照包含数据库配置则使用即将恢复的配置。
 $zipFile = $baseDir . '/files.zip';
+$za = null;
 if (is_file($zipFile)) {
     if (!class_exists('ZipArchive')) {
         ds_page_close('<div class="notice err">当前 PHP 未启用 zip 扩展（ZipArchive），无法恢复文件。请启用扩展后重试。</div>', true);
@@ -1134,6 +1149,42 @@ if (is_file($zipFile)) {
     if (@$za->open($zipFile) !== true) {
         ds_page_close('<div class="notice err">files.zip 无法打开。</div>', true);
     }
+}
+$dbFiles = (array) (isset($manifest['db_files']) ? $manifest['db_files'] : array());
+$dbPaths = array();
+$requiresVector = false;
+if ($dbFiles) {
+    foreach ($dbFiles as $dbFile) {
+        $name = isset($dbFile['name']) ? (string) $dbFile['name'] : '';
+        $path = $baseDir . '/db/' . basename($name);
+        if (!is_file($path) || (!empty($dbFile['sha256']) && !hash_equals((string) $dbFile['sha256'], (string) @hash_file('sha256', $path)))) {
+            ds_page_close('<div class="notice err">数据库分卷缺失或校验失败：' . ds_h($name) . '</div>', true);
+        }
+        $dbPaths[] = $path;
+    }
+    $cfgFile = $rootDir . 'config/config.php';
+    if ($za !== null && $za->locateName('config/config.php') !== false) {
+        $cfgFile = 'zip://' . $zipFile . '#config/config.php';
+    }
+    $dbhost = '';
+    $dbname = '';
+    $dbuser = '';
+    $dbpass = '';
+    $prefix = '';
+    if ((@include $cfgFile) === false) {
+        ds_page_close('<div class="notice err">无法读取 config/config.php，无法恢复数据库。</div>', true);
+    }
+    $mysqli = ds_open_database($dbhost, $dbuser, $dbpass, $dbname);
+    try {
+        $requiresVector = DbDumpRestoreCheck::inspect($dbPaths, array($mysqli, 'query'));
+    } catch (\RuntimeException $e) {
+        ds_page_close('<div class="notice err">' . ds_h($e->getMessage()) . '</div>', true);
+    }
+    @$mysqli->close();
+}
+
+// 1. 文件恢复
+if ($za !== null) {
     $total = (int) $za->numFiles;
     $log = ds_out($log, 'muted', '开始恢复文件（共 ' . $total . ' 项）…');
     $failedFiles = 0;
@@ -1211,50 +1262,45 @@ if ((isset($manifest['file_mode']) ? $manifest['file_mode'] : '') === 'full') {
 }
 
 // 3. 数据库恢复
-$dbFiles = (array) (isset($manifest['db_files']) ? $manifest['db_files'] : array());
-if ($dbFiles) {
-    $cfgFile = $rootDir . 'config/config.php';
-    if (!is_file($cfgFile)) {
-        ds_page_close('<div class="notice err">config/config.php 不存在，无法恢复数据库。</div>', true);
-    }
-    $dbhost = '';
-    $dbname = '';
-    $dbuser = '';
-    $dbpass = '';
-    $prefix = '';
-    include $cfgFile;
-
-    $mysqli = @new mysqli($dbhost, $dbuser, $dbpass, $dbname);
-    if ($mysqli->connect_errno) {
-        ds_page_close('<div class="notice err">连接数据库失败：' . ds_h($mysqli->connect_error) . '</div>', true);
-    }
-    if (!@$mysqli->set_charset('utf8mb4')) {
-        @$mysqli->set_charset('utf8');
+if ($dbPaths) {
+    $mysqli = ds_open_database($dbhost, $dbuser, $dbpass, $dbname);
+    if ($requiresVector) {
+        try {
+            DbDumpRestoreCheck::requireVectorSupport(array($mysqli, 'query'));
+        } catch (\RuntimeException $e) {
+            ds_page_close('<div class="notice err">' . ds_h($e->getMessage()) . '</div>', true);
+        }
     }
     @$mysqli->query("SET SESSION sql_mode=''");
 
-    $log = ds_out($log, 'muted', '开始恢复数据库（共 ' . count($dbFiles) . ' 个分卷）…');
+    $log = ds_out($log, 'muted', '开始恢复数据库（共 ' . count($dbPaths) . ' 个分卷）…');
     $failedSql = 0;
     $doneSql = 0;
-    foreach ($dbFiles as $index => $dbFile) {
-        $name = isset($dbFile['name']) ? (string) $dbFile['name'] : '';
-        $path = $baseDir . '/db/' . basename($name);
-        if (!is_file($path)) {
+    foreach ($dbPaths as $index => $path) {
+        $name = basename($path);
+        $sql = @file_get_contents($path);
+        if ($sql === false) {
+            if ($requiresVector) {
+                ds_page_close('<div class="notice err">还原已中止，无法读取数据库分卷：' . ds_h($name) . '</div>', true);
+            }
             $failedSql++;
-            $log = ds_out($log, 'err', '分卷缺失：' . $name);
+            $log = ds_out($log, 'err', '无法读取数据库分卷：' . $name);
             continue;
         }
-        foreach (ds_split_sql((string) file_get_contents($path)) as $stmt) {
+        foreach (ds_split_sql($sql) as $stmt) {
             if (@$mysqli->query($stmt)) {
                 $doneSql++;
             } else {
+                if ($requiresVector) {
+                    ds_page_close('<div class="notice err">还原已中止，数据库分卷 ' . ds_h($name) . ' 执行失败：' . ds_h($mysqli->error) . '</div>', true);
+                }
                 $failedSql++;
                 if ($failedSql <= 20) {
                     $log = ds_out($log, 'err', '语句失败：' . substr($stmt, 0, 120));
                 }
             }
         }
-        $log = ds_out($log, 'muted', '数据库分卷 ' . ($index + 1) . '/' . count($dbFiles) . ' 完成');
+        $log = ds_out($log, 'muted', '数据库分卷 ' . ($index + 1) . '/' . count($dbPaths) . ' 完成');
     }
     @$mysqli->close();
     if ($failedSql > 0) {
@@ -1398,5 +1444,7 @@ function ds_rmdir_children($dir)
     closedir($handle);
 }
 RESCUE_SCRIPT;
+
+        return str_replace('/* DOU_DUMP_RESTORE_CHECK */', DbDumpRestoreCheck::standaloneSource(), $source);
     }
 }

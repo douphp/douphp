@@ -80,22 +80,30 @@ class Barcode
             }
             header('Content-Type: image/png');
             imagepng($image);
-            imagedestroy($image);
+            if (PHP_VERSION_ID < 80000) {
+                imagedestroy($image);
+            }
             exit;
         }
 
         if ($mode === 'save') {
             $file = isset($options['file']) ? (string) $options['file'] : '';
             if ($file === '') {
-                imagedestroy($image);
+                if (PHP_VERSION_ID < 80000) {
+                    imagedestroy($image);
+                }
                 return false;
             }
             $saved = imagepng($image, $file);
-            imagedestroy($image);
+            if (PHP_VERSION_ID < 80000) {
+                imagedestroy($image);
+            }
             return $saved ? true : false;
         }
 
-        imagedestroy($image);
+        if (PHP_VERSION_ID < 80000) {
+            imagedestroy($image);
+        }
         return false;
     }
 
@@ -141,22 +149,30 @@ class Barcode
             }
             header('Content-Type: image/png');
             imagepng($image);
-            imagedestroy($image);
+            if (PHP_VERSION_ID < 80000) {
+                imagedestroy($image);
+            }
             exit;
         }
 
         if ($mode === 'save') {
             $file = isset($options['file']) ? (string) $options['file'] : '';
             if ($file === '') {
-                imagedestroy($image);
+                if (PHP_VERSION_ID < 80000) {
+                    imagedestroy($image);
+                }
                 return false;
             }
             $saved = imagepng($image, $file);
-            imagedestroy($image);
+            if (PHP_VERSION_ID < 80000) {
+                imagedestroy($image);
+            }
             return $saved ? true : false;
         }
 
-        imagedestroy($image);
+        if (PHP_VERSION_ID < 80000) {
+            imagedestroy($image);
+        }
         return false;
     }
 
@@ -233,22 +249,30 @@ class Barcode
             }
             header('Content-Type: image/png');
             imagepng($image);
-            imagedestroy($image);
+            if (PHP_VERSION_ID < 80000) {
+                imagedestroy($image);
+            }
             exit;
         }
 
         if ($mode === 'save') {
             $file = isset($options['file']) ? (string) $options['file'] : '';
             if ($file === '') {
-                imagedestroy($image);
+                if (PHP_VERSION_ID < 80000) {
+                    imagedestroy($image);
+                }
                 return false;
             }
             $saved = imagepng($image, $file);
-            imagedestroy($image);
+            if (PHP_VERSION_ID < 80000) {
+                imagedestroy($image);
+            }
             return $saved ? true : false;
         }
 
-        imagedestroy($image);
+        if (PHP_VERSION_ID < 80000) {
+            imagedestroy($image);
+        }
         return false;
     }
 }

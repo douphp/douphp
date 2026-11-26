@@ -45,19 +45,25 @@ class BarcodeGenerator {
 				header('Content-Type: image/png');
 				$image = $this->render_image($symbology, $data, $options);
 				imagepng($image);
-				imagedestroy($image);
+				if (PHP_VERSION_ID < 80000) {
+					imagedestroy($image);
+				}
 				break;
 			case 'gif':
 				header('Content-Type: image/gif');
 				$image = $this->render_image($symbology, $data, $options);
 				imagegif($image);
-				imagedestroy($image);
+				if (PHP_VERSION_ID < 80000) {
+					imagedestroy($image);
+				}
 				break;
 			case 'jpg': case 'jpe': case 'jpeg':
 				header('Content-Type: image/jpeg');
 				$image = $this->render_image($symbology, $data, $options);
 				imagejpeg($image);
-				imagedestroy($image);
+				if (PHP_VERSION_ID < 80000) {
+					imagedestroy($image);
+				}
 				break;
 			case 'svg':
 				header('Content-Type: image/svg+xml');

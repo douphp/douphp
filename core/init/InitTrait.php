@@ -526,8 +526,8 @@ trait InitTrait
      *
      * site.log_runtime 为全站总开关：false 时关闭 Log 并跳过全局钩子。
      * 总开关为 true 时：依本 Trait 内 {@see InitTrait::$logRuntimeForShell} 对应键为 false 则本端关闭；
-     * 否则启用日志，写入 ROOT_PATH/data/log/{front|admin|api}/，并注册全局兜底钩子。
-     * site.log_clean_keep_days：≤0 不自动清理；未配置时默认 30；≥1 时按该天数节流清理三端日志目录（约每 24 小时一次）。
+     * 否则启用日志，写入 storage/log/{front|admin|api}/，并注册全局兜底钩子。
+     * site.log_clean_keep_days：≤0 不自动清理；未配置时默认 30；≥1 时按该天数节流清理各端日志目录（约每 24 小时一次）。
      * 页面是否显示致命错误仍取决于 display_errors 等 PHP 配置。
      *
      * @return void

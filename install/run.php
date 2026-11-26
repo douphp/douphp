@@ -20,6 +20,8 @@ if (!defined('IN_DOUCO') || !defined('IS_INSTALL')) {
 define('ROOT_PATH', str_replace('\\', '/', dirname(dirname(__FILE__))) . '/');
 define('INSTALL_PATH', ROOT_PATH . 'install/');
 define('I_PATH', 'install');
+// 站点运行时存储目录（install 不经过 core/bootstrap.php，需自行定义；日志按此定位）
+define('STORAGE_PATH', ROOT_PATH . 'storage/');
 define('HTTP', (
     (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') ||
     (!empty($_SERVER['HTTP_FROM_HTTPS']) && strtolower($_SERVER['HTTP_FROM_HTTPS']) === 'on') ||
@@ -63,6 +65,9 @@ spl_autoload_register(function ($className) {
         require_once($classFile);
     }
 });
+
+// 安装器日志独立落盘；storage 不可写时 Log 自动放弃写入，不打断安装流程
+\Dou\Core\Infra\Log\Log::setPath(STORAGE_PATH . 'log/install/');
 
 // DOU_ID 用作 Session 命名空间（$_SESSION[DOU_ID]，见 core/infra/session/Session.php），
 // CsrfManager 通过 Session facade 在 [DOU_ID]['token'][...] 下读写令牌。install 各端独立

@@ -1257,7 +1257,14 @@ class PHPMailer
     {
         $bad_rcpt = array();
         if (!$this->smtpConnect($this->SMTPOptions)) {
-            throw new phpmailerException($this->lang('smtp_connect_failed'), self::STOP_CRITICAL);
+            // smtpConnect() 已把具体原因留在 ErrorInfo 里，这里并入异常，
+            // 避免最终只剩「SMTP connect() failed」这句通用文案
+            $message = $this->lang('smtp_connect_failed');
+            $detail = trim((string) $this->ErrorInfo);
+            if ($detail !== '' and strpos($message, $detail) === false) {
+                $message .= ' ' . $detail;
+            }
+            throw new phpmailerException($message, self::STOP_CRITICAL);
         }
         if ('' == $this->Sender) {
             $smtp_from = $this->From;
@@ -1378,7 +1385,15 @@ class PHPMailer
                     } else {
                         $hello = $this->serverHostname();
                     }
-                    $this->smtp->hello($hello);
+                    // EHLO/HELO 失败时必须立即中止：原版丢弃了返回值，继续往下走认证，
+                    // 会把「服务端断连」误报成「认证失败」。
+                    if (!$this->smtp->hello($hello)) {
+                        $smtpError = $this->smtp->getError();
+                        throw new phpmailerException(
+                            $this->lang('connect_host')
+                            . (empty($smtpError['error']) ? '' : ' ' . $smtpError['error'])
+                        );
+                    }
                     //Automatically enable TLS encryption if:
                     // * it's not disabled
                     // * we have openssl extension
@@ -1389,10 +1404,20 @@ class PHPMailer
                     }
                     if ($tls) {
                         if (!$this->smtp->startTLS()) {
-                            throw new phpmailerException($this->lang('connect_host'));
+                            $smtpError = $this->smtp->getError();
+                            throw new phpmailerException(
+                                $this->lang('connect_host')
+                                . (empty($smtpError['error']) ? '' : ' ' . $smtpError['error'])
+                            );
                         }
                         // We must resend HELO after tls negotiation
-                        $this->smtp->hello($hello);
+                        if (!$this->smtp->hello($hello)) {
+                            $smtpError = $this->smtp->getError();
+                            throw new phpmailerException(
+                                $this->lang('connect_host')
+                                . (empty($smtpError['error']) ? '' : ' ' . $smtpError['error'])
+                            );
+                        }
                     }
                     if ($this->SMTPAuth) {
                         if (!$this->smtp->authenticate(
@@ -1402,7 +1427,11 @@ class PHPMailer
                             $this->Realm,
                             $this->Workstation
                         )) {
-                            throw new phpmailerException($this->lang('authenticate'));
+                            $smtpError = $this->smtp->getError();
+                            throw new phpmailerException(
+                                $this->lang('authenticate')
+                                . (empty($smtpError['error']) ? '' : ' ' . $smtpError['error'])
+                            );
                         }
                     }
                     return true;
@@ -1410,15 +1439,27 @@ class PHPMailer
                     $lastexception = $exc;
                     $this->edebug($exc->getMessage());
                     // We must have connected, but then failed TLS or Auth, so close connection nicely
-                    $this->smtp->quit();
+                    // 连接已被对端关闭时不再发 QUIT，避免多出一条误导性的 EOF 日志
+                    if ($this->smtp->connected()) {
+                        $this->smtp->quit();
+                    }
                 }
             }
         }
         // If we get here, all connection attempts have failed, so close connection hard
+        // close() 会清空 SMTP 错误，先把最后一次失败原因留下来，供 smtpSend() 拼进最终异常
+        $smtpLastError = $this->smtp->getError();
+        $lastMessage = is_null($lastexception) ? '' : $lastexception->getMessage();
         $this->smtp->close();
         // As we've caught all exceptions, just report whatever the last one was
         if ($this->exceptions and !is_null($lastexception)) {
             throw $lastexception;
+        }
+        if ($lastMessage === '' and is_array($smtpLastError) and !empty($smtpLastError['error'])) {
+            $lastMessage = $smtpLastError['error'];
+        }
+        if ($lastMessage !== '') {
+            $this->setError($lastMessage);
         }
         return false;
     }

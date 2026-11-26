@@ -22,7 +22,7 @@
    <table class="table">
     <form name="myform" method="post" action="{url link='admin.backup.backup'}">
      <tr>
-      <th class="text-center"> <input name='chkall' type='checkbox' id='chkall' onclick='selectcheckbox(this.form)' value='check' checked>
+      <th class="text-center"> <input name='chkall' type='checkbox' id='chkall' value='check' checked>
       </th>
       <th class="text-left">{$lang.backup_table_name}</th>
       <th class="m-none text-center">{$lang.backup_table_engine}</th>
@@ -33,8 +33,8 @@
      </tr>
      <!-- {foreach from=$table_list item=tables} -->
      <tr>
-      <td class="text-center"><input type=checkbox name=tables[] value={$tables.Name} checked></td>
-      <td class="text-left">{$tables.Name}</td>
+      <td class="text-center"><input type="checkbox" name="tables[]" value="{$tables.Name}"{if $tables.vector_backup} data-vector-table{/if} checked></td>
+      <td class="text-left">{$tables.Name}<!-- {if $tables.vector_backup} --> <span class="cue">{$lang.backup_vector_table_group}</span><!-- {/if} --></td>
       <td class="m-none text-center">{$tables.Engine}</td>
       <td class="m-none text-center">{$tables.Rows}</td>
       <td class="m-none text-center">{$tables.Data_length}</td>
@@ -48,6 +48,12 @@
      <tr>
       <td colspan="7" class="text-center">{$lang.backup_vol_set}</td>
      </tr>
+     <!-- {if $vector_tables} -->
+     <tr>
+      <td colspan="7" class="text-center"> <label><input type="checkbox" id="include-vector-tables" checked> {$lang.backup_include_vector_tables} <span class="cue">({$lang.backup_include_vector_tables_cue})</span></label>
+        </td>
+     </tr>
+     <!-- {/if} -->
      <tr>
       <td colspan="7" class="text-center"> {$lang.backup_sql_filename}：
        <input type="text" class="input" name="filename" value="{$filename}" size=30>
@@ -64,6 +70,39 @@
      </tr>
     </form>
    </table>
+   {literal}
+   <script>
+    $(function () {
+     var form = document.myform;
+     var tables = $(form.elements).filter('[name="tables[]"]');
+     var vectorTables = tables.filter('[data-vector-table]');
+     var all = $('#chkall');
+     var includeVectors = $('#include-vector-tables');
+
+     function updateGroup(group, members) {
+      var count = members.filter(':checked').length;
+      group.prop('checked', members.length > 0 && count === members.length)
+       .prop('indeterminate', count > 0 && count < members.length);
+     }
+
+     function updateGroups() {
+      updateGroup(all, tables);
+      updateGroup(includeVectors, vectorTables);
+     }
+
+     all.on('change', function () {
+      tables.prop('checked', this.checked);
+      updateGroups();
+     });
+     includeVectors.on('change', function () {
+      vectorTables.prop('checked', this.checked);
+      updateGroups();
+     });
+     tables.on('change', updateGroups);
+     updateGroups();
+    });
+   </script>
+   {/literal}
    <!--{/if}-->
    <!-- {if $rec eq 'restore'} 恢复备份 -->
    <table class="table">

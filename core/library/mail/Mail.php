@@ -85,14 +85,29 @@ class Mail {
 
             $mail->CharSet = "UTF-8";                              // 设定邮件编码
             $mail->isSMTP();                                      // 设定使用SMTP服务
+
+            $mailPort = (int) Config::get('site.mail_port', 25);      // SMTP服务器的端口号
+            $mailSsl = (bool) Config::get('site.mail_ssl', false);    // 是否使用SSL安全协议
+
+            // 端口与加密方式必须匹配，否则连上了也建不了 SMTP 会话：465 是隐式 SSL 端口，
+            // 明文连接会被服务端直接断开（收不到 220 欢迎语）；587 走 STARTTLS，强制 SSL
+            // 同样握手失败。这里提前拦下这类自相矛盾的配置，避免 PHPMailer 把「服务端
+            // 断连」一路误报成「认证失败」，让人无从排查。
+            if ($mailPort === 465 && !$mailSsl) {
+                return array('success' => false, 'error' => '端口 465 为隐式 SSL 端口，请勾选「使用SSL安全协议」后重试');
+            }
+            if ($mailPort === 587 && $mailSsl) {
+                return array('success' => false, 'error' => '端口 587 使用 STARTTLS 加密，请取消勾选「使用SSL安全协议」后重试');
+            }
+
             $mail->Host = Config::get('site.mail_host', '');          // SMTP服务器
             $mail->SMTPAuth = true;                               // 启用SMTP验证功能
             $mail->Username = Config::get('site.mail_username', '');  // SMTP服务器用户名
             $mail->Password = Config::get('site.mail_password', '');  // SMTP服务器密码
-            if (Config::get('site.mail_ssl', false)) {
+            if ($mailSsl) {
                 $mail->SMTPSecure = 'ssl';                        // 安全协议，可以注释掉
             }
-            $mail->Port = Config::get('site.mail_port', 25);          // SMTP服务器的端口号
+            $mail->Port = $mailPort;                              // SMTP服务器的端口号
             $mail->Timeout = max(1, (int) $timeout);              // PHPMailer 默认 300s，超过 PHP 执行时限会导致请求被中断
 
             $mail->From = Config::get('site.mail_username', '');      // 发件人地址

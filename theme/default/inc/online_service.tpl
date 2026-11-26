@@ -97,6 +97,9 @@
   <a class="item-icon bi bi-headset" href="{$site.chat_link}" target="_blank"></a>
  </div>
  <!-- {/if} -->
+ <!-- {if $features.chat} -->
+ {include file="inc/chat_widget.tpl"}
+ <!-- {/if} -->
  <p class="go-top"><a href="javascript:;;" onfocus="this.blur();" class="go-btn bi bi-chevron-up"></a></p>
 </div>
 <!-- {/if} -->

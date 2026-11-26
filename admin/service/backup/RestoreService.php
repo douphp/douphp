@@ -18,6 +18,7 @@ use Dou\Admin\Service\Cache\CacheClearService;
 use Dou\Admin\Service\Cloud\UpdateStateService;
 use Dou\Core\Facade\DB;
 use Dou\Core\Facade\Zip;
+use Dou\Core\Infra\Database\DbDumpRestoreCheck;
 use Dou\Core\Service\Snapshot\SnapshotRepository;
 use Dou\Core\Service\Snapshot\SnapshotService;
 use Dou\Core\Service\Upgrade\RunLockService;
@@ -36,8 +37,8 @@ if (!defined('IN_DOUCO')) {
  *   added  模块 / 主题 / 插件域：删除升级包将新增、而快照时尚不存在的文件
  *   db     按 db/ 分卷顺序导入数据库（DB::fnExecute 为全库唯一 SQL 导入入口）
  *   cache  清模板缓存
- * begin() 前先做清单哈希验证（files.zip / 各 db 分卷的 sha256 与 manifest 比对，
- * 任何不符即拒绝还原）；整个还原过程由 {@see MaintenanceModeService} 保持维护模式，
+ * begin() 先做清单哈希和数据库兼容性校验，任何不符即拒绝还原；
+ * 整个还原过程由 {@see MaintenanceModeService} 保持维护模式，
  * 完成 / 中断恢复原值，避免站点长期停留在关闭状态。
  *
  * 独立救援脚本（rescue.php）不走本类：它必须能在框架代码损坏时运行，逻辑自带。
@@ -100,12 +101,18 @@ class RestoreService
             return array('ok' => false, 'resumed' => false, 'error' => $verifyError);
         }
 
+        $manifest = $row['manifest'];
+        try {
+            $requiresVector = $this->checkDatabaseCompatibility($dir, $manifest);
+        } catch (\RuntimeException $e) {
+            return array('ok' => false, 'resumed' => false, 'error' => $e->getMessage());
+        }
+
         $maintenance = $this->maintenance->enable('restore:' . $dirName);
         if (empty($maintenance['ok'])) {
             return array('ok' => false, 'resumed' => false, 'error' => (string) $maintenance['error']);
         }
 
-        $manifest = $row['manifest'];
         $state = array(
             'dir' => $dirName,
             'scope' => isset($manifest['scope']) ? (string) $manifest['scope'] : '',
@@ -117,6 +124,7 @@ class RestoreService
             'added_pending' => null,
             'db_index' => 0,
             'failed_statements' => 0,
+            'requires_vector' => $requiresVector,
         );
         if (@file_put_contents($dir . 'restore_state.json', json_encode($state), LOCK_EX) === false) {
             return array('ok' => false, 'resumed' => false, 'error' => $this->t('snapshot_error_state_write', '还原状态写入失败（storage/snapshot 不可写）'));
@@ -153,6 +161,17 @@ class RestoreService
         $state = $this->readState($dir);
         if ($state === null) {
             return $this->result(false, false, '', $logs, $this->t('snapshot_error_no_restore', '没有进行中的还原任务'));
+        }
+        try {
+            if (!array_key_exists('requires_vector', $state)) {
+                $state['requires_vector'] = $this->checkDatabaseCompatibility($dir, $manifest);
+            } elseif ($state['requires_vector']) {
+                // 新请求可能换用数据库连接，续跑前核对本次会话。
+                DbDumpRestoreCheck::requireVectorSupport(array(DB::getFacadeRoot(), 'query'));
+            }
+        } catch (\RuntimeException $e) {
+            $phase = isset($state['phase']) ? (string) $state['phase'] : 'files';
+            return $this->result(false, false, $phase, $logs, $e->getMessage());
         }
 
         while (true) {
@@ -510,8 +529,25 @@ class RestoreService
         if (!is_file($file)) {
             throw new \RuntimeException($this->t('snapshot_error_db_missing', '数据库分卷缺失：') . $name);
         }
-        $sql = (string) file_get_contents($file);
-        if (DB::fnExecute($sql) === false) {
+        $sql = @file_get_contents($file);
+        if ($sql === false) {
+            throw new \RuntimeException('无法读取数据库分卷：' . $name);
+        }
+        $requiresVector = !empty($state['requires_vector']);
+        if (DB::fnExecute($sql, $requiresVector) === false) {
+            if ($requiresVector) {
+                $error = '还原已中止，数据库分卷 ' . $name . ' 执行失败：' . DB::getImportFirstError();
+                if (preg_match('/^(.+\.sql)\.\d{20}\.sql$/D', $name, $firstPart)) {
+                    // 续卷可能已写入部分数据，重试时从本表首卷重新建表。
+                    $firstIndex = array_search($firstPart[1], array_column($dbFiles, 'name'), true);
+                    if ($firstIndex !== false) {
+                        $state['db_index'] = $firstIndex;
+                        $this->saveState($dir, $state);
+                    }
+                }
+                $this->appendLog($dir, $error);
+                throw new \RuntimeException($error);
+            }
             $failed = (int) DB::getImportFailedCount();
             $state['failed_statements'] = (int) $state['failed_statements'] + $failed;
             $logs[] = sprintf($this->t('snapshot_log_restore_db_failed', '分卷 %1$s 有 %2$d 条语句失败'), $name, $failed);
@@ -614,6 +650,23 @@ class RestoreService
         }
 
         return '';
+    }
+
+    /**
+     * 检查还原点的数据库分卷是否需要向量能力，以及目标连接是否支持。
+     *
+     * @param string $dir 还原点目录
+     * @param array $manifest 还原点清单
+     * @return bool 是否包含向量数据或结构
+     */
+    protected function checkDatabaseCompatibility($dir, array $manifest)
+    {
+        $files = array();
+        foreach ((array) (isset($manifest['db_files']) ? $manifest['db_files'] : array()) as $dbFile) {
+            $files[] = $dir . 'db/' . basename((string) $dbFile['name']);
+        }
+
+        return $files && DbDumpRestoreCheck::inspect($files, array(DB::getFacadeRoot(), 'query'));
     }
 
     /**

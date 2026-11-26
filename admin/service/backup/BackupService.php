@@ -19,6 +19,7 @@ use Dou\Core\Facade\Session;
 use Dou\Core\Facade\Zip;
 use Dou\Core\Foundation\Configuration\Config;
 use Dou\Core\Foundation\Exception\DomainException;
+use Dou\Core\Infra\Database\DbDumpRestoreCheck;
 use Dou\Core\Infra\Database\DbDumpService;
 use Dou\Core\Service\Admin\AdminLogAction;
 use Dou\Core\Service\BaseService;
@@ -80,14 +81,23 @@ class BackupService extends BaseService
      * 备份页：按表前缀列出库表及占用大小，供选择备份。
      *
      * @param string $prefix 表名前缀（与站点表前缀一致）
-     * @return array array('table_list' => array, 'totalsize' => int)
+     * @return array 数据表清单、实际存在的向量表清单和占用大小
      */
     public function buildTableList($prefix)
     {
         $table_list = array();
+        $vector_tables = array();
+        $vector_names = array();
+        foreach ((array) Config::get('system.backup_vector_tables', array()) as $name) {
+            $vector_names[$prefix . $name] = true;
+        }
         $totalsize = 0;
         $query = DB::query("SHOW TABLE STATUS LIKE '" . $prefix . "%'");
         while ($table = DB::fetchArray($query)) {
+            $table['vector_backup'] = isset($table['Engine'], $vector_names[$table['Name']]);
+            if ($table['vector_backup']) {
+                $vector_tables[] = $table['Name'];
+            }
             $table['checked'] = ($table['Engine'] === 'MyISAM') ? ' ' : 'disabled';
             $totalsize += $table['Data_length'] + $table['Index_length'];
             if ($table['Data_length'] > 10240) {
@@ -97,7 +107,7 @@ class BackupService extends BaseService
         }
         $totalsize = ceil($totalsize / 1024);
 
-        return array('table_list' => $table_list, 'totalsize' => $totalsize);
+        return array('table_list' => $table_list, 'vector_tables' => $vector_tables, 'totalsize' => $totalsize);
     }
 
     /**
@@ -254,6 +264,12 @@ class BackupService extends BaseService
         $showname = $filename . '.zip';
 
         if ($volid == 1) {
+            if ($act !== 'all' && is_array($tables) && $tables) {
+                $table_data = $this->buildTableList($prefix);
+                $selected = array_filter($tables, 'is_string');
+                $available = array_column($table_data['table_list'], 'Name');
+                $tables = array_values(array_intersect($selected, $available));
+            }
             // 首卷必须由请求显式给出表清单：未勾选任何表时直接回落到备份页提示，
             // 不能落进「读缓存续传」分支——缓存只在本分支校验通过后才写出，此时必然不存在
             if (!is_array($tables) || !$tables) {
@@ -348,10 +364,7 @@ class BackupService extends BaseService
             $volid++;
 
             $bakfile = STORAGE_PATH . 'backup/' . $sql_filename;
-            if (!is_writable(STORAGE_PATH . 'backup/')) {
-                throw new DomainException(lang('backup_no_save'), route('admin.backup'));
-            }
-            if (file_put_contents($bakfile, $sqldump) === false) {
+            if (@file_put_contents($bakfile, $sqldump) !== strlen($sqldump)) {
                 throw new DomainException(lang('backup_no_save'), route('admin.backup'));
             }
             @chmod($bakfile, 0777);
@@ -477,11 +490,21 @@ class BackupService extends BaseService
                     self::$restoreAllowRules, self::$restoreDeniedExtensions)) {
                     throw new DomainException(lang('backup_zip_extract_failed'), route('admin.backup.restore'));
                 }
+                $sql_files = array();
                 foreach ($package['files'] as $file) {
-                    if (!is_readable($directory . $file)) {
+                    $path = $directory . $file;
+                    if (!is_file($path)) {
                         throw new DomainException(lang('backup_zip_sql_invalid'), route('admin.backup.restore'));
                     }
+                    $sql_files[] = $path;
                 }
+                try {
+                    $state['has_vector'] = DbDumpRestoreCheck::inspect($sql_files, array(DB::getFacadeRoot(), 'query'), true);
+                } catch (\RuntimeException $e) {
+                    throw new DomainException(sprintf(lang('backup_zip_vector_check_failed'),
+                        htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8')), route('admin.backup.restore'));
+                }
+                Session::set('backup_restore', $state);
                 foreach ($package['entries'] as $entry) {
                     if (strpos($entry, 'images/') === 0 && substr($entry, -1) !== '/') {
                         if (!FileHelper::replace($directory . $entry, ROOT_PATH . $entry)) {
@@ -497,7 +520,7 @@ class BackupService extends BaseService
                 );
             }
             $volid = (int) $req['volid'];
-            if (!$state || $state['filename'] !== $filename || $volid !== $state['next']
+            if (!$state || !isset($state['has_vector']) || $state['filename'] !== $filename || $volid !== $state['next']
                 || !isset($state['files'][$volid - 1])) {
                 throw new DomainException(lang('backup_zip_state_invalid'), route('admin.backup.restore'));
             }
@@ -507,7 +530,17 @@ class BackupService extends BaseService
                 throw new DomainException(lang('backup_zip_sql_invalid'), route('admin.backup.restore'));
             }
             $failed = 0;
-            if (DB::fnExecute($sql) === false) {
+            if ($state['has_vector']) {
+                try {
+                    DbDumpRestoreCheck::requireVectorSupport(array(DB::getFacadeRoot(), 'query'));
+                    if (DB::fnExecute($sql, true) === false) {
+                        throw new \RuntimeException(DB::getImportFirstError());
+                    }
+                } catch (\RuntimeException $e) {
+                    throw new DomainException(sprintf(lang('backup_zip_vector_import_failed'), basename($file),
+                        htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8')), route('admin.backup.restore'));
+                }
+            } elseif (DB::fnExecute($sql) === false) {
                 $failed = max(1, (int) DB::getImportFailedCount());
             }
             $state['failed'] += $failed;

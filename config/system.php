@@ -15,7 +15,7 @@
 /**
  * 系统恒定常量（区别于 config/module.php 的"用户可调模块账本"）。
  *
- * 本文件承载框架层固定的模块短名清单，不随模块安装/卸载改写，由
+ * 本文件承载框架层固定配置，不随模块安装/卸载改写，由
  * {@see \Dou\Core\Service\System\SystemConstantsReader} 读取后灌入 Config 的
  * `system.*` 命名空间（与 `setting.*` 的模块账本分离）。
  */
@@ -48,4 +48,7 @@ return [
     // 后台自定义模板开关：空数组=关闭；写入槽位名则启用对应 admin/view/<槽位>.custom.htm（需自行创建该文件）。
     // 可选槽位：header / sidebar / toolbar / index（如 ['sidebar'] 用 sidebar.custom.htm 覆盖内置侧栏）
     'admin_theme_custom' => [],
+
+    // 支持向量的环境可新增向量列的表（不含前缀），手工备份页按实际存在的表提供整组勾选。
+    'backup_vector_tables' => ['chat_knowledge_chunk'],
 ];

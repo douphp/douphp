@@ -35,6 +35,8 @@ if (!defined('IN_DOUCO')) {
  * 关键时序约束（调用方必须遵守）：
  *   - 字段/表改名必须发生在标准同步（syncStandards）之前，否则旧列会被当作
  *     「标准外多余列」删除，数据丢失；
+ *   - 标准外「向量列」（DATA_TYPE=vector）与引用向量列的索引不删除：VECTOR 为 AliSQL
+ *     私有类型，标准文件无法表达维度，误删只能整表重新生成向量；
  *   - 标准文件只作为结构标准来源，其 DROP TABLE / INSERT 等内容一律忽略。
  *
  * 比对归一化（防 MySQL 版本差异导致反复 ALTER 不收敛）：
@@ -713,7 +715,7 @@ class SchemaSync
     private function introspectColumns($bare)
     {
         $table = DB::escapeString($this->actualTableName($bare));
-        $rows = DB::fnQuery("SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT, EXTRA, COLLATION_NAME, COLUMN_COMMENT, ORDINAL_POSITION"
+        $rows = DB::fnQuery("SELECT COLUMN_NAME, COLUMN_TYPE, DATA_TYPE, IS_NULLABLE, COLUMN_DEFAULT, EXTRA, COLLATION_NAME, COLUMN_COMMENT, ORDINAL_POSITION"
             . " FROM INFORMATION_SCHEMA.COLUMNS"
             . " WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '" . $table . "'"
             . " ORDER BY ORDINAL_POSITION ASC");
@@ -1086,14 +1088,19 @@ class SchemaSync
 
         // 3) 多余索引 / 定义不符索引：先删（避免后续删列时索引悬挂）
         $indexOps = array('drop' => array(), 'add' => array());
-        $this->diffIndexes($model, $curIndexes, $indexOps);
+        $this->diffIndexes($model, $curIndexes, $indexOps, $curColumns);
         foreach ($indexOps['drop'] as $sql) {
             $this->exec($sql);
         }
 
-        // 4) 多余列删除
+        // 4) 多余列删除（向量列例外：VECTOR 为 AliSQL 私有类型，标准文件无法表达维度，
+        //    删除后只能整表重新生成向量，故标准外向量列一律保留）
         foreach (array_keys($curColumns) as $colName) {
             if (!isset($stdColumns[$colName])) {
+                if ($this->isVectorColumn($curColumns[$colName])) {
+                    $this->log('保留向量列（标准外，不删除）：' . $actual . '.' . $curColumns[$colName]['COLUMN_NAME']);
+                    continue;
+                }
                 $this->exec('ALTER TABLE ' . $actual . ' DROP `' . $curColumns[$colName]['COLUMN_NAME'] . '`');
             }
         }
@@ -1289,9 +1296,10 @@ class SchemaSync
      * @param array $model
      * @param array $curIndexes 现网索引（小写名 => array(unique,columns)）
      * @param array $ops 按引用：array('drop' => array(), 'add' => array())
+     * @param array $curColumns 现网列（用于识别向量列，保护其索引不删）
      * @return void
      */
-    private function diffIndexes($model, $curIndexes, array &$ops)
+    private function diffIndexes($model, $curIndexes, array &$ops, array $curColumns = array())
     {
         $actual = DB::tableName($model['name']);
         $stdIndexes = array();
@@ -1304,9 +1312,22 @@ class SchemaSync
             );
         }
 
+        // 向量列清单：引用向量列的索引一律保留（标准文件无法表达 VECTOR INDEX，
+        // 删除后只能重建索引，代价大且非 inplace）
+        $vectorColumns = array();
+        foreach ($curColumns as $name => $row) {
+            if ($this->isVectorColumn($row)) {
+                $vectorColumns[$name] = true;
+            }
+        }
+
         // 多余索引 与 定义不符索引 -> drop
         foreach ($curIndexes as $key => $cur) {
             if (!isset($stdIndexes[$key])) {
+                if ($this->indexUsesVectorColumn($cur, $vectorColumns)) {
+                    $this->log('保留向量索引（标准外，不删除）：' . $actual . '.' . $cur['name']);
+                    continue;
+                }
                 $ops['drop'][] = ($key === 'primary')
                     ? 'ALTER TABLE ' . $actual . ' DROP PRIMARY KEY'
                     : 'ALTER TABLE ' . $actual . ' DROP INDEX `' . $curIndexes[$key]['name'] . '`';
@@ -1314,6 +1335,10 @@ class SchemaSync
             }
             $std = $stdIndexes[$key];
             if ($std['unique'] !== $cur['unique'] || $std['columns'] !== $this->normalizeIndexColumns($cur['columns'])) {
+                if ($this->indexUsesVectorColumn($cur, $vectorColumns)) {
+                    $this->log('保留向量索引（定义不符，不重建）：' . $actual . '.' . $cur['name']);
+                    continue;
+                }
                 $ops['drop'][] = ($key === 'primary')
                     ? 'ALTER TABLE ' . $actual . ' DROP PRIMARY KEY'
                     : 'ALTER TABLE ' . $actual . ' DROP INDEX `' . $curIndexes[$key]['name'] . '`';
@@ -1338,6 +1363,43 @@ class SchemaSync
                 $ops['add'][] = 'ALTER TABLE ' . $actual . ' ADD KEY `' . $std['name'] . '` (' . $colText . ')';
             }
         }
+    }
+
+    /**
+     * 是否为向量列（AliSQL VECTOR 私有类型，DATA_TYPE=vector）。
+     *
+     * @param array $row INFORMATION_SCHEMA.COLUMNS 行
+     * @return bool
+     */
+    private function isVectorColumn(array $row)
+    {
+        if (isset($row['DATA_TYPE']) && strtolower((string) $row['DATA_TYPE']) === 'vector') {
+            return true;
+        }
+        // 兜底：调用方未取 DATA_TYPE 时按 COLUMN_TYPE 前缀判断（vector(1024)）
+        return isset($row['COLUMN_TYPE']) && stripos(ltrim((string) $row['COLUMN_TYPE']), 'vector(') === 0;
+    }
+
+    /**
+     * 索引是否引用向量列。
+     *
+     * @param array $index introspectIndexes 单条索引（含 columns）
+     * @param array $vectorColumns 小写向量列名 => true
+     * @return bool
+     */
+    private function indexUsesVectorColumn(array $index, array $vectorColumns)
+    {
+        if (!$vectorColumns || empty($index['columns'])) {
+            return false;
+        }
+        foreach ((array) $index['columns'] as $col) {
+            $name = strtolower(isset($col['col']) ? (string) $col['col'] : '');
+            if ($name !== '' && isset($vectorColumns[$name])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

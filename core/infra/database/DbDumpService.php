@@ -24,7 +24,7 @@ if (!defined('IN_DOUCO')) {
 }
 
 /**
- * 数据库导出引擎（分卷 / 快照双通道共用单一来源）。
+ * 数据库导出引擎（后台备份、升级快照及独立备份共用）。
  *
  * 2026-10 从 admin/service/backup/BackupService 抽出：备份模块（分卷备份）与
  * 升级快照（storage/snapshot）此前是两套潜在实现，抽取后由本类统一提供
@@ -38,6 +38,9 @@ if (!defined('IN_DOUCO')) {
  */
 class DbDumpService
 {
+    /** @var Connection|null */
+    private $connection;
+
     /**
      * 分卷安全余量上限（字节）。
      *
@@ -48,36 +51,72 @@ class DbDumpService
     const VOLUME_SAFETY_MARGIN = 16384;
 
     /**
+     * 使用现有数据库连接，独立备份可在站点引导之外调用。
+     *
+     * @param Connection|null $connection 数据库连接，留空时使用站点门面连接
+     */
+    public function __construct($connection = null)
+    {
+        $this->connection = $connection;
+    }
+
+    /**
      * 单表分块导出（续传依赖返回的 next_startrow / complete）。
      *
      * @param string $table 表名（已含前缀）
      * @param int $startfrom 起始行偏移
      * @param int $currsize 本块已写入字节数（预算判定用）
      * @param int $budgetBytes 本块字节预算；<=0 时按 2048KB 分卷推算
-     * @return array array('sql' => string, 'next_startrow' => int, 'complete' => bool)
-     *               sql 为空串表示本块剩余空间连表头都放不下，整表留给下一块
+     * @return array SQL、下一行偏移、表是否完成及是否含向量列。SQL 为空串时留给下一块
      * @throws DomainException 表名不合法时抛出
+     * @throws \RuntimeException 表结构或数据读取失败时抛出
      */
     public function dumpTable($table, $startfrom = 0, $currsize = 0, $budgetBytes = 0)
     {
         if (!Check::tableName($table)) {
-            throw new DomainException(lang('illegal'));
+            throw new DomainException(function_exists('lang') ? lang('illegal') : '备份表名不合法。');
         }
 
         if ($budgetBytes <= 0) {
             $budgetBytes = self::volumeBudgetBytes(2048);
         }
         $budget = $budgetBytes;
+        $db = $this->connection !== null ? $this->connection : DB::getFacadeRoot();
+        $startfrom = max(0, (int) $startfrom);
+        $columns = $this->readColumns($db, $table);
+        $select = '*';
+        $order = '';
+        $vectorFields = array();
+        $insert = "INSERT INTO $table VALUES(";
+        foreach ($columns as $column) {
+            if (strtolower($column['data_type']) === 'vector') {
+                $projection = $this->vectorProjection($columns);
+                $select = $projection['select'];
+                $order = $projection['order'];
+                $vectorFields = $projection['vector_fields'];
+                $insert = 'INSERT INTO `' . $table . '` (' . $projection['columns'] . ') VALUES(';
+                break;
+            }
+        }
+        $requiresVector = !empty($vectorFields);
+        $defer = array('sql' => '', 'next_startrow' => $startfrom, 'complete' => false, 'requires_vector' => $requiresVector);
 
         $tabledump = '';
         $offset = 100;
         if (!$startfrom) {
-            $tabledump = "DROP TABLE IF EXISTS `$table`;\n";
-            $createtable = DB::query("SHOW CREATE TABLE $table");
-            $create = DB::fetchArray($createtable, MYSQLI_NUM);
+            if ($requiresVector) {
+                $tabledump = DbDumpRestoreCheck::VECTOR_MARKER . $table . "\n";
+            }
+            $tabledump .= "DROP TABLE IF EXISTS `$table`;\n";
+            $createtable = $db->query("SHOW CREATE TABLE `$table`");
+            $create = $createtable ? $db->fetchArray($createtable, MYSQLI_NUM) : false;
+            if (empty($create[1])) {
+                throw new \RuntimeException('读取备份表结构失败：' . $table);
+            }
+            $db->freeResult($createtable);
             $tabledump .= $create[1] . ";\n\n";
-            if (DbVersion::isAtLeast(DB::version(), '4.1') && DB::charset()) {
-                $tabledump = preg_replace("/(DEFAULT)*\s*CHARSET=[a-zA-Z0-9]+/", "DEFAULT CHARSET=" . DB::charset(), $tabledump);
+            if (DbVersion::isAtLeast($db->version(), '4.1') && $db->charset()) {
+                $tabledump = preg_replace("/(DEFAULT)*\s*CHARSET=[a-zA-Z0-9]+/", "DEFAULT CHARSET=" . $db->charset(), $tabledump);
             }
             // 导出侧字符集归一（表级+列级）：utf8mb4_0900_* 与 utf8mb3 是 MySQL 8.0+ 服务器
             // SHOW CREATE TABLE 的输出格式，低版本（5.7 等）导入会失败；统一归一为全版本可导形式。
@@ -87,37 +126,44 @@ class DbDumpService
             $tabledump = str_replace('utf8mb3', 'utf8', $tabledump);
             // 本块剩余空间连表头都放不下：整表留给下一块，避免文件被表头推过预算
             if ($currsize > 0 && $currsize + strlen($tabledump) > $budget) {
-                return array('sql' => '', 'next_startrow' => 0, 'complete' => false);
+                return $defer;
             }
         }
-        $tabledumped = 0;
+        $firstBatch = true;
+        $blockRows = 0;
         $numrows = $offset;
         $complete = false;
-        // !$tabledumped 兜底：预算再紧也至少尝试读一批数据，保证表有数据时能推进
-        while ($numrows == $offset && ($currsize + strlen($tabledump) < $budget || !$tabledumped)) {
-            $tabledumped = 1;
-            $rows = DB::query("SELECT * FROM $table LIMIT $startfrom, $offset");
-            $numfields = DB::numFields($rows);
-            $numrows = DB::numRows($rows);
+        while ($numrows == $offset && ($firstBatch || $currsize + strlen($tabledump) < $budget)) {
+            $firstBatch = false;
+            $rows = $db->query("SELECT $select FROM `$table`$order LIMIT $startfrom, $offset");
+            if ($rows === false) {
+                throw new \RuntimeException('读取备份表数据失败：' . $table);
+            }
+            $numfields = $db->numFields($rows);
+            $numrows = $db->numRows($rows);
             $fieldTypes = self::fetchFieldTypes($rows);
             $written = 0;
-            while ($row = DB::fetchArray($rows, MYSQLI_NUM)) {
-                $comma = "";
-                $rowdump = "INSERT INTO $table VALUES(";
+            while ($row = $db->fetchArray($rows, MYSQLI_NUM)) {
+                $values = array();
                 for ($i = 0; $i < $numfields; $i++) {
-                    $rowdump .= $comma . self::formatDumpValue($row[$i], isset($fieldTypes[$i]) ? $fieldTypes[$i] : null);
-                    $comma = ",";
+                    $value = self::formatDumpValue($row[$i], isset($fieldTypes[$i]) ? $fieldTypes[$i] : null, $db);
+                    $values[] = isset($vectorFields[$i]) && $row[$i] !== null ? 'VEC_FROMTEXT(' . $value . ')' : $value;
                 }
-                $rowdump .= ");\n";
-                // 逐行控制在预算内：该行放不下就留给下一块（首行例外，避免死循环）
-                if ($written > 0 && $currsize + strlen($tabledump) + strlen($rowdump) > $budget) {
+                $rowdump = $insert . implode(',', $values) . ");\n";
+                // 空卷允许首行超过预算。已有数据的卷把放不下的行留给下一卷。
+                if (($currsize > 0 || $blockRows > 0) && $currsize + strlen($tabledump) + strlen($rowdump) > $budget) {
                     break;
                 }
                 $tabledump .= $rowdump;
                 $written++;
+                $blockRows++;
             }
+            $db->freeResult($rows);
             $startfrom += $written;
             if ($written < $numrows) {
+                if ($blockRows === 0) {
+                    return $defer;
+                }
                 break;
             }
             // 本批不足一批（含空表返回 0 行）说明已读到表尾，整表导完
@@ -127,7 +173,71 @@ class DbDumpService
         }
         $tabledump .= "\n";
 
-        return array('sql' => $tabledump, 'next_startrow' => $startfrom, 'complete' => $complete);
+        return array('sql' => $tabledump, 'next_startrow' => $startfrom, 'complete' => $complete, 'requires_vector' => $requiresVector);
+    }
+
+    /**
+     * 获取当前数据库表的列定义，按表内列顺序返回。
+     *
+     * @param Connection $db 备份数据库连接
+     * @param string $table 表名（已含前缀）
+     * @return array 列名、类型、生成列标记和主键信息
+     */
+    private function readColumns($db, $table)
+    {
+        $name = "'" . $db->escapeString($table) . "'";
+        $result = $db->query('SELECT COLUMN_NAME AS column_name, DATA_TYPE AS data_type, EXTRA AS extra, COLUMN_KEY AS column_key'
+            . ' FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND BINARY TABLE_SCHEMA = BINARY DATABASE()'
+            . " AND TABLE_NAME = $name AND BINARY TABLE_NAME = BINARY $name ORDER BY ORDINAL_POSITION");
+        $columns = array();
+        if ($result) {
+            while ($column = $db->fetchAssoc($result)) {
+                $columns[] = $column;
+            }
+            $db->freeResult($result);
+        }
+        if (!$columns) {
+            throw new \RuntimeException('读取备份表列信息失败：' . $table);
+        }
+
+        return $columns;
+    }
+
+    /**
+     * 向量表显式投影可写列，向量转换为文本，并按主键保持各分卷的顺序。
+     *
+     * @param array $columns 按位置排列的表列信息
+     * @return array SELECT 列、排序、INSERT 列和向量列位置
+     */
+    private function vectorProjection(array $columns)
+    {
+        $names = array();
+        $select = array();
+        $primary = array();
+        $vectorFields = array();
+        foreach ($columns as $column) {
+            $name = '`' . str_replace('`', '``', $column['column_name']) . '`';
+            if ($column['column_key'] === 'PRI') {
+                $primary[] = $name;
+            }
+            if (preg_match('/\b(?:VIRTUAL|STORED) GENERATED\b/i', $column['extra'])) {
+                continue;
+            }
+            $names[] = $name;
+            if (strtolower($column['data_type']) === 'vector') {
+                $vectorFields[count($select)] = true;
+                $select[] = 'VEC_TOTEXT(' . $name . ')';
+            } else {
+                $select[] = $name;
+            }
+        }
+
+        return array(
+            'columns' => implode(', ', $names),
+            'select' => implode(', ', $select),
+            'order' => $primary ? ' ORDER BY ' . implode(', ', $primary) : '',
+            'vector_fields' => $vectorFields,
+        );
     }
 
     /**
@@ -230,9 +340,10 @@ class DbDumpService
      *
      * @param mixed $value 字段值
      * @param int|null $type mysqli 字段类型（未知时传 null）
+     * @param Connection $db 备份数据库连接
      * @return string SQL 字面量
      */
-    protected static function formatDumpValue($value, $type)
+    protected static function formatDumpValue($value, $type, $db)
     {
         if ($value === null) {
             return 'NULL';
@@ -242,7 +353,7 @@ class DbDumpService
             return 'NULL';
         }
 
-        return "'" . DB::escapeString($value) . "'";
+        return "'" . $db->escapeString($value) . "'";
     }
 
     /**

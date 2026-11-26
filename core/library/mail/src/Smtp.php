@@ -323,6 +323,19 @@ $this->edebug(
         // Get any announcement
         $announce = $this->get_lines();
         $this->edebug('SERVER -> CLIENT: ' . $announce, self::DEBUG_SERVER);
+        // 一个 SMTP 会话必须以 220 欢迎语开始。收不到说明对端在应用层已经断开，最典型的
+        // 场景是明文连接 465 这类隐式 SSL 端口（服务端等的是 TLS ClientHello，收到明文
+        // EHLO 后直接关闭）。此处必须判定连接失败，否则后续 EHLO 的 EOF 会被一路误报成
+        // 「认证失败」，最终只剩 SMTP connect() failed 这句通用提示。
+        if (substr($announce, 0, 3) !== '220') {
+            $this->setError(
+                'Failed to connect to server: no 220 banner received'
+                . ' (the port may require implicit SSL/TLS)',
+                trim($announce)
+            );
+            $this->edebug('SMTP ERROR: ' . $this->error['error'], self::DEBUG_CLIENT);
+            return false;
+        }
         return true;
     }
 
@@ -694,7 +707,24 @@ $this->edebug(
     public function hello($host = '')
     {
         //Try extended hello first (RFC 2821)
-        return (bool)($this->sendHello('EHLO', $host) or $this->sendHello('HELO', $host));
+        if ($this->sendHello('EHLO', $host)) {
+            return true;
+        }
+        // 对端在 EHLO 阶段就断开时，后续 HELO 只会把错误覆盖成「Called HELO without
+        // being connected」，丢失更具体的失败原因；这里留存 EHLO 的错误，HELO 也失败时回填。
+        $ehloError = $this->error;
+        if ($this->sendHello('HELO', $host)) {
+            return true;
+        }
+        if (!empty($ehloError['error'])) {
+            $this->setError(
+                $ehloError['error'],
+                $ehloError['detail'],
+                $ehloError['smtp_code'],
+                $ehloError['smtp_code_ex']
+            );
+        }
+        return false;
     }
 
     /**

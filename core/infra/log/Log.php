@@ -158,12 +158,25 @@ class Log
 
     /**
      * 初始化日志路径
+     *
+     * STORAGE_PATH 由 core/bootstrap.php 定义；install / upgrade 等自举入口未必经过
+     * bootstrap，未定义时按 ROOT_PATH . 'storage/' 回退，二者皆不可得时置空表示不落盘。
      */
     protected static function initPath()
     {
-        if (static::$logPath === null) {
-            static::$logPath = STORAGE_PATH . 'log/';
+        if (static::$logPath !== null) {
+            return;
         }
+
+        if (defined('STORAGE_PATH')) {
+            $base = STORAGE_PATH;
+        } elseif (defined('ROOT_PATH')) {
+            $base = ROOT_PATH . 'storage/';
+        } else {
+            $base = '';
+        }
+
+        static::$logPath = $base === '' ? '' : rtrim($base, '/\\') . '/log/';
     }
 
     /**
@@ -330,15 +343,19 @@ class Log
         }
 
         static::initPath();
+        if (static::$logPath === '') {
+            return;
+        }
 
+        // 日志是旁路能力：目录不可写时静默放弃本次落盘，不能因为写日志把主流程一起打断。
         if (!is_dir(static::$logPath)) {
-            mkdir(static::$logPath, 0777, true);
+            @mkdir(static::$logPath, 0777, true);
         }
 
         $message = static::formatMessage($level, $message, $context);
         $file = static::$logPath . 'log_' . date('Y-m-d') . '.log';
 
-        file_put_contents($file, $message . PHP_EOL, FILE_APPEND | LOCK_EX);
+        @file_put_contents($file, $message . PHP_EOL, FILE_APPEND | LOCK_EX);
     }
 
     /**
@@ -637,13 +654,32 @@ class Log
     }
 
     /**
+     * 安全读取会话值
+     *
+     * 容器未绑定 Session 时（install / upgrade 早期）facade 会抛异常；日志是旁路能力，
+     * 探测失败只回退默认值，不能把可容忍的写日志放大成 fatal。
+     *
+     * @param string $key
+     * @param mixed $default
+     * @return mixed
+     */
+    protected static function sessionValue($key, $default = 0)
+    {
+        try {
+            return Session::get($key, $default);
+        } catch (\Exception $e) {
+            return $default;
+        }
+    }
+
+    /**
      * 探测当前会员 ID
      *
      * @return int
      */
     protected static function detectUserId()
     {
-        return (int) Session::get('user_id', 0);
+        return (int) static::sessionValue('user_id', 0);
     }
 
     /**
@@ -653,7 +689,7 @@ class Log
      */
     protected static function detectAdminId()
     {
-        return (int) Session::get('admin_id', 0);
+        return (int) static::sessionValue('admin_id', 0);
     }
 
     /**
@@ -663,7 +699,7 @@ class Log
      */
     protected static function detectWorkId()
     {
-        return (int) Session::get('work_id', 0);
+        return (int) static::sessionValue('work_id', 0);
     }
 
     /**
@@ -792,19 +828,29 @@ class Log
     public static function clean($keepDays = 30)
     {
         static::initPath();
+        if (static::$logPath === '') {
+            return;
+        }
         static::cleanDailyLogFilesInDir(static::$logPath, $keepDays);
     }
 
     /**
-     * 清理 storage/log/front、admin、api 三端目录下的按日日志（不处理根目录）
+     * 清理 storage/log 下各端目录的按日日志（不处理根目录）
+     *
+     * front / admin / api 为站点运行端；install / upgrade / doubak 为独立自举入口，
+     * _update 为云升级通道；各自经 {@see setPath()} 落到同名子目录，此处一并纳入保留策略。
      *
      * @param int $keepDays 保留最近 N 天的日志，0 表示全部删除
      * @return void
      */
     public static function cleanRuntimeDirs($keepDays)
     {
+        if (!defined('STORAGE_PATH')) {
+            return;
+        }
+
         $base = STORAGE_PATH . 'log/';
-        foreach (array('front', 'admin', 'api') as $shell) {
+        foreach (array('front', 'admin', 'api', 'install', 'upgrade', 'doubak', '_update') as $shell) {
             static::cleanDailyLogFilesInDir($base . $shell . '/', $keepDays);
         }
     }

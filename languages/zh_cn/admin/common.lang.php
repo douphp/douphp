@@ -650,6 +650,9 @@ $_LANG['backup_sql_filesize'] = '大小';
 $_LANG['backup_sql_maketime'] = '备份日期';
 $_LANG['backup_sql_pre'] = '导入';
 $_LANG['backup_table_name'] = '数据表名';
+$_LANG['backup_vector_table_group'] = '向量表组';
+$_LANG['backup_include_vector_tables'] = '包含可存储向量的表';
+$_LANG['backup_include_vector_tables_cue'] = '批量勾选或取消向量表组，也可以逐表调整。导入 MySQL 5.7 时可取消勾选。';
 $_LANG['backup_table_engine'] = '类型';
 $_LANG['backup_table_rows'] = '记录数';
 $_LANG['backup_data_length'] = '数据';
@@ -682,6 +685,8 @@ $_LANG['backup_zip_sql_invalid'] = 'ZIP 必须包含一套独立 SQL 或从第 1
 $_LANG['backup_zip_extract_failed'] = 'ZIP 备份解压失败，请检查备份内容、目录权限及可用空间';
 $_LANG['backup_zip_asset_failed'] = '资源文件还原失败，数据库尚未导入，请检查资源目录写入权限';
 $_LANG['backup_zip_state_invalid'] = '还原进度已失效或卷号不正确，请重新从 ZIP 备份开始还原';
+$_LANG['backup_zip_vector_check_failed'] = '备份兼容性检查未通过，尚未还原数据和资源。%s';
+$_LANG['backup_zip_vector_import_failed'] = '含向量的备份在还原 %1$s 时失败，已停止。之前已执行的修改可能已生效，原备份仍可下载。数据库错误为 %2$s';
 
 // 排序
 $_LANG['sort_sales'] = '销量';

@@ -14,6 +14,7 @@
 
 namespace Dou\Install\Service;
 
+use Dou\Core\Service\Config\ConfigFileTemplate;
 use Dou\Core\Support\Str;
 
 if (!defined('IN_DOUCO')) {
@@ -43,8 +44,8 @@ class ConfigWriterService
     /**
      * 写入 config.php。
      *
-     * 视觉版式与 upgrade/service/ConfigUpdateService::writeConfigPhp、_update/action.php
-     * "修改 config 文件内容" 段落三处保持一致；如需改动请三处同步修改，以免 drift。
+     * 版式由 {@see ConfigFileTemplate} 统一渲染（与 upgrade/_update 的 config.php 基线一致），
+     * 本类只负责取值与默认值，不再自带模板，避免多处模板漂移。
      *
      * @param array $data 必填：dbhost/dbname/dbuser/dbpass/prefix；可选：charset/system_sign/admin_dir/api_dir/miniprogram_dir/admin_rewrite/app_key/dou_debug
      * @return bool
@@ -68,75 +69,22 @@ class ConfigWriterService
         }
         $debug = isset($data['dou_debug']) ? (bool) $data['dou_debug'] : false;
 
-        $config_str = "<?php\r\n";
-        $config_str .= "/**\r\n";
-        $config_str .= " * DouPHP®\r\n";
-        $config_str .= " * ------------------------------------------------------------------------------------\r\n";
-        $config_str .= " * Copyright (c) 2013-2026 漳州豆壳网络科技有限公司 (DouCo® Co.,Ltd.)\r\n";
-        $config_str .= " *\r\n";
-        $config_str .= " * 本软件基于 MIT 协议开源发布，完整协议文本见项目根目录 LICENSE 文件。\r\n";
-        $config_str .= " * 网站地址：http://www.douphp.com\r\n";
-        $config_str .= " * ------------------------------------------------------------------------------------\r\n";
-        $config_str .= " * Author: DouCo Co.,Ltd.\r\n";
-        $config_str .= " * Release Date: 2026-09-08\r\n";
-        $config_str .= " */\r\n\r\n";
+        $content = ConfigFileTemplate::render(array(
+            'dbhost' => $dbhost,
+            'dbname' => $dbname,
+            'dbuser' => $dbuser,
+            'dbpass' => $dbpass,
+            'prefix' => $prefix,
+            'charset' => $charset,
+            'system_sign' => $systemSign,
+            'admin_dir' => $adminDir,
+            'api_dir' => $apiDir,
+            'miniprogram_dir' => $miniprogramDir,
+            'admin_rewrite' => $adminRewrite,
+            'app_key' => $appKey,
+            'dou_debug' => $debug,
+        ));
 
-        $config_str .= "// database host\r\n";
-        $config_str .= "\$dbhost   = '" . $this->sanitize($dbhost) . "';\r\n\r\n";
-
-        $config_str .= "// database name\r\n";
-        $config_str .= "\$dbname   = '" . $this->sanitize($dbname) . "';\r\n\r\n";
-
-        $config_str .= "// database username\r\n";
-        $config_str .= "\$dbuser   = '" . $this->sanitize($dbuser) . "';\r\n\r\n";
-
-        $config_str .= "// database password\r\n";
-        $config_str .= "\$dbpass   = '" . $this->sanitize($dbpass) . "';\r\n\r\n";
-
-        $config_str .= "// table prefix\r\n";
-        $config_str .= "\$prefix   = '" . $this->sanitize($prefix) . "';\r\n\r\n";
-
-        $config_str .= "// charset\r\n";
-        $config_str .= "define('DOU_CHARSET', '" . $this->sanitize($charset) . "');\r\n\r\n";
-
-        $config_str .= "// system sign\r\n";
-        $config_str .= "define('SYSTEM_SIGN', '" . $this->sanitize($systemSign) . "');\r\n\r\n";
-
-        $config_str .= "// administrator dir\r\n";
-        $config_str .= "define('ADMIN_DIR', isset(\$admining) ? \$admining : '" . $this->sanitize($adminDir) . "');\r\n\r\n";
-
-        $config_str .= "// api dir\r\n";
-        $config_str .= "define('API_DIR', '" . $this->sanitize($apiDir) . "');\r\n\r\n";
-
-        $config_str .= "// miniprogram dir\r\n";
-        $config_str .= "define('MINIPROGRAM_DIR', '" . $this->sanitize($miniprogramDir) . "');\r\n\r\n";
-
-        $config_str .= "// admin URL rewrite\r\n";
-        $config_str .= "define('ADMIN_REWRITE', " . ($adminRewrite ? 'true' : 'false') . ");\r\n\r\n";
-
-        $config_str .= "// application secret\r\n";
-        $config_str .= "define('DOU_APP_KEY', '" . $this->sanitize($appKey) . "');\r\n\r\n";
-
-        $config_str .= "// debug flag\r\n";
-        $config_str .= "define('DOU_DEBUG', " . ($debug ? 'true' : 'false') . ");\r\n\r\n";
-
-        $config_str .= "?>";
-
-        return file_put_contents($this->configPath, $config_str) !== false;
-    }
-
-    /**
-     * 过滤掉单引号与反斜杠，防止破坏 PHP 字符串字面量。
-     *
-     * @param mixed $value
-     * @return string
-     */
-    private function sanitize($value)
-    {
-        if (!is_string($value)) {
-            $value = (string) $value;
-        }
-        $value = str_replace(array("\r", "\n"), '', $value);
-        return addcslashes($value, "\\'");
+        return file_put_contents($this->configPath, $content) !== false;
     }
 }

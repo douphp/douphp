@@ -717,7 +717,7 @@ class Xss
             return '';
         }
         if (function_exists('mb_convert_encoding')) {
-            return mb_convert_encoding('&#' . intval($code) . ';', 'UTF-8', 'HTML-ENTITIES');
+            return mb_decode_numericentity('&#' . intval($code) . ';', array(0x0, 0x10FFFF, 0, 0x1FFFFF), 'UTF-8');
         }
         if ($code < 128) {
             return chr($code);
